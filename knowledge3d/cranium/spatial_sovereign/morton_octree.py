@@ -7,12 +7,30 @@ from __future__ import annotations
 
 import ctypes
 from pathlib import Path
-from typing import Optional, Tuple
-
-import numpy as np
+from typing import Iterable, Optional, Tuple
 
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as ModularRPNEngine
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
+from knowledge3d.cranium.spatial_sovereign.frustum import UInt32Vector
+
+
+def _u32_buffer(values: Iterable[int]) -> ctypes.Array:
+    items = [int(value) for value in values]
+    return (ctypes.c_uint32 * len(items))(*items)
+
+
+def _u16_buffer(values: Iterable[int]) -> ctypes.Array:
+    items = [int(value) for value in values]
+    return (ctypes.c_uint16 * len(items))(*items)
+
+
+def _vector3(values: object) -> tuple[float, float, float]:
+    tensor = HostTensorF32.from_array_like(values)
+    flat = tensor.to_flat_list()
+    if len(flat) != 3:
+        raise ValueError(f"Expected 3 values, received {len(flat)}")
+    return (flat[0], flat[1], flat[2])
 
 
 class MortonOctreeSovereign:
@@ -31,13 +49,13 @@ class MortonOctreeSovereign:
         self._refine_kernel = loader.get_function(self._module, "refine_query_euclidean")
 
         self._rpn = ModularRPNEngine()
-        self._gt_program = np.array([0x0000, 0x0001, 0x0028], dtype=np.uint16)  # LIT a, LIT b, GT
-        self._dummy_vectors = np.zeros((1, 3), dtype=np.float32)
+        self._gt_program = _u16_buffer([0x0000, 0x0001, 0x0028])  # LIT a, LIT b, GT
+        self._dummy_vectors = HostTensorF32.zeros(1, 3)
 
-        self._last_bounds: Optional[Tuple[np.ndarray, np.ndarray]] = None
-        self._last_positions: Optional[np.ndarray] = None
-        self._last_sorted_codes: Optional[np.ndarray] = None
-        self._last_sorted_indices: Optional[np.ndarray] = None
+        self._last_bounds: Optional[Tuple[tuple[float, float, float], tuple[float, float, float]]] = None
+        self._last_positions: Optional[HostTensorF32] = None
+        self._last_sorted_codes: Optional[UInt32Vector] = None
+        self._last_sorted_indices: Optional[UInt32Vector] = None
         self._d_positions = None
         self._d_sorted_codes = None
         self._d_sorted_indices = None
@@ -56,29 +74,37 @@ class MortonOctreeSovereign:
     # ------------------------------------------------------------------
     # Core Morton functionality
     # ------------------------------------------------------------------
-    def encode(self, points: np.ndarray) -> np.ndarray:
+    def encode(self, points: object) -> UInt32Vector:
         """Encode points into Morton codes using the sovereign PTX kernel."""
-        pts = np.ascontiguousarray(points, dtype=np.float32)
+        pts = HostTensorF32.from_array_like(points)
         if pts.ndim != 2 or pts.shape[1] != 3:
             raise ValueError(f"Points must have shape (N, 3); received {pts.shape}")
 
         n = pts.shape[0]
         if n == 0:
-            self._last_bounds = (np.zeros(3, dtype=np.float32), np.zeros(3, dtype=np.float32))
-            return np.zeros(0, dtype=np.uint32)
+            self._last_bounds = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+            return UInt32Vector()
 
-        mins = pts.min(axis=0)
-        maxs = pts.max(axis=0)
-        extents = np.maximum(maxs - mins, 1e-6)
-        max_extent = float(extents.max())
+        mins = [float("inf"), float("inf"), float("inf")]
+        maxs = [float("-inf"), float("-inf"), float("-inf")]
+        for row in range(n):
+            point = pts[row]
+            for axis in range(3):
+                value = float(point[axis])
+                if value < mins[axis]:
+                    mins[axis] = value
+                if value > maxs[axis]:
+                    maxs[axis] = value
+        extents = [max(maxs[axis] - mins[axis], 1e-6) for axis in range(3)]
+        max_extent = max(extents)
 
-        codes = np.zeros(n, dtype=np.uint32)
+        codes = (ctypes.c_uint32 * n)()
 
         d_points = loader.gpu_malloc(pts.nbytes)
-        d_codes = loader.gpu_malloc(codes.nbytes)
+        d_codes = loader.gpu_malloc(ctypes.sizeof(codes))
 
         try:
-            loader.memcpy_htod(d_points, ctypes.c_void_p(pts.ctypes.data), pts.nbytes)
+            loader.memcpy_htod(d_points, ctypes.c_void_p(pts.data_ptr), pts.nbytes)
 
             threads = self.block_size
             blocks = (n + threads - 1) // threads
@@ -91,43 +117,47 @@ class MortonOctreeSovereign:
                     d_points,
                     ctypes.c_uint32(n),
                     d_codes,
-                    ctypes.c_float(mins[0]),
-                    ctypes.c_float(mins[1]),
-                    ctypes.c_float(mins[2]),
+                    ctypes.c_float(float(mins[0])),
+                    ctypes.c_float(float(mins[1])),
+                    ctypes.c_float(float(mins[2])),
                     ctypes.c_float(max_extent),
                 ],
             )
             loader.synchronize()
 
-            loader.memcpy_dtoh(ctypes.c_void_p(codes.ctypes.data), d_codes, codes.nbytes)
+            loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(codes)), d_codes, ctypes.sizeof(codes))
         finally:
             loader.gpu_free(d_points)
             loader.gpu_free(d_codes)
 
-        self._last_bounds = (mins.astype(np.float32), maxs.astype(np.float32))
-        return codes
+        self._last_bounds = (
+            (float(mins[0]), float(mins[1]), float(mins[2])),
+            (float(maxs[0]), float(maxs[1]), float(maxs[2])),
+        )
+        return UInt32Vector(int(codes[idx]) for idx in range(n))
 
-    def sort(self, morton_codes: np.ndarray, return_indices: bool = False):
+    def sort(self, morton_codes: object, return_indices: bool = False):
         """Sort Morton codes using RPN-powered compare-swaps."""
-        codes = np.ascontiguousarray(morton_codes, dtype=np.uint32)
-        n = codes.size
+        codes_list = [int(value) for value in morton_codes]
+        n = len(codes_list)
         if n == 0:
             if return_indices:
-                return codes.copy(), np.zeros(0, dtype=np.uint32)
-            return codes.copy()
+                return UInt32Vector(), UInt32Vector()
+            return UInt32Vector()
 
         # Bind-time ordering must scale to the full GPU Galaxy table.
-        order = np.argsort(codes, kind="mergesort").astype(np.uint32, copy=False)
-        values = codes[order]
+        indexed = sorted(range(n), key=lambda idx: codes_list[idx])
+        order = UInt32Vector(indexed)
+        values = UInt32Vector(codes_list[idx] for idx in indexed)
 
         if return_indices:
             return values, order
         return values
 
-    def build_tree(self, points: np.ndarray):
+    def build_tree(self, points: object):
         """Build Morton tree by encoding then sorting points."""
-        pts = np.ascontiguousarray(points, dtype=np.float32)
-        codes = self.encode(points)
+        pts = HostTensorF32.from_array_like(points)
+        codes = self.encode(pts)
         sorted_codes, order = self.sort(codes, return_indices=True)
 
         self._upload_query_index(
@@ -138,8 +168,8 @@ class MortonOctreeSovereign:
         self._stats = {
             "status": "built",
             "node_count": int(sorted_codes.size),
-            "morton_min": int(sorted_codes.min()) if sorted_codes.size else 0,
-            "morton_max": int(sorted_codes.max()) if sorted_codes.size else 0,
+            "morton_min": int(sorted_codes.min(initial=0)) if sorted_codes.size else 0,
+            "morton_max": int(sorted_codes.max(initial=0)) if sorted_codes.size else 0,
         }
 
         return {
@@ -151,12 +181,12 @@ class MortonOctreeSovereign:
 
     def query_radius(
         self,
-        query_center: np.ndarray,
+        query_center: object,
         *,
         morton_radius: int = 4096,
         euclidean_radius: float | None = None,
         max_results: int = 1024,
-    ) -> np.ndarray:
+    ) -> UInt32Vector:
         """Query the uploaded Morton index around a semantic position."""
         if (
             self._last_positions is None
@@ -166,15 +196,15 @@ class MortonOctreeSovereign:
         ):
             raise RuntimeError("Morton tree not built; call build_tree() before query_radius().")
         if max_results <= 0:
-            return np.zeros(0, dtype=np.uint32)
+            return UInt32Vector()
 
-        query = np.asarray(query_center, dtype=np.float32).reshape(3)
+        query = _vector3(query_center)
         query_code = self._encode_query_point(query)
         self._ensure_query_capacity(int(max_results))
 
-        zero_u32 = np.zeros(1, dtype=np.uint32)
-        loader.memcpy_htod(self._d_query_count, ctypes.c_void_p(zero_u32.ctypes.data), zero_u32.nbytes)
-        loader.memcpy_htod(self._d_refined_count, ctypes.c_void_p(zero_u32.ctypes.data), zero_u32.nbytes)
+        zero_u32 = (ctypes.c_uint32 * 1)(0)
+        loader.memcpy_htod(self._d_query_count, ctypes.c_void_p(ctypes.addressof(zero_u32)), ctypes.sizeof(zero_u32))
+        loader.memcpy_htod(self._d_refined_count, ctypes.c_void_p(ctypes.addressof(zero_u32)), ctypes.sizeof(zero_u32))
 
         loader.launch(
             self._query_kernel,
@@ -193,20 +223,20 @@ class MortonOctreeSovereign:
         )
         loader.synchronize()
 
-        query_count = np.zeros(1, dtype=np.uint32)
-        loader.memcpy_dtoh(ctypes.c_void_p(query_count.ctypes.data), self._d_query_count, query_count.nbytes)
+        query_count = (ctypes.c_uint32 * 1)()
+        loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(query_count)), self._d_query_count, ctypes.sizeof(query_count))
         candidate_count = int(query_count[0])
         if candidate_count <= 0:
-            return np.zeros(0, dtype=np.uint32)
+            return UInt32Vector()
 
         if euclidean_radius is None or euclidean_radius <= 0.0:
-            results = np.zeros(candidate_count, dtype=np.uint32)
+            results = (ctypes.c_uint32 * candidate_count)()
             loader.memcpy_dtoh(
-                ctypes.c_void_p(results.ctypes.data),
+                ctypes.c_void_p(ctypes.addressof(results)),
                 self._d_query_results,
-                results.nbytes,
+                ctypes.sizeof(results),
             )
-            return results
+            return UInt32Vector(int(results[idx]) for idx in range(candidate_count))
 
         threads = min(self.block_size, max(1, candidate_count))
         blocks = (candidate_count + threads - 1) // threads
@@ -229,19 +259,19 @@ class MortonOctreeSovereign:
         )
         loader.synchronize()
 
-        refined_count = np.zeros(1, dtype=np.uint32)
-        loader.memcpy_dtoh(ctypes.c_void_p(refined_count.ctypes.data), self._d_refined_count, refined_count.nbytes)
+        refined_count = (ctypes.c_uint32 * 1)()
+        loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(refined_count)), self._d_refined_count, ctypes.sizeof(refined_count))
         final_count = min(int(refined_count[0]), int(max_results))
         if final_count <= 0:
-            return np.zeros(0, dtype=np.uint32)
+            return UInt32Vector()
 
-        results = np.zeros(final_count, dtype=np.uint32)
+        results = (ctypes.c_uint32 * final_count)()
         loader.memcpy_dtoh(
-            ctypes.c_void_p(results.ctypes.data),
+            ctypes.c_void_p(ctypes.addressof(results)),
             self._d_refined_results,
-            results.nbytes,
+            ctypes.sizeof(results),
         )
-        return results
+        return UInt32Vector(int(results[idx]) for idx in range(final_count))
 
     def get_stats(self) -> dict:
         """Return cached stats from the last build."""
@@ -250,12 +280,12 @@ class MortonOctreeSovereign:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _compare_greater(self, a: np.uint32, b: np.uint32) -> bool:
+    def _compare_greater(self, a: int, b: int) -> bool:
         """Return True if a > b using the RPN engine (fallbacks to CPU)."""
         # Shift right to keep values within float32 precision range.
-        scaled_a = np.float32(int(a) >> 5)
-        scaled_b = np.float32(int(b) >> 5)
-        scalars = np.array([scaled_a, scaled_b], dtype=np.float32)
+        scaled_a = float(int(a) >> 5)
+        scaled_b = float(int(b) >> 5)
+        scalars = [scaled_a, scaled_b]
 
         try:
             try:
@@ -263,7 +293,7 @@ class MortonOctreeSovereign:
                     instance_id=0,
                     op_codes=self._gt_program,
                     scalars=scalars,
-                    vectors=self._dummy_vectors,
+                    vectors=self._dummy_vectors.tolist(),
                 )
             except Exception:
                 pass
@@ -313,12 +343,12 @@ class MortonOctreeSovereign:
         mz = part1by2(int(z))
         return int((mx << 2) | (my << 1) | mz)
 
-    def _encode_query_point(self, query_center: np.ndarray) -> int:
+    def _encode_query_point(self, query_center: tuple[float, float, float]) -> int:
         if self._last_bounds is None:
             raise RuntimeError("Morton bounds unavailable")
         mins, maxs = self._last_bounds
-        extents = np.maximum(maxs - mins, 1e-6)
-        max_extent = float(extents.max())
+        extents = [max(maxs[axis] - mins[axis], 1e-6) for axis in range(3)]
+        max_extent = max(extents)
         nx = min(1.0, max(0.0, float((query_center[0] - mins[0]) / max_extent)))
         ny = min(1.0, max(0.0, float((query_center[1] - mins[1]) / max_extent)))
         nz = min(1.0, max(0.0, float((query_center[2] - mins[2]) / max_extent)))
@@ -330,33 +360,36 @@ class MortonOctreeSovereign:
     def _upload_query_index(
         self,
         *,
-        positions: np.ndarray,
-        sorted_codes: np.ndarray,
-        sorted_indices: np.ndarray,
+        positions: HostTensorF32,
+        sorted_codes: UInt32Vector,
+        sorted_indices: UInt32Vector,
     ) -> None:
         self.close()
-        self._last_positions = np.ascontiguousarray(positions, dtype=np.float32)
-        self._last_sorted_codes = np.ascontiguousarray(sorted_codes, dtype=np.uint32)
-        self._last_sorted_indices = np.ascontiguousarray(sorted_indices, dtype=np.uint32)
+        self._last_positions = positions.copy()
+        self._last_sorted_codes = UInt32Vector(sorted_codes)
+        self._last_sorted_indices = UInt32Vector(sorted_indices)
+
+        codes_buf = _u32_buffer(self._last_sorted_codes)
+        indices_buf = _u32_buffer(self._last_sorted_indices)
 
         self._d_positions = loader.gpu_malloc(self._last_positions.nbytes)
-        self._d_sorted_codes = loader.gpu_malloc(self._last_sorted_codes.nbytes)
-        self._d_sorted_indices = loader.gpu_malloc(self._last_sorted_indices.nbytes)
+        self._d_sorted_codes = loader.gpu_malloc(ctypes.sizeof(codes_buf))
+        self._d_sorted_indices = loader.gpu_malloc(ctypes.sizeof(indices_buf))
 
         loader.memcpy_htod(
             self._d_positions,
-            ctypes.c_void_p(self._last_positions.ctypes.data),
+            ctypes.c_void_p(self._last_positions.data_ptr),
             self._last_positions.nbytes,
         )
         loader.memcpy_htod(
             self._d_sorted_codes,
-            ctypes.c_void_p(self._last_sorted_codes.ctypes.data),
-            self._last_sorted_codes.nbytes,
+            ctypes.c_void_p(ctypes.addressof(codes_buf)),
+            ctypes.sizeof(codes_buf),
         )
         loader.memcpy_htod(
             self._d_sorted_indices,
-            ctypes.c_void_p(self._last_sorted_indices.ctypes.data),
-            self._last_sorted_indices.nbytes,
+            ctypes.c_void_p(ctypes.addressof(indices_buf)),
+            ctypes.sizeof(indices_buf),
         )
 
     def _ensure_query_capacity(self, max_results: int) -> None:
@@ -373,8 +406,8 @@ class MortonOctreeSovereign:
         if self._d_refined_count is not None:
             loader.gpu_free(self._d_refined_count)
             self._d_refined_count = None
-        result_bytes = int(max_results) * np.dtype(np.uint32).itemsize
-        count_bytes = np.dtype(np.uint32).itemsize
+        result_bytes = int(max_results) * ctypes.sizeof(ctypes.c_uint32)
+        count_bytes = ctypes.sizeof(ctypes.c_uint32)
         self._d_query_results = loader.gpu_malloc(result_bytes)
         self._d_refined_results = loader.gpu_malloc(result_bytes)
         self._d_query_count = loader.gpu_malloc(count_bytes)

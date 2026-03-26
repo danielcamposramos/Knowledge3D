@@ -13,6 +13,8 @@ from knowledge3d.spatial.frustum import (
     FrustumCuller,
     create_perspective_matrix,
     create_view_matrix,
+    matmul_4x4,
+    matvec_4,
 )
 
 
@@ -21,8 +23,8 @@ from knowledge3d.spatial.frustum import (
 # ---------------------------------------------------------------------------
 def cpu_frustum_reference(
     positions: np.ndarray,
-    view_proj: np.ndarray,
-    view: np.ndarray,
+    view_proj,
+    view,
     margin_xy: float = 0.11,
     margin_z: float = 1.0,
 ) -> np.ndarray:
@@ -30,20 +32,20 @@ def cpu_frustum_reference(
     visible = np.ones(n, dtype=bool)
 
     for i in range(n):
-        vec = np.append(positions[i], 1.0).astype(np.float32)
+        vec = [float(positions[i, 0]), float(positions[i, 1]), float(positions[i, 2]), 1.0]
 
         # View-space depth check (camera looks down -Z)
-        vz = float(view[2].dot(vec))
+        vz = sum(float(a) * float(b) for a, b in zip(view[2], vec))
         if vz >= 0.0:
             visible[i] = False
             continue
 
-        clip = view_proj @ vec
+        clip = matvec_4(view_proj, vec)
         if clip[3] <= 0.0:
             visible[i] = False
             continue
 
-        ndc = clip[:3] / clip[3]
+        ndc = [float(component) / float(clip[3]) for component in clip[:3]]
         if ndc[0] < -margin_xy or ndc[0] > margin_xy:
             visible[i] = False
             continue
@@ -83,7 +85,7 @@ class TestFrustumCullingCorrectness:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(60.0, 1.0, 0.1, 100.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         gpu_visible = frustum_culler.cull_nodes(positions, view_proj=view_proj, view=view)
         cpu_visible = cpu_frustum_reference(positions, view_proj, view)
@@ -104,7 +106,7 @@ class TestFrustumCullingCorrectness:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(60.0, 16 / 9, 0.1, 200.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         gpu_visible = frustum_culler.cull_nodes(positions, view_proj=view_proj, view=view)
         cpu_visible = cpu_frustum_reference(positions, view_proj, view)
@@ -120,7 +122,7 @@ class TestFrustumCullingCorrectness:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(90.0, 1.0, 0.1, 100.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         # Wide FOV, positions around origin → expect most visible
         positions = np.random.uniform(-1, 1, (64, 3)).astype(np.float32)
@@ -176,7 +178,7 @@ class TestFrustumCullingPerformance:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(60.0, 1.0, 1.0, 500.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         avg_ms = self._time_cull(frustum_culler, positions, view_proj, view, runs=50)
         assert avg_ms < 1.5, f"Expected <1.5ms per 1K nodes, measured {avg_ms:.3f}ms"
@@ -192,7 +194,7 @@ class TestFrustumCullingPerformance:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(60.0, 16 / 9, 1.0, 1000.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         avg_ms = self._time_cull(frustum_culler, positions, view_proj, view, runs=25)
         assert avg_ms < 6.0, f"Expected <6.0ms per 28K nodes, measured {avg_ms:.3f}ms"
@@ -216,7 +218,7 @@ class TestFrustumCullingPerformance:
             up=np.array([0, 1, 0], dtype=np.float32),
         )
         proj = create_perspective_matrix(45.0, 1.0, 10.0, 500.0)
-        view_proj = proj @ view
+        view_proj = matmul_4x4(proj, view)
 
         frustum_culler.reset_statistics()
         visible = frustum_culler.cull_nodes(positions, view_proj=view_proj, view=view)

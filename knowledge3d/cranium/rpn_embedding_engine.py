@@ -1,62 +1,140 @@
 """
-CPU prototype for the sovereign RPN embedding engine.
+Sovereign RPN embedding engine.
 
-Implements character trigram hashing, sparse embedding lookup, and lightweight
-sentence aggregation so we can eliminate the GloVe bootstrap during ingestion.
-
-This module intentionally stays NumPy-only. The PTX version will reuse the same
-opcode semantics once ported to the GPU execution path.
+Character trigram hashing, sparse embedding lookup, and sentence aggregation
+without NumPy staging. Public embedding vectors remain lightweight sequence
+objects so higher layers can still hand them to NumPy-backed code when needed,
+but this module itself stays on the sovereign side of the boundary.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 import hashlib
+import math
 import pickle
 from pathlib import Path
+import random
 import time
 from typing import Dict, Iterable, List, Mapping, MutableMapping, Sequence
 
-import numpy as np
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 
-_EPS = np.finfo(np.float32).eps
+_EPS = 1.1920928955078125e-07
 
 
-def _normalize(vec: np.ndarray) -> np.ndarray:
-    """Return an L2-normalised copy of `vec` (float32)."""
-    vec = np.asarray(vec, dtype=np.float32)
-    norm = float(np.linalg.norm(vec))
-    if norm <= _EPS:
-        return np.zeros_like(vec, dtype=np.float32)
-    return (vec / norm).astype(np.float32)
+class Float32Vector:
+    """Small float32-compatible 1D vector without NumPy ownership."""
+
+    def __init__(self, values: Iterable[float] = (), *, expected_dim: int | None = None):
+        self._values = tuple(float(value) for value in values)
+        if expected_dim is not None and len(self._values) != int(expected_dim):
+            raise ValueError(f"Expected {expected_dim} values, received {len(self._values)}")
+
+    @property
+    def shape(self) -> tuple[int]:
+        return (len(self._values),)
+
+    @property
+    def ndim(self) -> int:
+        return 1
+
+    @property
+    def size(self) -> int:
+        return len(self._values)
+
+    @property
+    def flat(self) -> list[float]:
+        return list(self._values)
+
+    def astype(self, _dtype=None) -> "Float32Vector":
+        return self
+
+    def flatten(self) -> "Float32Vector":
+        return self
+
+    def copy(self) -> "Float32Vector":
+        return Float32Vector(self._values)
+
+    def tolist(self) -> list[float]:
+        return list(self._values)
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __getitem__(self, index):
+        return self._values[index]
+
+    def __repr__(self) -> str:
+        return f"Float32Vector(shape={self.shape})"
 
 
 def _stable_hash(payload: str) -> int:
-    """
-    Stable 32-bit hash of the payload.
-
-    MD5 keeps the output consistent across Python versions / seeds without
-    relying on the interpreter's `hash()` (which is salted per run).
-    """
+    """Stable 32-bit hash of the payload."""
     digest = hashlib.md5(payload.encode("utf-8")).digest()
-    return int.from_bytes(digest[:4], "little")  # uint32 window
+    return int.from_bytes(digest[:4], "little")
 
 
 def _extract_trigrams(token: str) -> List[str]:
-    """
-    Slice `token` into overlapping character trigrams.
-
-    Short tokens (<3 chars) are padded with '_' so every token yields at least
-    one trigram.
-    """
+    """Slice `token` into overlapping character trigrams."""
     token = token.strip()
     if not token:
         return []
-
     if len(token) < 3:
         token = token.ljust(3, "_")
-
     return [token[i : i + 3] for i in range(len(token) - 2)]
+
+
+def _coerce_vector(values: object, embedding_dim: int) -> Float32Vector:
+    if isinstance(values, Float32Vector):
+        if values.size != embedding_dim:
+            raise ValueError(f"Expected {embedding_dim} values, received {values.size}")
+        return values
+    tensor = HostTensorF32.from_array_like(values)
+    flat = tensor.to_flat_list()
+    if len(flat) != embedding_dim:
+        raise ValueError(f"Expected {embedding_dim} values, received {len(flat)}")
+    return Float32Vector(flat, expected_dim=embedding_dim)
+
+
+def _zero_vector(embedding_dim: int) -> Float32Vector:
+    return Float32Vector((0.0 for _ in range(int(embedding_dim))), expected_dim=int(embedding_dim))
+
+
+def _normalize(values: Sequence[float], embedding_dim: int) -> Float32Vector:
+    flat = [float(value) for value in values]
+    if len(flat) != int(embedding_dim):
+        raise ValueError(f"Expected {embedding_dim} values, received {len(flat)}")
+    norm = math.sqrt(sum(value * value for value in flat))
+    if norm <= _EPS:
+        return _zero_vector(embedding_dim)
+    return Float32Vector((value / norm for value in flat), expected_dim=embedding_dim)
+
+
+def _mean_vectors(vectors: Sequence[Sequence[float]], embedding_dim: int) -> Float32Vector:
+    if not vectors:
+        return _zero_vector(embedding_dim)
+    accum = [0.0] * int(embedding_dim)
+    for vector in vectors:
+        coerced = _coerce_vector(vector, embedding_dim)
+        for idx, value in enumerate(coerced):
+            accum[idx] += float(value)
+    scale = 1.0 / float(len(vectors))
+    return _normalize((value * scale for value in accum), embedding_dim)
+
+
+def _vector_table(vectors: Sequence[Sequence[float]], embedding_dim: int) -> HostTensorF32:
+    if not vectors:
+        return HostTensorF32.zeros(0, embedding_dim)
+    rows = [_coerce_vector(vector, embedding_dim).tolist() for vector in vectors]
+    return HostTensorF32.from_array_like(rows, rows=len(rows), cols=embedding_dim)
+
+
+def _float_list(values: Iterable[float]) -> list[float]:
+    return [float(value) for value in values]
 
 
 @dataclass
@@ -64,16 +142,13 @@ class RPNEmbeddingEngine:
     """
     Sovereign embedding generator built on RPN-friendly operations.
 
-    Each unique trigram maps to an embedding vector. The CPU prototype keeps the
-    mapping in a sparse dictionary keyed by stable trigram hash. Once the PTX
-    path is ready, these opcodes translate directly to device operations.
+    Each unique trigram maps to an embedding vector. The table is sparse on the
+    host and can be mirrored into the GPU trigram bridge on demand.
     """
 
     embedding_dim: int = 128
-    dtype: np.dtype = np.float32
-    _embeddings: MutableMapping[int, np.ndarray] = field(
-        default_factory=dict, init=False, repr=False
-    )
+    dtype: str = "float32"
+    _embeddings: MutableMapping[int, object] = field(default_factory=dict, init=False, repr=False)
     vocab_size: int = field(default=0, init=False)
     hit_count: int = field(default=0, init=False)
     miss_count: int = field(default=0, init=False)
@@ -82,29 +157,23 @@ class RPNEmbeddingEngine:
 
     def __post_init__(self):
         self._hash_to_index: Dict[int, int] = {}
-        self._embedding_list: List[np.ndarray] = []
+        self._embedding_list: List[Float32Vector] = []
         self._gpu_bridge = None
         self._gpu_table_dirty = True
 
     def hash_trigram(self, trigram: str) -> int:
-        """Hash a trigram to an unsigned 32-bit integer."""
         return _stable_hash(trigram)
 
     # ------------------------------------------------------------------ #
     # Embedding lookups
     # ------------------------------------------------------------------ #
-    def _initialise_embedding(self, trigram_hash: int) -> np.ndarray:
-        """
-        Initialise a new embedding vector for `trigram_hash`.
-
-        Uses a deterministic RNG seeded by the hash so first-look embeddings are
-        stable across runs until persisted updates take over.
-        """
-        rng = np.random.default_rng(seed=trigram_hash)
-        # Xavier/Glorot-style scaling
-        std = np.sqrt(2.0 / (self.embedding_dim + self.embedding_dim))
-        vec = rng.normal(loc=0.0, scale=std, size=self.embedding_dim).astype(self.dtype)
-        vec = _normalize(vec)
+    def _initialise_embedding(self, trigram_hash: int) -> Float32Vector:
+        rng = random.Random(int(trigram_hash))
+        std = math.sqrt(2.0 / (self.embedding_dim + self.embedding_dim))
+        vec = _normalize(
+            (rng.gauss(0.0, std) for _ in range(self.embedding_dim)),
+            self.embedding_dim,
+        )
 
         index = len(self._embedding_list)
         self._hash_to_index[trigram_hash] = index
@@ -116,56 +185,39 @@ class RPNEmbeddingEngine:
         self._gpu_table_dirty = True
         return vec
 
-    def embed_lookup(self, trigram_hash: int) -> np.ndarray:
-        """
-        Fetch the embedding for `trigram_hash`, initialising it if needed.
-        """
+    def embed_lookup(self, trigram_hash: int) -> Float32Vector:
         if trigram_hash not in self._hash_to_index:
             return self._initialise_embedding(trigram_hash)
 
         self.hit_count += 1
         index = self._hash_to_index[trigram_hash]
-        vec = self._embedding_list[index]
+        vec = _coerce_vector(self._embedding_list[index], self.embedding_dim)
+        self._embedding_list[index] = vec
         self._embeddings[trigram_hash] = vec
         return vec
 
     # ------------------------------------------------------------------ #
     # Word / sentence embedding
     # ------------------------------------------------------------------ #
-    def embed_trigrams(self, trigrams: Sequence[str]) -> np.ndarray:
-        """
-        Embed a pre-tokenised sequence of trigrams and return an L2-normalised
-        average.
-        """
+    def embed_trigrams(self, trigrams: Sequence[str]) -> Float32Vector:
         if not trigrams:
-            return np.zeros(self.embedding_dim, dtype=self.dtype)
-
+            return _zero_vector(self.embedding_dim)
         embeddings = [self.embed_lookup(self.hash_trigram(tg)) for tg in trigrams]
-        stacked = np.vstack(embeddings).astype(self.dtype)
-        return _normalize(stacked.mean(axis=0))
+        return _mean_vectors(embeddings, self.embedding_dim)
 
-    def embed_word(self, word: str) -> np.ndarray:
-        """Embed a single word via character trigram averaging."""
-        trigrams = _extract_trigrams(word.lower())
-        return self.embed_trigrams(trigrams)
+    def embed_word(self, word: str) -> Float32Vector:
+        return self.embed_trigrams(_extract_trigrams(word.lower()))
 
-    def embed_sentence(self, sentence: str) -> np.ndarray:
-        """
-        Embed a sentence by averaging word embeddings and normalising the result.
-        """
-        tokens = [t for t in sentence.strip().split() if t]
+    def embed_sentence(self, sentence: str) -> Float32Vector:
+        tokens = [token for token in sentence.strip().split() if token]
         if not tokens:
-            return np.zeros(self.embedding_dim, dtype=self.dtype)
-
-        word_embeddings = [self.embed_word(tok) for tok in tokens]
-        stacked = np.vstack(word_embeddings).astype(self.dtype)
-        return _normalize(stacked.mean(axis=0))
+            return _zero_vector(self.embedding_dim)
+        return _mean_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
 
     # ------------------------------------------------------------------ #
     # GPU bridge integration
     # ------------------------------------------------------------------ #
     def attach_gpu_bridge(self, bridge) -> None:
-        """Attach a GPU trigram embedding bridge (optional)."""
         self._gpu_bridge = bridge
         self._gpu_table_dirty = True
         self._sync_gpu_table()
@@ -188,13 +240,10 @@ class RPNEmbeddingEngine:
             indices.append(self._hash_to_index[trigram_hash])
         return indices
 
-    def get_embedding_table(self) -> np.ndarray:
-        if not self._embedding_list:
-            return np.zeros((0, self.embedding_dim), dtype=np.float32)
-        return np.vstack(self._embedding_list).astype(np.float32)
+    def get_embedding_table(self) -> HostTensorF32:
+        return _vector_table(self._embedding_list, self.embedding_dim)
 
-    def embed_word_gpu(self, word: str) -> np.ndarray:
-        """Embed word using GPU trigram bridge (GPU-sovereign, no fallback)."""
+    def embed_word_gpu(self, word: str) -> Float32Vector:
         if self._gpu_bridge is None:
             raise RuntimeError(
                 "GPU trigram bridge not initialized. "
@@ -203,44 +252,36 @@ class RPNEmbeddingEngine:
             )
         trigrams = _extract_trigrams(word.lower())
         if not trigrams:
-            return np.zeros(self.embedding_dim, dtype=np.float32)
+            return _zero_vector(self.embedding_dim)
         indices = self._ensure_trigram_indices(trigrams)
         self._sync_gpu_table()
-        return self._gpu_bridge.embed_indices(indices, return_cpu=True)
+        return _coerce_vector(self._gpu_bridge.embed_indices(indices, return_cpu=True), self.embedding_dim)
 
-    def embed_sentence_gpu(self, sentence: str) -> np.ndarray:
-        """Embed sentence using GPU trigram bridge (GPU-sovereign, no fallback)."""
+    def embed_sentence_gpu(self, sentence: str) -> Float32Vector:
         if self._gpu_bridge is None:
             raise RuntimeError(
                 "GPU trigram bridge not initialized. "
                 "RPN embeddings require GPU sovereignty - no CPU fallback. "
                 "Call attach_gpu_bridge() before using embed_sentence_gpu()."
             )
-        tokens = [t for t in sentence.strip().split() if t]
+        tokens = [token for token in sentence.strip().split() if token]
         if not tokens:
-            return np.zeros(self.embedding_dim, dtype=np.float32)
-
+            return _zero_vector(self.embedding_dim)
         embeddings = [self.embed_word_gpu(token) for token in tokens]
-        stacked = np.vstack(embeddings).astype(np.float32)
-        return _normalize(stacked.mean(axis=0))
+        return _mean_vectors(embeddings, self.embedding_dim)
 
-    def embed_sentences_gpu(self, sentences: Sequence[str]) -> List[np.ndarray]:
-        """Embed multiple sentences through the sovereign GPU path.
-
-        This is still the main-model embedding stage, not Jarvis dispatch.
-        The method avoids re-embedding repeated tokens across closely related
-        query variants by caching GPU word embeddings once per unique token.
-        """
+    def embed_sentences_gpu(self, sentences: Sequence[str]) -> List[Float32Vector]:
         if self._gpu_bridge is None:
             raise RuntimeError(
                 "GPU trigram bridge not initialized. "
                 "RPN embeddings require GPU sovereignty - no CPU fallback. "
                 "Call attach_gpu_bridge() before using embed_sentences_gpu()."
             )
+
         token_rows: List[List[str]] = []
         unique_tokens: Dict[str, None] = {}
         for sentence in sentences:
-            tokens = [t for t in str(sentence).strip().split() if t]
+            tokens = [token for token in str(sentence).strip().split() if token]
             token_rows.append(tokens)
             for token in tokens:
                 unique_tokens.setdefault(token, None)
@@ -248,17 +289,16 @@ class RPNEmbeddingEngine:
         if not token_rows:
             return []
 
-        token_cache: Dict[str, np.ndarray] = {}
+        token_cache: Dict[str, Float32Vector] = {}
         for token in unique_tokens:
             token_cache[token] = self.embed_word_gpu(token)
 
-        outputs: List[np.ndarray] = []
+        outputs: List[Float32Vector] = []
         for tokens in token_rows:
             if not tokens:
-                outputs.append(np.zeros(self.embedding_dim, dtype=np.float32))
+                outputs.append(_zero_vector(self.embedding_dim))
                 continue
-            stacked = np.vstack([token_cache[token] for token in tokens]).astype(np.float32)
-            outputs.append(_normalize(stacked.mean(axis=0)))
+            outputs.append(_mean_vectors([token_cache[token] for token in tokens], self.embedding_dim))
         return outputs
 
     def extract_trigram_indices(self, text: str) -> List[int]:
@@ -267,26 +307,20 @@ class RPNEmbeddingEngine:
             return []
         return self._ensure_trigram_indices(trigrams)
 
-    def embed_tokens(self, tokens: Sequence[str]) -> np.ndarray:
-        """
-        Convenience helper: embed a sequence of tokens (already split words).
-        """
+    def embed_tokens(self, tokens: Sequence[str]) -> Float32Vector:
         if not tokens:
-            return np.zeros(self.embedding_dim, dtype=self.dtype)
-        word_embeddings = [self.embed_word(tok) for tok in tokens]
-        stacked = np.vstack(word_embeddings).astype(self.dtype)
-        return _normalize(stacked.mean(axis=0))
+            return _zero_vector(self.embedding_dim)
+        return _mean_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
 
     # ------------------------------------------------------------------ #
     # Persistence
     # ------------------------------------------------------------------ #
     def save_embeddings(self, path: str | Path) -> None:
-        """Serialise the learned embedding table."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "embedding_dim": self.embedding_dim,
-            "embeddings": dict(self._embeddings),
+            "embeddings": {int(key): _coerce_vector(value, self.embedding_dim).tolist() for key, value in self._embeddings.items()},
             "hash_to_index": self._hash_to_index,
             "vocab_size": self.vocab_size,
             "hit_count": self.hit_count,
@@ -298,7 +332,6 @@ class RPNEmbeddingEngine:
             pickle.dump(payload, handle)
 
     def load_embeddings(self, path: str | Path) -> None:
-        """Load a previously persisted embedding table."""
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Embedding map not found: {path}")
@@ -311,19 +344,19 @@ class RPNEmbeddingEngine:
 
         self.embedding_dim = int(payload.get("embedding_dim", self.embedding_dim))
         self._embeddings = {
-            int(k): np.asarray(v, dtype=self.dtype) for k, v in embeddings.items()
+            int(key): _coerce_vector(value, self.embedding_dim)
+            for key, value in embeddings.items()
         }
         mapping = payload.get("hash_to_index")
         if isinstance(mapping, dict):
-            self._hash_to_index = {int(k): int(v) for k, v in mapping.items()}
+            self._hash_to_index = {int(key): int(value) for key, value in mapping.items()}
         else:
-            # Rebuild mapping in deterministic order
             self._hash_to_index = {}
             for idx, key in enumerate(sorted(self._embeddings.keys())):
                 self._hash_to_index[key] = idx
 
-        ordered = sorted(self._hash_to_index.items(), key=lambda kv: kv[1])
-        self._embedding_list = [self._embeddings[h].astype(np.float32) for h, _ in ordered]
+        ordered = sorted(self._hash_to_index.items(), key=lambda item: item[1])
+        self._embedding_list = [_coerce_vector(self._embeddings[hash_val], self.embedding_dim) for hash_val, _ in ordered]
 
         self.vocab_size = int(payload.get("vocab_size", len(self._embedding_list)))
         self.hit_count = int(payload.get("hit_count", 0))
@@ -338,36 +371,39 @@ class RPNEmbeddingEngine:
     # Table persistence for GPU bridge
     # ------------------------------------------------------------------ #
     def save_embedding_table(self, path: str | Path) -> None:
-        """Persist contiguous embedding table with hash ordering."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-
-        table = self.get_embedding_table()
-        hashes = np.array(
-            [hash_val for hash_val, _ in sorted(self._hash_to_index.items(), key=lambda kv: kv[1])],
-            dtype=np.uint32,
-        )
-        np.savez(path, embeddings=table, hashes=hashes)
+        payload = {
+            "embeddings": [vector.tolist() for vector in self._embedding_list],
+            "hashes": [hash_val for hash_val, _ in sorted(self._hash_to_index.items(), key=lambda item: item[1])],
+            "embedding_dim": self.embedding_dim,
+        }
+        with path.open("wb") as handle:
+            pickle.dump(payload, handle)
 
     def load_embedding_table(self, path: str | Path) -> None:
-        """Load embedding table + hash mapping from disk."""
         path = Path(path)
         if not path.exists():
             raise FileNotFoundError(f"Embedding table not found: {path}")
+        with path.open("rb") as handle:
+            payload: Mapping[str, object] = pickle.load(handle)
 
-        data = np.load(path)
-        embeddings = np.asarray(data["embeddings"], dtype=np.float32)
-        hashes = np.asarray(data["hashes"], dtype=np.uint32)
+        embeddings = payload.get("embeddings")
+        hashes = payload.get("hashes")
+        if not isinstance(embeddings, list) or not isinstance(hashes, list):
+            raise ValueError("Malformed embedding table payload.")
 
-        if embeddings.shape[0] != hashes.shape[0]:
+        self.embedding_dim = int(payload.get("embedding_dim", self.embedding_dim))
+        if len(embeddings) != len(hashes):
             raise ValueError("Hash and embedding table size mismatch.")
 
-        self._embedding_list = [embeddings[i] for i in range(embeddings.shape[0])]
-        self._hash_to_index = {int(h): idx for idx, h in enumerate(hashes.tolist())}
+        self._embedding_list = [_coerce_vector(row, self.embedding_dim) for row in embeddings]
+        self._hash_to_index = {int(hash_val): idx for idx, hash_val in enumerate(hashes)}
         self._embeddings = {
-            int(h): embeddings[idx] for idx, h in enumerate(hashes.tolist())
+            int(hash_val): self._embedding_list[idx]
+            for idx, hash_val in enumerate(hashes)
         }
-        self.vocab_size = embeddings.shape[0]
+        self.vocab_size = len(self._embedding_list)
         self._gpu_table_dirty = True
         self._sync_gpu_table()
 
@@ -375,7 +411,6 @@ class RPNEmbeddingEngine:
     # Introspection helpers
     # ------------------------------------------------------------------ #
     def stats(self) -> Dict[str, int]:
-        """Return basic usage statistics."""
         return {
             "vocab_size": self.vocab_size,
             "hit_count": self.hit_count,
@@ -387,28 +422,23 @@ class RPNEmbeddingEngine:
     # Consolidation helpers
     # ------------------------------------------------------------------ #
     @property
-    def embeddings(self) -> MutableMapping[int, np.ndarray]:
-        """Expose the raw embedding mapping (for consolidation routines)."""
+    def embeddings(self) -> MutableMapping[int, object]:
         return self._embeddings
 
     @property
     def pending_consolidation(self) -> bool:
-        """Whether new data has been ingested since the last consolidation run."""
         return self._pending_consolidation
 
     @property
     def last_consolidated_at(self) -> float | None:
-        """Unix timestamp of the most recent consolidation event."""
         return self._last_consolidated_at
 
     def mark_unconsolidated(self) -> None:
-        """Flag that fresh embeddings should be consolidated."""
         self._pending_consolidation = True
 
     def mark_consolidated(self) -> None:
-        """Mark embeddings as consolidated."""
         self._pending_consolidation = False
         self._last_consolidated_at = time.time()
 
 
-__all__ = ["RPNEmbeddingEngine"]
+__all__ = ["Float32Vector", "RPNEmbeddingEngine"]

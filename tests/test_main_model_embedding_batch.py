@@ -31,7 +31,8 @@ def test_rpn_embedding_engine_embed_sentences_gpu_reuses_unique_tokens(monkeypat
 
     assert len(outputs) == 3
     assert sorted(calls) == ["alpha", "beta", "gamma"]
-    assert all(isinstance(row, np.ndarray) and row.shape == (4,) for row in outputs)
+    assert all(getattr(row, "shape", None) == (4,) for row in outputs)
+    assert all([float(value) for value in row] for row in outputs)
 
 
 def test_knowledgeverse_embed_query_gpu_delegates_to_batch_helper(tmp_path: Path, monkeypatch):

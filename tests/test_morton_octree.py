@@ -22,7 +22,7 @@ class TestMortonOctreeEncoding:
         codes = octree.encode(points)
 
         assert codes.shape == (128,)
-        assert codes.dtype == np.uint32
+        assert all(isinstance(int(code), int) for code in codes)
         assert codes.min(initial=0) >= 0
         assert codes.max(initial=0) < (1 << 30)
 

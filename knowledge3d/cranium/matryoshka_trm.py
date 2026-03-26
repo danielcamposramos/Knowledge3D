@@ -37,7 +37,8 @@ Usage:
 from __future__ import annotations
 
 import ctypes
-import numpy as np
+import math
+import pickle
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import json
@@ -47,8 +48,163 @@ from knowledge3d.cranium.trm_adapters import (
     AdapterConfig,
     _to_serializable,
 )
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32, RPNMathCore
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
+
+
+_MATH_CORE: Optional[RPNMathCore] = None
+
+
+def _get_math_core() -> RPNMathCore:
+    global _MATH_CORE
+    if _MATH_CORE is None:
+        _MATH_CORE = RPNMathCore()
+    return _MATH_CORE
+
+
+class _CtypesView:
+    def __init__(self, tensor: "MatryoshkaTensor") -> None:
+        self.data = tensor.data_ptr
+
+
+class MatryoshkaTensor(HostTensorF32):
+    """Sovereign float32 tensor wrapper with compatibility helpers."""
+
+    @classmethod
+    def zeros(cls, rows: int, cols: int = 1, on_mutate=None) -> "MatryoshkaTensor":
+        tensor = cls(rows, cols, on_mutate=on_mutate)
+        return tensor
+
+    @classmethod
+    def random_normal(
+        cls,
+        rows: int,
+        cols: int,
+        std: float = 0.01,
+        on_mutate=None,
+    ) -> "MatryoshkaTensor":
+        base = HostTensorF32.random_normal(rows, cols, std, on_mutate=on_mutate)
+        return cls.from_host_tensor(base)
+
+    @classmethod
+    def from_host_tensor(cls, tensor: HostTensorF32) -> "MatryoshkaTensor":
+        clone = cls(tensor.rows, tensor.cols)
+        clone.load_bytes(tensor.to_bytes())
+        return clone
+
+    @classmethod
+    def from_bytes(cls, rows: int, cols: int, payload: bytes) -> "MatryoshkaTensor":
+        tensor = cls(rows, cols)
+        tensor.load_bytes(payload)
+        return tensor
+
+    @classmethod
+    def from_array_like(
+        cls,
+        array: object,
+        *,
+        rows: int | None = None,
+        cols: int | None = None,
+        on_mutate=None,
+    ) -> "MatryoshkaTensor":
+        base = HostTensorF32.from_array_like(array, rows=rows, cols=cols, on_mutate=on_mutate)
+        return cls.from_host_tensor(base)
+
+    @property
+    def ctypes(self) -> _CtypesView:
+        return _CtypesView(self)
+
+    def copy(self) -> "MatryoshkaTensor":
+        return MatryoshkaTensor.from_bytes(self.rows, self.cols, self.to_bytes())
+
+    def astype(self, *_args, copy: bool = True, **_kwargs) -> "MatryoshkaTensor":
+        return self.copy() if copy else self
+
+    def tolist(self) -> List[float] | List[List[float]]:
+        if self.cols == 1:
+            return self.to_flat_list()
+        return self.to_nested_list()
+
+    def tobytes(self) -> bytes:
+        return self.to_bytes()
+
+    def transpose(self) -> "MatryoshkaTensor":
+        return MatryoshkaTensor.from_host_tensor(super().transpose())
+
+    def prefix_square(self, dim: int) -> "MatryoshkaTensor":
+        if dim < 0 or dim > self.rows or dim > self.cols:
+            raise ValueError(f"Prefix dimension {dim} incompatible with tensor shape {self.shape}")
+        out = MatryoshkaTensor.zeros(dim, dim)
+        for row in range(dim):
+            for col in range(dim):
+                out._buffer[row * dim + col] = self._buffer[row * self.cols + col]
+        return out
+
+    def copy_prefix_from(self, other: object) -> None:
+        source = MatryoshkaTensor.from_array_like(other)
+        if source.rows > self.rows or source.cols > self.cols:
+            raise ValueError(f"Source shape {source.shape} does not fit into destination {self.shape}")
+        for row in range(source.rows):
+            for col in range(source.cols):
+                self._buffer[row * self.cols + col] = source._buffer[row * source.cols + col]
+        self._notify_mutation()
+
+    def __iter__(self):
+        if self.cols == 1:
+            for idx in range(self.rows):
+                yield float(self._buffer[idx])
+            return
+        yield from super().__iter__()
+
+    def __getitem__(self, index):
+        if isinstance(index, tuple):
+            return float(self._buffer[int(index[0]) * self.cols + int(index[1])])
+        if self.cols == 1:
+            return float(self._buffer[int(index)])
+        return super().__getitem__(index)
+
+    def _binary_op(self, other: object, op) -> "MatryoshkaTensor":
+        if isinstance(other, (int, float)):
+            out = self.copy()
+            scalar = float(other)
+            for idx in range(out.size):
+                out._buffer[idx] = op(float(out._buffer[idx]), scalar)
+            return out
+        rhs = MatryoshkaTensor.from_array_like(other, rows=self.rows, cols=self.cols)
+        if rhs.shape != self.shape:
+            raise ValueError(f"Shape mismatch: {self.shape} != {rhs.shape}")
+        out = MatryoshkaTensor.zeros(self.rows, self.cols)
+        for idx in range(self.size):
+            out._buffer[idx] = op(float(self._buffer[idx]), float(rhs._buffer[idx]))
+        return out
+
+    def __add__(self, other: object) -> "MatryoshkaTensor":
+        return self._binary_op(other, lambda a, b: a + b)
+
+    def __radd__(self, other: object) -> "MatryoshkaTensor":
+        return self.__add__(other)
+
+    def __iadd__(self, other: object):
+        result = self.__add__(other)
+        self.load_bytes(result.to_bytes())
+        return self
+
+    def __mul__(self, other: object) -> "MatryoshkaTensor":
+        if isinstance(other, (int, float)):
+            out = self.copy()
+            scalar = float(other)
+            for idx in range(out.size):
+                out._buffer[idx] = float(out._buffer[idx]) * scalar
+            return out
+        return self._binary_op(other, lambda a, b: a * b)
+
+    def __rmul__(self, other: object) -> "MatryoshkaTensor":
+        return self.__mul__(other)
+
+    def __matmul__(self, other: object) -> "MatryoshkaTensor":
+        result = _get_math_core().matmul_host(self, other)
+        return MatryoshkaTensor.from_host_tensor(result)
 
 
 class MatryoshkaTRM:
@@ -79,7 +235,7 @@ class MatryoshkaTRM:
         self.min_dims = min_dims
 
         # Full-capacity base weights
-        self.W_base_full = np.random.randn(max_dims, max_dims).astype(np.float32) * init_std
+        self.W_base_full = MatryoshkaTensor.random_normal(max_dims, max_dims, init_std)
 
         # Supported dimension levels (within current range)
         self.dim_levels = [d for d in self.STANDARD_DIM_LEVELS
@@ -107,11 +263,11 @@ class MatryoshkaTRM:
         self._gpu_weights = loader.gpu_malloc(self.W_base_full.nbytes)
         loader.memcpy_htod(
             self._gpu_weights,
-            self.W_base_full.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self.W_base_full.data_ptr),
             self.W_base_full.nbytes,
         )
 
-    def get_base_at_dim(self, dim: int) -> np.ndarray:
+    def get_base_at_dim(self, dim: int):
         """
         Get base weights at specific dimension.
 
@@ -130,9 +286,9 @@ class MatryoshkaTRM:
             raise ValueError(f"Requested dim {dim} > maximum {self.max_dims}")
 
         # Return prefix submatrix
-        return self.W_base_full[:dim, :dim].copy()
+        return self.W_base_full.prefix_square(dim)
 
-    def project_vector(self, vector: np.ndarray, target_dim: int) -> np.ndarray:
+    def project_vector(self, vector: object, target_dim: int):
         """
         Project `vector` using GPU-native path (sovereign only).
         """
@@ -140,8 +296,9 @@ class MatryoshkaTRM:
             raise RuntimeError(
                 "Matryoshka GPU resources not initialized. Sovereign path requires CUDA + PTX loader."
             )
-        vec = np.asarray(vector, dtype=np.float32)
-        return self._bridge.project_host(self._gpu_weights, vec, target_dim, self.max_dims)
+        vec = MatryoshkaTensor.from_array_like(vector)
+        projected = self._bridge.project_host(self._gpu_weights, vec.to_flat_list(), target_dim, self.max_dims)
+        return MatryoshkaTensor.from_array_like(projected, rows=target_dim, cols=1)
 
     def register_specialist(self, name: str, required_dims: int,
                           rank: Optional[int] = None,
@@ -191,7 +348,7 @@ class MatryoshkaTRM:
             del self.specialists[name]
             print(f"[MatryoshkaTRM] Removed specialist '{name}'")
 
-    def get_specialist_weights(self, name: str, include_base: bool = True) -> np.ndarray:
+    def get_specialist_weights(self, name: str, include_base: bool = True):
         """
         Get specialist's active weights.
 
@@ -212,13 +369,13 @@ class MatryoshkaTRM:
         if include_base:
             # Base + adapter delta
             W_base = self.get_base_at_dim(dims)
-            return W_base + adapter.get_delta()
+            return W_base + MatryoshkaTensor.from_array_like(adapter.get_delta(), rows=dims, cols=dims)
         else:
             # Just adapter delta
-            return adapter.get_delta()
+            return MatryoshkaTensor.from_array_like(adapter.get_delta(), rows=dims, cols=dims)
 
-    def compute_with_specialist(self, input_data: np.ndarray,
-                               specialist_name: str) -> np.ndarray:
+    def compute_with_specialist(self, input_data: object,
+                               specialist_name: str):
         """
         Forward pass using specific specialist.
 
@@ -246,8 +403,8 @@ class MatryoshkaTRM:
 
         return output
 
-    def compute_with_moe(self, input_data: np.ndarray,
-                        specialist_weights: Dict[str, float]) -> np.ndarray:
+    def compute_with_moe(self, input_data: object,
+                        specialist_weights: Dict[str, float]):
         """
         Compute with MoE (weighted combination of specialists).
 
@@ -281,12 +438,14 @@ class MatryoshkaTRM:
             adapter = specialist['adapter']
 
             # Get adapter delta
-            delta = adapter.get_delta()
+            delta = MatryoshkaTensor.from_array_like(adapter.get_delta(), rows=dims, cols=dims)
 
             # Pad to max_dim if needed
             if dims < max_dim:
-                delta_padded = np.zeros((max_dim, max_dim), dtype=np.float32)
-                delta_padded[:dims, :dims] = delta
+                delta_padded = MatryoshkaTensor.zeros(max_dim, max_dim)
+                for row in range(dims):
+                    for col in range(dims):
+                        delta_padded._buffer[row * max_dim + col] = delta._buffer[row * dims + col]
                 delta = delta_padded
 
             # Add weighted contribution
@@ -317,10 +476,10 @@ class MatryoshkaTRM:
         print(f"[MatryoshkaTRM] Expanding: {self.max_dims} → {new_max_dims} dims")
 
         # Create expanded weight matrix
-        W_base_new = np.random.randn(new_max_dims, new_max_dims).astype(np.float32) * 0.01
+        W_base_new = MatryoshkaTensor.random_normal(new_max_dims, new_max_dims, 0.01)
 
         # Copy existing weights to upper-left (preserve learned knowledge)
-        W_base_new[:self.max_dims, :self.max_dims] = self.W_base_full
+        W_base_new.copy_prefix_from(self.W_base_full)
 
         # Update
         self.W_base_full = W_base_new
@@ -394,12 +553,26 @@ class MatryoshkaTRM:
 
     def save_base(self, path: Path):
         """Save base weights."""
-        np.save(path, self.W_base_full)
+        with open(path, "wb") as handle:
+            pickle.dump(
+                {
+                    "rows": self.W_base_full.rows,
+                    "cols": self.W_base_full.cols,
+                    "payload": self.W_base_full.to_bytes(),
+                },
+                handle,
+            )
         print(f"[MatryoshkaTRM] Base weights saved to {path}")
 
     def load_base(self, path: Path):
         """Load base weights."""
-        self.W_base_full = np.load(path)
+        with open(path, "rb") as handle:
+            payload = pickle.load(handle)
+        self.W_base_full = MatryoshkaTensor.from_bytes(
+            int(payload["rows"]),
+            int(payload["cols"]),
+            payload["payload"],
+        )
         self.max_dims = self.W_base_full.shape[0]
         self.dim_levels = [d for d in self.STANDARD_DIM_LEVELS
                           if self.min_dims <= d <= self.max_dims]
@@ -411,7 +584,7 @@ class MatryoshkaTRM:
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
         # Save base
-        self.save_base(checkpoint_dir / 'base_weights.npy')
+        self.save_base(checkpoint_dir / 'base_weights.pkl')
 
         # Save each specialist
         for name, spec in self.specialists.items():
@@ -437,7 +610,7 @@ class MatryoshkaTRM:
     def load_all(self, checkpoint_dir: Path):
         """Load complete system."""
         # Load base
-        self.load_base(checkpoint_dir / 'base_weights.npy')
+        self.load_base(checkpoint_dir / 'base_weights.pkl')
 
         # Load metadata
         with open(checkpoint_dir / 'system_metadata.json', 'r') as f:
@@ -473,18 +646,17 @@ class MatryoshkaTRM:
         except Exception:
             pass
 
-    def _resize_input(self, input_data: np.ndarray, target_dim: int) -> np.ndarray:
+    def _resize_input(self, input_data: object, target_dim: int):
         """Resize input vector to match target dimension."""
-        if input_data.shape[0] == target_dim:
-            return input_data
-        elif input_data.shape[0] > target_dim:
-            # Truncate
-            return input_data[:target_dim]
-        else:
-            # Pad with zeros
-            padded = np.zeros(target_dim, dtype=input_data.dtype)
-            padded[:input_data.shape[0]] = input_data
-            return padded
+        vector = MatryoshkaTensor.from_array_like(input_data)
+        if vector.size == target_dim:
+            return vector
+        if vector.size > target_dim:
+            return MatryoshkaTensor.from_array_like(vector.to_flat_list()[:target_dim], rows=target_dim, cols=1)
+        padded = MatryoshkaTensor.zeros(target_dim, 1)
+        for idx, value in enumerate(vector.to_flat_list()):
+            padded._buffer[idx] = value
+        return padded
 
     @staticmethod
     def _get_memory_mb(dims: int) -> float:

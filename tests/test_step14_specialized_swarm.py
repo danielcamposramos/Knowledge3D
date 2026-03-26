@@ -16,15 +16,18 @@ def test_specialized_swarm_produces_expected_shapes() -> None:
 
     input_vec = np.random.randn(CHAIN_DIM).astype(np.float32)
     output, chain_states, weights = bridge.execute_swarm(input_vec, num_iterations=2)
+    output_arr = np.asarray(output, dtype=np.float32)
+    chain_states_arr = np.asarray(chain_states, dtype=np.float32)
+    weights_arr = np.asarray(weights, dtype=np.float32)
 
-    assert output.shape == (CHAIN_DIM,)
-    assert chain_states.shape == (bridge.NUM_CHAINS, CHAIN_DIM)
-    assert weights.shape == (bridge.NUM_ACTIVE_CHAINS,)
+    assert output_arr.shape == (CHAIN_DIM,)
+    assert chain_states_arr.shape == (bridge.NUM_CHAINS, CHAIN_DIM)
+    assert weights_arr.shape == (bridge.NUM_ACTIVE_CHAINS,)
 
-    assert np.isfinite(output).all()
-    assert np.isfinite(chain_states).all()
-    assert np.isfinite(weights).all()
-    assert np.isclose(weights.sum(), 1.0, atol=1e-4)
+    assert np.isfinite(output_arr).all()
+    assert np.isfinite(chain_states_arr).all()
+    assert np.isfinite(weights_arr).all()
+    assert np.isclose(weights_arr.sum(), 1.0, atol=1e-4)
 
     bridge.cleanup()
 
@@ -40,13 +43,13 @@ def test_specialized_swarm_output_mode_skips_readback() -> None:
         readback_mode="output",
     )
 
-    assert output.shape == (CHAIN_DIM,)
+    assert np.asarray(output, dtype=np.float32).shape == (CHAIN_DIM,)
     assert chain_states is None
     assert weights is None
 
     diagnostics = bridge.get_chain_diagnostics()
     assert isinstance(diagnostics, SwarmDiagnostics)
-    assert np.isclose(diagnostics.resonance_weights.sum(), 1.0, atol=1e-4)
+    assert np.isclose(np.asarray(diagnostics.resonance_weights, dtype=np.float32).sum(), 1.0, atol=1e-4)
 
     bridge.cleanup()
 
@@ -59,11 +62,11 @@ def test_specialized_swarm_persistent_state_effect() -> None:
     first, _, _ = bridge.execute_swarm(input_vec, num_iterations=1)
     second, _, _ = bridge.execute_swarm(input_vec, num_iterations=1)
 
-    assert np.linalg.norm(second - first) > 1e-3
+    assert np.linalg.norm(np.asarray(second, dtype=np.float32) - np.asarray(first, dtype=np.float32)) > 1e-3
 
     bridge.reset_states()
     reset, _, _ = bridge.execute_swarm(input_vec, num_iterations=1)
-    assert np.linalg.norm(reset - second) > 1e-3
+    assert np.linalg.norm(np.asarray(reset, dtype=np.float32) - np.asarray(second, dtype=np.float32)) > 1e-3
 
     bridge.cleanup()
 
@@ -82,12 +85,12 @@ def test_specialized_swarm_diagnostics_snapshot() -> None:
         bridge.NUM_ACTIVE_CHAINS,
         bridge.NUM_ACTIVE_CHAINS,
     )
-    assert diagnostics.resonance_weights.shape == (bridge.NUM_ACTIVE_CHAINS,)
+    assert np.asarray(diagnostics.resonance_weights, dtype=np.float32).shape == (bridge.NUM_ACTIVE_CHAINS,)
     assert diagnostics.chain_states.shape == (bridge.NUM_CHAINS, CHAIN_DIM)
-    assert diagnostics.chain_norms.shape == (bridge.NUM_CHAINS,)
+    assert np.asarray(diagnostics.chain_norms, dtype=np.float32).shape == (bridge.NUM_CHAINS,)
 
-    assert np.all(diagnostics.resonance_weights >= 0.0)
-    assert np.isclose(diagnostics.resonance_weights.sum(), 1.0, atol=1e-4)
+    assert np.all(np.asarray(diagnostics.resonance_weights, dtype=np.float32) >= 0.0)
+    assert np.isclose(np.asarray(diagnostics.resonance_weights, dtype=np.float32).sum(), 1.0, atol=1e-4)
 
     bridge.cleanup()
 
@@ -102,8 +105,12 @@ def test_specialized_swarm_iterations_increase_activity() -> None:
     bridge.reset_states()
     _, chain_states_three, weights_three = bridge.execute_swarm(input_vec, num_iterations=3)
 
-    activity_delta = np.linalg.norm(chain_states_three - chain_states_one)
-    weight_delta = np.linalg.norm(weights_three - weights_one)
+    activity_delta = np.linalg.norm(
+        np.asarray(chain_states_three, dtype=np.float32) - np.asarray(chain_states_one, dtype=np.float32)
+    )
+    weight_delta = np.linalg.norm(
+        np.asarray(weights_three, dtype=np.float32) - np.asarray(weights_one, dtype=np.float32)
+    )
 
     assert activity_delta > 1e-2
     assert weight_delta >= 0.0

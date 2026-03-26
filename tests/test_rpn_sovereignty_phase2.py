@@ -288,6 +288,31 @@ class TestRPNSovereignty:
         assert clipped_norm <= config.gradient_clip + 1e-3, \
             f"Gradient not clipped: {clipped_norm} > {config.gradient_clip}"
 
+    def test_warm_gradient_step_uploads_gradient_once(self, monkeypatch):
+        adapter = SelfUpdatingAdapter(
+            shape=(64, 64),
+            rank=8,
+            specialist_name="phase3_transpose_test",
+        )
+
+        counts = {"copy_to_device": 0}
+        original = RPNMathCore.copy_to_device
+
+        def _wrapped(*args, **kwargs):
+            counts["copy_to_device"] += 1
+            return original(*args, **kwargs)
+
+        monkeypatch.setattr(RPNMathCore, "copy_to_device", staticmethod(_wrapped))
+
+        gradient_a = np.random.randn(64, 64).astype(np.float32) * 0.01
+        gradient_b = np.random.randn(64, 64).astype(np.float32) * 0.01
+
+        adapter.apply_gradient_rpn(gradient_a, lr=0.001)
+        counts["copy_to_device"] = 0
+        adapter.apply_gradient_rpn(gradient_b, lr=0.001)
+
+        assert counts["copy_to_device"] == 1
+
     def test_validate_and_commit_decisions(self):
         """
         Test validate_and_commit with different performance scenarios.

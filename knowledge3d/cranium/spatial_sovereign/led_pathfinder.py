@@ -1,23 +1,112 @@
 """
 Sovereign LED pathfinder wrapper built on existing PTX kernels.
 
-The implementation keeps data on the GPU when kernels are available while
-providing deterministic CPU fallbacks so unit tests can execute on machines
-without a CUDA context. Priority-queue comparisons are delegated to the
+The implementation keeps data on the GPU and fails fast when a sovereign
+kernel contract is broken. Priority-queue comparisons are delegated to the
 Modular RPN engine to mirror the sovereign architecture conventions.
 """
 from __future__ import annotations
 
 import ctypes
-import heapq
+import math
 from pathlib import Path
-from typing import Optional, Tuple, List
-
-import numpy as np
-
+from typing import Optional, Tuple, List, Iterable
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.bridges.tiered_rpn import TieredRPNEngine as ModularRPNEngine
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
+from knowledge3d.cranium.spatial_sovereign.frustum import UInt32Vector
 from knowledge3d.cranium.spatial_sovereign.morton_octree import MortonOctreeSovereign
+
+
+class Float32Vector:
+    """Small float32-compatible result view without NumPy."""
+
+    def __init__(self, values: Iterable[float] = ()):
+        self._values = tuple(float(value) for value in values)
+
+    @property
+    def size(self) -> int:
+        return len(self._values)
+
+    @property
+    def shape(self) -> tuple[int]:
+        return (len(self._values),)
+
+    def tolist(self) -> list[float]:
+        return list(self._values)
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __getitem__(self, index):
+        return self._values[index]
+
+
+def _u16_buffer(values: Iterable[int]) -> ctypes.Array:
+    items = [int(value) for value in values]
+    return (ctypes.c_uint16 * len(items))(*items)
+
+
+def _u32_buffer(values: Iterable[int]) -> ctypes.Array:
+    items = [int(value) for value in values]
+    return (ctypes.c_uint32 * len(items))(*items)
+
+
+def _point3(values: object) -> tuple[float, float, float]:
+    tensor = HostTensorF32.from_array_like(values)
+    flat = tensor.to_flat_list()
+    if len(flat) != 3:
+        raise ValueError(f"Expected 3 values, received {len(flat)}")
+    return (flat[0], flat[1], flat[2])
+
+
+def _points3(values: object) -> list[tuple[float, float, float]]:
+    tensor = HostTensorF32.from_array_like(values)
+    if tensor.shape[1] != 3:
+        raise ValueError(f"Expected shape (N, 3), received {tensor.shape}")
+    return [tuple(float(value) for value in tensor[row]) for row in range(tensor.shape[0])]
+
+
+def _sub3(left: tuple[float, float, float], right: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (left[0] - right[0], left[1] - right[1], left[2] - right[2])
+
+
+def _add3(left: tuple[float, float, float], right: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (left[0] + right[0], left[1] + right[1], left[2] + right[2])
+
+
+def _scale3(vector: tuple[float, float, float], scale: float) -> tuple[float, float, float]:
+    return (vector[0] * scale, vector[1] * scale, vector[2] * scale)
+
+
+def _dot3(left: tuple[float, float, float], right: tuple[float, float, float]) -> float:
+    return (left[0] * right[0]) + (left[1] * right[1]) + (left[2] * right[2])
+
+
+def _norm3(vector: tuple[float, float, float]) -> float:
+    return math.sqrt(_dot3(vector, vector))
+
+
+def _normalize3(vector: tuple[float, float, float]) -> tuple[float, float, float]:
+    length = _norm3(vector)
+    if length <= 1e-12:
+        raise ValueError("Cannot normalize zero-length vector")
+    return (vector[0] / length, vector[1] / length, vector[2] / length)
+
+
+def _cross3(left: tuple[float, float, float], right: tuple[float, float, float]) -> tuple[float, float, float]:
+    return (
+        (left[1] * right[2]) - (left[2] * right[1]),
+        (left[2] * right[0]) - (left[0] * right[2]),
+        (left[0] * right[1]) - (left[1] * right[0]),
+    )
+
+
+def _close3(left: tuple[float, float, float], right: tuple[float, float, float], atol: float = 1e-6) -> bool:
+    return all(abs(a - b) <= atol for a, b in zip(left, right))
 
 
 class _DependencyKernelHost(ctypes.Structure):
@@ -34,6 +123,13 @@ class _DependencyKernelHost(ctypes.Structure):
 class LEDPathfinderSovereign:
     """GPU-ready LED pathfinder with RPN-backed frontier management."""
 
+    _MAX_VERTICES = 4096
+    _SHARED_BYTES = (_MAX_VERTICES * 4 * 4) + 12
+    _MAX_SHARED_MEMORY_PER_BLOCK_OPTIN = 97
+    _RESERVED_SHARED_MEMORY_PER_BLOCK = 111
+    _FUNC_ATTR_MAX_DYNAMIC_SHARED_SIZE_BYTES = 8
+    _FUNC_ATTR_PREFERRED_SHARED_MEMORY_CARVEOUT = 9
+
     def __init__(self):
         ptx_dir = Path(__file__).resolve().parent.parent / "ptx"
         astar_ptx = ptx_dir / "led_astar.ptx"
@@ -44,57 +140,99 @@ class LEDPathfinderSovereign:
         if not l2_ptx.exists():
             raise FileNotFoundError(f"L2 distance PTX kernel missing: {l2_ptx}")
 
-        # Attempt to load kernels – failures fall back to CPU implementations.
-        try:
-            self._astar_module = loader.load_module_from_file(str(astar_ptx))
-            self._astar_kernel = loader.get_function(self._astar_module, "led_astar_navigate")
-        except RuntimeError:
-            self._astar_module = None
-            self._astar_kernel = None
+        self._astar_module = loader.load_module_from_file(str(astar_ptx))
+        self._astar_kernel = loader.get_function(self._astar_module, "led_astar_navigate")
+        self._configure_astar_kernel()
 
-        try:
-            self._dist_module = loader.load_module_from_file(str(l2_ptx))
-            self._dist_kernel = loader.get_function(self._dist_module, "warp_l2_dist")
-        except RuntimeError:
-            self._dist_module = None
-            self._dist_kernel = None
+        self._dist_module = loader.load_module_from_file(str(l2_ptx))
+        self._dist_kernel = loader.get_function(self._dist_module, "warp_l2_dist")
 
         self._rpn = ModularRPNEngine()
-        self._gt_program = np.array([0x0000, 0x0001, 0x0028], dtype=np.uint16)
-        self._dummy_vectors = np.zeros((1, 3), dtype=np.float32)
+        self._gt_program = _u16_buffer([0x0000, 0x0001, 0x0028])
+        self._dummy_vectors = HostTensorF32.zeros(1, 3)
         self._octree = MortonOctreeSovereign()
+
+    def _configure_astar_kernel(self) -> None:
+        if not hasattr(loader.nvcuda, "cuFuncSetAttribute"):
+            raise RuntimeError("cuFuncSetAttribute unavailable for led_astar_navigate")
+        loader.nvcuda.cuFuncSetAttribute.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+        loader.nvcuda.cuFuncSetAttribute.restype = ctypes.c_int
+
+        optin_limit = self._device_attribute(self._MAX_SHARED_MEMORY_PER_BLOCK_OPTIN)
+        reserved = self._device_attribute(self._RESERVED_SHARED_MEMORY_PER_BLOCK)
+        available = int(optin_limit) - int(reserved)
+        if self._SHARED_BYTES > available:
+            raise RuntimeError(
+                f"led_astar_navigate needs {self._SHARED_BYTES} shared bytes but device opt-in limit is {available}"
+            )
+
+        loader.ck(
+            loader.nvcuda.cuFuncSetAttribute(
+                self._astar_kernel,
+                self._FUNC_ATTR_PREFERRED_SHARED_MEMORY_CARVEOUT,
+                100,
+            )
+        )
+        loader.ck(
+            loader.nvcuda.cuFuncSetAttribute(
+                self._astar_kernel,
+                self._FUNC_ATTR_MAX_DYNAMIC_SHARED_SIZE_BYTES,
+                int(self._SHARED_BYTES),
+            )
+        )
+
+    @staticmethod
+    def _device_attribute(attr: int) -> int:
+        if loader.libcudart is None:
+            raise RuntimeError("libcudart unavailable for LED device attribute query")
+        loader.libcudart.cudaGetDevice.argtypes = [ctypes.POINTER(ctypes.c_int)]
+        loader.libcudart.cudaGetDevice.restype = ctypes.c_int
+        loader.libcudart.cudaDeviceGetAttribute.argtypes = [
+            ctypes.POINTER(ctypes.c_int),
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
+        loader.libcudart.cudaDeviceGetAttribute.restype = ctypes.c_int
+        device = ctypes.c_int()
+        result = loader.libcudart.cudaGetDevice(ctypes.byref(device))
+        if result != 0:
+            raise RuntimeError(f"cudaGetDevice failed with error {result}")
+        value = ctypes.c_int()
+        result = loader.libcudart.cudaDeviceGetAttribute(ctypes.byref(value), attr, device.value)
+        if result != 0:
+            raise RuntimeError(f"cudaDeviceGetAttribute({attr}) failed with error {result}")
+        return int(value.value)
 
     # ------------------------------------------------------------------ #
     # Public API
     # ------------------------------------------------------------------ #
-    def compute_distances(self, points: np.ndarray, reference: np.ndarray) -> np.ndarray:
+    def compute_distances(self, points: object, reference: object) -> Float32Vector:
         """
         Vectorised L2 distance between points and a reference location.
 
-        Falls back to NumPy if the PTX kernel cannot be launched.
+        GPU-only sovereign distance computation.
         """
-        pts = np.ascontiguousarray(points, dtype=np.float32)
-        ref = np.ascontiguousarray(reference.reshape(1, 3), dtype=np.float32)
+        pts = HostTensorF32.from_array_like(points)
+        ref_point = _point3(reference)
 
         if pts.ndim != 2 or pts.shape[1] != 3:
             raise ValueError(f"Points must have shape (N, 3); received {pts.shape}")
 
         n = pts.shape[0]
         if n == 0:
-            return np.zeros(0, dtype=np.float32)
-        cpu_distances = np.linalg.norm(pts - ref, axis=1).astype(np.float32)
-
+            return Float32Vector()
         if self._dist_kernel is None:
-            return cpu_distances
+            raise RuntimeError("warp_l2_dist kernel unavailable")
+        ref = HostTensorF32.from_array_like([ref_point for _ in range(n)], rows=n, cols=3)
 
-        out = np.zeros(n, dtype=np.float32)
+        out = (ctypes.c_float * n)()
         d_points = loader.gpu_malloc(pts.nbytes)
         d_ref = loader.gpu_malloc(ref.nbytes)
-        d_out = loader.gpu_malloc(out.nbytes)
+        d_out = loader.gpu_malloc(ctypes.sizeof(out))
 
         try:
-            loader.memcpy_htod(d_points, ctypes.c_void_p(pts.ctypes.data), pts.nbytes)
-            loader.memcpy_htod(d_ref, ctypes.c_void_p(ref.ctypes.data), ref.nbytes)
+            loader.memcpy_htod(d_points, ctypes.c_void_p(pts.data_ptr), pts.nbytes)
+            loader.memcpy_htod(d_ref, ctypes.c_void_p(ref.data_ptr), ref.nbytes)
 
             threads = 128
             blocks = (n + threads - 1) // threads
@@ -111,43 +249,37 @@ class LEDPathfinderSovereign:
                 ],
             )
             loader.synchronize()
-            loader.memcpy_dtoh(ctypes.c_void_p(out.ctypes.data), d_out, out.nbytes)
-            if np.all(np.isfinite(out)) and np.allclose(out, cpu_distances, atol=1e-4):
-                return out
-            return cpu_distances
-        except RuntimeError:
-            return cpu_distances
+            loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(out)), d_out, ctypes.sizeof(out))
+            return Float32Vector(float(out[idx]) for idx in range(n))
         finally:
             loader.gpu_free(d_points)
             loader.gpu_free(d_ref)
             loader.gpu_free(d_out)
 
-    def rpn_priority_queue_pop(self, costs: np.ndarray, nodes: np.ndarray) -> Tuple[int, int]:
+    def rpn_priority_queue_pop(self, costs: object, nodes: object) -> Tuple[int, int]:
         """
         Extract the index of the minimal cost using the RPN min comparator.
 
-        The comparison is still mirrored on the CPU to preserve correctness
-        when the CUDA context is unavailable; the RPN execution acts as the
-        sovereign contract check.
+        Uses the sovereign RPN comparator for ordering.
         """
-        costs = np.asarray(costs, dtype=np.float32)
-        nodes = np.asarray(nodes, dtype=np.int32)
-        if costs.size == 0:
+        cost_values = [float(value) for value in costs]
+        node_values = [int(value) for value in nodes]
+        if not cost_values:
             raise ValueError("Frontier is empty")
 
         best_index = 0
-        best_cost = costs[0]
+        best_cost = cost_values[0]
 
-        for idx in range(1, costs.size):
-            current_cost = costs[idx]
-            scalars = np.array([best_cost, current_cost], dtype=np.float32)
+        for idx in range(1, len(cost_values)):
+            current_cost = cost_values[idx]
+            scalars = [best_cost, current_cost]
             try:
                 try:
                     result = self._rpn.execute_single(
                         instance_id=0,
                         op_codes=self._gt_program,
                         scalars=scalars,
-                        vectors=self._dummy_vectors,
+                        vectors=self._dummy_vectors.tolist(),
                     )
                     is_greater = result >= 0.5
                 except RuntimeError:
@@ -159,119 +291,119 @@ class LEDPathfinderSovereign:
                 best_index = idx
                 best_cost = current_cost
 
-        return int(nodes[best_index]), int(best_index)
+        return int(node_values[best_index]), int(best_index)
 
     def find_path(
         self,
-        start: np.ndarray,
-        goal: np.ndarray,
-        obstacles: np.ndarray,
+        start: object,
+        goal: object,
+        obstacles: object,
         clearance: float = 0.75,
-    ) -> np.ndarray:
+    ) -> HostTensorF32:
         """
         Determine a simple path from start to goal avoiding spherical obstacles.
 
         The implementation keeps to a lightweight sovereign pattern: Morton
         codes are produced (for future composition) and the frontier ordering
-        passes through the RPN comparator. The actual path layout is CPU-based,
-        which keeps tests deterministic on machines without a CUDA context.
+        passes through the RPN comparator.
         """
-        start = np.asarray(start, dtype=np.float32).reshape(3)
-        goal = np.asarray(goal, dtype=np.float32).reshape(3)
-        obstacles = np.ascontiguousarray(obstacles, dtype=np.float32).reshape(-1, 3)
+        start_vec = _point3(start)
+        goal_vec = _point3(goal)
+        obstacles_rows = _points3(obstacles)
 
-        if np.allclose(start, goal):
-            return np.vstack([start, goal])
+        if _close3(start_vec, goal_vec):
+            return HostTensorF32.from_array_like([start_vec, goal_vec], rows=2, cols=3)
 
-        _ = self._octree.encode(obstacles)  # Pre-compute codes for future use
+        if obstacles_rows:
+            _ = self._octree.encode(obstacles_rows)  # Pre-compute codes for future use
 
-        straight_path = np.vstack([start, goal])
-        if obstacles.size == 0:
+        straight_path = HostTensorF32.from_array_like([start_vec, goal_vec], rows=2, cols=3)
+        if not obstacles_rows:
             return straight_path
 
-        if not self._intersects_obstacle(straight_path, obstacles, clearance):
+        if not self._intersects_obstacle(straight_path, obstacles_rows, clearance):
             return straight_path
 
-        detour = self._create_detour(start, goal, obstacles, clearance)
-        costs = np.array([0.0, 1.0], dtype=np.float32)
-        nodes = np.array([0, 1], dtype=np.int32)
+        detour = self._create_detour(start_vec, goal_vec, obstacles_rows, clearance)
+        costs = [0.0, 1.0]
+        nodes = [0, 1]
         _ = self.rpn_priority_queue_pop(costs, nodes)
 
-        path = np.vstack([start, detour, goal])
-        return path
+        return HostTensorF32.from_array_like([start_vec, detour, goal_vec], rows=3, cols=3)
 
     def navigate_csr(
         self,
-        row_offsets: np.ndarray,
-        col_indices: np.ndarray,
-        packed_costs: np.ndarray,
+        row_offsets: object,
+        col_indices: object,
+        packed_costs: object,
         *,
         start: int,
         goal: int,
         alpha: float = 0.7,
         beta: float = 0.3,
         max_path_length: int = 128,
-    ) -> np.ndarray:
-        """Run LED-A* on a compact CSR frontier graph, with CPU fallback."""
-        rows = np.ascontiguousarray(row_offsets, dtype=np.uint32).reshape(-1)
-        cols = np.ascontiguousarray(col_indices, dtype=np.uint32).reshape(-1)
-        costs = np.ascontiguousarray(packed_costs, dtype=np.uint32).reshape(-1)
+    ) -> UInt32Vector:
+        """Run LED-A* on a compact CSR frontier graph."""
+        rows = [int(value) for value in row_offsets]
+        cols = [int(value) for value in col_indices]
+        costs = [int(value) for value in packed_costs]
 
-        num_vertices = max(0, rows.size - 1)
+        num_vertices = max(0, len(rows) - 1)
         if num_vertices <= 0:
-            return np.zeros(0, dtype=np.uint32)
+            return UInt32Vector()
         if not (0 <= int(start) < num_vertices and 0 <= int(goal) < num_vertices):
             raise ValueError(f"start/goal must be in [0, {num_vertices - 1}]")
-        if cols.size != costs.size:
+        if len(cols) != len(costs):
             raise ValueError("col_indices and packed_costs must have the same length")
         if int(start) == int(goal):
-            return np.asarray([int(start)], dtype=np.uint32)
-        if rows[-1] != cols.size:
+            return UInt32Vector([int(start)])
+        if rows[-1] != len(cols):
             raise ValueError("CSR row_offsets[-1] must equal edge count")
 
-        if self._astar_kernel is None or num_vertices > 4096:
-            return self._navigate_csr_cpu(
-                rows,
-                cols,
-                costs,
-                start=int(start),
-                goal=int(goal),
-                alpha=float(alpha),
-                beta=float(beta),
+        if self._astar_kernel is None:
+            raise RuntimeError("led_astar_navigate kernel unavailable")
+        if num_vertices > self._MAX_VERTICES:
+            raise RuntimeError(
+                f"CSR graph has {num_vertices} vertices, exceeding the {self._MAX_VERTICES} "
+                "shared-memory limit of led_astar_navigate.ptx"
             )
 
-        lazy_mask = np.zeros(num_vertices, dtype=np.uint64)
-        path = np.zeros(max_path_length, dtype=np.uint32)
-        path_len = np.zeros(1, dtype=np.uint32)
+        rows_buf = _u32_buffer(rows)
+        cols_buf = _u32_buffer(cols)
+        costs_buf = _u32_buffer(costs)
+        lazy_mask = (ctypes.c_uint64 * num_vertices)()
+        path = (ctypes.c_uint32 * int(max_path_length))()
+        path_len = (ctypes.c_uint32 * 1)()
 
-        d_rows = loader.gpu_malloc(rows.nbytes)
-        d_cols = loader.gpu_malloc(cols.nbytes)
-        d_costs = loader.gpu_malloc(costs.nbytes)
-        d_lazy = loader.gpu_malloc(lazy_mask.nbytes)
-        d_path = loader.gpu_malloc(path.nbytes)
-        d_path_len = loader.gpu_malloc(path_len.nbytes)
+        d_rows = loader.gpu_malloc(ctypes.sizeof(rows_buf))
+        d_cols = loader.gpu_malloc(ctypes.sizeof(cols_buf))
+        d_costs = loader.gpu_malloc(ctypes.sizeof(costs_buf))
+        d_lazy = loader.gpu_malloc(ctypes.sizeof(lazy_mask))
+        d_path = loader.gpu_malloc(ctypes.sizeof(path))
+        d_path_len = loader.gpu_malloc(ctypes.sizeof(path_len))
         kernel_desc = _DependencyKernelHost(
             rowOffsets=int(d_rows.value),
             colIndices=int(d_cols.value),
             packedCosts=int(d_costs.value),
             lazyBitmask=int(d_lazy.value),
             numVertices=num_vertices,
-            numEdges=int(cols.size),
+            numEdges=int(len(cols)),
         )
         d_kernel = loader.gpu_malloc(ctypes.sizeof(kernel_desc))
 
         try:
-            loader.memcpy_htod(d_rows, ctypes.c_void_p(rows.ctypes.data), rows.nbytes)
-            loader.memcpy_htod(d_cols, ctypes.c_void_p(cols.ctypes.data), cols.nbytes)
-            loader.memcpy_htod(d_costs, ctypes.c_void_p(costs.ctypes.data), costs.nbytes)
-            loader.memcpy_htod(d_lazy, ctypes.c_void_p(lazy_mask.ctypes.data), lazy_mask.nbytes)
-            loader.memcpy_htod(d_path_len, ctypes.c_void_p(path_len.ctypes.data), path_len.nbytes)
+            loader.memcpy_htod(d_rows, ctypes.c_void_p(ctypes.addressof(rows_buf)), ctypes.sizeof(rows_buf))
+            loader.memcpy_htod(d_cols, ctypes.c_void_p(ctypes.addressof(cols_buf)), ctypes.sizeof(cols_buf))
+            loader.memcpy_htod(d_costs, ctypes.c_void_p(ctypes.addressof(costs_buf)), ctypes.sizeof(costs_buf))
+            loader.memcpy_htod(d_lazy, ctypes.c_void_p(ctypes.addressof(lazy_mask)), ctypes.sizeof(lazy_mask))
+            loader.memcpy_htod(d_path_len, ctypes.c_void_p(ctypes.addressof(path_len)), ctypes.sizeof(path_len))
             loader.memcpy_htod(d_kernel, ctypes.cast(ctypes.byref(kernel_desc), ctypes.c_void_p), ctypes.sizeof(kernel_desc))
 
             loader.launch(
                 self._astar_kernel,
                 grid=(1, 1, 1),
                 block=(128, 1, 1),
+                shared_mem=self._SHARED_BYTES,
                 params=[
                     ctypes.c_uint64(d_kernel.value),
                     ctypes.c_uint32(int(start)),
@@ -284,30 +416,12 @@ class LEDPathfinderSovereign:
                 ],
             )
             loader.synchronize()
-            loader.memcpy_dtoh(ctypes.c_void_p(path_len.ctypes.data), d_path_len, path_len.nbytes)
+            loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(path_len)), d_path_len, ctypes.sizeof(path_len))
             path_count = int(path_len[0])
             if path_count <= 0:
-                return self._navigate_csr_cpu(
-                    rows,
-                    cols,
-                    costs,
-                    start=int(start),
-                    goal=int(goal),
-                    alpha=float(alpha),
-                    beta=float(beta),
-                )
-            loader.memcpy_dtoh(ctypes.c_void_p(path.ctypes.data), d_path, path.nbytes)
-            return np.ascontiguousarray(path[:path_count][::-1], dtype=np.uint32)
-        except RuntimeError:
-            return self._navigate_csr_cpu(
-                rows,
-                cols,
-                costs,
-                start=int(start),
-                goal=int(goal),
-                alpha=float(alpha),
-                beta=float(beta),
-            )
+                raise RuntimeError("led_astar_navigate returned empty path")
+            loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(path)), d_path, ctypes.sizeof(path))
+            return UInt32Vector(int(path[idx]) for idx in range(path_count - 1, -1, -1))
         finally:
             loader.gpu_free(d_rows)
             loader.gpu_free(d_cols)
@@ -320,91 +434,55 @@ class LEDPathfinderSovereign:
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
-    @staticmethod
-    def _navigate_csr_cpu(
-        row_offsets: np.ndarray,
-        col_indices: np.ndarray,
-        packed_costs: np.ndarray,
-        *,
-        start: int,
-        goal: int,
-        alpha: float,
-        beta: float,
-    ) -> np.ndarray:
-        frontier: list[tuple[float, int]] = [(0.0, start)]
-        parents = {start: start}
-        g_score = {start: 0.0}
-
-        while frontier:
-            current_cost, node = heapq.heappop(frontier)
-            if node == goal:
-                break
-            if current_cost > g_score.get(node, float("inf")) + 1e-9:
-                continue
-            row_start = int(row_offsets[node])
-            row_end = int(row_offsets[node + 1])
-            for edge_idx in range(row_start, row_end):
-                neighbor = int(col_indices[edge_idx])
-                packed = int(packed_costs[edge_idx])
-                geo = float(packed & 0xFFFF)
-                sem = float((packed >> 16) & 0xFFFF)
-                edge_cost = (alpha * geo) + (beta * sem)
-                tentative = current_cost + edge_cost
-                if tentative + 1e-9 < g_score.get(neighbor, float("inf")):
-                    g_score[neighbor] = tentative
-                    parents[neighbor] = node
-                    heapq.heappush(frontier, (tentative, neighbor))
-
-        if goal not in parents:
-            return np.zeros(0, dtype=np.uint32)
-        path: list[int] = [goal]
-        cursor = goal
-        while cursor != start:
-            cursor = parents[cursor]
-            path.append(cursor)
-        path.reverse()
-        return np.asarray(path, dtype=np.uint32)
-
     def _intersects_obstacle(
         self,
-        path: np.ndarray,
-        obstacles: np.ndarray,
+        path: object,
+        obstacles: list[tuple[float, float, float]],
         clearance: float,
     ) -> bool:
-        start, goal = path
-        segment = goal - start
-        seg_len = np.linalg.norm(segment)
+        start = _point3(path[0])
+        goal = _point3(path[1])
+        segment = _sub3(goal, start)
+        seg_len = _norm3(segment)
         if seg_len == 0.0:
             return False
-        direction = segment / seg_len
-        diffs = obstacles - start
-        proj = diffs @ direction
-        proj_clamped = np.clip(proj, 0.0, seg_len)
-        closest = start + np.outer(proj_clamped, direction)
-        distances = np.linalg.norm(obstacles - closest, axis=1)
-        return bool(np.any(distances < clearance))
+        direction = _scale3(segment, 1.0 / seg_len)
+        for obstacle in obstacles:
+            delta = _sub3(obstacle, start)
+            projection = max(0.0, min(seg_len, _dot3(delta, direction)))
+            closest = _add3(start, _scale3(direction, projection))
+            if _norm3(_sub3(obstacle, closest)) < clearance:
+                return True
+        return False
 
     def _create_detour(
         self,
-        start: np.ndarray,
-        goal: np.ndarray,
-        obstacles: np.ndarray,
+        start: tuple[float, float, float],
+        goal: tuple[float, float, float],
+        obstacles: list[tuple[float, float, float]],
         clearance: float,
-    ) -> np.ndarray:
+    ) -> tuple[float, float, float]:
         """
         Produce a simple detour by offsetting perpendicular to the main axis.
         """
-        mid = (start + goal) * 0.5
-        centroid = obstacles.mean(axis=0) if obstacles.size else mid
-        direction = goal - start
-        axis = np.array([direction[1], -direction[0], 0.0], dtype=np.float32)
-        if np.linalg.norm(axis) < 1e-3:
-            axis = np.array([0.0, 1.0, 0.0], dtype=np.float32)
-        axis /= np.linalg.norm(axis)
-        offset = axis * (clearance * 2.0)
-        if np.dot(centroid - mid, axis) < 0:
-            offset = -offset
-        return mid + offset
+        mid = _scale3(_add3(start, goal), 0.5)
+        if obstacles:
+            centroid = (
+                sum(point[0] for point in obstacles) / len(obstacles),
+                sum(point[1] for point in obstacles) / len(obstacles),
+                sum(point[2] for point in obstacles) / len(obstacles),
+            )
+        else:
+            centroid = mid
+        direction = _sub3(goal, start)
+        axis = (direction[1], -direction[0], 0.0)
+        if _norm3(axis) < 1e-3:
+            axis = (0.0, 1.0, 0.0)
+        axis = _normalize3(axis)
+        offset = _scale3(axis, clearance * 2.0)
+        if _dot3(_sub3(centroid, mid), axis) < 0.0:
+            offset = _scale3(offset, -1.0)
+        return _add3(mid, offset)
 
 
 __all__ = ["LEDPathfinderSovereign"]

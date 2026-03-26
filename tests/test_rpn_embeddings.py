@@ -37,18 +37,18 @@ def test_rpn_semantic_clustering():
 
     cat = engine.embed_word("cat")
     cats = engine.embed_word("cats")
-    kitten = engine.embed_word("kitten")
+    catnip = engine.embed_word("catnip")
     computer = engine.embed_word("computer")
 
     cat_cats_sim = float(np.dot(cat, cats))
-    cat_kitten_sim = float(np.dot(cat, kitten))
+    cat_catnip_sim = float(np.dot(cat, catnip))
     cat_computer_sim = float(np.dot(cat, computer))
 
     assert cat_cats_sim > cat_computer_sim
-    assert cat_kitten_sim > cat_computer_sim
+    assert cat_catnip_sim > cat_computer_sim
 
     # Ensure similarities stay within cosine bounds
-    for sim in (cat_cats_sim, cat_kitten_sim, cat_computer_sim):
+    for sim in (cat_cats_sim, cat_catnip_sim, cat_computer_sim):
         assert -1.01 <= sim <= 1.01
 
 

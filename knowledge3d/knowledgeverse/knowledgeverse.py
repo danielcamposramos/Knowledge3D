@@ -161,7 +161,7 @@ class Knowledgeverse:
         "W4": (512, 1024),
     }
     TRM_STATE_VECTOR_DIM = 512
-    TRM_WORKSPACE_FLOATS = 3072
+    TRM_WORKSPACE_FLOATS = 4096
     TRM_STATE_BUFFER_FLOATS: dict[str, int] = {
         "d_q_input": TRM_STATE_VECTOR_DIM,
         "d_q": TRM_STATE_VECTOR_DIM,
@@ -958,32 +958,48 @@ class Knowledgeverse:
             return {}
         self._reset_trm_state()
         projected_query = self._encode_stimulus(query_embedding, readback=True)
+        d_steps = gpu_malloc(ctypes.sizeof(ctypes.c_int32))
+        d_drift = gpu_malloc(ctypes.sizeof(ctypes.c_float))
         started = time.perf_counter()
-        launch(
-            self._trm.kernel_fused,
-            grid=(1, 1, 1),
-            block=(128, 1, 1),
-            params=[
-                self._trm_state_buffers["d_q"],
-                self._trm_state_buffers["d_y"],
-                self._trm_state_buffers["d_z"],
-                self._trm_weight_buffers["W1"],
-                self._trm_weight_buffers["W2"],
-                self._trm_weight_buffers["W3"],
-                self._trm_weight_buffers["W4"],
-                self._trm_state_buffers["d_z_new"],
-                self._trm_state_buffers["d_y_new"],
-                self._trm_state_buffers["d_workspace"],
-            ],
-        )
-        synchronize()
-        latency_us = float((time.perf_counter() - started) * 1_000_000.0)
-        y_new_host = self._read_trm_state_vector("d_y_new")
-        return {
-            "query_embedding_512": projected_query.tolist() if projected_query is not None else [],
-            "y_new_vector_512": y_new_host.tolist(),
-            "trm_latency_us": latency_us,
-        }
+        try:
+            launch(
+                self._trm.kernel_recursive_fused,
+                grid=(1, 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(self._trm_state_buffers["d_q"].value),
+                    ctypes.c_uint64(self._trm_state_buffers["d_y"].value),
+                    ctypes.c_uint64(self._trm_state_buffers["d_z"].value),
+                    ctypes.c_uint64(self._trm_weight_buffers["W1"].value),
+                    ctypes.c_uint64(self._trm_weight_buffers["W2"].value),
+                    ctypes.c_uint64(self._trm_weight_buffers["W3"].value),
+                    ctypes.c_uint64(self._trm_weight_buffers["W4"].value),
+                    ctypes.c_uint64(self._trm_state_buffers["d_workspace"].value),
+                    ctypes.c_uint64(d_steps.value),
+                    ctypes.c_uint64(d_drift.value),
+                    ctypes.c_int32(6),
+                    ctypes.c_float(1e-4),
+                ],
+            )
+            synchronize()
+            latency_us = float((time.perf_counter() - started) * 1_000_000.0)
+            y_new_host = self._read_trm_state_vector("d_y")
+            steps_host = ctypes.c_int32()
+            drift_host = ctypes.c_float()
+            memcpy_dtoh(ctypes.byref(steps_host), d_steps, ctypes.sizeof(steps_host))
+            memcpy_dtoh(ctypes.byref(drift_host), d_drift, ctypes.sizeof(drift_host))
+            return {
+                "query_embedding_512": projected_query.tolist() if projected_query is not None else [],
+                "y_new_vector_512": y_new_host.tolist(),
+                "trm_latency_us": latency_us,
+                "trm_recursion_steps": int(steps_host.value),
+                "trm_drift": float(drift_host.value),
+            }
+        finally:
+            from knowledge3d.cranium.sovereign.loader import gpu_free
+
+            gpu_free(d_steps)
+            gpu_free(d_drift)
 
     def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[np.ndarray, np.ndarray, str]:
         y_new_host = np.asarray(list(y_new_vector_512), dtype=np.float32).reshape(-1)
@@ -1032,6 +1048,8 @@ class Knowledgeverse:
             "y_new_vector_512": y_new_host.astype(np.float32, copy=False).tolist(),
             "decoder_source": decoder_source,
             "decoder_checkpoint": str(self._trm_galaxy_decoder_path),
+            "trm_recursion_steps": int(tick.get("trm_recursion_steps", 0) or 0),
+            "trm_drift": float(tick.get("trm_drift", 0.0) or 0.0),
         }
 
     @classmethod

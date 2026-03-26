@@ -8,13 +8,12 @@ Supports three execution paths:
 
 from __future__ import annotations
 
-import os
 import ctypes
+import os
+import struct
 import warnings
 from pathlib import Path
-from typing import List, Optional, Tuple
-
-import numpy as np
+from typing import Iterable, List, Optional, Sequence, Tuple
 
 from .loader import (
     load_ptx_file,
@@ -25,6 +24,7 @@ from .loader import (
     launch,
     synchronize,
 )
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 
 
 def _ptr_value(ptr) -> int:
@@ -33,11 +33,105 @@ def _ptr_value(ptr) -> int:
 
 def _encode_pointer_literal(ptr, rows: int, cols: int) -> List[float]:
     raw = _ptr_value(ptr)
-    lo = raw & 0xFFFFFFFF
-    hi = (raw >> 32) & 0xFFFFFFFF
-    lo_f = np.array([lo], dtype=np.uint32).view(np.float32)[0]
-    hi_f = np.array([hi], dtype=np.uint32).view(np.float32)[0]
+    lo_f = struct.unpack("<f", struct.pack("<I", raw & 0xFFFFFFFF))[0]
+    hi_f = struct.unpack("<f", struct.pack("<I", (raw >> 32) & 0xFFFFFFFF))[0]
     return [float(rows), float(cols), float(lo_f), float(hi_f)]
+
+
+def _void_p(address: int) -> ctypes.c_void_p:
+    return ctypes.c_void_p(int(address))
+
+
+def _copy_host_to_device(dst_device, tensor: HostTensorF32) -> None:
+    memcpy_htod(dst_device, _void_p(tensor.data_ptr), tensor.nbytes)
+
+
+def _copy_device_to_host(tensor: HostTensorF32, src_device) -> None:
+    memcpy_dtoh(_void_p(tensor.data_ptr), src_device, tensor.nbytes)
+
+
+def _coerce_vector_tensor(name: str, value: object, size: int = 512) -> HostTensorF32:
+    tensor = HostTensorF32.from_array_like(value)
+    if tensor.shape != (int(size), 1):
+        raise ValueError(f"{name} must have shape ({int(size)},), got {tensor.shape}")
+    return tensor
+
+
+def _coerce_matrix_tensor(name: str, value: object, rows: int, cols: int) -> HostTensorF32:
+    tensor = HostTensorF32.from_array_like(value, rows=rows, cols=cols)
+    if tensor.shape != (int(rows), int(cols)):
+        raise ValueError(f"{name} must have shape ({int(rows)}, {int(cols)}), got {tensor.shape}")
+    return tensor
+
+
+def _max_abs_diff(lhs: HostTensorF32, rhs: HostTensorF32) -> float:
+    if lhs.shape != rhs.shape:
+        raise ValueError(f"Shape mismatch: {lhs.shape} != {rhs.shape}")
+    max_value = 0.0
+    for idx in range(lhs.size):
+        diff = abs(float(lhs._buffer[idx]) - float(rhs._buffer[idx]))
+        if diff > max_value:
+            max_value = diff
+    return float(max_value)
+
+
+class TRMVector(list):
+    """Sequence-compatible float vector without a NumPy dependency."""
+
+    def __init__(self, values: Iterable[float] = ()) -> None:
+        super().__init__(float(value) for value in values)
+
+    @classmethod
+    def from_tensor(cls, tensor: HostTensorF32) -> "TRMVector":
+        return cls(tensor.to_flat_list())
+
+    @property
+    def shape(self) -> tuple[int]:
+        return (len(self),)
+
+    @property
+    def dtype(self) -> str:
+        return "float32"
+
+    def tolist(self) -> list[float]:
+        return list(self)
+
+    def copy(self) -> "TRMVector":
+        return TRMVector(self)
+
+    def _binary(self, other: object, op) -> "TRMVector":
+        if isinstance(other, (int, float)):
+            scalar = float(other)
+            return TRMVector(op(float(value), scalar) for value in self)
+        if not isinstance(other, Sequence) and not hasattr(other, "__iter__"):
+            raise TypeError(f"Unsupported operand type: {type(other)!r}")
+        other_values = list(other)
+        if len(other_values) != len(self):
+            raise ValueError(f"Length mismatch: {len(self)} != {len(other_values)}")
+        return TRMVector(op(float(lhs), float(rhs)) for lhs, rhs in zip(self, other_values))
+
+    def __mul__(self, other: object) -> "TRMVector":
+        return self._binary(other, lambda lhs, rhs: lhs * rhs)
+
+    def __rmul__(self, other: object) -> "TRMVector":
+        return self.__mul__(other)
+
+    def __add__(self, other: object) -> "TRMVector":
+        return self._binary(other, lambda lhs, rhs: lhs + rhs)
+
+    def __sub__(self, other: object) -> "TRMVector":
+        return self._binary(other, lambda lhs, rhs: lhs - rhs)
+
+    def __rsub__(self, other: object) -> "TRMVector":
+        if isinstance(other, (int, float)):
+            scalar = float(other)
+            return TRMVector(scalar - float(value) for value in self)
+        if not isinstance(other, Sequence) and not hasattr(other, "__iter__"):
+            raise TypeError(f"Unsupported operand type: {type(other)!r}")
+        other_values = list(other)
+        if len(other_values) != len(self):
+            raise ValueError(f"Length mismatch: {len(other_values)} != {len(self)}")
+        return TRMVector(float(lhs) - float(rhs) for lhs, rhs in zip(other_values, self))
 
 
 class TRMLauncher:
@@ -55,7 +149,7 @@ class TRMLauncher:
             self.use_rpn = bool(use_rpn)
 
         if use_fused is None:
-            self.use_fused = os.getenv("K3D_USE_FUSED_TRM", "0").lower() in {"1", "true", "yes"}
+            self.use_fused = os.getenv("K3D_USE_FUSED_TRM", "1").lower() in {"1", "true", "yes"}
         else:
             self.use_fused = bool(use_fused)
 
@@ -88,8 +182,8 @@ class TRMLauncher:
         self._op_swiglu_1024 = None
         self.d_zero_512 = None
         self._rpn_pointer_layout: List[tuple[str, int, int]] = []
-        self._rpn_opcodes: Optional[np.ndarray] = None
-        self._rpn_scalars_host: Optional[np.ndarray] = None
+        self._rpn_opcodes = None
+        self._rpn_scalars_host: Optional[HostTensorF32] = None
         self._d_rpn_opcodes = None
         self._d_rpn_scalars = None
 
@@ -110,21 +204,23 @@ class TRMLauncher:
             self._op_vec_add3_512 = OP_TRM_VEC_ADD3_512
             self._op_swiglu_1024 = OP_TRM_SWIGLU_1024
 
-            zero_host = np.zeros(512, dtype=np.float32)
+            zero_host = HostTensorF32.zeros(512, 1)
             self.d_zero_512 = gpu_malloc(zero_host.nbytes)
-            memcpy_htod(self.d_zero_512, zero_host.ctypes.data_as(ctypes.c_void_p), zero_host.nbytes)
+            _copy_host_to_device(self.d_zero_512, zero_host)
             self._init_rpn_buffers()
 
         # Fused kernel
         self.kernel_fused = None
+        self.kernel_recursive_fused = None
         self.d_workspace = None
         if self.use_fused:
-            fused_ptx = Path(__file__).parent.parent / "ptx" / "trm_step_fused.ptx"
+            fused_ptx = Path(__file__).parent.parent / "ptx" / "trm_recursive_fused.ptx"
             if not fused_ptx.exists():
-                raise FileNotFoundError(f"Fused TRM PTX not found: {fused_ptx}")
-            self.kernel_fused = load_ptx_file(str(fused_ptx), "trm_step_fused")
-            # Workspace = 512 + 1024 + 512 + 1024 floats
-            self.d_workspace = gpu_malloc((512 + 1024 + 512 + 1024) * 4)
+                raise FileNotFoundError(f"Recursive fused TRM PTX not found: {fused_ptx}")
+            self.kernel_recursive_fused = load_ptx_file(str(fused_ptx), "trm_recursive_fused")
+            # Workspace = temp(512) + hidden(1024) + temp2(512) + hidden2(1024)
+            #           + z_new(512) + y_new(512) = 4096 floats
+            self.d_workspace = gpu_malloc(4096 * 4)
 
         backend = "FUSED" if self.use_fused else ("RPN" if self.use_rpn else "PTX")
         print(f"✅ TRM Launcher initialized (backend: {backend})")
@@ -135,46 +231,47 @@ class TRMLauncher:
 
     def refine(
         self,
-        q: np.ndarray,
-        y: np.ndarray,
-        z: np.ndarray,
-        W1: np.ndarray,
-        W2: np.ndarray,
-        W3: np.ndarray,
-        W4: np.ndarray,
+        q: object,
+        y: object,
+        z: object,
+        W1: object,
+        W2: object,
+        W3: object,
+        W4: object,
         n_steps: int = 6,
         eps: float = 1e-4,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[TRMVector, TRMVector]:
         if n_steps != 6:
             warnings.warn(
                 f"⚠️  Using n_steps={n_steps} breaks Tesla 3/6/9 resonance. Recommended: n_steps=6",
                 RuntimeWarning,
             )
-        assert q.dtype == y.dtype == z.dtype == np.float32
-        assert q.shape == y.shape == z.shape == (512,)
-        assert W1.shape == (1024, 512) and W1.dtype == np.float32
-        assert W2.shape == (512, 1024) and W2.dtype == np.float32
-        assert W3.shape == (1024, 512) and W3.dtype == np.float32
-        assert W4.shape == (512, 1024) and W4.dtype == np.float32
+        q_tensor = _coerce_vector_tensor("q", q)
+        y_tensor = _coerce_vector_tensor("y", y)
+        z_tensor = _coerce_vector_tensor("z", z)
+        W1_tensor = _coerce_matrix_tensor("W1", W1, 1024, 512)
+        W2_tensor = _coerce_matrix_tensor("W2", W2, 512, 1024)
+        W3_tensor = _coerce_matrix_tensor("W3", W3, 1024, 512)
+        W4_tensor = _coerce_matrix_tensor("W4", W4, 512, 1024)
 
-        d_q = gpu_malloc(q.nbytes)
-        d_y = gpu_malloc(y.nbytes)
-        d_z = gpu_malloc(z.nbytes)
-        d_W1 = gpu_malloc(W1.nbytes)
-        d_W2 = gpu_malloc(W2.nbytes)
-        d_W3 = gpu_malloc(W3.nbytes)
-        d_W4 = gpu_malloc(W4.nbytes)
+        d_q = gpu_malloc(q_tensor.nbytes)
+        d_y = gpu_malloc(y_tensor.nbytes)
+        d_z = gpu_malloc(z_tensor.nbytes)
+        d_W1 = gpu_malloc(W1_tensor.nbytes)
+        d_W2 = gpu_malloc(W2_tensor.nbytes)
+        d_W3 = gpu_malloc(W3_tensor.nbytes)
+        d_W4 = gpu_malloc(W4_tensor.nbytes)
         d_z_new = gpu_malloc(512 * 4)
         d_y_new = gpu_malloc(512 * 4)
 
         try:
-            memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
-            memcpy_htod(d_y, y.ctypes.data_as(ctypes.c_void_p), y.nbytes)
-            memcpy_htod(d_z, z.ctypes.data_as(ctypes.c_void_p), z.nbytes)
-            memcpy_htod(d_W1, W1.ctypes.data_as(ctypes.c_void_p), W1.nbytes)
-            memcpy_htod(d_W2, W2.ctypes.data_as(ctypes.c_void_p), W2.nbytes)
-            memcpy_htod(d_W3, W3.ctypes.data_as(ctypes.c_void_p), W3.nbytes)
-            memcpy_htod(d_W4, W4.ctypes.data_as(ctypes.c_void_p), W4.nbytes)
+            _copy_host_to_device(d_q, q_tensor)
+            _copy_host_to_device(d_y, y_tensor)
+            _copy_host_to_device(d_z, z_tensor)
+            _copy_host_to_device(d_W1, W1_tensor)
+            _copy_host_to_device(d_W2, W2_tensor)
+            _copy_host_to_device(d_W3, W3_tensor)
+            _copy_host_to_device(d_W4, W4_tensor)
 
             if self.use_fused:
                 result = self._refine_fused(
@@ -359,13 +456,13 @@ class TRMLauncher:
         d_y_new,
         n_steps: int,
         eps: float,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        z_old = np.zeros(512, dtype=np.float32)
-        z_new_host = np.zeros(512, dtype=np.float32)
-        y_host = np.zeros(512, dtype=np.float32)
+    ) -> Tuple[TRMVector, TRMVector]:
+        z_old = HostTensorF32.zeros(512, 1)
+        z_new_host = HostTensorF32.zeros(512, 1)
+        y_host = HostTensorF32.zeros(512, 1)
 
         for step in range(n_steps):
-            memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z_old.nbytes)
+            _copy_device_to_host(z_old, d_z)
 
             self.refine_step(
                 d_q.value,
@@ -379,23 +476,23 @@ class TRMLauncher:
                 d_y_new.value,
             )
 
-            memcpy_dtoh(z_new_host.ctypes.data_as(ctypes.c_void_p), d_z_new, z_new_host.nbytes)
-            drift = np.max(np.abs(z_new_host - z_old))
+            _copy_device_to_host(z_new_host, d_z_new)
+            drift = _max_abs_diff(z_new_host, z_old)
             if drift < eps:
-                y_final = np.zeros(512, dtype=np.float32)
-                memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
-                return y_final, z_new_host.copy()
+                y_final = HostTensorF32.zeros(512, 1)
+                _copy_device_to_host(y_final, d_y_new)
+                return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_new_host)
 
-            memcpy_htod(d_z, z_new_host.ctypes.data_as(ctypes.c_void_p), z_new_host.nbytes)
+            _copy_host_to_device(d_z, z_new_host)
 
-            memcpy_dtoh(y_host.ctypes.data_as(ctypes.c_void_p), d_y_new, y_host.nbytes)
-            memcpy_htod(d_y, y_host.ctypes.data_as(ctypes.c_void_p), y_host.nbytes)
+            _copy_device_to_host(y_host, d_y_new)
+            _copy_host_to_device(d_y, y_host)
 
-        y_final = np.zeros(512, dtype=np.float32)
-        z_final = np.zeros(512, dtype=np.float32)
-        memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
-        memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z_final.nbytes)
-        return y_final, z_final
+        y_final = HostTensorF32.zeros(512, 1)
+        z_final = HostTensorF32.zeros(512, 1)
+        _copy_device_to_host(y_final, d_y_new)
+        _copy_device_to_host(z_final, d_z_new)
+        return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_final)
 
     def _refine_rpn(
         self,
@@ -410,7 +507,7 @@ class TRMLauncher:
         d_y_new,
         n_steps: int,
         eps: float,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[TRMVector, TRMVector]:
         if self._advanced_rpn is None or self._rpn_opcodes is None:
             raise RuntimeError("RPN backend not initialised")
 
@@ -419,9 +516,9 @@ class TRMLauncher:
         import time  # Local import to avoid global dependency when unused
 
         timing = {"build": 0.0, "execute": 0.0, "memcpy": 0.0}
-        z_old = np.zeros(512, dtype=np.float32)
-        z_new_host = np.zeros(512, dtype=np.float32)
-        y_host = np.zeros(512, dtype=np.float32)
+        z_old = HostTensorF32.zeros(512, 1)
+        z_new_host = HostTensorF32.zeros(512, 1)
+        y_host = HostTensorF32.zeros(512, 1)
 
         pointer_map = {
             "q": d_q,
@@ -441,7 +538,7 @@ class TRMLauncher:
         }
 
         for step in range(n_steps):
-            memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z_old.nbytes)
+            _copy_device_to_host(z_old, d_z)
 
             t0 = time.perf_counter()
             self._update_rpn_scalars(pointer_map)
@@ -457,13 +554,13 @@ class TRMLauncher:
             timing["execute"] += time.perf_counter() - t0
 
             t0 = time.perf_counter()
-            memcpy_dtoh(z_new_host.ctypes.data_as(ctypes.c_void_p), d_z_new, z_new_host.nbytes)
+            _copy_device_to_host(z_new_host, d_z_new)
             timing["memcpy"] += time.perf_counter() - t0
 
-            drift = np.max(np.abs(z_new_host - z_old))
+            drift = _max_abs_diff(z_new_host, z_old)
             if drift < eps:
-                y_final = np.zeros(512, dtype=np.float32)
-                memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
+                y_final = HostTensorF32.zeros(512, 1)
+                _copy_device_to_host(y_final, d_y_new)
                 total = sum(timing.values()) or 1e-12
                 print("\nRPN Timing Breakdown (steps={}):".format(n_steps))
                 print(
@@ -478,17 +575,17 @@ class TRMLauncher:
                     f"  Memcpy:  {timing['memcpy'] * 1e3:6.2f} ms "
                     f"({timing['memcpy']/total*100:.1f}%)"
                 )
-                return y_final, z_new_host.copy()
+                return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_new_host)
 
-            memcpy_htod(d_z, z_new_host.ctypes.data_as(ctypes.c_void_p), z_new_host.nbytes)
+            _copy_host_to_device(d_z, z_new_host)
 
-            memcpy_dtoh(y_host.ctypes.data_as(ctypes.c_void_p), d_y_new, y_host.nbytes)
-            memcpy_htod(d_y, y_host.ctypes.data_as(ctypes.c_void_p), y_host.nbytes)
+            _copy_device_to_host(y_host, d_y_new)
+            _copy_host_to_device(d_y, y_host)
 
-        y_final = np.zeros(512, dtype=np.float32)
-        z_final = np.zeros(512, dtype=np.float32)
-        memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
-        memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z_final.nbytes)
+        y_final = HostTensorF32.zeros(512, 1)
+        z_final = HostTensorF32.zeros(512, 1)
+        _copy_device_to_host(y_final, d_y_new)
+        _copy_device_to_host(z_final, d_z_new)
 
         total = sum(timing.values()) or 1e-12
         print("\nRPN Timing Breakdown (steps={}):".format(n_steps))
@@ -504,7 +601,7 @@ class TRMLauncher:
             f"  Memcpy:  {timing['memcpy'] * 1e3:6.2f} ms "
             f"({timing['memcpy']/total*100:.1f}%)"
         )
-        return y_final, z_final
+        return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_final)
 
     def _refine_fused(
         self,
@@ -519,19 +616,16 @@ class TRMLauncher:
         d_y_new,
         n_steps: int,
         eps: float,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        if self.kernel_fused is None or self.d_workspace is None:
+    ) -> Tuple[TRMVector, TRMVector]:
+        if self.kernel_recursive_fused is None or self.d_workspace is None:
             raise RuntimeError("Fused backend not initialized")
 
-        z_old = np.zeros(512, dtype=np.float32)
-        z_new_host = np.zeros(512, dtype=np.float32)
-        y_host = np.zeros(512, dtype=np.float32)
+        d_steps = gpu_malloc(ctypes.sizeof(ctypes.c_int32))
+        d_drift = gpu_malloc(ctypes.sizeof(ctypes.c_float))
 
-        for step in range(n_steps):
-            memcpy_dtoh(z_old.ctypes.data_as(ctypes.c_void_p), d_z, z_old.nbytes)
-
+        try:
             launch(
-                self.kernel_fused,
+                self.kernel_recursive_fused,
                 grid=(1, 1, 1),
                 block=(256, 1, 1),
                 params=[
@@ -542,30 +636,23 @@ class TRMLauncher:
                     ctypes.c_uint64(d_W2.value),
                     ctypes.c_uint64(d_W3.value),
                     ctypes.c_uint64(d_W4.value),
-                    ctypes.c_uint64(d_z_new.value),
-                    ctypes.c_uint64(d_y_new.value),
                     ctypes.c_uint64(self.d_workspace.value),
+                    ctypes.c_uint64(d_steps.value),
+                    ctypes.c_uint64(d_drift.value),
+                    ctypes.c_int32(int(n_steps)),
+                    ctypes.c_float(float(eps)),
                 ],
             )
             synchronize()
 
-            memcpy_dtoh(z_new_host.ctypes.data_as(ctypes.c_void_p), d_z_new, z_new_host.nbytes)
-            drift = np.max(np.abs(z_new_host - z_old))
-            if drift < eps:
-                y_final = np.zeros(512, dtype=np.float32)
-                memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
-                return y_final, z_new_host.copy()
-
-            memcpy_htod(d_z, z_new_host.ctypes.data_as(ctypes.c_void_p), z_new_host.nbytes)
-
-            memcpy_dtoh(y_host.ctypes.data_as(ctypes.c_void_p), d_y_new, y_host.nbytes)
-            memcpy_htod(d_y, y_host.ctypes.data_as(ctypes.c_void_p), y_host.nbytes)
-
-        y_final = np.zeros(512, dtype=np.float32)
-        z_final = np.zeros(512, dtype=np.float32)
-        memcpy_dtoh(y_final.ctypes.data_as(ctypes.c_void_p), d_y_new, y_final.nbytes)
-        memcpy_dtoh(z_final.ctypes.data_as(ctypes.c_void_p), d_z_new, z_final.nbytes)
-        return y_final, z_final
+            y_final = HostTensorF32.zeros(512, 1)
+            z_final = HostTensorF32.zeros(512, 1)
+            _copy_device_to_host(y_final, d_y)
+            _copy_device_to_host(z_final, d_z)
+            return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_final)
+        finally:
+            gpu_free(d_steps)
+            gpu_free(d_drift)
 
     def _init_rpn_buffers(self) -> None:
         pointer_layout: List[tuple[str, int, int]] = []
@@ -618,27 +705,30 @@ class TRMLauncher:
         push("y_new", 512, 1)
         emit(self._op_matvec_1024x512)
         self._rpn_pointer_layout = pointer_layout
-        self._rpn_opcodes = np.asarray(op_codes, dtype=np.uint16)
-        self._d_rpn_opcodes = gpu_malloc(self._rpn_opcodes.nbytes)
+        self._rpn_opcodes = (ctypes.c_uint16 * len(op_codes))(*op_codes)
+        opcodes_nbytes = ctypes.sizeof(self._rpn_opcodes)
+        self._d_rpn_opcodes = gpu_malloc(opcodes_nbytes)
         memcpy_htod(
             self._d_rpn_opcodes,
-            self._rpn_opcodes.ctypes.data_as(ctypes.c_void_p),
-            self._rpn_opcodes.nbytes,
+            ctypes.cast(self._rpn_opcodes, ctypes.c_void_p),
+            opcodes_nbytes,
         )
-        self._rpn_scalars_host = np.zeros(len(pointer_layout) * 4, dtype=np.float32)
+        self._rpn_scalars_host = HostTensorF32.zeros(len(pointer_layout) * 4, 1)
         self._d_rpn_scalars = gpu_malloc(self._rpn_scalars_host.nbytes)
 
     def _update_rpn_scalars(self, pointer_map: dict[str, ctypes.c_void_p]) -> None:
         host = self._rpn_scalars_host
         assert host is not None
-        for idx, (name, rows, cols) in enumerate(self._rpn_pointer_layout):
+        flat_values: List[float] = []
+        for name, rows, cols in self._rpn_pointer_layout:
             ptr = pointer_map[name]
             assert ptr is not None, f"Pointer '{name}' not initialised"
-            host[idx * 4 : idx * 4 + 4] = _encode_pointer_literal(ptr, rows, cols)
+            flat_values.extend(_encode_pointer_literal(ptr, rows, cols))
+        host.set_flat(flat_values)
         memcpy_htod(
             self._d_rpn_scalars,
-            host.ctypes.data_as(ctypes.c_void_p),
+            _void_p(host.data_ptr),
             host.nbytes,
         )
 
-__all__ = ["TRMLauncher"]
+__all__ = ["TRMLauncher", "TRMVector"]

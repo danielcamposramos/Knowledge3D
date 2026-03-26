@@ -218,6 +218,11 @@ class TRMEngine:
     """
 
     def __init__(self, config: Optional[TRMConfig] = None) -> None:
+        warnings.warn(
+            "TRMEngine is deprecated; use knowledge3d.cranium.sovereign.trm_launcher.TRMLauncher instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.config = config or TRMConfig()
         self._compile_kernels()
         self._allocate_weights()

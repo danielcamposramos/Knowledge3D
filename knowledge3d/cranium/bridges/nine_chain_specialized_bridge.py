@@ -11,24 +11,97 @@ normalised weights, per-chain norms).
 from __future__ import annotations
 
 import ctypes
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
-import numpy as np
-
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.sovereign import loader
+
+
+class Float32Vector:
+    """ctypes-backed float32 vector with a NumPy-free sovereign API."""
+
+    def __init__(self, values=(), *, size: int | None = None) -> None:
+        flat = [float(value) for value in values]
+        if size is None:
+            size = len(flat)
+        size = int(size)
+        if len(flat) != size:
+            raise ValueError(f"Expected {size} values, received {len(flat)}")
+        self._buffer = (ctypes.c_float * size)()
+        for idx, value in enumerate(flat):
+            self._buffer[idx] = value
+
+    @classmethod
+    def zeros(cls, size: int) -> "Float32Vector":
+        return cls(size=int(size))
+
+    @property
+    def shape(self) -> tuple[int]:
+        return (len(self),)
+
+    @property
+    def ndim(self) -> int:
+        return 1
+
+    @property
+    def size(self) -> int:
+        return len(self)
+
+    @property
+    def nbytes(self) -> int:
+        return len(self) * ctypes.sizeof(ctypes.c_float)
+
+    @property
+    def data_ptr(self) -> int:
+        return ctypes.addressof(self._buffer)
+
+    @property
+    def flat(self) -> list[float]:
+        return self.tolist()
+
+    def copy(self) -> "Float32Vector":
+        clone = Float32Vector.zeros(self.size)
+        ctypes.memmove(clone.data_ptr, self.data_ptr, self.nbytes)
+        return clone
+
+    def fill(self, value: float) -> None:
+        scalar = float(value)
+        for idx in range(len(self)):
+            self._buffer[idx] = scalar
+
+    def set_flat(self, values) -> None:
+        flat = [float(value) for value in values]
+        if len(flat) != len(self):
+            raise ValueError(f"Expected {len(self)} values, received {len(flat)}")
+        for idx, value in enumerate(flat):
+            self._buffer[idx] = value
+
+    def tolist(self) -> list[float]:
+        return [float(self._buffer[idx]) for idx in range(len(self))]
+
+    def __len__(self) -> int:
+        return len(self._buffer)
+
+    def __iter__(self):
+        for idx in range(len(self)):
+            yield float(self._buffer[idx])
+
+    def __getitem__(self, index):
+        return float(self._buffer[int(index)])
 
 
 @dataclass(frozen=True)
 class SwarmDiagnostics:
     """Container for the latest swarm diagnostics."""
 
-    resonance_matrix: np.ndarray
-    resonance_raw: np.ndarray
-    resonance_weights: np.ndarray
-    chain_states: np.ndarray
-    chain_norms: np.ndarray
+    resonance_matrix: HostTensorF32
+    resonance_raw: Float32Vector
+    resonance_weights: Float32Vector
+    chain_states: HostTensorF32
+    chain_norms: Float32Vector
 
 
 class NineChainSpecializedBridge:
@@ -99,18 +172,15 @@ class NineChainSpecializedBridge:
 
         self._d_resonance_matrix = loader.gpu_malloc(self.NUM_ACTIVE_CHAINS * self.NUM_ACTIVE_CHAINS * 4)
 
-        self._host_zero = np.zeros(self.dim, dtype=np.float32)
-        self._host_active = np.zeros(
-            (self.NUM_ACTIVE_CHAINS, self.dim),
-            dtype=np.float32,
+        self._host_zero = HostTensorF32.zeros(self.dim, 1)
+        self._host_active = HostTensorF32.zeros(self.NUM_ACTIVE_CHAINS, self.dim)
+        self._host_chain9 = Float32Vector.zeros(self.dim)
+        self._host_resonance_matrix = HostTensorF32.zeros(
+            self.NUM_ACTIVE_CHAINS,
+            self.NUM_ACTIVE_CHAINS,
         )
-        self._host_chain9 = np.zeros(self.dim, dtype=np.float32)
-        self._host_resonance_matrix = np.zeros(
-            (self.NUM_ACTIVE_CHAINS, self.NUM_ACTIVE_CHAINS),
-            dtype=np.float32,
-        )
-        self._host_resonance_raw = np.zeros(self.NUM_ACTIVE_CHAINS, dtype=np.float32)
-        self._host_resonance_weights = np.zeros(self.NUM_ACTIVE_CHAINS, dtype=np.float32)
+        self._host_resonance_raw = Float32Vector.zeros(self.NUM_ACTIVE_CHAINS)
+        self._host_resonance_weights = Float32Vector.zeros(self.NUM_ACTIVE_CHAINS)
 
         self._last_diag: Optional[SwarmDiagnostics] = None
         self._diagnostics_dirty = True
@@ -122,11 +192,11 @@ class NineChainSpecializedBridge:
     # ------------------------------------------------------------------ #
     def execute_swarm(
         self,
-        input_embedding: np.ndarray,
+        input_embedding,
         num_iterations: int = 1,
         reset_state: bool = False,
         readback_mode: str = "full",
-    ) -> Tuple[np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
+    ) -> Tuple[Float32Vector, Optional[HostTensorF32], Optional[Float32Vector]]:
         """
         Run the specialised swarm.
 
@@ -141,8 +211,8 @@ class NineChainSpecializedBridge:
         Returns:
             Tuple of (synthesised_output, chain_states[9, D] or None, resonance_weights[8] or None)
         """
-        vec = np.asarray(input_embedding, dtype=np.float32)
-        if vec.shape != (self.dim,):
+        vec = HostTensorF32.from_array_like(input_embedding, rows=self.dim, cols=1)
+        if vec.shape != (self.dim, 1):
             raise ValueError(f"input_embedding must have shape ({self.dim},), got {vec.shape}")
 
         if reset_state or not self.persistent_state:
@@ -154,7 +224,7 @@ class NineChainSpecializedBridge:
 
         loader.memcpy_htod(
             self._d_input,
-            vec.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(vec.data_ptr),
             self.dim * 4,
         )
 
@@ -163,14 +233,14 @@ class NineChainSpecializedBridge:
             self._run_once()
 
         loader.memcpy_dtoh(
-            self._host_chain9.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._host_chain9.data_ptr),
             self._d_chain9,
             self.dim * 4,
         )
 
         output = self._host_chain9.copy()
-        chain_states: Optional[np.ndarray] = None
-        resonance_weights: Optional[np.ndarray] = None
+        chain_states: Optional[HostTensorF32] = None
+        resonance_weights: Optional[Float32Vector] = None
 
         if mode in {"full", "diagnostics"}:
             self._refresh_diagnostics()
@@ -191,13 +261,13 @@ class NineChainSpecializedBridge:
 
     def reset_states(self) -> None:
         """Zero all chain buffers to clear temporal state."""
-        zero_ptr = self._host_zero.ctypes.data_as(ctypes.c_void_p)
+        zero_ptr = ctypes.c_void_p(self._host_zero.data_ptr)
         for ptr in self._chain_buffers:
             loader.memcpy_htod(ptr, zero_ptr, self.dim * 4)
         self._host_resonance_matrix.fill(0.0)
         loader.memcpy_htod(
             self._d_resonance_matrix,
-            self._host_resonance_matrix.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._host_resonance_matrix.data_ptr),
             self.NUM_ACTIVE_CHAINS * self.NUM_ACTIVE_CHAINS * 4,
         )
         self._host_resonance_raw.fill(0.0)
@@ -235,28 +305,38 @@ class NineChainSpecializedBridge:
         loader.synchronize()
 
         loader.memcpy_dtoh(
-            self._host_active.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._host_active.data_ptr),
             self._d_active_base,
             self.NUM_ACTIVE_CHAINS * self.dim * 4,
         )
         loader.memcpy_dtoh(
-            self._host_chain9.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._host_chain9.data_ptr),
             self._d_chain9,
             self.dim * 4,
         )
         loader.memcpy_dtoh(
-            self._host_resonance_matrix.ctypes.data_as(ctypes.c_void_p),
+            ctypes.c_void_p(self._host_resonance_matrix.data_ptr),
             self._d_resonance_matrix,
             self.NUM_ACTIVE_CHAINS * self.NUM_ACTIVE_CHAINS * 4,
         )
 
         weights = self._compute_resonance_weights()
 
-        chain_states = np.zeros((self.NUM_CHAINS, self.dim), dtype=np.float32)
-        chain_states[: self.NUM_ACTIVE_CHAINS] = self._host_active
-        chain_states[-1] = self._host_chain9
+        chain_rows = self._host_active.to_nested_list()
+        chain_rows.append(self._host_chain9.tolist())
+        chain_states = HostTensorF32.from_array_like(
+            chain_rows,
+            rows=self.NUM_CHAINS,
+            cols=self.dim,
+        )
 
-        chain_norms = np.linalg.norm(chain_states, axis=1)
+        chain_norms = Float32Vector(
+            (
+                math.sqrt(sum(float(value) * float(value) for value in chain_states[row]))
+                for row in range(self.NUM_CHAINS)
+            ),
+            size=self.NUM_CHAINS,
+        )
         self._last_diag = SwarmDiagnostics(
             resonance_matrix=self._host_resonance_matrix.copy(),
             resonance_raw=self._host_resonance_raw.copy(),
@@ -266,29 +346,40 @@ class NineChainSpecializedBridge:
         )
         self._diagnostics_dirty = False
 
-    def _compute_resonance_weights(self) -> np.ndarray:
+    def _compute_resonance_weights(self) -> Float32Vector:
         """Derive resonance weights from the latest matrix."""
+        rows = self._host_resonance_matrix.to_nested_list()
         if self.resonance_strategy == "max":
-            raw = np.max(self._host_resonance_matrix, axis=1)
+            raw_values = [max(row) if row else 0.0 for row in rows]
         elif self.resonance_strategy == "median":
-            raw = np.median(self._host_resonance_matrix, axis=1)
+            raw_values = []
+            for row in rows:
+                if not row:
+                    raw_values.append(0.0)
+                    continue
+                sorted_row = sorted(float(value) for value in row)
+                mid = len(sorted_row) // 2
+                if len(sorted_row) % 2 == 0:
+                    raw_values.append((sorted_row[mid - 1] + sorted_row[mid]) / 2.0)
+                else:
+                    raw_values.append(sorted_row[mid])
         else:
-            raw = np.mean(self._host_resonance_matrix, axis=1)
+            raw_values = [
+                sum(float(value) for value in row) / float(len(row) or 1)
+                for row in rows
+            ]
 
-        raw = raw.astype(np.float32, copy=False)
-        self._host_resonance_raw[:] = raw
+        self._host_resonance_raw.set_flat(raw_values)
 
-        weights = np.abs(raw) if self.normalize_weights else raw.copy()
-        total = float(np.sum(weights))
+        weights = [abs(value) if self.normalize_weights else float(value) for value in raw_values]
+        total = float(sum(weights))
         if total < 1e-6:
-            weights = np.full(self.NUM_ACTIVE_CHAINS, 1.0 / self.NUM_ACTIVE_CHAINS, dtype=np.float32)
+            weights = [1.0 / self.NUM_ACTIVE_CHAINS for _ in range(self.NUM_ACTIVE_CHAINS)]
         else:
             if self.normalize_weights:
-                weights /= total
-            if weights.dtype != np.float32:
-                weights = weights.astype(np.float32)
+                weights = [float(value) / total for value in weights]
 
-        self._host_resonance_weights[:] = weights
+        self._host_resonance_weights.set_flat(weights)
         return self._host_resonance_weights
 
     def _launch(self, kernel_key: str, params: list, block: Tuple[int, int, int]) -> None:

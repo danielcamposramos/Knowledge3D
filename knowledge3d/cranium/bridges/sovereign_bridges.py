@@ -22,9 +22,12 @@ Architecture:
 """
 
 import ctypes
+import math
 from pathlib import Path
+import random
 from typing import Tuple, Optional, Iterable, Sequence, List
 
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.sovereign.loader import (
     get_function,
     get_global,
@@ -41,10 +44,340 @@ from knowledge3d.cranium.sovereign.loader import (
 from knowledge3d.cranium.bridges.rpn_config import RPN_GRID_DIM, TIER2_BLOCK_DIM
 
 
-def _np():
-    """Lazy NumPy accessor for non‑hot‑path helpers."""
-    import numpy as _numpy  # type: ignore[import]
-    return _numpy
+class _HostVector:
+    """Small ctypes-backed vector view for scalar staging/readback."""
+
+    CTYPE = ctypes.c_float
+    PYTHON_TYPE = float
+
+    def __init__(self, values: Iterable[float] = ()):
+        self._values = [self.PYTHON_TYPE(value) for value in values]
+        self._shape = (len(self._values),)
+        self._sync_buffer()
+
+    @classmethod
+    def zeros(cls, size: int):
+        return cls(cls.PYTHON_TYPE(0) for _ in range(int(size)))
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return tuple(self._shape)
+
+    @property
+    def ndim(self) -> int:
+        return 1
+
+    @property
+    def size(self) -> int:
+        return len(self._values)
+
+    @property
+    def nbytes(self) -> int:
+        return ctypes.sizeof(self._buffer)
+
+    @property
+    def data_ptr(self) -> int:
+        return ctypes.addressof(self._buffer)
+
+    def tolist(self) -> list:
+        if len(self._shape) == 2:
+            rows, cols = self._shape
+            return [
+                [self._values[row * cols + col] for col in range(cols)]
+                for row in range(rows)
+            ]
+        return list(self._values)
+
+    def copy(self):
+        clone = self.__class__(self._values)
+        clone._shape = tuple(self._shape)
+        return clone
+
+    def fill(self, value) -> None:
+        scalar = self.PYTHON_TYPE(value)
+        for idx in range(len(self._values)):
+            self._values[idx] = scalar
+        self._sync_buffer()
+
+    def reshape(self, rows: int, cols: int | None = None):
+        if cols is None:
+            cols = max(1, len(self._values) // max(int(rows), 1))
+        rows_i = int(rows)
+        cols_i = int(cols)
+        if rows_i * cols_i != len(self._values):
+            raise ValueError(f"Cannot reshape {len(self._values)} values into ({rows_i}, {cols_i})")
+        clone = self.copy()
+        clone._shape = (rows_i, cols_i)
+        return clone
+
+    def mean(self) -> float:
+        return float(sum(float(value) for value in self._values) / max(len(self._values), 1))
+
+    def min(self):
+        return self.PYTHON_TYPE(min(self._values))
+
+    def max(self):
+        return self.PYTHON_TYPE(max(self._values))
+
+    def sum(self):
+        return self.PYTHON_TYPE(sum(self._values))
+
+    def __len__(self) -> int:
+        return len(self._values)
+
+    def __iter__(self):
+        return iter(self._values)
+
+    def __getitem__(self, index):
+        if isinstance(index, tuple):
+            if len(self._shape) != 2:
+                raise TypeError("Tuple indexing requires a 2D sovereign vector view")
+            row, col = index
+            rows, cols = self._shape
+            row_i = int(row)
+            col_i = int(col)
+            if row_i < 0 or row_i >= rows or col_i < 0 or col_i >= cols:
+                raise IndexError(index)
+            return self._values[row_i * cols + col_i]
+        return self._values[index]
+
+    def __setitem__(self, index, value) -> None:
+        self._values[index] = self.PYTHON_TYPE(value)
+        self._sync_buffer()
+
+    def _sync_buffer(self) -> None:
+        self._buffer = (self.CTYPE * len(self._values))(*self._values)
+
+    def _load_from_device(self, ptr, nbytes: int | None = None) -> None:
+        size_bytes = self.nbytes if nbytes is None else int(nbytes)
+        memcpy_dtoh(ctypes.c_void_p(self.data_ptr), ptr, size_bytes)
+        self._values = [self.PYTHON_TYPE(self._buffer[idx]) for idx in range(len(self._values))]
+
+
+class Float32Vector(_HostVector):
+    CTYPE = ctypes.c_float
+    PYTHON_TYPE = float
+
+
+class Int32Vector(_HostVector):
+    CTYPE = ctypes.c_int32
+    PYTHON_TYPE = int
+
+
+class UInt32Vector(_HostVector):
+    CTYPE = ctypes.c_uint32
+    PYTHON_TYPE = int
+
+
+class UInt64Vector(_HostVector):
+    CTYPE = ctypes.c_uint64
+    PYTHON_TYPE = int
+
+
+class UInt8Vector(_HostVector):
+    CTYPE = ctypes.c_uint8
+    PYTHON_TYPE = int
+
+
+class Int8Vector(_HostVector):
+    CTYPE = ctypes.c_int8
+    PYTHON_TYPE = int
+
+
+class TritInspectionBatch:
+    """Structured ternary inspection result without NumPy dependency."""
+
+    def __init__(
+        self,
+        counts: Sequence[int],
+        sums: Sequence[int],
+        means: Sequence[float],
+        variances: Sequence[float],
+        bottlenecks: Sequence[int],
+    ) -> None:
+        self._fields = {
+            "count": Int32Vector(counts),
+            "sum": Int32Vector(sums),
+            "mean": Float32Vector(means),
+            "var": Float32Vector(variances),
+            "bottlenecks": Int32Vector(bottlenecks),
+        }
+
+    @property
+    def shape(self) -> tuple[int]:
+        return self._fields["count"].shape
+
+    def __len__(self) -> int:
+        return len(self._fields["count"])
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self._fields[key]
+        return {
+            field: values[key]
+            for field, values in self._fields.items()
+        }
+
+
+class _TritInspectorRecord(ctypes.Structure):
+    _fields_ = [
+        ("count", ctypes.c_int32),
+        ("sum", ctypes.c_int32),
+        ("mean", ctypes.c_float),
+        ("var", ctypes.c_float),
+        ("bottlenecks", ctypes.c_int32),
+    ]
+
+
+def _shape_of(values: object) -> tuple[int, ...]:
+    shape = getattr(values, "shape", None)
+    if shape is not None:
+        return tuple(int(dim) for dim in shape)
+    if isinstance(values, HostTensorF32):
+        return values.shape
+    if isinstance(values, (Float32Vector, Int32Vector, UInt32Vector, UInt64Vector, UInt8Vector, Int8Vector)):
+        return values.shape
+    if isinstance(values, (list, tuple)):
+        if values and isinstance(values[0], (list, tuple)):
+            return (len(values), len(values[0]))
+        return (len(values),)
+    raise TypeError(f"Unsupported shape source: {type(values).__name__}")
+
+
+def _float_list(values: object) -> list[float]:
+    return HostTensorF32.from_array_like(values).to_flat_list()
+
+
+def _f32_vector(values: object) -> Float32Vector:
+    return Float32Vector(_float_list(values))
+
+
+def _f32_matrix(values: object, rows: int | None = None, cols: int | None = None) -> HostTensorF32:
+    if rows is None or cols is None:
+        shape = _shape_of(values)
+        if len(shape) == 1:
+            rows = shape[0]
+            cols = 1
+        elif len(shape) == 2:
+            rows, cols = shape
+        else:
+            raise ValueError(f"Unsupported rank for float32 matrix coercion: {shape}")
+    return HostTensorF32.from_array_like(values, rows=int(rows), cols=int(cols))
+
+
+def _i32_vector(values: object) -> Int32Vector:
+    if isinstance(values, Int32Vector):
+        return values.copy()
+    if isinstance(values, (list, tuple)):
+        return Int32Vector(int(value) for value in values)
+    shape = getattr(values, "shape", None)
+    flat = getattr(values, "flat", None)
+    if flat is not None and shape is not None:
+        return Int32Vector(int(value) for value in flat)
+    return Int32Vector(int(value) for value in values)
+
+
+def _u32_vector(values: object) -> UInt32Vector:
+    if isinstance(values, UInt32Vector):
+        return values.copy()
+    if isinstance(values, (list, tuple)):
+        return UInt32Vector(int(value) for value in values)
+    shape = getattr(values, "shape", None)
+    flat = getattr(values, "flat", None)
+    if flat is not None and shape is not None:
+        return UInt32Vector(int(value) for value in flat)
+    return UInt32Vector(int(value) for value in values)
+
+
+def _u64_vector(values: object) -> UInt64Vector:
+    if isinstance(values, UInt64Vector):
+        return values.copy()
+    return UInt64Vector(int(value) for value in values)
+
+
+def _copy_htod(device_ptr, host) -> None:
+    if isinstance(host, HostTensorF32):
+        memcpy_htod(device_ptr, ctypes.c_void_p(host.data_ptr), host.nbytes)
+        return
+    if isinstance(host, _HostVector):
+        memcpy_htod(device_ptr, ctypes.c_void_p(host.data_ptr), host.nbytes)
+        return
+    memcpy_htod(device_ptr, ctypes.cast(host, ctypes.c_void_p), ctypes.sizeof(host))
+
+
+def _copy_dtoh(host, device_ptr) -> None:
+    if isinstance(host, HostTensorF32):
+        memcpy_dtoh(ctypes.c_void_p(host.data_ptr), device_ptr, host.nbytes)
+        return
+    if isinstance(host, _HostVector):
+        host._load_from_device(device_ptr)
+        return
+    memcpy_dtoh(ctypes.cast(host, ctypes.c_void_p), device_ptr, ctypes.sizeof(host))
+
+
+def _linspace(start: float, stop: float, count: int) -> list[float]:
+    if count <= 0:
+        return []
+    if count == 1:
+        return [float(start)]
+    step = (float(stop) - float(start)) / float(count - 1)
+    return [float(start) + (step * idx) for idx in range(count)]
+
+
+def _arange(count: int) -> list[float]:
+    return [float(idx) for idx in range(max(int(count), 0))]
+
+
+def _mean(values: Sequence[float]) -> float:
+    return float(sum(float(value) for value in values) / max(len(values), 1))
+
+
+def _variance(values: Sequence[float]) -> float:
+    if not values:
+        return 0.0
+    mean = _mean(values)
+    return float(sum((float(value) - mean) ** 2 for value in values) / len(values))
+
+
+def _dot(left: Sequence[float], right: Sequence[float]) -> float:
+    return float(sum(float(a) * float(b) for a, b in zip(left, right)))
+
+
+def _norm(values: Sequence[float]) -> float:
+    return math.sqrt(max(_dot(values, values), 0.0))
+
+
+def _max_abs(values: Sequence[float]) -> float:
+    return max((abs(float(value)) for value in values), default=0.0)
+
+
+def _clip_int(value: int, low: int, high: int) -> int:
+    return max(int(low), min(int(high), int(value)))
+
+
+def _sigmoid_list(values: Sequence[float]) -> list[float]:
+    return [1.0 / (1.0 + math.exp(-float(value))) for value in values]
+
+
+def _percentile_abs(values: Sequence[float], percentile: float) -> float:
+    ordered = sorted(abs(float(value)) for value in values)
+    if not ordered:
+        return 0.0
+    if len(ordered) == 1:
+        return ordered[0]
+    position = max(0.0, min(100.0, float(percentile))) / 100.0 * float(len(ordered) - 1)
+    lower = int(math.floor(position))
+    upper = int(math.ceil(position))
+    if lower == upper:
+        return ordered[lower]
+    ratio = position - lower
+    return ordered[lower] * (1.0 - ratio) + ordered[upper] * ratio
+
+
+def _stack_rows(rows: Sequence[Sequence[float]]) -> HostTensorF32:
+    if not rows:
+        return HostTensorF32.zeros(0, 0)
+    return HostTensorF32.from_array_like([list(row) for row in rows], rows=len(rows), cols=len(rows[0]))
 
 # Base paths
 KERNELS_DIR = Path(__file__).parent.parent / "kernels"
@@ -77,8 +410,8 @@ class LatencyGuard:
         self.d_flag = gpu_malloc(4)            # 1 x uint32
 
         # Host buffers for readback
-        self.timestamps = _np().zeros(2, dtype=_np().uint64)
-        self.flag = _np().zeros(1, dtype=_np().uint32)
+        self.timestamps = UInt64Vector.zeros(2)
+        self.flag = UInt32Vector.zeros(1)
 
     def start(self):
         """Record start timestamp on GPU"""
@@ -115,10 +448,8 @@ class LatencyGuard:
         synchronize()
 
         # Copy results back
-        memcpy_dtoh(self.timestamps.ctypes.data_as(ctypes.c_void_p),
-                   self.d_timestamps, self.timestamps.nbytes)
-        memcpy_dtoh(self.flag.ctypes.data_as(ctypes.c_void_p),
-                   self.d_flag, self.flag.nbytes)
+        _copy_dtoh(self.timestamps, self.d_timestamps)
+        _copy_dtoh(self.flag, self.d_flag)
 
         elapsed_ns = int(self.timestamps[1] - self.timestamps[0])
         breached = bool(self.flag[0] == 0xDEADBEEF)
@@ -145,7 +476,7 @@ class ARCReasoner:
 
     Example:
         reasoner = ARCReasoner()
-        grid = np.array([[1,2,3], [4,5,6], [7,8,9]], dtype=np.int32)
+        grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
         rule_id, rotation, color_checksum = reasoner.extract_rules(grid)
     """
 
@@ -162,17 +493,20 @@ class ARCReasoner:
         Returns:
             (rule_id, rotation_count, color_checksum): Extracted rule parameters
         """
-        # Flatten grid
-        grid_flat = grid.flatten().astype(np.int32)
-        grid_size = len(grid_flat)
+        grid_tensor = _i32_vector(
+            value
+            for row in HostTensorF32.from_array_like(grid).to_nested_list()
+            for value in row
+        )
+        grid_size = len(grid_tensor)
 
         # Allocate GPU memory
-        d_grid = gpu_malloc(grid_flat.nbytes)
+        d_grid = gpu_malloc(grid_tensor.nbytes)
         d_output = gpu_malloc(3 * 4)  # 3 x int32
 
         try:
             # Copy grid to GPU
-            memcpy_htod(d_grid, grid_flat.ctypes.data_as(ctypes.c_void_p), grid_flat.nbytes)
+            _copy_htod(d_grid, grid_tensor)
 
             # Launch kernel
             launch(
@@ -188,9 +522,8 @@ class ARCReasoner:
             synchronize()
 
             # Copy results back
-            np_mod = _np()
-            output = np_mod.zeros(3, dtype=np_mod.int32)
-            memcpy_dtoh(output.ctypes.data_as(ctypes.c_void_p), d_output, output.nbytes)
+            output = Int32Vector.zeros(3)
+            _copy_dtoh(output, d_output)
 
             return int(output[0]), int(output[1]), int(output[2])
 
@@ -296,8 +629,10 @@ class GalaxyResonanceEngine:
         Returns:
             output: Blended result [batch_size, vector_dim]
         """
-        assert getattr(embeddings, "shape", None) == getattr(latent, "shape", None)
-        batch_size, vector_dim = embeddings.shape
+        embeddings_host = _f32_matrix(embeddings)
+        latent_host = _f32_matrix(latent)
+        assert embeddings_host.shape == latent_host.shape
+        batch_size, vector_dim = embeddings_host.shape
 
         # Compute element counts in bytes assuming float32 inputs
         elem_count = batch_size * vector_dim
@@ -310,8 +645,8 @@ class GalaxyResonanceEngine:
 
         try:
             # Copy inputs to GPU
-            memcpy_htod(d_embeddings, embeddings.ctypes.data_as(ctypes.c_void_p), byte_count)
-            memcpy_htod(d_latent, latent.ctypes.data_as(ctypes.c_void_p), byte_count)
+            _copy_htod(d_embeddings, embeddings_host)
+            _copy_htod(d_latent, latent_host)
 
             # Launch kernel (one block per batch element)
             launch(
@@ -335,18 +670,12 @@ class GalaxyResonanceEngine:
             out_host = OutArray()
             memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, byte_count)
 
-            # Repackage into the same shape as embeddings using the caller's type
-            try:
-                np_mod = _np()
-                return np_mod.asarray(out_host, dtype=np_mod.float32).reshape(embeddings.shape)
-            except Exception:
-                # Fallback: return a nested Python list
-                flat = [float(out_host[i]) for i in range(elem_count)]
-                rows: List[List[float]] = []
-                for b in range(batch_size):
-                    start = b * vector_dim
-                    rows.append(flat[start:start + vector_dim])
-                return rows
+            flat = [float(out_host[i]) for i in range(elem_count)]
+            rows: List[List[float]] = []
+            for b in range(batch_size):
+                start = b * vector_dim
+                rows.append(flat[start:start + vector_dim])
+            return _stack_rows(rows)
 
         finally:
             gpu_free(d_embeddings)
@@ -359,20 +688,20 @@ class GalaxyResonanceEngine:
         latent: list[list[float]] | list[float],
         alpha: float = 0.5,
     ) -> list[list[float]]:
-        np_mod = _np()
-        embedding_arr = np_mod.asarray(embeddings, dtype=np_mod.float32)
-        latent_arr = np_mod.asarray(latent, dtype=np_mod.float32)
+        embedding_arr = _f32_matrix(embeddings)
+        latent_shape = _shape_of(latent)
         if embedding_arr.ndim != 2:
             raise ValueError("embeddings_must_be_rank2")
-        if latent_arr.ndim == 1:
-            latent_arr = np_mod.tile(latent_arr.reshape(1, -1), (embedding_arr.shape[0], 1))
+        if len(latent_shape) == 1:
+            latent_values = _float_list(latent)
+            latent_rows = [list(latent_values) for _ in range(embedding_arr.shape[0])]
+            latent_arr = _stack_rows(latent_rows)
+        else:
+            latent_arr = _f32_matrix(latent)
         if latent_arr.shape != embedding_arr.shape:
             raise ValueError("latent_shape_mismatch")
         resonated = self.resonate(embedding_arr, latent_arr, alpha=alpha)
-        return [
-            [float(value) for value in row.tolist()]
-            for row in np_mod.asarray(resonated, dtype=np_mod.float32)
-        ]
+        return HostTensorF32.from_array_like(resonated).to_nested_list()
 
 
 __all__ = [
@@ -397,31 +726,32 @@ class GeometryRouter:
 
     def compute_relations(self, embeddings_a, embeddings_b):
         """Compute 16 spatial relationship features for aligned embedding pairs."""
-        np_mod = _np()
-        arr_a = np_mod.asarray(embeddings_a, dtype=np_mod.float32)
-        arr_b = np_mod.asarray(embeddings_b, dtype=np_mod.float32)
-        if arr_a.ndim == 1:
-            arr_a = arr_a.reshape(1, -1)
-        if arr_b.ndim == 1:
-            arr_b = arr_b.reshape(1, -1)
+        shape_a = _shape_of(embeddings_a)
+        shape_b = _shape_of(embeddings_b)
+        if len(shape_a) == 1:
+            arr_a = _f32_matrix(embeddings_a, rows=1, cols=shape_a[0])
+        else:
+            arr_a = _f32_matrix(embeddings_a)
+        if len(shape_b) == 1:
+            arr_b = _f32_matrix(embeddings_b, rows=1, cols=shape_b[0])
+        else:
+            arr_b = _f32_matrix(embeddings_b)
         if arr_a.shape != arr_b.shape:
             raise ValueError(f"embeddings_a and embeddings_b must match; got {arr_a.shape} vs {arr_b.shape}")
         if arr_a.ndim != 2 or arr_a.shape[0] <= 0 or arr_a.shape[1] <= 0:
             raise ValueError("embedding pairs must be non-empty [N x D]")
 
-        arr_a = np_mod.ascontiguousarray(arr_a, dtype=np_mod.float32)
-        arr_b = np_mod.ascontiguousarray(arr_b, dtype=np_mod.float32)
         pair_count, dims = arr_a.shape
         feature_count = 16
-        relations = np_mod.zeros((pair_count, feature_count), dtype=np_mod.float32)
+        relations = HostTensorF32.zeros(pair_count, feature_count)
 
         d_a = gpu_malloc(arr_a.nbytes)
         d_b = gpu_malloc(arr_b.nbytes)
         d_relations = gpu_malloc(relations.nbytes)
         try:
-            memcpy_htod(d_a, arr_a.ctypes.data_as(ctypes.c_void_p), arr_a.nbytes)
-            memcpy_htod(d_b, arr_b.ctypes.data_as(ctypes.c_void_p), arr_b.nbytes)
-            memcpy_htod(d_relations, relations.ctypes.data_as(ctypes.c_void_p), relations.nbytes)
+            _copy_htod(d_a, arr_a)
+            _copy_htod(d_b, arr_b)
+            _copy_htod(d_relations, relations)
             launch(
                 self.kernel,
                 grid=((pair_count + 127) // 128, 1, 1),
@@ -436,7 +766,7 @@ class GeometryRouter:
                 ],
             )
             synchronize()
-            memcpy_dtoh(relations.ctypes.data_as(ctypes.c_void_p), d_relations, relations.nbytes)
+            _copy_dtoh(relations, d_relations)
             return relations
         finally:
             gpu_free(d_a)
@@ -445,26 +775,24 @@ class GeometryRouter:
 
     def route(self, input_data, shape_id: int):
         """Compatibility wrapper returning relation features to a shape prototype."""
-        np_mod = _np()
-        vector = np_mod.asarray(input_data, dtype=np_mod.float32).reshape(-1)
-        dims = int(vector.size)
+        vector = _float_list(input_data)
+        dims = len(vector)
         if dims <= 0:
-            return np_mod.zeros((16,), dtype=np_mod.float32)
-        prototype = np_mod.zeros((1, dims), dtype=np_mod.float32)
+            return [0.0 for _ in range(16)]
+        prototype_row = [0.0 for _ in range(dims)]
         if int(shape_id) == 0:
-            prototype[0] = np_mod.linspace(1.0, 0.2, dims, dtype=np_mod.float32)
+            prototype_row = _linspace(1.0, 0.2, dims)
         elif int(shape_id) == 1:
             half = max(1, dims // 2)
-            prototype[0, :half] = 1.0
-            prototype[0, half:] = 0.5
+            prototype_row = [1.0 if idx < half else 0.5 for idx in range(dims)]
         elif int(shape_id) == 2:
-            prototype[0] = np_mod.sin(np_mod.linspace(0.0, np_mod.pi * 2.0, dims, dtype=np_mod.float32))
+            prototype_row = [math.sin(value) for value in _linspace(0.0, math.pi * 2.0, dims)]
         elif int(shape_id) == 3:
-            prototype[0] = np_mod.linspace(0.1, 1.0, dims, dtype=np_mod.float32)
+            prototype_row = _linspace(0.1, 1.0, dims)
         else:
-            prototype[0] = 1.0
-        relations = self.compute_relations(vector.reshape(1, -1), prototype)
-        return relations.reshape(-1)
+            prototype_row = [1.0 for _ in range(dims)]
+        relations = self.compute_relations([vector], [prototype_row])
+        return relations[0]
 
 
 class FractalEmitter:
@@ -476,21 +804,21 @@ class FractalEmitter:
 
     def compute_self_similarity(self, features, num_scales: int = 3):
         """Compute multi-scale self-similarity scores for [N x D] features."""
-        np_mod = _np()
-        arr = np_mod.asarray(features, dtype=np_mod.float32)
-        if arr.ndim == 1:
-            arr = arr.reshape(1, -1)
+        shape = _shape_of(features)
+        if len(shape) == 1:
+            arr = _f32_matrix(features, rows=1, cols=shape[0])
+        else:
+            arr = _f32_matrix(features)
         if arr.ndim != 2 or arr.shape[0] <= 0 or arr.shape[1] <= 0:
             raise ValueError("features must be a non-empty [N x D] array")
-        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
-        scores = np_mod.zeros((arr.shape[0],), dtype=np_mod.float32)
+        scores = Float32Vector.zeros(arr.shape[0])
 
         d_features = gpu_malloc(arr.nbytes)
         d_scores = gpu_malloc(scores.nbytes)
 
         try:
-            memcpy_htod(d_features, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
-            memcpy_htod(d_scores, scores.ctypes.data_as(ctypes.c_void_p), scores.nbytes)
+            _copy_htod(d_features, arr)
+            _copy_htod(d_scores, scores)
             launch(
                 self.kernel,
                 grid=((arr.shape[0] + 255) // 256, 1, 1),
@@ -504,7 +832,7 @@ class FractalEmitter:
                 ],
             )
             synchronize()
-            memcpy_dtoh(scores.ctypes.data_as(ctypes.c_void_p), d_scores, scores.nbytes)
+            _copy_dtoh(scores, d_scores)
             return scores
         finally:
             gpu_free(d_features)
@@ -512,20 +840,20 @@ class FractalEmitter:
 
     def emit(self, atoms, base_scale: float = 1.0):
         """Compatibility wrapper returning simple coordinates from self-similarity."""
-        np_mod = _np()
-        arr = np_mod.asarray(atoms, dtype=np_mod.float32).reshape(-1)
-        if arr.size == 0:
-            return np_mod.zeros((0, 3), dtype=np_mod.float32)
-        scores = self.compute_self_similarity(arr.reshape(-1, 1), num_scales=1)
-        indices = np_mod.arange(arr.size, dtype=np_mod.float32)
-        return np_mod.stack(
+        arr = _float_list(atoms)
+        if not arr:
+            return HostTensorF32.zeros(0, 3)
+        scores = self.compute_self_similarity([[value] for value in arr], num_scales=1)
+        denom = max(float(len(arr) - 1), 1.0)
+        rows = [
             [
-                arr * float(base_scale),
-                scores * float(base_scale),
-                (indices / max(float(arr.size - 1), 1.0)) * float(base_scale),
-            ],
-            axis=1,
-        ).astype(np_mod.float32, copy=False)
+                float(value) * float(base_scale),
+                float(scores[idx]) * float(base_scale),
+                (float(idx) / denom) * float(base_scale),
+            ]
+            for idx, value in enumerate(arr)
+        ]
+        return _stack_rows(rows)
 
 
 class CognitiveExecutive:
@@ -537,17 +865,14 @@ class CognitiveExecutive:
 
     def compute_trust_weights(self, resonance_matrix, chain_norms):
         """Return (trust_weights[8], coherence_score) from swarm diagnostics."""
-        np_mod = _np()
-        matrix = np_mod.asarray(resonance_matrix, dtype=np_mod.float32)
-        norms = np_mod.asarray(chain_norms, dtype=np_mod.float32).reshape(-1)
+        matrix = _f32_matrix(resonance_matrix, rows=8, cols=8)
+        norms = _f32_vector(chain_norms)
         if matrix.shape != (8, 8):
             raise ValueError(f"resonance_matrix must be (8, 8), got {matrix.shape}")
         if norms.shape != (8,):
             raise ValueError(f"chain_norms must be (8,), got {norms.shape}")
-        matrix = np_mod.ascontiguousarray(matrix, dtype=np_mod.float32)
-        norms = np_mod.ascontiguousarray(norms, dtype=np_mod.float32)
-        trust = np_mod.zeros((8,), dtype=np_mod.float32)
-        coherence = np_mod.zeros((1,), dtype=np_mod.float32)
+        trust = Float32Vector.zeros(8)
+        coherence = Float32Vector.zeros(1)
 
         d_matrix = gpu_malloc(matrix.nbytes)
         d_norms = gpu_malloc(norms.nbytes)
@@ -555,10 +880,10 @@ class CognitiveExecutive:
         d_coherence = gpu_malloc(coherence.nbytes)
 
         try:
-            memcpy_htod(d_matrix, matrix.ctypes.data_as(ctypes.c_void_p), matrix.nbytes)
-            memcpy_htod(d_norms, norms.ctypes.data_as(ctypes.c_void_p), norms.nbytes)
-            memcpy_htod(d_trust, trust.ctypes.data_as(ctypes.c_void_p), trust.nbytes)
-            memcpy_htod(d_coherence, coherence.ctypes.data_as(ctypes.c_void_p), coherence.nbytes)
+            _copy_htod(d_matrix, matrix)
+            _copy_htod(d_norms, norms)
+            _copy_htod(d_trust, trust)
+            _copy_htod(d_coherence, coherence)
             launch(
                 self.kernel,
                 grid=(1, 1, 1),
@@ -571,8 +896,8 @@ class CognitiveExecutive:
                 ],
             )
             synchronize()
-            memcpy_dtoh(trust.ctypes.data_as(ctypes.c_void_p), d_trust, trust.nbytes)
-            memcpy_dtoh(coherence.ctypes.data_as(ctypes.c_void_p), d_coherence, coherence.nbytes)
+            _copy_dtoh(trust, d_trust)
+            _copy_dtoh(coherence, d_coherence)
             return trust, float(coherence[0])
         finally:
             gpu_free(d_matrix)
@@ -594,14 +919,15 @@ class ResonanceField:
 
     def compute_resonance(self, candidate_embeddings, galaxy_ids, base_scores):
         """Cross-galaxy interference scoring."""
-        np_mod = _np()
-        embeddings = np_mod.asarray(candidate_embeddings, dtype=np_mod.float32)
-        if embeddings.ndim == 1:
-            embeddings = embeddings.reshape(-1, 1)
+        shape = _shape_of(candidate_embeddings)
+        if len(shape) == 1:
+            embeddings = _f32_matrix(candidate_embeddings, rows=shape[0], cols=1)
+        else:
+            embeddings = _f32_matrix(candidate_embeddings)
         if embeddings.ndim != 2:
             raise ValueError("candidate_embeddings_must_be_rank1_or_rank2")
-        galaxy_arr = np_mod.asarray(galaxy_ids, dtype=np_mod.int32).reshape(-1)
-        score_arr = np_mod.asarray(base_scores, dtype=np_mod.float32).reshape(-1)
+        galaxy_arr = _i32_vector(galaxy_ids)
+        score_arr = _f32_vector(base_scores)
         count = int(embeddings.shape[0])
         dim = int(embeddings.shape[1])
         if galaxy_arr.shape[0] != count:
@@ -619,9 +945,9 @@ class ResonanceField:
         d_scores = gpu_malloc(score_bytes)
         d_output = gpu_malloc(output_bytes)
         try:
-            memcpy_htod(d_embeddings, embeddings.ctypes.data_as(ctypes.c_void_p), embedding_bytes)
-            memcpy_htod(d_galaxy_ids, galaxy_arr.ctypes.data_as(ctypes.c_void_p), galaxy_bytes)
-            memcpy_htod(d_scores, score_arr.ctypes.data_as(ctypes.c_void_p), score_bytes)
+            _copy_htod(d_embeddings, embeddings)
+            _copy_htod(d_galaxy_ids, galaxy_arr)
+            _copy_htod(d_scores, score_arr)
 
             launch(
                 self.kernel,
@@ -638,10 +964,9 @@ class ResonanceField:
             )
             synchronize()
 
-            OutArray = ctypes.c_float * count
-            out_host = OutArray()
-            memcpy_dtoh(ctypes.cast(out_host, ctypes.c_void_p), d_output, output_bytes)
-            return np_mod.asarray(out_host, dtype=np_mod.float32)
+            out_host = Float32Vector.zeros(count)
+            _copy_dtoh(out_host, d_output)
+            return out_host
         finally:
             gpu_free(d_embeddings)
             gpu_free(d_galaxy_ids)
@@ -650,12 +975,11 @@ class ResonanceField:
 
     def compute(self, positions, density):
         """Compatibility wrapper for legacy tests/non-hot-path usage."""
-        np_mod = _np()
-        embeddings = np_mod.asarray(positions, dtype=np_mod.float32)
+        embeddings = _f32_matrix(positions)
         if embeddings.ndim != 2:
             raise ValueError("positions_must_be_rank2")
         count = int(embeddings.shape[0])
-        galaxy_ids = np_mod.arange(count, dtype=np_mod.int32)
+        galaxy_ids = Int32Vector(int(idx) for idx in range(count))
         return self.compute_resonance(embeddings, galaxy_ids, density)
 
 
@@ -667,11 +991,12 @@ class AtomicFissionFusion:
         self.kernel = load_ptx_file(str(ptx_path), "gre_atomic_fission_fusion")
 
     def _run_compose_decompose(self, compound, atoms, *, mode: int):
-        np_mod = _np()
-        compound_arr = np_mod.asarray(compound, dtype=np_mod.float32).reshape(-1)
-        atom_arr = np_mod.asarray(atoms, dtype=np_mod.float32)
-        if atom_arr.ndim == 1:
-            atom_arr = atom_arr.reshape(1, -1)
+        compound_arr = _f32_vector(compound)
+        atom_shape = _shape_of(atoms)
+        if len(atom_shape) == 1:
+            atom_arr = _f32_matrix(atoms, rows=1, cols=atom_shape[0])
+        else:
+            atom_arr = _f32_matrix(atoms)
         if atom_arr.ndim != 2 or atom_arr.shape[0] <= 0 or atom_arr.shape[1] <= 0:
             raise ValueError("atoms must be a non-empty 2D array-like [K x D]")
         if compound_arr.size <= 0:
@@ -679,16 +1004,14 @@ class AtomicFissionFusion:
         if atom_arr.shape[1] != compound_arr.size:
             raise ValueError("compound and atoms must share the same feature dimension")
 
-        compound_arr = np_mod.ascontiguousarray(compound_arr, dtype=np_mod.float32)
-        atom_arr = np_mod.ascontiguousarray(atom_arr, dtype=np_mod.float32)
         d_compound = gpu_malloc(compound_arr.nbytes)
         d_atoms = gpu_malloc(atom_arr.nbytes)
         d_result = gpu_malloc(compound_arr.nbytes)
         d_consistency = gpu_malloc(4)
 
         try:
-            memcpy_htod(d_compound, compound_arr.ctypes.data_as(ctypes.c_void_p), compound_arr.nbytes)
-            memcpy_htod(d_atoms, atom_arr.ctypes.data_as(ctypes.c_void_p), atom_arr.nbytes)
+            _copy_htod(d_compound, compound_arr)
+            _copy_htod(d_atoms, atom_arr)
 
             launch(
                 self.kernel,
@@ -711,7 +1034,7 @@ class AtomicFissionFusion:
             memcpy_dtoh(ctypes.cast(result_host, ctypes.c_void_p), d_result, compound_arr.nbytes)
             memcpy_dtoh(ctypes.cast(ctypes.pointer(consistency_host), ctypes.c_void_p), d_consistency, 4)
 
-            result = np_mod.asarray(result_host, dtype=np_mod.float32).reshape(compound_arr.shape)
+            result = Float32Vector(float(result_host[idx]) for idx in range(compound_arr.size))
             return result, float(consistency_host.value)
         finally:
             gpu_free(d_compound)
@@ -725,25 +1048,28 @@ class AtomicFissionFusion:
 
     def compose(self, atoms):
         """Fuse a small atom set into a weighted centroid and report agreement."""
-        np_mod = _np()
-        atom_arr = np_mod.asarray(atoms, dtype=np_mod.float32)
-        if atom_arr.ndim == 1:
-            atom_arr = atom_arr.reshape(1, -1)
+        atom_shape = _shape_of(atoms)
+        if len(atom_shape) == 1:
+            atom_arr = _f32_matrix(atoms, rows=1, cols=atom_shape[0])
+        else:
+            atom_arr = _f32_matrix(atoms)
         if atom_arr.ndim != 2 or atom_arr.shape[0] <= 0:
             raise ValueError("atoms must be a non-empty 2D array-like [K x D]")
-        compound = np_mod.mean(atom_arr, axis=0, dtype=np_mod.float32)
+        compound = Float32Vector(
+            _mean([float(atom_arr[row, col]) for row in range(atom_arr.shape[0])])
+            for col in range(atom_arr.shape[1])
+        )
         return self._run_compose_decompose(compound, atom_arr, mode=1)
 
     def transform(self, atoms, mode: int, ratio: float):
         """Compatibility scalar transform kept for legacy callers."""
-        np_mod = _np()
-        arr = np_mod.asarray(atoms, dtype=np_mod.float32)
+        arr = _float_list(atoms)
         factor = float(ratio)
         if abs(factor) < 1e-6:
             factor = 1e-6
         if int(mode) == 0:
-            return arr * factor
-        return arr / factor
+            return [float(value) * factor for value in arr]
+        return [float(value) / factor for value in arr]
 
     def transform_list(
         self,
@@ -752,12 +1078,11 @@ class AtomicFissionFusion:
         ratio: float,
     ) -> list[float]:
         """List-friendly compatibility transform without exposing NumPy to the caller."""
-        np_mod = _np()
-        values = np_mod.asarray(list(atoms), dtype=np_mod.float32)
-        if values.size <= 0:
+        values = [float(value) for value in atoms]
+        if not values:
             return []
         transformed = self.transform(values, mode=mode, ratio=ratio)
-        return [float(value) for value in np_mod.asarray(transformed, dtype=np_mod.float32).reshape(-1).tolist()]
+        return [float(value) for value in transformed]
 
     def create_sparse(self, weights, sparsity_level: float, preserve_important: bool = True) -> dict:
         """Create sparse weight representation for efficient GPU computation.
@@ -777,40 +1102,55 @@ class AtomicFissionFusion:
             # Process each weight matrix
             sparse_dict = {}
             for key, W in weights.items():
-                if not isinstance(W, np.ndarray):
+                shape = None
+                try:
+                    shape = _shape_of(W)
+                except Exception:
                     sparse_dict[key] = W
                     continue
-
-                W = W.astype(np.float32) if W.dtype != np.float32 else W
+                tensor = _f32_matrix(W) if len(shape) == 2 else _f32_vector(W)
+                flat = _float_list(tensor)
 
                 if preserve_important:
                     # Keep top-k values by magnitude
                     threshold_percentile = sparsity_level * 100.0
-                    threshold = np.percentile(np.abs(W), threshold_percentile)
-                    sparse_W = np.where(np.abs(W) >= threshold, W, 0.0)
+                    threshold = _percentile_abs(flat, threshold_percentile)
+                    sparse_flat = [value if abs(value) >= threshold else 0.0 for value in flat]
                 else:
                     # Random sparsification
-                    mask = np.random.rand(*W.shape) > sparsity_level
-                    sparse_W = W * mask
+                    sparse_flat = [
+                        value if random.random() > float(sparsity_level) else 0.0
+                        for value in flat
+                    ]
 
-                sparse_dict[key] = sparse_W.astype(np.float32)
+                if len(shape) == 2:
+                    sparse_dict[key] = HostTensorF32.from_array_like(
+                        sparse_flat,
+                        rows=shape[0],
+                        cols=shape[1],
+                    )
+                else:
+                    sparse_dict[key] = Float32Vector(sparse_flat)
             return sparse_dict
 
-        elif isinstance(weights, np.ndarray):
-            # Process single array
-            W = weights.astype(np.float32) if weights.dtype != np.float32 else weights
-
+        else:
+            try:
+                shape = _shape_of(weights)
+            except Exception:
+                return weights
+            flat = _float_list(weights)
             if preserve_important:
                 threshold_percentile = sparsity_level * 100.0
-                threshold = np.percentile(np.abs(W), threshold_percentile)
-                return np.where(np.abs(W) >= threshold, W, 0.0).astype(np.float32)
+                threshold = _percentile_abs(flat, threshold_percentile)
+                sparse_flat = [value if abs(value) >= threshold else 0.0 for value in flat]
             else:
-                mask = np.random.rand(*W.shape) > sparsity_level
-                return (W * mask).astype(np.float32)
-
-        else:
-            # Unknown type, return as-is
-            return weights
+                sparse_flat = [
+                    value if random.random() > float(sparsity_level) else 0.0
+                    for value in flat
+                ]
+            if len(shape) == 2:
+                return HostTensorF32.from_array_like(sparse_flat, rows=shape[0], cols=shape[1])
+            return Float32Vector(sparse_flat)
 
 
 class DefeasibleResolver:
@@ -830,12 +1170,13 @@ class DefeasibleResolver:
         num_candidates: int | None = None,
         max_superiors: int | None = None,
     ):
-        np_mod = _np()
-        conclusion_arr = np_mod.asarray(conclusions, dtype=np_mod.float32)
-        if conclusion_arr.ndim == 1:
+        conclusion_shape = _shape_of(conclusions)
+        if len(conclusion_shape) == 1:
             if num_workers is None or num_candidates is None:
                 raise ValueError("num_workers_and_num_candidates_required_for_flat_conclusions")
-            conclusion_arr = conclusion_arr.reshape(int(num_workers), int(num_candidates))
+            conclusion_arr = _f32_matrix(conclusions, rows=int(num_workers), cols=int(num_candidates))
+        else:
+            conclusion_arr = _f32_matrix(conclusions)
         if conclusion_arr.ndim != 2:
             raise ValueError("conclusions_must_be_rank1_or_rank2")
 
@@ -846,26 +1187,29 @@ class DefeasibleResolver:
                 f"conclusion_shape_mismatch: expected {(worker_count, candidate_count)}, got {conclusion_arr.shape}"
             )
 
-        strength_arr = np_mod.asarray(rule_strengths, dtype=np_mod.int8).reshape(-1)
+        strength_arr = Int8Vector(int(value) for value in rule_strengths)
         if strength_arr.shape[0] != worker_count:
             raise ValueError("rule_strengths_length_mismatch")
 
-        superiority_arr = np_mod.asarray(superiority, dtype=np_mod.uint32)
-        if superiority_arr.ndim == 1:
+        superiority_shape = _shape_of(superiority)
+        if len(superiority_shape) == 1:
             if max_superiors is None:
                 raise ValueError("max_superiors_required_for_flat_superiority")
-            superiority_arr = superiority_arr.reshape(worker_count, int(max_superiors))
+            superiority_arr = HostTensorF32.from_array_like(
+                [int(value) for value in superiority],
+                rows=worker_count,
+                cols=int(max_superiors),
+            )
+        else:
+            superiority_arr = _f32_matrix(superiority)
         if superiority_arr.ndim != 2 or superiority_arr.shape[0] != worker_count:
             raise ValueError("superiority_shape_mismatch")
         superiority_cap = int(max_superiors or superiority_arr.shape[1])
         if superiority_arr.shape[1] != superiority_cap:
             raise ValueError("max_superiors_shape_mismatch")
 
-        conclusion_arr = np_mod.ascontiguousarray(conclusion_arr, dtype=np_mod.float32)
-        strength_arr = np_mod.ascontiguousarray(strength_arr, dtype=np_mod.int8)
-        superiority_arr = np_mod.ascontiguousarray(superiority_arr, dtype=np_mod.uint32)
-        verdicts = np_mod.zeros((candidate_count,), dtype=np_mod.float32)
-        proof_tags = np_mod.zeros((candidate_count,), dtype=np_mod.uint32)
+        verdicts = Float32Vector.zeros(candidate_count)
+        proof_tags = UInt32Vector.zeros(candidate_count)
 
         d_conclusions = gpu_malloc(conclusion_arr.nbytes)
         d_strengths = gpu_malloc(strength_arr.nbytes)
@@ -873,11 +1217,14 @@ class DefeasibleResolver:
         d_verdicts = gpu_malloc(verdicts.nbytes)
         d_proof_tags = gpu_malloc(proof_tags.nbytes)
         try:
-            memcpy_htod(d_conclusions, conclusion_arr.ctypes.data_as(ctypes.c_void_p), conclusion_arr.nbytes)
-            memcpy_htod(d_strengths, strength_arr.ctypes.data_as(ctypes.c_void_p), strength_arr.nbytes)
-            memcpy_htod(d_superiority, superiority_arr.ctypes.data_as(ctypes.c_void_p), superiority_arr.nbytes)
-            memcpy_htod(d_verdicts, verdicts.ctypes.data_as(ctypes.c_void_p), verdicts.nbytes)
-            memcpy_htod(d_proof_tags, proof_tags.ctypes.data_as(ctypes.c_void_p), proof_tags.nbytes)
+            _copy_htod(d_conclusions, conclusion_arr)
+            _copy_htod(d_strengths, strength_arr)
+            # superiority uses uint32 semantics, so stage via ctypes directly
+            superiority_values = [int(value) for value in _float_list(superiority_arr)]
+            superiority_buf = (ctypes.c_uint32 * len(superiority_values))(*superiority_values)
+            _copy_htod(d_superiority, superiority_buf)
+            _copy_htod(d_verdicts, verdicts)
+            _copy_htod(d_proof_tags, proof_tags)
 
             launch(
                 self.kernel,
@@ -895,8 +1242,8 @@ class DefeasibleResolver:
                 ],
             )
             synchronize()
-            memcpy_dtoh(verdicts.ctypes.data_as(ctypes.c_void_p), d_verdicts, verdicts.nbytes)
-            memcpy_dtoh(proof_tags.ctypes.data_as(ctypes.c_void_p), d_proof_tags, proof_tags.nbytes)
+            _copy_dtoh(verdicts, d_verdicts)
+            _copy_dtoh(proof_tags, d_proof_tags)
             return verdicts, proof_tags
         finally:
             gpu_free(d_conclusions)
@@ -915,21 +1262,19 @@ class TemporalReasoning:
 
     def compute_patterns(self, sequence):
         """Compute 24 temporal pattern features for an ordered [T x D] sequence."""
-        np_mod = _np()
-        arr = np_mod.asarray(sequence, dtype=np_mod.float32)
+        arr = _f32_matrix(sequence)
         if arr.ndim != 2 or arr.shape[0] <= 0 or arr.shape[1] <= 0:
             raise ValueError("sequence must be a non-empty [T x D] array")
-        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
         seq_length, feat_dim = arr.shape
         pattern_count = 24
-        patterns = np_mod.zeros((pattern_count,), dtype=np_mod.float32)
+        patterns = Float32Vector.zeros(pattern_count)
 
         d_sequence = gpu_malloc(arr.nbytes)
         d_output = gpu_malloc(patterns.nbytes)
 
         try:
-            memcpy_htod(d_sequence, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
-            memcpy_htod(d_output, patterns.ctypes.data_as(ctypes.c_void_p), patterns.nbytes)
+            _copy_htod(d_sequence, arr)
+            _copy_htod(d_output, patterns)
             launch(
                 self.kernel,
                 grid=(1, 1, 1),
@@ -942,7 +1287,7 @@ class TemporalReasoning:
                 ],
             )
             synchronize()
-            memcpy_dtoh(patterns.ctypes.data_as(ctypes.c_void_p), d_output, patterns.nbytes)
+            _copy_dtoh(patterns, d_output)
             return patterns
         finally:
             gpu_free(d_sequence)
@@ -950,14 +1295,17 @@ class TemporalReasoning:
 
     def compute_deltas(self, sequence):
         """Compatibility helper preserving the legacy frame-difference surface."""
-        np_mod = _np()
-        arr = np_mod.asarray(sequence, dtype=np_mod.float32)
+        arr = _f32_matrix(sequence)
         if arr.ndim != 2:
             raise ValueError("sequence must be rank-2")
-        deltas = np_mod.zeros_like(arr, dtype=np_mod.float32)
+        delta_rows: list[list[float]] = [[0.0 for _ in range(arr.shape[1])] for _ in range(arr.shape[0])]
         if arr.shape[0] > 1:
-            deltas[:-1] = arr[1:] - arr[:-1]
-        return deltas
+            for row in range(arr.shape[0] - 1):
+                delta_rows[row] = [
+                    float(arr[row + 1, col]) - float(arr[row, col])
+                    for col in range(arr.shape[1])
+                ]
+        return _stack_rows(delta_rows)
 
     def compute_coherence(self, crystallized, temporal_context):
         """Compute temporal coherence scores.
@@ -972,29 +1320,22 @@ class TemporalReasoning:
         Returns:
             Coherence scores (per dimension)
         """
-        np_mod = _np()
-        if not isinstance(crystallized, np_mod.ndarray):
-            crystallized = np_mod.array(crystallized, dtype=np_mod.float32)
-        if not isinstance(temporal_context, np_mod.ndarray):
-            temporal_context = np_mod.array(temporal_context, dtype=np_mod.float32)
+        crystallized_flat = _float_list(crystallized)
+        context_flat = _float_list(temporal_context)
 
         # Ensure same shape for comparison
-        if crystallized.shape != temporal_context.shape:
-            # Broadcast or truncate to match
-            min_len = min(len(crystallized.flatten()), len(temporal_context.flatten()))
-            crystallized_flat = crystallized.flatten()[:min_len]
-            context_flat = temporal_context.flatten()[:min_len]
-        else:
-            crystallized_flat = crystallized.flatten()
-            context_flat = temporal_context.flatten()
+        if len(crystallized_flat) != len(context_flat):
+            min_len = min(len(crystallized_flat), len(context_flat))
+            crystallized_flat = crystallized_flat[:min_len]
+            context_flat = context_flat[:min_len]
 
         # Compute element-wise coherence (similarity measure)
         # High coherence when values are similar
-        diff = np_mod.abs(crystallized_flat - context_flat)
-        max_diff = np_mod.max(diff) if np_mod.max(diff) > 0 else 1.0
-        coherence = 1.0 - (diff / max_diff)
+        diff = [abs(c - t) for c, t in zip(crystallized_flat, context_flat)]
+        max_diff = max(diff) if diff and max(diff) > 0 else 1.0
+        coherence = [1.0 - (value / max_diff) for value in diff]
 
-        return coherence.astype(np_mod.float32)
+        return Float32Vector(coherence)
 
     def estimate_coherence(self, context):
         """Estimate coherence from temporal context alone.
@@ -1008,14 +1349,11 @@ class TemporalReasoning:
         Returns:
             Estimated coherence scores
         """
-        np_mod = _np()
-        if not isinstance(context, np_mod.ndarray):
-            context = np_mod.array(context, dtype=np_mod.float32)
+        context_flat = _float_list(context)
 
         # Use temporal stability (low variance = high coherence)
-        context_flat = context.flatten()
         if len(context_flat) > 1:
-            variance = np_mod.var(context_flat)
+            variance = _variance(context_flat)
             # Normalize variance to 0-1 range (assuming typical variance < 1.0)
             normalized_var = min(variance, 1.0)
             coherence_score = 1.0 - normalized_var
@@ -1023,7 +1361,7 @@ class TemporalReasoning:
             coherence_score = 1.0
 
         # Return uniform coherence scores
-        return np.full_like(context_flat, coherence_score, dtype=np.float32)
+        return Float32Vector([coherence_score for _ in context_flat])
 
 
 # ============================================================================
@@ -1039,14 +1377,12 @@ class VectorResonator:
 
     def resonate_attention(self, vectors):
         """Blend a small set of vectors with content-dependent attention."""
-        np_mod = _np()
-        arr = np_mod.asarray(vectors, dtype=np_mod.float32)
+        arr = _f32_matrix(vectors)
         if arr.ndim != 2:
             raise ValueError("vectors must be a 2D array-like [K x D]")
         if arr.shape[0] == 0 or arr.shape[1] == 0:
             raise ValueError("vectors must be non-empty")
 
-        arr = np_mod.ascontiguousarray(arr, dtype=np_mod.float32)
         k_count, dims = arr.shape
         blended_bytes = dims * 4
         weights_bytes = k_count * 4
@@ -1055,7 +1391,7 @@ class VectorResonator:
         d_weights = gpu_malloc(weights_bytes)
 
         try:
-            memcpy_htod(d_vectors, arr.ctypes.data_as(ctypes.c_void_p), arr.nbytes)
+            _copy_htod(d_vectors, arr)
 
             launch(
                 self.kernel,
@@ -1076,8 +1412,8 @@ class VectorResonator:
             memcpy_dtoh(ctypes.cast(blended_host, ctypes.c_void_p), d_blended, blended_bytes)
             memcpy_dtoh(ctypes.cast(weights_host, ctypes.c_void_p), d_weights, weights_bytes)
 
-            blended = np_mod.asarray(blended_host, dtype=np_mod.float32).reshape(dims)
-            weights = np_mod.asarray(weights_host, dtype=np_mod.float32).reshape(k_count)
+            blended = Float32Vector(float(blended_host[idx]) for idx in range(dims))
+            weights = Float32Vector(float(weights_host[idx]) for idx in range(k_count))
             return blended, weights
         finally:
             gpu_free(d_vectors)
@@ -1086,44 +1422,36 @@ class VectorResonator:
 
     def resonate(self, vec_a, vec_b, alpha: float):
         """Blend two vectors using content attention with an alpha prior."""
-        np_mod = _np()
-        arr_a_full = np_mod.asarray(vec_a, dtype=np_mod.float32)
-        arr_b_full = np_mod.asarray(vec_b, dtype=np_mod.float32)
-        assert arr_a_full.shape == arr_b_full.shape
-        arr_a = arr_a_full.reshape(-1)
-        arr_b = arr_b_full.reshape(-1)
-        _blended, weights = self.resonate_attention(np_mod.stack([arr_a, arr_b], axis=0))
+        arr_a = _float_list(vec_a)
+        arr_b = _float_list(vec_b)
+        if len(arr_a) != len(arr_b):
+            raise AssertionError("input_vectors_must_match")
+        _, weights = self.resonate_attention([arr_a, arr_b])
 
-        prior = np_mod.asarray(
-            [
-                min(max(float(alpha), 1e-4), 1.0 - 1e-4),
-                min(max(1.0 - float(alpha), 1e-4), 1.0 - 1e-4),
-            ],
-            dtype=np_mod.float32,
-        )
-        adjusted = np_mod.asarray(weights, dtype=np_mod.float32) * prior
-        total = float(adjusted.sum())
+        prior = [
+            min(max(float(alpha), 1e-4), 1.0 - 1e-4),
+            min(max(1.0 - float(alpha), 1e-4), 1.0 - 1e-4),
+        ]
+        adjusted = [float(weights[idx]) * prior[idx] for idx in range(2)]
+        total = float(sum(adjusted))
         if total <= 0.0:
-            adjusted = prior / float(prior.sum())
+            prior_total = sum(prior)
+            adjusted = [value / prior_total for value in prior]
         else:
-            adjusted = adjusted / total
-        blended = adjusted[0] * arr_a + adjusted[1] * arr_b
-        return blended.reshape(arr_a_full.shape)
+            adjusted = [value / total for value in adjusted]
+        blended = [
+            adjusted[0] * arr_a[idx] + adjusted[1] * arr_b[idx]
+            for idx in range(len(arr_a))
+        ]
+        return Float32Vector(blended)
 
     def resonate_list(self, vec_a, vec_b, alpha: float) -> list[float]:
-        np_mod = _np()
-        arr_a = np_mod.asarray(list(vec_a), dtype=np_mod.float32)
-        arr_b = np_mod.asarray(list(vec_b), dtype=np_mod.float32)
-        blended = self.resonate(arr_a, arr_b, alpha)
-        return [float(value) for value in np_mod.asarray(blended, dtype=np_mod.float32).reshape(-1).tolist()]
+        blended = self.resonate(list(vec_a), list(vec_b), alpha)
+        return blended.tolist()
 
     def resonate_attention_list(self, vectors) -> tuple[list[float], list[float]]:
-        np_mod = _np()
         blended, weights = self.resonate_attention(vectors)
-        return (
-            [float(value) for value in np_mod.asarray(blended, dtype=np_mod.float32).reshape(-1).tolist()],
-            [float(value) for value in np_mod.asarray(weights, dtype=np_mod.float32).reshape(-1).tolist()],
-        )
+        return (blended.tolist(), weights.tolist())
 
     def calculate_complexity(self, input_embedding, modal_signature: list) -> float:
         """Calculate input complexity for adaptive sparsity decisions.
@@ -1139,13 +1467,11 @@ class VectorResonator:
             Complexity score between 0.0 and 1.0
         """
         # Normalize input embedding if needed
-        np_mod = _np()
-        if getattr(input_embedding, "dtype", None) != np_mod.float32:
-            input_embedding = np_mod.asarray(input_embedding, dtype=np_mod.float32)
+        input_values = _float_list(input_embedding)
 
         # Calculate vector magnitude (normalized)
-        magnitude = np_mod.linalg.norm(input_embedding)
-        max_magnitude = np_mod.sqrt(len(input_embedding))  # Maximum possible for unit components
+        magnitude = _norm(input_values)
+        max_magnitude = math.sqrt(len(input_values))  # Maximum possible for unit components
         normalized_magnitude = min(magnitude / max_magnitude, 1.0)
 
         # Calculate modal diversity score (more modalities = more complex)
@@ -1166,10 +1492,11 @@ class VectorResonator:
         Returns:
             Cosine similarity (-1.0 to 1.0)
         """
-        np_mod = _np()
-        dot_product = np_mod.dot(vec_a.flatten(), vec_b.flatten())
-        norm_a = np_mod.linalg.norm(vec_a)
-        norm_b = np_mod.linalg.norm(vec_b)
+        flat_a = _float_list(vec_a)
+        flat_b = _float_list(vec_b)
+        dot_product = _dot(flat_a, flat_b)
+        norm_a = _norm(flat_a)
+        norm_b = _norm(flat_b)
 
         if norm_a == 0.0 or norm_b == 0.0:
             return 0.0
@@ -1188,9 +1515,7 @@ class VectorResonator:
             Confidence scores (one per dimension)
         """
         # Sigmoid activation for confidence scores
-        np_mod = _np()
-        vec = np_mod.asarray(confidence_vector, dtype=np_mod.float32)
-        return 1.0 / (1.0 + np_mod.exp(-vec))
+        return Float32Vector(_sigmoid_list(_float_list(confidence_vector)))
 
 
 class GraphCrystallizer:
@@ -1202,15 +1527,15 @@ class GraphCrystallizer:
 
     @staticmethod
     def _as_rank2_float32(values):
-        np_mod = _np()
-        array = np_mod.asarray(values, dtype=np_mod.float32)
-        squeezed = False
-        if array.ndim == 1:
-            array = array.reshape(-1, 1)
-            squeezed = True
+        shape = _shape_of(values)
+        squeezed = len(shape) == 1
+        if squeezed:
+            array = _f32_matrix(values, rows=shape[0], cols=1)
+        else:
+            array = _f32_matrix(values)
         if array.ndim != 2:
             raise ValueError("node_features_must_be_rank1_or_rank2")
-        return np_mod.ascontiguousarray(array), squeezed
+        return array, squeezed
 
     @staticmethod
     def _neighbor_weight_from_ema(ema_rate: float) -> float:
@@ -1228,36 +1553,41 @@ class GraphCrystallizer:
         self_weight: float = 0.6,
         neighbor_weight: float = 0.4,
     ):
-        np_mod = _np()
         node_arr, squeezed = self._as_rank2_float32(node_features)
-        adjacency_arr = np_mod.asarray(adjacency, dtype=np_mod.int32)
-        if adjacency_arr.ndim != 2:
+        adjacency_shape = _shape_of(adjacency)
+        if len(adjacency_shape) != 2:
             raise ValueError("adjacency_must_be_rank2")
+        adjacency_arr = [
+            [int(value) for value in row]
+            for row in HostTensorF32.from_array_like(adjacency, rows=adjacency_shape[0], cols=adjacency_shape[1]).to_nested_list()
+        ]
         if adjacency_arr.shape[0] != node_arr.shape[0]:
             raise ValueError("adjacency_row_mismatch")
 
         if neighbor_counts is None:
-            neighbor_counts_arr = np_mod.sum(adjacency_arr >= 0, axis=1, dtype=np_mod.int32)
+            neighbor_counts_list = [sum(1 for value in row if int(value) >= 0) for row in adjacency_arr]
         else:
-            neighbor_counts_arr = np_mod.asarray(neighbor_counts, dtype=np_mod.int32).reshape(-1)
-            if neighbor_counts_arr.shape[0] != node_arr.shape[0]:
+            neighbor_counts_list = [int(value) for value in neighbor_counts]
+            if len(neighbor_counts_list) != node_arr.shape[0]:
                 raise ValueError("neighbor_counts_row_mismatch")
-        max_neighbors = int(adjacency_arr.shape[1])
+        max_neighbors = int(len(adjacency_arr[0]) if adjacency_arr else 0)
         node_count = int(node_arr.shape[0])
         feature_dim = int(node_arr.shape[1])
         rounds = max(int(rounds), 0)
-        adjacency_arr = np_mod.ascontiguousarray(adjacency_arr)
-        neighbor_counts_arr = np_mod.ascontiguousarray(
-            np_mod.clip(neighbor_counts_arr, 0, max_neighbors).astype(np_mod.int32, copy=False)
+        adjacency_host = HostTensorF32.from_array_like(adjacency_arr, rows=node_count, cols=max_neighbors)
+        adjacency_values = [int(value) for value in adjacency_host.to_flat_list()]
+        adjacency_buf = (ctypes.c_int32 * len(adjacency_values))(*adjacency_values)
+        neighbor_counts_arr = Int32Vector(
+            _clip_int(value, 0, max_neighbors) for value in neighbor_counts_list
         )
 
         if rounds == 0 or node_count == 0 or feature_dim == 0:
             result = node_arr
-            return result.reshape(-1) if squeezed else result
+            return Float32Vector(result.to_flat_list()) if squeezed else result
 
-        current_host = np_mod.ascontiguousarray(node_arr)
+        current_host = node_arr.copy()
         byte_count = int(current_host.nbytes)
-        adjacency_bytes = int(adjacency_arr.nbytes)
+        adjacency_bytes = int(ctypes.sizeof(adjacency_buf))
         counts_bytes = int(neighbor_counts_arr.nbytes)
 
         d_current = gpu_malloc(byte_count)
@@ -1265,9 +1595,9 @@ class GraphCrystallizer:
         d_adjacency = gpu_malloc(adjacency_bytes)
         d_counts = gpu_malloc(counts_bytes)
         try:
-            memcpy_htod(d_current, current_host.ctypes.data_as(ctypes.c_void_p), byte_count)
-            memcpy_htod(d_adjacency, adjacency_arr.ctypes.data_as(ctypes.c_void_p), adjacency_bytes)
-            memcpy_htod(d_counts, neighbor_counts_arr.ctypes.data_as(ctypes.c_void_p), counts_bytes)
+            _copy_htod(d_current, current_host)
+            _copy_htod(d_adjacency, adjacency_buf)
+            _copy_htod(d_counts, neighbor_counts_arr)
 
             grid_x = max((node_count + 255) // 256, 1)
             for _ in range(rounds):
@@ -1290,9 +1620,9 @@ class GraphCrystallizer:
                 synchronize()
                 d_current, d_output = d_output, d_current
 
-            out_host = np_mod.empty_like(current_host)
-            memcpy_dtoh(out_host.ctypes.data_as(ctypes.c_void_p), d_current, byte_count)
-            return out_host.reshape(-1) if squeezed else out_host
+            out_host = HostTensorF32.zeros(node_count, feature_dim)
+            _copy_dtoh(out_host, d_current)
+            return Float32Vector(out_host.to_flat_list()) if squeezed else out_host
         finally:
             gpu_free(d_current)
             gpu_free(d_output)
@@ -1300,17 +1630,18 @@ class GraphCrystallizer:
             gpu_free(d_counts)
 
     def _build_compatibility_graph(self, node_arr, neighbor_arr):
-        np_mod = _np()
         node_count = int(node_arr.shape[0])
         feature_dim = int(node_arr.shape[1])
         total_nodes = node_count * 2
-        features = np_mod.zeros((total_nodes, feature_dim), dtype=np_mod.float32)
-        features[:node_count] = node_arr
-        features[node_count:] = neighbor_arr
+        features = HostTensorF32.zeros(total_nodes, feature_dim)
+        for row in range(node_count):
+            for col in range(feature_dim):
+                features._buffer[row * feature_dim + col] = float(node_arr[row, col])
+                features._buffer[(node_count + row) * feature_dim + col] = float(neighbor_arr[row, col])
 
         max_neighbors = 3 if node_count > 1 else 1
-        adjacency = np_mod.full((total_nodes, max_neighbors), -1, dtype=np_mod.int32)
-        neighbor_counts = np_mod.zeros(total_nodes, dtype=np_mod.int32)
+        adjacency = [[-1 for _ in range(max_neighbors)] for _ in range(total_nodes)]
+        neighbor_counts = Int32Vector.zeros(total_nodes)
 
         for idx in range(node_count):
             cursor = 0
@@ -1328,7 +1659,6 @@ class GraphCrystallizer:
 
     def crystallize(self, nodes, neighbors, ema_rate: float = 0.999):
         """Compatibility API backed by the real graph message-passing kernel."""
-        np_mod = _np()
         node_arr, squeezed = self._as_rank2_float32(nodes)
         neighbor_arr, _ = self._as_rank2_float32(neighbors)
         if neighbor_arr.shape != node_arr.shape:
@@ -1343,8 +1673,15 @@ class GraphCrystallizer:
             self_weight=1.0 - self._neighbor_weight_from_ema(ema_rate),
             neighbor_weight=self._neighbor_weight_from_ema(ema_rate),
         )
-        crystallized = np_mod.asarray(result, dtype=np_mod.float32)[: node_arr.shape[0]]
-        return crystallized.reshape(-1) if squeezed else crystallized
+        if isinstance(result, Float32Vector):
+            result_rows = HostTensorF32.from_array_like(result.tolist(), rows=node_arr.shape[0], cols=1)
+        else:
+            result_rows = result
+        sliced = HostTensorF32.zeros(node_arr.shape[0], node_arr.shape[1])
+        for row in range(node_arr.shape[0]):
+            for col in range(node_arr.shape[1]):
+                sliced._buffer[row * node_arr.shape[1] + col] = float(result_rows[row, col])
+        return Float32Vector(sliced.to_flat_list()) if squeezed else sliced
 
     def crystallize_list(
         self,
@@ -1352,20 +1689,19 @@ class GraphCrystallizer:
         neighbors: list[list[float]] | list[float],
         ema_rate: float = 0.999,
     ) -> list[list[float]]:
-        np_mod = _np()
-        node_arr = np_mod.asarray(nodes, dtype=np_mod.float32)
-        neighbor_arr = np_mod.asarray(neighbors, dtype=np_mod.float32)
+        node_arr = _f32_matrix(nodes)
         if node_arr.ndim != 2:
             raise ValueError("nodes_must_be_rank2")
-        if neighbor_arr.ndim == 1:
-            neighbor_arr = np_mod.tile(neighbor_arr.reshape(1, -1), (node_arr.shape[0], 1))
+        neighbor_shape = _shape_of(neighbors)
+        if len(neighbor_shape) == 1:
+            row = _float_list(neighbors)
+            neighbor_arr = _stack_rows([row for _ in range(node_arr.shape[0])])
+        else:
+            neighbor_arr = _f32_matrix(neighbors)
         if neighbor_arr.shape != node_arr.shape:
             raise ValueError("neighbor_shape_mismatch")
         crystallized = self.crystallize(node_arr, neighbor_arr, ema_rate=ema_rate)
-        return [
-            [float(value) for value in row.tolist()]
-            for row in np_mod.asarray(crystallized, dtype=np_mod.float32)
-        ]
+        return HostTensorF32.from_array_like(crystallized).to_nested_list()
 
     def smooth_intermediate(self, output, ema_buffer, warp_level: bool = True):
         """Smooth intermediate outputs using EMA buffer.
@@ -1381,36 +1717,31 @@ class GraphCrystallizer:
         Returns:
             Smoothed output vector
         """
-        np_mod = _np()
-        if not isinstance(output, np_mod.ndarray):
-            output = np_mod.array(output, dtype=np_mod.float32)
-        elif output.dtype != np_mod.float32:
-            output = output.astype(np_mod.float32)
+        output_vec = _f32_vector(output)
 
         # For now, use simple EMA on CPU (can be optimized with GPU kernel later)
         # This maintains the interface while providing functional smoothing
         alpha = 0.999 if warp_level else 0.99
 
         # Read current EMA state from GPU buffer
-        ema_state = np_mod.zeros_like(output)
+        ema_state = Float32Vector.zeros(output_vec.size)
         if ema_buffer is not None and hasattr(ema_buffer, 'value'):
             try:
-                from knowledge3d.cranium.sovereign.loader import memcpy_dtoh
-                import ctypes
-                memcpy_dtoh(ema_state.ctypes.data_as(ctypes.c_void_p), ema_buffer, output.nbytes)
-            except:
+                _copy_dtoh(ema_state, ema_buffer)
+            except Exception:
                 pass  # First call, EMA state is zeros
 
         # Apply EMA: new_state = alpha * old_state + (1 - alpha) * new_value
-        smoothed = alpha * ema_state + (1.0 - alpha) * output
+        smoothed = Float32Vector(
+            alpha * float(ema_state[idx]) + (1.0 - alpha) * float(output_vec[idx])
+            for idx in range(output_vec.size)
+        )
 
         # Write updated EMA state back to GPU buffer
         if ema_buffer is not None and hasattr(ema_buffer, 'value'):
             try:
-                from knowledge3d.cranium.sovereign.loader import memcpy_htod
-                import ctypes
-                memcpy_htod(ema_buffer, smoothed.ctypes.data_as(ctypes.c_void_p), smoothed.nbytes)
-            except:
+                _copy_htod(ema_buffer, smoothed)
+            except Exception:
                 pass
 
         return smoothed
@@ -1448,51 +1779,76 @@ class SleepClusterRefiner:
         n_iterations: int = 4,
         learning_rate: float = 0.2,
     ) -> dict:
-        np_mod = _np()
-        emb = np_mod.asarray(embeddings, dtype=np_mod.float32)
+        emb = _f32_matrix(embeddings)
         if emb.ndim != 2:
             raise ValueError(f"sleep_cluster_refiner expects rank-2 embeddings, got {emb.shape}")
         rows, dims = emb.shape
         if rows == 0:
             return {
-                "assignments": np_mod.empty((0,), dtype=np_mod.int32),
-                "centroids": np_mod.empty((0, dims), dtype=np_mod.float32),
-                "cluster_counts": np_mod.empty((0,), dtype=np_mod.int32),
-                "silhouette_scores": np_mod.empty((0,), dtype=np_mod.float32),
+                "assignments": Int32Vector.zeros(0),
+                "centroids": HostTensorF32.zeros(0, dims),
+                "cluster_counts": Int32Vector.zeros(0),
+                "silhouette_scores": Float32Vector.zeros(0),
                 "mean_silhouette": 0.0,
-                "refined_embeddings": np_mod.empty((0, dims), dtype=np_mod.float32),
+                "refined_embeddings": HostTensorF32.zeros(0, dims),
             }
         cluster_target = max(1, min(int(n_clusters), rows))
         if cluster_target == 1:
-            assignments = np_mod.zeros((rows,), dtype=np_mod.int32)
-            centroids = np_mod.mean(emb, axis=0, keepdims=True).astype(np_mod.float32, copy=False)
-            refined = self._kernels.refine_embeddings(emb, centroids, assignments, float(learning_rate))
+            assignments = Int32Vector.zeros(rows)
+            centroid_row = [
+                _mean([float(emb[row, col]) for row in range(rows)])
+                for col in range(dims)
+            ]
+            centroids = _stack_rows([centroid_row])
+            refined = self._kernels.refine_embeddings(centroids.tolist() and emb.to_nested_list(), centroids.to_nested_list(), assignments.tolist(), float(learning_rate))
             return {
                 "assignments": assignments,
                 "centroids": centroids,
-                "cluster_counts": np_mod.asarray([rows], dtype=np_mod.int32),
-                "silhouette_scores": np_mod.zeros((rows,), dtype=np_mod.float32),
+                "cluster_counts": Int32Vector([rows]),
+                "silhouette_scores": Float32Vector.zeros(rows),
                 "mean_silhouette": 0.0,
-                "refined_embeddings": refined,
+                "refined_embeddings": HostTensorF32.from_array_like(refined),
             }
 
-        rng = np_mod.random.default_rng(0)
-        seeds = rng.choice(rows, size=cluster_target, replace=False)
-        centroids = np_mod.ascontiguousarray(emb[seeds], dtype=np_mod.float32)
-        assignments = np_mod.zeros((rows,), dtype=np_mod.int32)
+        rng = random.Random(0)
+        seed_indices = rng.sample(list(range(rows)), k=cluster_target)
+        centroids = _stack_rows([emb[idx] for idx in seed_indices])
+        assignments = Int32Vector.zeros(rows)
 
         for _ in range(max(1, int(n_iterations))):
-            similarity = np_mod.ascontiguousarray(emb @ centroids.T, dtype=np_mod.float32)
-            assignments = self._kernels.assign_to_best_centroid(similarity)
-            centroids, counts = self._kernels.accumulate_centroids(emb, assignments, cluster_target)
-            empty = np_mod.where(counts <= 0)[0]
-            for idx in empty.tolist():
-                centroids[idx] = emb[int(rng.integers(0, rows))]
+            similarity_rows = []
+            for row in range(rows):
+                emb_row = emb[row]
+                similarity_rows.append([
+                    _dot(emb_row, centroids[col]) for col in range(cluster_target)
+                ])
+            similarity = _stack_rows(similarity_rows)
+            assignments_arr = self._kernels.assign_to_best_centroid(similarity.to_nested_list())
+            assignments = Int32Vector(int(value) for value in assignments_arr)
+            centroids_arr, counts_arr = self._kernels.accumulate_centroids(
+                emb.to_nested_list(), assignments.tolist(), cluster_target
+            )
+            centroids = HostTensorF32.from_array_like(centroids_arr)
+            counts = Int32Vector(int(value) for value in counts_arr)
+            empty = [idx for idx, value in enumerate(counts) if int(value) <= 0]
+            for idx in empty:
+                replacement = emb[rng.randrange(rows)]
+                for col in range(dims):
+                    centroids._buffer[idx * dims + col] = float(replacement[col])
 
-        refined = self._kernels.refine_embeddings(emb, centroids, assignments, float(learning_rate))
-        silhouettes = self._kernels.compute_silhouette_scores(refined, assignments, cluster_target)
-        _, counts = self._kernels.accumulate_centroids(refined, assignments, cluster_target)
-        mean_silhouette = float(np_mod.mean(silhouettes)) if silhouettes.size else 0.0
+        refined_arr = self._kernels.refine_embeddings(
+            emb.to_nested_list(), centroids.to_nested_list(), assignments.tolist(), float(learning_rate)
+        )
+        refined = HostTensorF32.from_array_like(refined_arr)
+        silhouettes_arr = self._kernels.compute_silhouette_scores(
+            refined.to_nested_list(), assignments.tolist(), cluster_target
+        )
+        silhouettes = Float32Vector(float(value) for value in silhouettes_arr)
+        _, counts_arr = self._kernels.accumulate_centroids(
+            refined.to_nested_list(), assignments.tolist(), cluster_target
+        )
+        counts = Int32Vector(int(value) for value in counts_arr)
+        mean_silhouette = silhouettes.mean() if silhouettes.size else 0.0
         return {
             "assignments": assignments,
             "centroids": centroids,
@@ -1516,19 +1872,19 @@ class SleepGlyphConsolidator:
         glyph_embeddings,
         similarity_threshold: float = 0.92,
     ) -> dict:
-        np_mod = _np()
-        emb = np_mod.asarray(glyph_embeddings, dtype=np_mod.float32)
+        emb = _f32_matrix(glyph_embeddings)
         if emb.ndim != 2:
             raise ValueError(f"sleep_glyph_consolidator expects rank-2 embeddings, got {emb.shape}")
         rows, dims = emb.shape
         if rows == 0:
             return {
-                "assignments": np_mod.empty((0,), dtype=np_mod.int32),
+                "assignments": Int32Vector.zeros(0),
                 "group_count": 0,
                 "group_sizes": [],
                 "embeddings_shape": [0, dims],
             }
-        assignments = self._kernels.cluster_by_similarity(emb, float(similarity_threshold))
+        assignments_arr = self._kernels.cluster_by_similarity(emb.to_nested_list(), float(similarity_threshold))
+        assignments = Int32Vector(int(value) for value in assignments_arr)
         if assignments.size == 0:
             return {
                 "assignments": assignments,
@@ -1536,11 +1892,13 @@ class SleepGlyphConsolidator:
                 "group_sizes": [],
                 "embeddings_shape": [rows, dims],
             }
-        unique_ids, counts = np_mod.unique(assignments, return_counts=True)
+        counts_map: dict[int, int] = {}
+        for value in assignments:
+            counts_map[int(value)] = counts_map.get(int(value), 0) + 1
         return {
             "assignments": assignments,
-            "group_count": int(unique_ids.size),
-            "group_sizes": [int(value) for value in counts.tolist()],
+            "group_count": len(counts_map),
+            "group_sizes": [int(value) for _, value in sorted(counts_map.items())],
             "embeddings_shape": [rows, dims],
         }
 
@@ -1563,16 +1921,14 @@ class MultimodalHaltingGate:
         Returns:
             Halt flags (uint32: 1=continue, 0=halt)
         """
-        np_mod = _np()
-        logits_arr = np_mod.asarray(logits, dtype=np_mod.float32).reshape(-1)
-        masks_arr = np_mod.asarray(masks, dtype=np_mod.uint32).reshape(-1)
+        logits_arr = _f32_vector(logits)
+        masks_arr = _u32_vector(masks)
         assert logits_arr.shape == masks_arr.shape
-        return np_mod.asarray(
+        return UInt32Vector(
             [
                 0 if mask == 0 else (1 if float(logit) >= float(threshold) else 0)
                 for logit, mask in zip(logits_arr.tolist(), masks_arr.tolist())
-            ],
-            dtype=np_mod.uint32,
+            ]
         )
 
     def analyze_scores(
@@ -1594,19 +1950,18 @@ class MultimodalHaltingGate:
             agreement_threshold: Agreement-count threshold. <= 0 disables.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: (flags[4], metrics[3]) where metrics are
+            tuple[array_like, array_like]: (flags[4], metrics[3]) where metrics are
             [top_score, score_gap, agreement_count].
         """
-        np_mod = _np()
-        score_arr = np_mod.asarray(scores, dtype=np_mod.float32).reshape(-1)
-        hash_arr = np_mod.asarray(candidate_hashes, dtype=np_mod.uint32).reshape(-1)
+        score_arr = _f32_vector(scores)
+        hash_arr = _u32_vector(candidate_hashes)
         if score_arr.shape != hash_arr.shape:
             raise ValueError(
                 f"score/hash shape mismatch: {score_arr.shape} != {hash_arr.shape}"
             )
 
-        flags = np_mod.zeros(4, dtype=np_mod.uint32)
-        metrics = np_mod.zeros(3, dtype=np_mod.float32)
+        flags = UInt32Vector.zeros(4)
+        metrics = Float32Vector.zeros(3)
         if score_arr.size == 0:
             return flags, metrics
 
@@ -1615,8 +1970,8 @@ class MultimodalHaltingGate:
         d_flags = gpu_malloc(flags.nbytes)
         d_metrics = gpu_malloc(metrics.nbytes)
         try:
-            memcpy_htod(d_scores, score_arr.ctypes.data_as(ctypes.c_void_p), score_arr.nbytes)
-            memcpy_htod(d_hashes, hash_arr.ctypes.data_as(ctypes.c_void_p), hash_arr.nbytes)
+            _copy_htod(d_scores, score_arr)
+            _copy_htod(d_hashes, hash_arr)
             launch(
                 self.kernel,
                 grid=(1, 1, 1),
@@ -1633,8 +1988,8 @@ class MultimodalHaltingGate:
                 ],
             )
             synchronize()
-            memcpy_dtoh(flags.ctypes.data_as(ctypes.c_void_p), d_flags, flags.nbytes)
-            memcpy_dtoh(metrics.ctypes.data_as(ctypes.c_void_p), d_metrics, metrics.nbytes)
+            _copy_dtoh(flags, d_flags)
+            _copy_dtoh(metrics, d_metrics)
             return flags, metrics
         finally:
             gpu_free(d_scores)
@@ -1660,12 +2015,7 @@ class ModularRPNEngine:
 
     Example:
         engine = ModularRPNEngine()
-        result = engine.execute_single(
-            instance_id=0,
-            op_codes=np.array([0, 0, 10], dtype=np.uint16),  # push 2.0, push 3.0, add
-            scalars=np.array([2.0, 3.0, 0.0], dtype=np.float32),
-            vectors=np.zeros((3, 3), dtype=np.float32)
-        )
+        result = engine.execute_single(instance_id=0, op_codes=[0, 0, 10], scalars=[2.0, 3.0, 0.0], vectors=[[0.0, 0.0, 0.0]] * 3)
         # result = 5.0
     """
 
@@ -2072,8 +2422,8 @@ class GalaxyMemoryUpdater:
 
     Example:
         updater = GalaxyMemoryUpdater()
-        old_emb = np.array([1.0, 2.0, 3.0], dtype=np.float32)
-        teacher_emb = np.array([4.0, 5.0, 6.0], dtype=np.float32)
+        old_emb = [1.0, 2.0, 3.0]
+        teacher_emb = [4.0, 5.0, 6.0]
         new_emb = updater.blend(old_emb, teacher_emb, blend_factor=0.3)
         # new_emb ≈ [1.9, 2.9, 3.9]
     """
@@ -2097,16 +2447,15 @@ class GalaxyMemoryUpdater:
             Blended embedding (float32 array, same shape as inputs)
         """
         # Prepare inputs
-        np_mod = _np()
-        old_arr = np_mod.ascontiguousarray(np_mod.asarray(old, dtype=np_mod.float32).flatten())
-        teacher_arr = np_mod.ascontiguousarray(np_mod.asarray(teacher, dtype=np_mod.float32).flatten())
+        old_arr = _f32_vector(old)
+        teacher_arr = _f32_vector(teacher)
 
         if old_arr.shape != teacher_arr.shape:
             raise ValueError(f"Shape mismatch: old {old_arr.shape} vs teacher {teacher_arr.shape}")
 
         dim = int(old_arr.size)
         if dim == 0:
-            return np_mod.array([], dtype=np_mod.float32)
+            return Float32Vector.zeros(0)
 
         # Allocate GPU memory
         d_old = gpu_malloc(old_arr.nbytes)
@@ -2115,8 +2464,8 @@ class GalaxyMemoryUpdater:
 
         try:
             # Copy inputs to GPU
-            memcpy_htod(d_old, old_arr.ctypes.data_as(ctypes.c_void_p), old_arr.nbytes)
-            memcpy_htod(d_teacher, teacher_arr.ctypes.data_as(ctypes.c_void_p), teacher_arr.nbytes)
+            _copy_htod(d_old, old_arr)
+            _copy_htod(d_teacher, teacher_arr)
 
             # Launch kernel
             threads = 256
@@ -2137,10 +2486,10 @@ class GalaxyMemoryUpdater:
             synchronize()
 
             # Copy result back
-            output = np_mod.zeros_like(old_arr)
-            memcpy_dtoh(output.ctypes.data_as(ctypes.c_void_p), d_out, output.nbytes)
+            output = Float32Vector.zeros(dim)
+            _copy_dtoh(output, d_out)
 
-            return output.reshape(old_arr.shape)
+            return output
 
         finally:
             gpu_free(d_old)
@@ -2163,13 +2512,12 @@ class GalaxyMemoryUpdater:
         Returns:
             Final blended embedding
         """
-        np_mod = _np()
-        out = np_mod.array(base, dtype=np_mod.float32)
+        out = _f32_vector(base)
         if not teachers:
             return out
 
         for teacher in teachers:
-            out = self.blend(out, np_mod.array(teacher, dtype=np_mod.float32), blend_factor)
+            out = self.blend(out, teacher, blend_factor)
 
         return out
 
@@ -2244,12 +2592,13 @@ class WorldModelBridge:
     ):
         """Compute temporal coherence scores across video frames."""
         # Allocate GPU memory
-        d_features = gpu_malloc(frame_features.nbytes)
+        features = _f32_vector(frame_features)
+        d_features = gpu_malloc(features.nbytes)
         d_coherence = gpu_malloc(feature_dim * 4)  # float32
         
         try:
             # Copy to GPU
-            memcpy_htod(d_features, frame_features.ctypes.data_as(ctypes.c_void_p), frame_features.nbytes)
+            _copy_htod(d_features, features)
             
             # Launch kernel
             threads = 256
@@ -2269,9 +2618,8 @@ class WorldModelBridge:
             synchronize()
             
             # Copy result back
-            np_mod = _np()
-            coherence = np_mod.zeros(feature_dim, dtype=np_mod.float32)
-            memcpy_dtoh(coherence.ctypes.data_as(ctypes.c_void_p), d_coherence, coherence.nbytes)
+            coherence = Float32Vector.zeros(feature_dim)
+            _copy_dtoh(coherence, d_coherence)
             
             return coherence
         
@@ -2286,23 +2634,23 @@ class WorldModelBridge:
         text_weight: float = 0.5
     ):
         """Fuse text and visual features with attention weighting."""
-        feature_dim = len(text_features)
+        text = _f32_vector(text_features)
+        visual = _f32_vector(visual_features)
+        feature_dim = len(text)
         visual_weight = 1.0 - text_weight
         
         # Allocate GPU memory
-        d_text = gpu_malloc(text_features.nbytes)
-        d_visual = gpu_malloc(visual_features.nbytes)
+        d_text = gpu_malloc(text.nbytes)
+        d_visual = gpu_malloc(visual.nbytes)
         d_weights = gpu_malloc(8)  # 2 floats
-        d_fused = gpu_malloc(text_features.nbytes)
+        d_fused = gpu_malloc(text.nbytes)
         
         try:
             # Copy to GPU
-            memcpy_htod(d_text, text_features.ctypes.data_as(ctypes.c_void_p), text_features.nbytes)
-            memcpy_htod(d_visual, visual_features.ctypes.data_as(ctypes.c_void_p), visual_features.nbytes)
-            
-            np_mod = _np()
-            weights = np_mod.array([text_weight, visual_weight], dtype=np_mod.float32)
-            memcpy_htod(d_weights, weights.ctypes.data_as(ctypes.c_void_p), weights.nbytes)
+            _copy_htod(d_text, text)
+            _copy_htod(d_visual, visual)
+            weights = Float32Vector([text_weight, visual_weight])
+            _copy_htod(d_weights, weights)
             
             # Launch kernel
             threads = 256
@@ -2323,8 +2671,8 @@ class WorldModelBridge:
             synchronize()
             
             # Copy result back
-            fused = np_mod.zeros_like(text_features)
-            memcpy_dtoh(fused.ctypes.data_as(ctypes.c_void_p), d_fused, fused.nbytes)
+            fused = Float32Vector.zeros(feature_dim)
+            _copy_dtoh(fused, d_fused)
             
             return fused
         
@@ -2340,18 +2688,20 @@ class WorldModelBridge:
         action_vector
     ):
         """Predict next world state given current state and action."""
-        state_dim = len(current_state)
-        action_dim = len(action_vector)
+        current = _f32_vector(current_state)
+        action = _f32_vector(action_vector)
+        state_dim = len(current)
+        action_dim = len(action)
         
         # Allocate GPU memory
-        d_current = gpu_malloc(current_state.nbytes)
-        d_action = gpu_malloc(action_vector.nbytes)
-        d_predicted = gpu_malloc(current_state.nbytes)
+        d_current = gpu_malloc(current.nbytes)
+        d_action = gpu_malloc(action.nbytes)
+        d_predicted = gpu_malloc(current.nbytes)
         
         try:
             # Copy to GPU
-            memcpy_htod(d_current, current_state.ctypes.data_as(ctypes.c_void_p), current_state.nbytes)
-            memcpy_htod(d_action, action_vector.ctypes.data_as(ctypes.c_void_p), action_vector.nbytes)
+            _copy_htod(d_current, current)
+            _copy_htod(d_action, action)
             
             # Launch kernel
             threads = 256
@@ -2372,9 +2722,8 @@ class WorldModelBridge:
             synchronize()
             
             # Copy result back
-            np_mod = _np()
-            predicted = np_mod.zeros_like(current_state)
-            memcpy_dtoh(predicted.ctypes.data_as(ctypes.c_void_p), d_predicted, predicted.nbytes)
+            predicted = Float32Vector.zeros(state_dim)
+            _copy_dtoh(predicted, d_predicted)
             
             return predicted
         
@@ -2389,22 +2738,21 @@ class WorldModelBridge:
         base_vertices  # (N, 3)
     ):
         """Generate dynamic mesh based on world state."""
-        vertex_count = len(base_vertices)
-        state_dim = len(world_state)
-        
-        # Flatten vertices
-        np_mod = _np()
-        vertices_flat = base_vertices.flatten().astype(np_mod.float32)
+        base_shape = _shape_of(base_vertices)
+        state = _f32_vector(world_state)
+        vertex_count = int(base_shape[0])
+        state_dim = len(state)
+        vertices_flat = _f32_vector(base_vertices)
         
         # Allocate GPU memory
-        d_state = gpu_malloc(world_state.nbytes)
+        d_state = gpu_malloc(state.nbytes)
         d_base = gpu_malloc(vertices_flat.nbytes)
         d_dynamic = gpu_malloc(vertices_flat.nbytes)
         
         try:
             # Copy to GPU
-            memcpy_htod(d_state, world_state.ctypes.data_as(ctypes.c_void_p), world_state.nbytes)
-            memcpy_htod(d_base, vertices_flat.ctypes.data_as(ctypes.c_void_p), vertices_flat.nbytes)
+            _copy_htod(d_state, state)
+            _copy_htod(d_base, vertices_flat)
             
             # Launch kernel
             threads = 256
@@ -2425,10 +2773,10 @@ class WorldModelBridge:
             synchronize()
             
             # Copy result back
-            dynamic_flat = np_mod.zeros_like(vertices_flat)
-            memcpy_dtoh(dynamic_flat.ctypes.data_as(ctypes.c_void_p), d_dynamic, dynamic_flat.nbytes)
-            
-            return dynamic_flat.reshape(base_vertices.shape)
+            dynamic_flat = Float32Vector.zeros(vertices_flat.size)
+            _copy_dtoh(dynamic_flat, d_dynamic)
+
+            return HostTensorF32.from_array_like(dynamic_flat.tolist(), rows=base_shape[0], cols=base_shape[1])
         
         finally:
             gpu_free(d_state)
@@ -2441,21 +2789,21 @@ class WorldModelBridge:
         galaxy_embeddings  # (N, embedding_dim)
     ):
         """Enhance galaxy query with temperature-scaled similarity."""
-        n_embeddings = galaxy_embeddings.shape[0]
-        embedding_dim = galaxy_embeddings.shape[1]
-        
-        # Flatten galaxy embeddings
-        galaxy_flat = galaxy_embeddings.flatten().astype(np.float32)
+        query_vec = _f32_vector(query_embedding)
+        galaxy_shape = _shape_of(galaxy_embeddings)
+        n_embeddings = galaxy_shape[0]
+        embedding_dim = galaxy_shape[1]
+        galaxy_flat = _f32_vector(galaxy_embeddings)
         
         # Allocate GPU memory
-        d_query = gpu_malloc(query_embedding.nbytes)
+        d_query = gpu_malloc(query_vec.nbytes)
         d_galaxy = gpu_malloc(galaxy_flat.nbytes)
         d_resonance = gpu_malloc(n_embeddings * 4)  # float32
         
         try:
             # Copy to GPU
-            memcpy_htod(d_query, query_embedding.ctypes.data_as(ctypes.c_void_p), query_embedding.nbytes)
-            memcpy_htod(d_galaxy, galaxy_flat.ctypes.data_as(ctypes.c_void_p), galaxy_flat.nbytes)
+            _copy_htod(d_query, query_vec)
+            _copy_htod(d_galaxy, galaxy_flat)
             
             # Launch kernel
             threads = 256
@@ -2476,8 +2824,8 @@ class WorldModelBridge:
             synchronize()
             
             # Copy result back
-            resonance = np.zeros(n_embeddings, dtype=np.float32)
-            memcpy_dtoh(resonance.ctypes.data_as(ctypes.c_void_p), d_resonance, resonance.nbytes)
+            resonance = Float32Vector.zeros(n_embeddings)
+            _copy_dtoh(resonance, d_resonance)
             
             return resonance
         
@@ -2510,14 +2858,13 @@ class TritOverlayGenerator:
     ):
         """Render ternary field overlay to RGBA8."""
         gx, gy, gz = (int(grid_shape[0]), int(grid_shape[1]), int(grid_shape[2]))
-        np_mod = _np()
-        trits = np_mod.ascontiguousarray(trits_packed, dtype=np_mod.uint32)
-        rgba = np_mod.zeros((gx * gy * gz * 4,), dtype=np_mod.uint8)
+        trits = _u32_vector(trits_packed)
+        rgba = UInt8Vector.zeros(gx * gy * gz * 4)
 
         d_trits = gpu_malloc(trits.nbytes)
         d_rgba = gpu_malloc(rgba.nbytes)
         try:
-            memcpy_htod(d_trits, trits.ctypes.data_as(ctypes.c_void_p), trits.nbytes)
+            _copy_htod(d_trits, trits)
             self.guard.start()
             launch(
                 self.kernel,
@@ -2540,7 +2887,7 @@ class TritOverlayGenerator:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(rgba.ctypes.data_as(ctypes.c_void_p), d_rgba, rgba.nbytes)
+            _copy_dtoh(rgba, d_rgba)
             return rgba
         finally:
             gpu_free(d_trits)
@@ -2549,23 +2896,6 @@ class TritOverlayGenerator:
 
 class TritInspectorBridge:
     """Inspect packed ternary fields for specific nodes."""
-
-    _dtype = None
-
-    @classmethod
-    def _ensure_dtype(cls):
-        if cls._dtype is None:
-            np_mod = _np()
-            cls._dtype = np_mod.dtype(
-                [
-                    ("count", np_mod.int32),
-                    ("sum", np_mod.int32),
-                    ("mean", np_mod.float32),
-                    ("var", np_mod.float32),
-                    ("bottlenecks", np_mod.int32),
-                ]
-            )
-        return cls._dtype
 
     def __init__(self):
         ptx_path = KERNELS_DIR / "trit_inspector.ptx"
@@ -2579,18 +2909,18 @@ class TritInspectorBridge:
         field_stride: int,
     ):
         """Inspect ternary fields at node_indices."""
-        trits = np.ascontiguousarray(trits_packed, dtype=np.uint32)
-        nodes = np.ascontiguousarray(node_indices, dtype=np.int32)
+        trits = _u32_vector(trits_packed)
+        nodes = _i32_vector(node_indices)
         n = int(nodes.shape[0])
-        np_mod = _np()
-        out = np_mod.zeros(n, dtype=self._ensure_dtype())
+        RecordArray = _TritInspectorRecord * max(n, 1)
+        out = RecordArray()
 
         d_trits = gpu_malloc(trits.nbytes)
         d_nodes = gpu_malloc(nodes.nbytes)
-        d_out = gpu_malloc(out.nbytes)
+        d_out = gpu_malloc(ctypes.sizeof(out))
         try:
-            memcpy_htod(d_trits, trits.ctypes.data_as(ctypes.c_void_p), trits.nbytes)
-            memcpy_htod(d_nodes, nodes.ctypes.data_as(ctypes.c_void_p), nodes.nbytes)
+            _copy_htod(d_trits, trits)
+            _copy_htod(d_nodes, nodes)
             self.guard.start()
             threads = 128
             blocks = (n + threads - 1) // threads
@@ -2608,8 +2938,19 @@ class TritInspectorBridge:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
-            return out
+            _copy_dtoh(out, d_out)
+            counts: list[int] = []
+            sums: list[int] = []
+            means: list[float] = []
+            variances: list[float] = []
+            bottlenecks: list[int] = []
+            for idx in range(n):
+                counts.append(int(out[idx].count))
+                sums.append(int(out[idx].sum))
+                means.append(float(out[idx].mean))
+                variances.append(float(out[idx].var))
+                bottlenecks.append(int(out[idx].bottlenecks))
+            return TritInspectionBatch(counts, sums, means, variances, bottlenecks)
         finally:
             gpu_free(d_trits)
             gpu_free(d_nodes)
@@ -2632,21 +2973,21 @@ class TernaryDepthField:
         repel_thresh: float = -0.05,
     ):
         """Return packed 2-bit trits indicating near/neutral/far (per node)."""
-        emb = np.ascontiguousarray(embeddings, dtype=np.float32)
-        q = np.ascontiguousarray(query, dtype=np.float32)
+        emb = _f32_matrix(embeddings)
+        q = _f32_vector(query)
         n_nodes, dim = emb.shape
         assert q.shape[0] == dim, "query dim mismatch"
         n_words = (n_nodes + 15) // 16
-        out_host = np.zeros(n_words, dtype=np.uint32)
+        out_host = UInt32Vector.zeros(n_words)
 
         d_emb = gpu_malloc(emb.nbytes)
         d_query = gpu_malloc(q.nbytes)
         d_out = gpu_malloc(out_host.nbytes)
         try:
-            memcpy_htod(d_emb, emb.ctypes.data_as(ctypes.c_void_p), emb.nbytes)
-            memcpy_htod(d_query, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
+            _copy_htod(d_emb, emb)
+            _copy_htod(d_query, q)
             # zero output buffer (host prepared zeros)
-            memcpy_htod(d_out, out_host.ctypes.data_as(ctypes.c_void_p), out_host.nbytes)
+            _copy_htod(d_out, out_host)
             self.guard.start()
             threads = 128
             blocks = (n_nodes + threads - 1) // threads
@@ -2666,7 +3007,7 @@ class TernaryDepthField:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(out_host.ctypes.data_as(ctypes.c_void_p), d_out, out_host.nbytes)
+            _copy_dtoh(out_host, d_out)
             return out_host
         finally:
             gpu_free(d_emb)
@@ -2688,14 +3029,13 @@ class TernaryPruneDecision:
         keep_thresh: float = 0.5,
         drop_thresh: float = 0.05,
     ):
-        np_mod = _np()
-        scores_np = np_mod.ascontiguousarray(scores, dtype=np_mod.float32)
-        n = int(scores_np.shape[0])
-        out = np.zeros(n, dtype=np.int8)
-        d_scores = gpu_malloc(scores_np.nbytes)
+        scores_host = _f32_vector(scores)
+        n = int(scores_host.shape[0])
+        out = Int8Vector.zeros(n)
+        d_scores = gpu_malloc(scores_host.nbytes)
         d_out = gpu_malloc(out.nbytes)
         try:
-            memcpy_htod(d_scores, scores_np.ctypes.data_as(ctypes.c_void_p), scores_np.nbytes)
+            _copy_htod(d_scores, scores_host)
             self.guard.start()
             threads = 256
             blocks = (n + threads - 1) // threads
@@ -2713,7 +3053,7 @@ class TernaryPruneDecision:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(out.ctypes.data_as(ctypes.c_void_p), d_out, out.nbytes)
+            _copy_dtoh(out, d_out)
             return out
         finally:
             gpu_free(d_scores)
@@ -2737,23 +3077,24 @@ class TernaryAttentionMask:
         repel_thresh: float,
     ):
         """Return packed ternary masks for Q·K."""
-        if Q.shape != K.shape:
-            raise ValueError(f"Q and K must match; got {Q.shape} vs {K.shape}")
-        np_mod = _np()
-        batch_size, seq_len, embed_dim = Q.shape
+        q_shape = _shape_of(Q)
+        k_shape = _shape_of(K)
+        if q_shape != k_shape:
+            raise ValueError(f"Q and K must match; got {q_shape} vs {k_shape}")
+        batch_size, seq_len, embed_dim = q_shape
         n_words = (seq_len * seq_len + 15) // 16
 
-        q = np_mod.ascontiguousarray(Q, dtype=np_mod.float32)
-        k = np_mod.ascontiguousarray(K, dtype=np_mod.float32)
-        masks = np_mod.zeros((batch_size, n_words), dtype=np_mod.uint32)
+        q = _f32_matrix(Q, rows=batch_size * seq_len, cols=embed_dim)
+        k = _f32_matrix(K, rows=batch_size * seq_len, cols=embed_dim)
+        masks = UInt32Vector.zeros(batch_size * n_words)
 
         d_q = gpu_malloc(q.nbytes)
         d_k = gpu_malloc(k.nbytes)
         d_masks = gpu_malloc(masks.nbytes)
         try:
-            memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
-            memcpy_htod(d_k, k.ctypes.data_as(ctypes.c_void_p), k.nbytes)
-            memcpy_htod(d_masks, masks.ctypes.data_as(ctypes.c_void_p), masks.nbytes)  # zero out
+            _copy_htod(d_q, q)
+            _copy_htod(d_k, k)
+            _copy_htod(d_masks, masks)  # zero out
 
             block = (1, 1, 1)
             grid = (seq_len, seq_len, batch_size)
@@ -2775,8 +3116,8 @@ class TernaryAttentionMask:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(masks.ctypes.data_as(ctypes.c_void_p), d_masks, masks.nbytes)
-            return masks
+            _copy_dtoh(masks, d_masks)
+            return masks.reshape(batch_size, n_words)
         finally:
             gpu_free(d_q)
             gpu_free(d_k)
@@ -2790,21 +3131,22 @@ class TernaryAttentionMask:
         percentile_repel: float = 25.0,
     ) -> tuple[float, float]:
         """Compute approximate thresholds per batch, return averaged attract/repel."""
-        if Q.shape != K.shape:
-            raise ValueError(f"Q and K must match; got {Q.shape} vs {K.shape}")
-        np_mod = _np()
-        batch_size, seq_len, embed_dim = Q.shape
-        q = np_mod.ascontiguousarray(Q, dtype=np_mod.float32)
-        k = np_mod.ascontiguousarray(K, dtype=np_mod.float32)
-        thresholds = np_mod.zeros((batch_size, 2), dtype=np_mod.float32)
+        q_shape = _shape_of(Q)
+        k_shape = _shape_of(K)
+        if q_shape != k_shape:
+            raise ValueError(f"Q and K must match; got {q_shape} vs {k_shape}")
+        batch_size, seq_len, embed_dim = q_shape
+        q = _f32_matrix(Q, rows=batch_size * seq_len, cols=embed_dim)
+        k = _f32_matrix(K, rows=batch_size * seq_len, cols=embed_dim)
+        thresholds = HostTensorF32.zeros(batch_size, 2)
 
         d_q = gpu_malloc(q.nbytes)
         d_k = gpu_malloc(k.nbytes)
         d_thr = gpu_malloc(thresholds.nbytes)
         try:
-            memcpy_htod(d_q, q.ctypes.data_as(ctypes.c_void_p), q.nbytes)
-            memcpy_htod(d_k, k.ctypes.data_as(ctypes.c_void_p), k.nbytes)
-            memcpy_htod(d_thr, thresholds.ctypes.data_as(ctypes.c_void_p), thresholds.nbytes)
+            _copy_htod(d_q, q)
+            _copy_htod(d_k, k)
+            _copy_htod(d_thr, thresholds)
 
             block = (256, 1, 1)
             grid = (batch_size, 1, 1)
@@ -2826,9 +3168,9 @@ class TernaryAttentionMask:
             )
             synchronize()
             self.guard.stop()
-            memcpy_dtoh(thresholds.ctypes.data_as(ctypes.c_void_p), d_thr, thresholds.nbytes)
-            attract = float(thresholds[:, 0].mean())
-            repel = float(thresholds[:, 1].mean())
+            _copy_dtoh(thresholds, d_thr)
+            attract = _mean([float(thresholds[row, 0]) for row in range(batch_size)])
+            repel = _mean([float(thresholds[row, 1]) for row in range(batch_size)])
             return attract, repel
         finally:
             gpu_free(d_q)

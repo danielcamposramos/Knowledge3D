@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+from pathlib import Path
 import random
 import struct
 from typing import Iterable, List, Sequence
@@ -231,7 +232,10 @@ def _shape_and_values(array: object) -> tuple[int, int, List[float]]:
         elif len(shape) == 2:
             rows, cols = int(shape[0]), int(shape[1])
         else:
-            raise ValueError(f"Unsupported tensor rank: {shape}")
+            total = 1
+            for dim in shape:
+                total *= int(dim)
+            rows, cols = int(total), 1
         return rows, cols, [float(value) for value in flat]
 
     tolist = getattr(array, "tolist", None)
@@ -286,8 +290,23 @@ def _assign_values(array: object, rows: int, cols: int, values: Sequence[float])
 class RPNMathCore:
     """Utility wrapper that drives Tier-3 RPN kernels for math ops."""
 
+    _TRANSPOSE_MODULE = None
+    _TRANSPOSE_KERNEL = None
+
     def __init__(self) -> None:
         self.engine = AdvancedRPNEngine()
+
+    @classmethod
+    def _get_transpose_kernel(cls):
+        if cls._TRANSPOSE_KERNEL is not None:
+            return cls._TRANSPOSE_KERNEL
+        ptx_path = Path(__file__).resolve().parent.parent / "ptx" / "drawing_transform_ops.ptx"
+        if not ptx_path.exists():
+            raise FileNotFoundError(f"Transpose PTX not found: {ptx_path}")
+        if cls._TRANSPOSE_MODULE is None:
+            cls._TRANSPOSE_MODULE = loader.load_module_from_file(str(ptx_path))
+        cls._TRANSPOSE_KERNEL = loader.get_function(cls._TRANSPOSE_MODULE, "transpose_kernel")
+        return cls._TRANSPOSE_KERNEL
 
     # ------------------------------------------------------------------ #
     # Generic helpers
@@ -352,6 +371,20 @@ class RPNMathCore:
             + _encode_pointer(int(b.ptr.value), b.rows, b.cols)
         )
         self._exec(op_codes, scalars)
+
+    def transpose_2d(self, dest: DeviceTensor, src: DeviceTensor) -> None:
+        if (dest.rows, dest.cols) != (src.cols, src.rows):
+            raise ValueError(
+                f"Transpose destination shape {(dest.rows, dest.cols)} incompatible with source {(src.rows, src.cols)}"
+            )
+        kernel = self._get_transpose_kernel()
+        loader.launch(
+            kernel,
+            grid=((src.rows + 15) // 16, (src.cols + 15) // 16, 1),
+            block=(16, 16, 1),
+            params=[src.ptr, dest.ptr, ctypes.c_int(src.rows), ctypes.c_int(src.cols)],
+        )
+        loader.synchronize()
 
     def vector_norm_host(self, vector: object) -> float:
         rows, cols, _ = _shape_and_values(vector)

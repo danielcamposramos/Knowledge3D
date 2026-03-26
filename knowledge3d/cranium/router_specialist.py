@@ -47,24 +47,85 @@ Usage:
 
 from __future__ import annotations
 
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Any, Callable
 import json
+import math
+import random
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.sovereign.lora_gpu_trainer import LoRAGPUEngine
 
 
 @dataclass
 class RoutingDecision:
     """A single routing decision record."""
-    input_data: np.ndarray          # Task input
+    input_data: Any                 # Task input
     task_description: Optional[str] # Text description (if available)
     specialist_weights: Dict[str, float]  # Predicted weights
     outcome_performance: float      # How well did it work? [0-1]
     timestamp: str
+
+
+class _CtypesProxy:
+    def __init__(self, data_ptr: int) -> None:
+        self.data = int(data_ptr)
+
+
+class _IndexBatch(list):
+    @property
+    def size(self) -> int:
+        return len(self)
+
+
+def _attach_ctypes_proxy(tensor: HostTensorF32) -> HostTensorF32:
+    tensor.ctypes = _CtypesProxy(tensor.data_ptr)  # type: ignore[attr-defined]
+    return tensor
+
+
+def _host_tensor(values: Any, *, rows: Optional[int] = None, cols: Optional[int] = None) -> HostTensorF32:
+    return _attach_ctypes_proxy(HostTensorF32.from_array_like(values, rows=rows, cols=cols))
+
+
+def _serializable_input(value: Any) -> Any:
+    tolist = getattr(value, "tolist", None)
+    if callable(tolist):
+        return tolist()
+    if hasattr(value, "__iter__") and not isinstance(value, (str, bytes, dict)):
+        return [_serializable_input(item) for item in value]
+    return value
+
+
+def _mean(values: Sequence[float]) -> float:
+    if not values:
+        return 0.0
+    return sum(float(value) for value in values) / float(len(values))
+
+
+def _softmax(values: Sequence[float]) -> List[float]:
+    if not values:
+        return []
+    max_v = max(float(value) for value in values)
+    exps = [math.exp(float(value) - max_v) for value in values]
+    total = sum(exps)
+    if total <= 0.0:
+        return [1.0 / float(len(values)) for _ in values]
+    return [value / total for value in exps]
+
+
+def _argmax(values: Sequence[float]) -> int:
+    if not values:
+        raise ValueError("argmax requires at least one value")
+    best_idx = 0
+    best_value = float(values[0])
+    for idx in range(1, len(values)):
+        candidate = float(values[idx])
+        if candidate > best_value:
+            best_idx = idx
+            best_value = candidate
+    return best_idx
 
 
 class RouterBootstrap:
@@ -138,10 +199,10 @@ class RouterBootstrap:
             self.routing_history.append(decision)
 
             if (i + 1) % 100 == 0:
-                avg_performance = np.mean([d.outcome_performance for d in self.routing_history[-100:]])
+                avg_performance = _mean([d.outcome_performance for d in self.routing_history[-100:]])
                 print(f"  Collected {i+1}/{len(tasks)}: Avg performance {avg_performance:.3f}")
 
-        avg_performance = np.mean([d.outcome_performance for d in self.routing_history])
+        avg_performance = _mean([d.outcome_performance for d in self.routing_history])
         print(f"[RouterBootstrap] ✓ Collected {len(self.routing_history)} decisions")
         print(f"  Average performance: {avg_performance:.3f}")
 
@@ -162,7 +223,7 @@ class RouterBootstrap:
         history_dict = []
         for decision in self.routing_history:
             history_dict.append({
-                'input_data': decision.input_data.tolist() if decision.input_data is not None else None,
+                'input_data': _serializable_input(decision.input_data) if decision.input_data is not None else None,
                 'task_description': decision.task_description,
                 'specialist_weights': decision.specialist_weights,
                 'outcome_performance': decision.outcome_performance,
@@ -223,27 +284,33 @@ class RouterSpecialistTrainer:
     # GPU-backed training helpers
     # ------------------------------------------------------------------
     @staticmethod
-    def _tile_to_dim(vector: np.ndarray, dim: int) -> np.ndarray:
+    def _tile_to_dim(vector: Any, dim: int) -> List[float]:
         """Tile or truncate vector to match router dimension."""
-        vec = np.asarray(vector, dtype=np.float32)
-        if vec.size == dim:
-            return vec.astype(np.float32, copy=False)
-        repeats = dim // vec.size
-        remainder = dim % vec.size
-        tiled = np.tile(vec, repeats) if repeats > 0 else np.empty(0, dtype=np.float32)
+        vec = _serializable_input(vector)
+        if isinstance(vec, list) and vec and isinstance(vec[0], list):
+            flat = [float(value) for row in vec for value in row]
+        elif isinstance(vec, list):
+            flat = [float(value) for value in vec]
+        else:
+            flat = [float(vec)]
+        if len(flat) == dim:
+            return flat
+        repeats = dim // len(flat)
+        remainder = dim % len(flat)
+        tiled = flat * repeats if repeats > 0 else []
         if remainder:
-            tiled = np.concatenate([tiled, vec[:remainder]])
-        if tiled.size > dim:
+            tiled = tiled + flat[:remainder]
+        if len(tiled) > dim:
             tiled = tiled[:dim]
-        return tiled.astype(np.float32, copy=False)
+        return [float(value) for value in tiled]
 
     @staticmethod
-    def _set_adapter_weights(adapter, A_new: np.ndarray, B_new: np.ndarray) -> None:
+    def _set_adapter_weights(adapter, A_new: Any, B_new: Any) -> None:
         """Copy trained weights into adapter (primary + shadow)."""
-        np.copyto(adapter.A, A_new)
-        np.copyto(adapter.B, B_new)
-        np.copyto(adapter.A_shadow, A_new)
-        np.copyto(adapter.B_shadow, B_new)
+        adapter.A.copy_from(A_new)
+        adapter.B.copy_from(B_new)
+        adapter.A_shadow.copy_from(A_new)
+        adapter.B_shadow.copy_from(B_new)
 
     def _specialist_names(self) -> List[str]:
         """Deterministic ordering of non-router specialists."""
@@ -254,10 +321,10 @@ class RouterSpecialistTrainer:
         decisions: List[RoutingDecision],
         dims: int,
         specialist_names: List[str],
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> Tuple[HostTensorF32, HostTensorF32]:
         """Convert routing decisions into GPU-friendly arrays."""
-        inputs: List[np.ndarray] = []
-        targets: List[np.ndarray] = []
+        inputs: List[List[float]] = []
+        targets: List[List[float]] = []
 
         for decision in decisions:
             if decision.input_data is None:
@@ -265,7 +332,7 @@ class RouterSpecialistTrainer:
 
             inp = self._tile_to_dim(decision.input_data, dims)
 
-            target = np.zeros(dims, dtype=np.float32)
+            target = [0.0] * dims
             if decision.specialist_weights:
                 best_name = max(decision.specialist_weights.items(), key=lambda kv: kv[1])[0]
             else:
@@ -280,15 +347,13 @@ class RouterSpecialistTrainer:
         if not inputs:
             raise RuntimeError("No valid routing decisions with input data")
 
-        inputs_np = np.stack(inputs).astype(np.float32)
-        targets_np = np.stack(targets).astype(np.float32)
-        return inputs_np, targets_np
+        return _host_tensor(inputs, rows=len(inputs), cols=dims), _host_tensor(targets, rows=len(targets), cols=dims)
 
     def _evaluate_router(
         self,
         adapter,
-        A_weights: np.ndarray,
-        B_weights: np.ndarray,
+        A_weights: Any,
+        B_weights: Any,
         decisions: List[RoutingDecision],
         specialist_names: List[str],
     ) -> Dict[str, float]:
@@ -312,11 +377,13 @@ class RouterSpecialistTrainer:
 
                 input_vec = self._tile_to_dim(decision.input_data, dims)
                 output = self.swarm.compute_with_specialist(input_vec, 'router')
-
-                logits = output[:len(specialist_names)]
-                logits = logits - np.max(logits)
-                weights = np.exp(logits)
-                weights /= np.sum(weights)
+                output_list = _serializable_input(output)
+                if isinstance(output_list, list) and output_list and isinstance(output_list[0], list):
+                    logits_source = [float(value) for value in output_list[0]]
+                else:
+                    logits_source = [float(value) for value in output_list[:len(specialist_names)]]
+                logits = logits_source[:len(specialist_names)]
+                weights = _softmax(logits)
 
                 target_name = max(decision.specialist_weights.items(), key=lambda kv: kv[1])[0]
                 try:
@@ -324,7 +391,7 @@ class RouterSpecialistTrainer:
                 except ValueError:
                     continue
 
-                predicted_idx = int(np.argmax(weights))
+                predicted_idx = _argmax(weights)
                 if predicted_idx == target_idx:
                     correct += 1
                 weight_sum += float(weights[target_idx])
@@ -362,28 +429,32 @@ class RouterSpecialistTrainer:
             raise RuntimeError("No training samples for router specialist")
 
         inputs_np, targets_np = self._prepare_router_arrays(train_decisions, dims, specialist_names)
-        base_matrix = self.swarm.base.get_base_at_dim(dims).astype(np.float32, copy=True)
+        base_matrix = _host_tensor(self.swarm.base.get_base_at_dim(dims), rows=dims, cols=dims)
+        _attach_ctypes_proxy(adapter.A)
+        _attach_ctypes_proxy(adapter.B)
+        _attach_ctypes_proxy(base_matrix)
 
         engine = LoRAGPUEngine()
         batch_cap = max(1, min(15, len(train_decisions)))
         buffers = engine.allocate_buffers(base_matrix, adapter.A, adapter.B, inputs_np, targets_np, max_batch=batch_cap)
 
-        rng = np.random.default_rng(42)
-        dataset_size = inputs_np.shape[0]
+        rng = random.Random(42)
+        dataset_size = len(inputs_np)
 
         try:
             for epoch in range(1, epochs + 1):
-                perm = rng.permutation(dataset_size)
-                epoch_inputs = inputs_np[perm]
-                epoch_targets = targets_np[perm]
+                perm = list(range(dataset_size))
+                rng.shuffle(perm)
+                epoch_inputs = [inputs_np[idx] for idx in perm]
+                epoch_targets = [targets_np[idx] for idx in perm]
                 engine.update_dataset(buffers, epoch_inputs, epoch_targets)
 
-                order = np.arange(dataset_size, dtype=np.int32)
+                order = list(range(dataset_size))
                 epoch_loss = 0.0
                 batches = 0
                 for batch_start in range(0, dataset_size, batch_cap):
                     batch_end = min(batch_start + batch_cap, dataset_size)
-                    batch_indices = order[batch_start:batch_end]
+                    batch_indices = _IndexBatch(order[batch_start:batch_end])
                     loss = engine.train_batch(
                         buffers=buffers,
                         batch_indices=batch_indices,
@@ -605,7 +676,7 @@ class RouterTransition:
             performance = outcome_fn(task, weights)
             performances.append(performance)
 
-        return np.mean(performances) if performances else 0.0
+        return _mean(performances)
 
     def should_transition(self, test_tasks: List[Dict],
                          outcome_fn: Callable,

@@ -12,8 +12,7 @@ import ctypes
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
-import numpy as np
-
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.sovereign import loader
 
 
@@ -51,13 +50,12 @@ class TrigramEmbedBridge:
                 "The live path is PTX-only; rebuild the checked-in PTX if needed."
             ) from exc
 
-    def upload_embedding_table(self, embeddings: np.ndarray) -> None:
+    def upload_embedding_table(self, embeddings) -> None:
         """Upload (or refresh) the embedding table on GPU."""
-        if embeddings.ndim != 2:
-            raise ValueError(f"Embedding table must be 2D, got shape {embeddings.shape}")
-
-        embeddings = np.ascontiguousarray(embeddings, dtype=np.float32)
-        vocab_size, embed_dim = embeddings.shape
+        tensor = HostTensorF32.from_array_like(embeddings)
+        if tensor.ndim != 2:
+            raise ValueError(f"Embedding table must be 2D, got shape {tensor.shape}")
+        vocab_size, embed_dim = tensor.shape
 
         if self.embed_table_gpu is not None:
             loader.gpu_free(self.embed_table_gpu)
@@ -69,34 +67,30 @@ class TrigramEmbedBridge:
         if vocab_size == 0:
             return
 
-        self.embed_table_gpu = loader.gpu_malloc(embeddings.nbytes)
-        loader.memcpy_htod(
-            self.embed_table_gpu,
-            embeddings.ctypes.data_as(ctypes.c_void_p),
-            embeddings.nbytes,
-        )
+        self.embed_table_gpu = loader.gpu_malloc(tensor.nbytes)
+        loader.memcpy_htod(self.embed_table_gpu, ctypes.c_void_p(tensor.data_ptr), tensor.nbytes)
 
     def embed_indices(
         self,
         indices: Sequence[int],
         normalize: bool = True,
         return_cpu: bool = True,
-    ) -> np.ndarray | loader.CUdeviceptr:
+    ):
         """Embed a sequence of trigram table indices on the GPU."""
         if not indices:
             if return_cpu:
-                return np.zeros(self.embed_dim, dtype=np.float32)
+                return [0.0] * int(self.embed_dim)
             zero_gpu = loader.gpu_malloc(self.embed_dim * 4)
-            zeros = np.zeros(self.embed_dim, dtype=np.float32)
-            loader.memcpy_htod(zero_gpu, zeros.ctypes.data_as(ctypes.c_void_p), zeros.nbytes)
+            zeros = HostTensorF32.zeros(self.embed_dim, 1)
+            loader.memcpy_htod(zero_gpu, ctypes.c_void_p(zeros.data_ptr), zeros.nbytes)
             return zero_gpu
 
         if self.embed_table_gpu is None:
             raise RuntimeError("Embedding table not uploaded to GPU bridge.")
 
-        ids_np = np.asarray(indices, dtype=np.int32)
-        ids_gpu = loader.gpu_malloc(ids_np.nbytes)
-        loader.memcpy_htod(ids_gpu, ids_np.ctypes.data_as(ctypes.c_void_p), ids_np.nbytes)
+        ids_host = (ctypes.c_int * len(indices))(*[int(index) for index in indices])
+        ids_gpu = loader.gpu_malloc(ctypes.sizeof(ids_host))
+        loader.memcpy_htod(ids_gpu, ctypes.c_void_p(ctypes.addressof(ids_host)), ctypes.sizeof(ids_host))
 
         output_gpu = loader.gpu_malloc(self.embed_dim * 4)
 
@@ -136,14 +130,10 @@ class TrigramEmbedBridge:
             loader.synchronize()
 
         if return_cpu:
-            output = np.zeros(self.embed_dim, dtype=np.float32)
-            loader.memcpy_dtoh(
-                output.ctypes.data_as(ctypes.c_void_p),
-                output_gpu,
-                output.nbytes,
-            )
+            output = (ctypes.c_float * self.embed_dim)()
+            loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(output)), output_gpu, ctypes.sizeof(output))
             loader.gpu_free(output_gpu)
-            return output
+            return [float(output[idx]) for idx in range(self.embed_dim)]
 
         return output_gpu
 

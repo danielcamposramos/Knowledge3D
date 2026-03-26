@@ -100,7 +100,6 @@ __device__ void warp_astar_step(
     uint32_t currentVertex
 ) {
     // Warp ID and lane ID
-    uint32_t warpId = threadIdx.x / WARP_SIZE;
     uint32_t laneId = threadIdx.x % WARP_SIZE;
 
     // Load kernel row bounds
@@ -172,18 +171,21 @@ extern "C" __global__ void led_astar_navigate(
     uint32_t* pathLength,
     uint32_t maxPathLength
 ) {
-    // Shared memory for priority queue (simplified: use shared for MVP)
-    __shared__ float sharedGScore[KERNEL_MAX_SIZE];
-    __shared__ float sharedFScore[KERNEL_MAX_SIZE];
-    __shared__ uint32_t sharedParent[KERNEL_MAX_SIZE];
-    __shared__ uint32_t frontier[KERNEL_MAX_SIZE];
-    __shared__ uint32_t frontierSize;
+    // Dynamic shared memory lets Ampere opt into >48KB per block explicitly.
+    extern __shared__ unsigned char sharedBytes[];
+    float* sharedGScore = reinterpret_cast<float*>(sharedBytes);
+    float* sharedFScore = reinterpret_cast<float*>(sharedGScore + KERNEL_MAX_SIZE);
+    uint32_t* sharedParent = reinterpret_cast<uint32_t*>(sharedFScore + KERNEL_MAX_SIZE);
+    uint32_t* frontier = reinterpret_cast<uint32_t*>(sharedParent + KERNEL_MAX_SIZE);
+    uint32_t* frontierSize = frontier + KERNEL_MAX_SIZE;
+    uint32_t* minIdx = frontierSize + 1;
+    float* minF = reinterpret_cast<float*>(minIdx + 1);
 
     uint32_t tid = threadIdx.x;
 
     // Initialize
     if (tid == 0) {
-        frontierSize = 1;
+        *frontierSize = 1;
         frontier[0] = start;
         sharedGScore[start] = 0.0f;
         sharedFScore[start] = 0.0f;
@@ -201,51 +203,29 @@ extern "C" __global__ void led_astar_navigate(
 
     __syncthreads();
 
-    // A* main loop
-    while (frontierSize > 0) {
-        __syncthreads();
+    if (tid == 0) {
+        while (*frontierSize > 0) {
+            *minF = INFINITY;
+            *minIdx = 0xFFFFFFFF;
 
-        // Find minimum fScore in frontier (parallel reduction)
-        __shared__ uint32_t minIdx;
-        __shared__ float minF;
-
-        if (tid == 0) {
-            minF = INFINITY;
-            minIdx = 0xFFFFFFFF;
-        }
-
-        __syncthreads();
-
-        // Each thread checks one frontier element
-        if (tid < frontierSize) {
-            uint32_t vertex = frontier[tid];
-            float f = sharedFScore[vertex];
-
-            // Atomic min (simplified: use shared memory for MVP)
-            if (f < minF) {
-                minIdx = tid;
-                minF = f;
+            for (uint32_t idx = 0; idx < *frontierSize; ++idx) {
+                uint32_t vertex = frontier[idx];
+                float f = sharedFScore[vertex];
+                if (f < *minF) {
+                    *minF = f;
+                    *minIdx = idx;
+                }
             }
-        }
 
-        __syncthreads();
+            if (*minIdx == 0xFFFFFFFF) {
+                break;
+            }
 
-        if (minIdx == 0xFFFFFFFF) break;  // No valid path
+            uint32_t current = frontier[*minIdx];
+            frontier[*minIdx] = frontier[*frontierSize - 1];
+            (*frontierSize)--;
 
-        uint32_t current = frontier[minIdx];
-
-        // Remove from frontier (swap with last)
-        if (tid == 0) {
-            frontier[minIdx] = frontier[frontierSize - 1];
-            frontierSize--;
-        }
-
-        __syncthreads();
-
-        // Goal reached?
-        if (current == goal) {
-            // Backtrack path
-            if (tid == 0) {
+            if (current == goal) {
                 uint32_t pathIdx = 0;
                 uint32_t vertex = goal;
 
@@ -256,26 +236,30 @@ extern "C" __global__ void led_astar_navigate(
 
                 path[pathIdx++] = start;
                 *pathLength = pathIdx;
+                return;
             }
 
-            return;  // Success
+            uint32_t rowStart = kernel->rowOffsets[current];
+            uint32_t rowEnd = kernel->rowOffsets[current + 1];
+            for (uint32_t edgeIdx = rowStart; edgeIdx < rowEnd; ++edgeIdx) {
+                uint32_t neighbor = kernel->colIndices[edgeIdx];
+                PackedEdgeCost packed = kernel->packedCosts[edgeIdx];
+                float geoCost = (float)EXTRACT_GEO(packed);
+                float semCost = (float)EXTRACT_SEM(packed);
+                float edgeCost = alpha * geoCost + beta * semCost;
+                float tentativeG = sharedGScore[current] + edgeCost;
+
+                if (tentativeG < sharedGScore[neighbor]) {
+                    sharedGScore[neighbor] = tentativeG;
+                    sharedFScore[neighbor] = tentativeG;
+                    sharedParent[neighbor] = current;
+                    if (*frontierSize < KERNEL_MAX_SIZE) {
+                        frontier[*frontierSize] = neighbor;
+                        (*frontierSize)++;
+                    }
+                }
+            }
         }
-
-        // Expand current vertex (warp-cooperative)
-        warp_astar_step(
-            kernel,
-            sharedGScore,
-            sharedFScore,
-            sharedParent,
-            alpha,
-            beta,
-            current
-        );
-
-        __syncthreads();
-
-        // Add relaxed neighbors to frontier (TODO: proper priority queue)
-        // For MVP: simplified frontier management
     }
 
     // No path found

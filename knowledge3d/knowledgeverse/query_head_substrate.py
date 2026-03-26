@@ -6,15 +6,16 @@ import ctypes
 from dataclasses import dataclass
 import math
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Sequence
 
-import numpy as np
-
+from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.sovereign import loader
 from knowledge3d.cranium.spatial_sovereign.frustum import (
     FrustumCuller,
+    UInt32Vector,
     create_perspective_matrix,
     create_view_matrix,
+    matmul_4x4,
 )
 from knowledge3d.cranium.spatial_sovereign.morton_octree import MortonOctreeSovereign
 
@@ -37,30 +38,30 @@ class DynamicLodDriverBridge:
         self._d_saliency = None
         self._node_capacity = 0
         self._query_capacity = self.EMBEDDING_DIM
-        self._host_saliency = np.zeros((0, 2), dtype=np.float32)
+        self._host_saliency = HostTensorF32.zeros(0, 2)
 
-    def bind_unified_buffer(self, host_buffer: np.ndarray, node_count: int) -> None:
-        byte_buffer = np.ascontiguousarray(host_buffer, dtype=np.uint8).reshape(-1)
-        required_bytes = int(byte_buffer.nbytes)
+    def bind_unified_buffer(self, host_buffer: object, node_count: int) -> None:
+        byte_buffer, required_bytes = _byte_buffer_view(host_buffer)
         if self._d_unified is not None:
             loader.gpu_free(self._d_unified)
         self._d_unified = loader.gpu_malloc(required_bytes)
         loader.memcpy_htod(
             self._d_unified,
-            ctypes.c_void_p(byte_buffer.ctypes.data),
+            ctypes.c_void_p(ctypes.addressof(byte_buffer)),
             required_bytes,
         )
         self._ensure_query_buffer()
         self._ensure_saliency_buffer(int(node_count))
 
-    def tune(self, query_embedding16: Iterable[float], node_count: int, saliency_threshold: float = 0.62) -> np.ndarray:
+    def tune(self, query_embedding16: Iterable[float], node_count: int, saliency_threshold: float = 0.62) -> HostTensorF32:
         if self._d_unified is None:
             raise RuntimeError("Dynamic LOD buffer not bound")
         query512 = self._project_embedding16_to512(query_embedding16)
+        query_tensor = HostTensorF32.from_array_like(query512, rows=self.EMBEDDING_DIM, cols=1)
         loader.memcpy_htod(
             self._d_query,
-            ctypes.c_void_p(query512.ctypes.data),
-            query512.nbytes,
+            ctypes.c_void_p(query_tensor.data_ptr),
+            query_tensor.nbytes,
         )
         self._ensure_saliency_buffer(int(node_count))
         block_size = 128
@@ -78,12 +79,15 @@ class DynamicLodDriverBridge:
             ],
         )
         loader.synchronize()
-        output = self._host_saliency[: int(node_count)]
+        output = self._host_saliency
         loader.memcpy_dtoh(
-            ctypes.c_void_p(output.ctypes.data),
+            ctypes.c_void_p(output.data_ptr),
             self._d_saliency,
             output.nbytes,
         )
+        if int(node_count) < output.rows:
+            rows = [output[row] for row in range(int(node_count))]
+            return HostTensorF32.from_array_like(rows, rows=int(node_count), cols=2)
         return output.copy()
 
     def close(self) -> None:
@@ -96,7 +100,7 @@ class DynamicLodDriverBridge:
                     pass
                 setattr(self, attr, None)
         self._node_capacity = 0
-        self._host_saliency = np.zeros((0, 2), dtype=np.float32)
+        self._host_saliency = HostTensorF32.zeros(0, 2)
 
     def _ensure_query_buffer(self) -> None:
         if self._d_query is not None:
@@ -110,33 +114,35 @@ class DynamicLodDriverBridge:
             loader.gpu_free(self._d_saliency)
         self._d_saliency = loader.gpu_malloc(int(node_count) * 2 * 4)
         self._node_capacity = int(node_count)
-        self._host_saliency = np.zeros((int(node_count), 2), dtype=np.float32)
+        self._host_saliency = HostTensorF32.zeros(int(node_count), 2)
 
     @classmethod
     def build_unified_host_buffer(
         cls,
-        embeddings16: np.ndarray,
-        morton_levels: np.ndarray,
-    ) -> np.ndarray:
-        node_count = int(embeddings16.shape[0])
-        byte_buffer = np.zeros(node_count * cls.NODE_STRIDE_BYTES, dtype=np.uint8)
-        float_view = byte_buffer.view(np.float32).reshape(node_count, cls.NODE_STRIDE_FLOATS)
-        u32_view = byte_buffer.view(np.uint32).reshape(node_count, cls.NODE_STRIDE_FLOATS)
-        projected = np.stack(
-            [cls._project_embedding16_to512(row) for row in embeddings16],
-            axis=0,
-        )
-        float_view[:, : cls.EMBEDDING_DIM] = projected
-        u32_view[:, cls.MORTON_OFFSET_U32] = morton_levels.astype(np.uint32, copy=False)
+        embeddings16: object,
+        morton_levels: object,
+    ) -> ctypes.Array:
+        embedding_rows = [list(float(value) for value in row) for row in embeddings16]
+        morton_values = [int(value) for value in morton_levels]
+        node_count = int(len(embedding_rows))
+        byte_buffer = (ctypes.c_uint8 * (node_count * cls.NODE_STRIDE_BYTES))()
+        float_ptr = ctypes.cast(ctypes.addressof(byte_buffer), ctypes.POINTER(ctypes.c_float))
+        u32_ptr = ctypes.cast(ctypes.addressof(byte_buffer), ctypes.POINTER(ctypes.c_uint32))
+        for row_index, embedding in enumerate(embedding_rows):
+            projected = cls._project_embedding16_to512(embedding)
+            base = row_index * cls.NODE_STRIDE_FLOATS
+            for col, value in enumerate(projected):
+                float_ptr[base + col] = float(value)
+            u32_ptr[base + cls.MORTON_OFFSET_U32] = int(morton_values[row_index])
         return byte_buffer
 
     @classmethod
-    def _project_embedding16_to512(cls, embedding16: Iterable[float]) -> np.ndarray:
+    def _project_embedding16_to512(cls, embedding16: Iterable[float]) -> list[float]:
         values = list(float(value) for value in embedding16)
         if not values:
-            return np.zeros(cls.EMBEDDING_DIM, dtype=np.float32)
+            return [0.0] * cls.EMBEDDING_DIM
         tiled = (values * ((cls.EMBEDDING_DIM + len(values) - 1) // len(values)))[: cls.EMBEDDING_DIM]
-        return np.asarray(tiled, dtype=np.float32)
+        return [float(value) for value in tiled]
 
 
 @dataclass
@@ -144,24 +150,24 @@ class QueryHeadSubstrate:
     """GPU-resident spatial substrate for the composed query head."""
 
     signature: str
-    positions: np.ndarray
-    galaxy_indexes: np.ndarray
-    morton_levels: np.ndarray
+    positions: HostTensorF32
+    galaxy_indexes: UInt32Vector
+    morton_levels: UInt32Vector
     morton_octree: MortonOctreeSovereign
     frustum_culler: FrustumCuller
     dynamic_lod: DynamicLodDriverBridge
 
     @classmethod
     def build(cls, *, signature: str, catalog: list[dict]) -> "QueryHeadSubstrate":
-        embeddings = np.asarray(
-            [entry.get("embedding16", [0.0] * 16) for entry in catalog],
-            dtype=np.float32,
+        embeddings = [
+            [float(value) for value in entry.get("embedding16", [0.0] * 16)]
+            for entry in catalog
+        ]
+        galaxy_indexes = UInt32Vector(
+            int(round(float(entry.get("gpu_galaxy_index", 0.0))))
+            for entry in catalog
         )
-        galaxy_indexes = np.asarray(
-            [int(round(float(entry.get("gpu_galaxy_index", 0.0)))) for entry in catalog],
-            dtype=np.int32,
-        )
-        positions = np.asarray(
+        positions = HostTensorF32.from_array_like(
             [
                 _semantic_position3(
                     embedding=row,
@@ -170,16 +176,16 @@ class QueryHeadSubstrate:
                     subject_hash=float(entry.get("subject_hash", 0.0)) if "subject_hash" in entry else 0.0,
                 )
                 for row, entry in zip(embeddings, catalog)
-            ],
-            dtype=np.float32,
+            ]
         )
         morton_octree = MortonOctreeSovereign()
         morton_tree = morton_octree.build_tree(positions)
         morton_codes = morton_tree["codes"]
-        morton_levels = np.asarray([_morton_level(code) for code in morton_codes], dtype=np.uint32)
-        level_by_index = np.zeros(len(catalog), dtype=np.uint32)
-        sorted_indices = np.asarray(morton_tree["indices"], dtype=np.uint32)
-        level_by_index[sorted_indices] = morton_levels
+        morton_levels = UInt32Vector(_morton_level(code) for code in morton_codes)
+        level_by_index = [0 for _ in catalog]
+        sorted_indices = [int(value) for value in morton_tree["indices"]]
+        for sorted_index, morton_level in zip(sorted_indices, morton_levels):
+            level_by_index[int(sorted_index)] = int(morton_level)
 
         dynamic_lod = DynamicLodDriverBridge()
         unified_host = DynamicLodDriverBridge.build_unified_host_buffer(
@@ -193,7 +199,7 @@ class QueryHeadSubstrate:
             signature=str(signature),
             positions=positions,
             galaxy_indexes=galaxy_indexes,
-            morton_levels=level_by_index,
+            morton_levels=UInt32Vector(level_by_index),
             morton_octree=morton_octree,
             frustum_culler=frustum_culler,
             dynamic_lod=dynamic_lod,
@@ -207,65 +213,66 @@ class QueryHeadSubstrate:
         max_results: int,
         morton_radius: int,
         euclidean_radius: float,
-    ) -> np.ndarray:
-        query_position = _semantic_position3(np.asarray(list(query_embedding16), dtype=np.float32), 0.0, 0.0, 0.0)
+    ) -> UInt32Vector:
+        query_position = _semantic_position3(list(query_embedding16), 0.0, 0.0, 0.0)
         result = self.morton_octree.query_radius(
-            np.asarray(query_position, dtype=np.float32),
+            query_position,
             morton_radius=int(morton_radius),
             euclidean_radius=float(euclidean_radius),
             max_results=int(max_results),
         )
         if allowed_galaxy_indexes:
-            mask = np.isin(
-                self.galaxy_indexes[result.astype(np.int32, copy=False)],
-                np.asarray(sorted(allowed_galaxy_indexes), dtype=np.int32),
-            )
-            result = result[mask]
+            allowed = {int(value) for value in allowed_galaxy_indexes}
+            filtered = [
+                int(index)
+                for index in result
+                if int(self.galaxy_indexes[int(index)]) in allowed
+            ]
+            return UInt32Vector(filtered)
         return result
 
     def frustum_visible(
         self,
         *,
         query_embedding16: Iterable[float],
-        candidate_indices: np.ndarray,
-    ) -> np.ndarray:
-        indices = np.asarray(candidate_indices, dtype=np.uint32).reshape(-1)
-        if indices.size == 0:
-            return indices
-        query_position = np.asarray(
-            _semantic_position3(np.asarray(list(query_embedding16), dtype=np.float32), 0.0, 0.0, 0.0),
-            dtype=np.float32,
-        )
-        target = np.mean(self.positions[indices.astype(np.int32, copy=False)], axis=0)
-        if not np.isfinite(target).all():
-            return indices
-        direction = target - query_position
-        norm = float(np.linalg.norm(direction))
+        candidate_indices: object,
+    ) -> UInt32Vector:
+        indices = [int(value) for value in candidate_indices]
+        if not indices:
+            return UInt32Vector()
+        query_position = _semantic_position3(list(query_embedding16), 0.0, 0.0, 0.0)
+        target = _mean_selected_rows(self.positions, indices)
+        if target is None:
+            return UInt32Vector(indices)
+        direction = [target[axis] - query_position[axis] for axis in range(3)]
+        norm = math.sqrt(sum(float(value) * float(value) for value in direction))
         if norm <= 1e-6:
-            return indices
-        eye = query_position - (direction / norm) * 0.35
-        up = np.asarray([0.0, 1.0, 0.0], dtype=np.float32)
-        if abs(float(np.dot(direction / norm, up))) > 0.95:
-            up = np.asarray([1.0, 0.0, 0.0], dtype=np.float32)
+            return UInt32Vector(indices)
+        direction_unit = [value / norm for value in direction]
+        eye = [query_position[axis] - (direction_unit[axis] * 0.35) for axis in range(3)]
+        up = (0.0, 1.0, 0.0)
+        if abs(sum(direction_unit[axis] * up[axis] for axis in range(3))) > 0.95:
+            up = (1.0, 0.0, 0.0)
         view = create_view_matrix(eye, target, up)
         proj = create_perspective_matrix(72.0, 1.0, 0.01, 8.0)
-        view_proj = proj @ view
-        return self.frustum_culler.cull_nodes(
+        view_proj = matmul_4x4(proj, view)
+        visible = self.frustum_culler.cull_nodes(
             self.positions,
             indices,
             view_proj=view_proj,
             view=view,
         )
+        return visible
 
     def lod_metrics(
         self,
         *,
         query_embedding16: Iterable[float],
-        candidate_indices: np.ndarray,
+        candidate_indices: object,
         saliency_threshold: float = 0.62,
     ) -> dict[int, tuple[float, int]]:
-        indices = np.asarray(candidate_indices, dtype=np.int32).reshape(-1)
-        if indices.size == 0:
+        indices = [int(value) for value in candidate_indices]
+        if not indices:
             return {}
         saliency_map = self.dynamic_lod.tune(
             list(query_embedding16),
@@ -273,7 +280,7 @@ class QueryHeadSubstrate:
             saliency_threshold=saliency_threshold,
         )
         metrics: dict[int, tuple[float, int]] = {}
-        for node_index in indices.tolist():
+        for node_index in indices:
             cosine = float(saliency_map[node_index, 0])
             lod_level = int(round(float(saliency_map[node_index, 1])))
             metrics[int(node_index)] = (cosine, lod_level)
@@ -289,12 +296,12 @@ class QueryHeadSubstrate:
                 self.morton_octree.close()
 
 
-def expand_embedding16_to128(embedding16: Iterable[float]) -> np.ndarray:
+def expand_embedding16_to128(embedding16: Iterable[float]) -> list[float]:
     values = list(float(value) for value in embedding16)
     if not values:
-        return np.zeros(128, dtype=np.float32)
+        return [0.0] * 128
     tiled = (values * ((128 + len(values) - 1) // len(values)))[:128]
-    return np.asarray(tiled, dtype=np.float32)
+    return [float(value) for value in tiled]
 
 
 def halting_inputs(
@@ -304,10 +311,10 @@ def halting_inputs(
     minimum_threshold: float = 0.3,
     gap_threshold: float = 0.1,
     agreement_threshold: float = 3.0,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[HostTensorF32, UInt32Vector]:
     values = [float(score) for score in scores]
     if not values:
-        return np.zeros(4, dtype=np.float32), np.ones(4, dtype=np.uint32)
+        return HostTensorF32.zeros(4, 1), UInt32Vector([1, 1, 1, 1])
 
     ids = [str(value).strip() for value in candidate_ids if str(value).strip()]
     grouped_scores: list[tuple[float, int]] = []
@@ -336,8 +343,8 @@ def halting_inputs(
     agree_norm = agreement_count / max(float(agreement_threshold), 1e-6)
     converged_norm = min(min_norm, gap_norm, agree_norm)
     return (
-        np.asarray([min_norm, gap_norm, agree_norm, converged_norm], dtype=np.float32),
-        np.ones(4, dtype=np.uint32),
+        HostTensorF32.from_array_like([min_norm, gap_norm, agree_norm, converged_norm], rows=4, cols=1),
+        UInt32Vector([1, 1, 1, 1]),
     )
 
 
@@ -345,27 +352,27 @@ def relative_halting_inputs(
     scores: Iterable[float],
     *,
     gap_threshold: float = 0.15,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[HostTensorF32, UInt32Vector]:
     values = sorted((float(score) for score in scores), reverse=True)
     if not values:
-        return np.zeros(4, dtype=np.float32), np.ones(4, dtype=np.uint32)
+        return HostTensorF32.zeros(4, 1), UInt32Vector([1, 1, 1, 1])
     top_score = float(values[0])
     second_score = float(values[1]) if len(values) > 1 else 0.0
     score_gap = top_score - second_score
     gap_norm = score_gap / max(float(gap_threshold), 1e-6)
     return (
-        np.asarray([1.0, gap_norm, 1.0, gap_norm], dtype=np.float32),
-        np.ones(4, dtype=np.uint32),
+        HostTensorF32.from_array_like([1.0, gap_norm, 1.0, gap_norm], rows=4, cols=1),
+        UInt32Vector([1, 1, 1, 1]),
     )
 
 
 def _semantic_position3(
-    embedding: np.ndarray,
+    embedding: object,
     galaxy_index: float,
     domain_hash: float,
     subject_hash: float,
 ) -> list[float]:
-    values = list(float(value) for value in embedding[:3])
+    values = list(float(value) for value in (embedding[:3] if hasattr(embedding, "__getitem__") else list(embedding)))
     while len(values) < 3:
         values.append(0.0)
     galaxy_bias = (float(galaxy_index) / 10.0) - 0.5
@@ -376,6 +383,37 @@ def _semantic_position3(
     if norm <= 1e-8:
         return [0.0, 0.0, 1.0]
     return [float(x / norm), float(y / norm), float(z / norm)]
+
+
+def _byte_buffer_view(host_buffer: object) -> tuple[ctypes.Array, int]:
+    if isinstance(host_buffer, HostTensorF32):
+        raw = ctypes.string_at(host_buffer.data_ptr, host_buffer.nbytes)
+        buf = (ctypes.c_uint8 * len(raw)).from_buffer_copy(raw)
+        return buf, len(raw)
+    if isinstance(host_buffer, ctypes.Array):
+        return host_buffer, ctypes.sizeof(host_buffer)
+    payload = bytes(host_buffer)
+    buf = (ctypes.c_uint8 * len(payload)).from_buffer_copy(payload)
+    return buf, len(payload)
+
+
+def _mean_selected_rows(matrix: HostTensorF32, indices: Sequence[int]) -> list[float] | None:
+    if not indices:
+        return None
+    accum = [0.0, 0.0, 0.0]
+    for index in indices:
+        row = matrix[int(index)]
+        if len(row) < 3:
+            continue
+        for axis in range(3):
+            accum[axis] += float(row[axis])
+    count = float(len(indices))
+    if count <= 0.0:
+        return None
+    mean = [value / count for value in accum]
+    if not all(math.isfinite(value) for value in mean):
+        return None
+    return mean
 
 
 def _morton_level(code: int) -> int:

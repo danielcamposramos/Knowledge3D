@@ -7,17 +7,11 @@
 //
 
 .version 8.4
-.target sm_75
+.target sm_86
 .address_size 64
 
 	// .globl	led_astar_navigate
-// _ZZ18led_astar_navigateE12sharedGScore has been demoted
-// _ZZ18led_astar_navigateE12sharedFScore has been demoted
-// _ZZ18led_astar_navigateE12sharedParent has been demoted
-// _ZZ18led_astar_navigateE8frontier has been demoted
-// _ZZ18led_astar_navigateE12frontierSize has been demoted
-// _ZZ18led_astar_navigateE6minIdx has been demoted
-// _ZZ18led_astar_navigateE4minF has been demoted
+.extern .shared .align 16 .b8 sharedBytes[];
 
 .visible .entry led_astar_navigate(
 	.param .u64 led_astar_navigate_param_0,
@@ -30,252 +24,451 @@
 	.param .u32 led_astar_navigate_param_7
 )
 {
-	.reg .pred 	%p<24>;
-	.reg .f32 	%f<13>;
-	.reg .b32 	%r<96>;
-	.reg .b64 	%rd<30>;
-	// demoted variable
-	.shared .align 4 .b8 _ZZ18led_astar_navigateE12sharedGScore[16384];
-	// demoted variable
-	.shared .align 4 .b8 _ZZ18led_astar_navigateE12sharedFScore[16384];
-	// demoted variable
-	.shared .align 4 .b8 _ZZ18led_astar_navigateE12sharedParent[16384];
-	// demoted variable
-	.shared .align 4 .b8 _ZZ18led_astar_navigateE8frontier[16384];
-	// demoted variable
-	.shared .align 4 .u32 _ZZ18led_astar_navigateE12frontierSize;
-	// demoted variable
-	.shared .align 4 .u32 _ZZ18led_astar_navigateE6minIdx;
-	// demoted variable
-	.shared .align 4 .f32 _ZZ18led_astar_navigateE4minF;
+	.reg .pred 	%p<39>;
+	.reg .f32 	%f<58>;
+	.reg .b32 	%r<200>;
+	.reg .b64 	%rd<45>;
 
-	ld.param.u64 	%rd8, [led_astar_navigate_param_0];
-	ld.param.u32 	%r24, [led_astar_navigate_param_1];
-	ld.param.u32 	%r94, [led_astar_navigate_param_2];
-	ld.param.f32 	%f4, [led_astar_navigate_param_3];
-	ld.param.f32 	%f5, [led_astar_navigate_param_4];
-	ld.param.u64 	%rd9, [led_astar_navigate_param_5];
-	ld.param.u64 	%rd10, [led_astar_navigate_param_6];
-	ld.param.u32 	%r26, [led_astar_navigate_param_7];
-	mov.u32 	%r1, %tid.x;
-	setp.ne.s32 	%p1, %r1, 0;
+
+	ld.param.u64 	%rd9, [led_astar_navigate_param_0];
+	ld.param.u32 	%r70, [led_astar_navigate_param_1];
+	ld.param.u32 	%r198, [led_astar_navigate_param_2];
+	ld.param.f32 	%f11, [led_astar_navigate_param_3];
+	ld.param.f32 	%f12, [led_astar_navigate_param_4];
+	ld.param.u64 	%rd10, [led_astar_navigate_param_5];
+	ld.param.u64 	%rd11, [led_astar_navigate_param_6];
+	ld.param.u32 	%r72, [led_astar_navigate_param_7];
+	cvta.to.global.u64 	%rd1, %rd11;
+	cvta.to.global.u64 	%rd2, %rd10;
+	mov.u32 	%r178, %tid.x;
+	setp.ne.s32 	%p1, %r178, 0;
 	@%p1 bra 	$L__BB0_2;
 
-	mov.u32 	%r27, 1;
-	st.shared.u32 	[_ZZ18led_astar_navigateE12frontierSize], %r27;
-	st.shared.u32 	[_ZZ18led_astar_navigateE8frontier], %r24;
-	shl.b32 	%r28, %r24, 2;
-	mov.u32 	%r29, _ZZ18led_astar_navigateE12sharedGScore;
-	add.s32 	%r30, %r29, %r28;
-	mov.u32 	%r31, 0;
-	st.shared.u32 	[%r30], %r31;
-	mov.u32 	%r32, _ZZ18led_astar_navigateE12sharedFScore;
-	add.s32 	%r33, %r32, %r28;
-	st.shared.u32 	[%r33], %r31;
-	mov.u32 	%r34, _ZZ18led_astar_navigateE12sharedParent;
-	add.s32 	%r35, %r34, %r28;
-	st.shared.u32 	[%r35], %r24;
+	mov.u32 	%r73, sharedBytes;
+	mov.u32 	%r74, 1;
+	st.shared.u32 	[sharedBytes+65536], %r74;
+	st.shared.u32 	[sharedBytes+49152], %r70;
+	shl.b32 	%r75, %r70, 2;
+	add.s32 	%r76, %r73, %r75;
+	mov.u32 	%r77, 0;
+	st.shared.u32 	[%r76], %r77;
+	st.shared.u32 	[%r76+16384], %r77;
+	st.shared.u32 	[%r76+32768], %r70;
 
 $L__BB0_2:
-	cvta.to.global.u64 	%rd11, %rd8;
-	ld.global.u32 	%r2, [%rd11+32];
-	setp.ge.u32 	%p2, %r1, %r2;
+	cvta.to.global.u64 	%rd12, %rd9;
+	add.s64 	%rd3, %rd12, 32;
+	ld.global.u32 	%r2, [%rd12+32];
+	setp.ge.u32 	%p2, %r178, %r2;
 	@%p2 bra 	$L__BB0_7;
 
 	mov.u32 	%r3, %ntid.x;
-	mov.u32 	%r90, %r1;
 
 $L__BB0_4:
-	setp.eq.s32 	%p3, %r90, %r24;
+	setp.eq.s32 	%p3, %r178, %r70;
 	@%p3 bra 	$L__BB0_6;
 
-	shl.b32 	%r36, %r90, 2;
-	mov.u32 	%r37, _ZZ18led_astar_navigateE12sharedGScore;
-	add.s32 	%r38, %r37, %r36;
-	mov.u32 	%r39, 2139095040;
-	st.shared.u32 	[%r38], %r39;
-	mov.u32 	%r40, _ZZ18led_astar_navigateE12sharedFScore;
-	add.s32 	%r41, %r40, %r36;
-	st.shared.u32 	[%r41], %r39;
-	mov.u32 	%r42, _ZZ18led_astar_navigateE12sharedParent;
-	add.s32 	%r43, %r42, %r36;
-	mov.u32 	%r44, -1;
-	st.shared.u32 	[%r43], %r44;
+	shl.b32 	%r78, %r178, 2;
+	mov.u32 	%r79, sharedBytes;
+	add.s32 	%r80, %r79, %r78;
+	mov.u32 	%r81, 2139095040;
+	st.shared.u32 	[%r80], %r81;
+	st.shared.u32 	[%r80+16384], %r81;
+	mov.u32 	%r82, -1;
+	st.shared.u32 	[%r80+32768], %r82;
 
 $L__BB0_6:
-	add.s32 	%r90, %r90, %r3;
-	setp.lt.u32 	%p4, %r90, %r2;
+	add.s32 	%r178, %r178, %r3;
+	setp.lt.u32 	%p4, %r178, %r2;
 	@%p4 bra 	$L__BB0_4;
 
 $L__BB0_7:
 	bar.sync 	0;
-	ld.shared.u32 	%r45, [_ZZ18led_astar_navigateE12frontierSize];
-	setp.eq.s32 	%p5, %r45, 0;
-	@%p5 bra 	$L__BB0_24;
+	@%p1 bra 	$L__BB0_51;
 
-	mov.u32 	%r49, %tid.x;
-	shl.b32 	%r50, %r49, 2;
-	mov.u32 	%r51, _ZZ18led_astar_navigateE8frontier;
-	add.s32 	%r52, %r51, %r50;
-	mov.u32 	%r55, _ZZ18led_astar_navigateE12sharedFScore;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.eq.s32 	%p6, %r193, 0;
+	@%p6 bra 	$L__BB0_46;
 
-$L__BB0_9:
-	bar.sync 	0;
-	@%p1 bra 	$L__BB0_11;
+	mov.u32 	%r85, sharedBytes;
 
-	mov.u32 	%r46, 2139095040;
-	st.shared.u32 	[_ZZ18led_astar_navigateE4minF], %r46;
-	mov.u32 	%r47, -1;
-	st.shared.u32 	[_ZZ18led_astar_navigateE6minIdx], %r47;
+$L__BB0_10:
+	mov.u32 	%r84, 2139095040;
+	st.shared.u32 	[sharedBytes+65544], %r84;
+	mov.u32 	%r183, -1;
+	st.shared.u32 	[sharedBytes+65540], %r183;
+	setp.eq.s32 	%p7, %r193, 0;
+	@%p7 bra 	$L__BB0_15;
 
-$L__BB0_11:
-	bar.sync 	0;
-	ld.shared.u32 	%r48, [_ZZ18led_astar_navigateE12frontierSize];
-	setp.ge.u32 	%p7, %r1, %r48;
-	@%p7 bra 	$L__BB0_14;
+	mov.u32 	%r182, 0;
+	mov.f32 	%f57, 0f7F800000;
+	mov.u32 	%r183, -1;
+	mov.u32 	%r180, %r85;
 
-	ld.shared.u32 	%r53, [%r52];
-	shl.b32 	%r54, %r53, 2;
-	add.s32 	%r56, %r55, %r54;
-	ld.shared.f32 	%f6, [_ZZ18led_astar_navigateE4minF];
-	ld.shared.f32 	%f1, [%r56];
-	setp.geu.f32 	%p8, %f1, %f6;
+$L__BB0_12:
+	ld.shared.u32 	%r88, [%r180+49152];
+	shl.b32 	%r89, %r88, 2;
+	add.s32 	%r91, %r85, %r89;
+	ld.shared.f32 	%f2, [%r91+16384];
+	setp.geu.f32 	%p8, %f2, %f57;
 	@%p8 bra 	$L__BB0_14;
 
-	st.shared.u32 	[_ZZ18led_astar_navigateE6minIdx], %r1;
-	st.shared.f32 	[_ZZ18led_astar_navigateE4minF], %f1;
+	st.shared.f32 	[sharedBytes+65544], %f2;
+	st.shared.u32 	[sharedBytes+65540], %r182;
+	mov.u32 	%r183, %r182;
+	mov.f32 	%f57, %f2;
 
 $L__BB0_14:
-	bar.sync 	0;
-	ld.shared.u32 	%r6, [_ZZ18led_astar_navigateE6minIdx];
-	setp.eq.s32 	%p9, %r6, -1;
-	@%p9 bra 	$L__BB0_24;
+	add.s32 	%r180, %r180, 4;
+	add.s32 	%r182, %r182, 1;
+	setp.lt.u32 	%p9, %r182, %r193;
+	@%p9 bra 	$L__BB0_12;
 
-	shl.b32 	%r57, %r6, 2;
-	add.s32 	%r7, %r51, %r57;
-	ld.shared.u32 	%r8, [%r7];
-	@%p1 bra 	$L__BB0_17;
+$L__BB0_15:
+	setp.eq.s32 	%p10, %r183, -1;
+	@%p10 bra 	$L__BB0_46;
 
-	ld.shared.u32 	%r59, [_ZZ18led_astar_navigateE12frontierSize];
-	add.s32 	%r60, %r59, -1;
-	shl.b32 	%r61, %r59, 2;
-	add.s32 	%r63, %r51, %r61;
-	ld.shared.u32 	%r64, [%r63+-4];
-	st.shared.u32 	[%r7], %r64;
-	st.shared.u32 	[_ZZ18led_astar_navigateE12frontierSize], %r60;
+	shl.b32 	%r92, %r183, 2;
+	mov.u32 	%r93, sharedBytes;
+	add.s32 	%r94, %r93, 49152;
+	add.s32 	%r95, %r94, %r92;
+	ld.shared.u32 	%r15, [%r95];
+	shl.b32 	%r96, %r193, 2;
+	add.s32 	%r97, %r94, %r96;
+	ld.shared.u32 	%r98, [%r97+-4];
+	st.shared.u32 	[%r95], %r98;
+	ld.shared.u32 	%r99, [sharedBytes+65536];
+	add.s32 	%r193, %r99, -1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
+	setp.eq.s32 	%p11, %r15, %r198;
+	@%p11 bra 	$L__BB0_47;
 
-$L__BB0_17:
-	bar.sync 	0;
-	setp.eq.s32 	%p11, %r8, %r94;
-	@%p11 bra 	$L__BB0_26;
-
-	ld.global.u64 	%rd13, [%rd11];
+	ld.global.u64 	%rd13, [%rd3+-32];
 	cvta.to.global.u64 	%rd14, %rd13;
-	mul.wide.u32 	%rd15, %r8, 4;
+	mul.wide.u32 	%rd15, %r15, 4;
 	add.s64 	%rd16, %rd14, %rd15;
-	add.s32 	%r65, %r8, 1;
-	mul.wide.u32 	%rd17, %r65, 4;
+	ld.global.u32 	%r17, [%rd16];
+	add.s32 	%r100, %r15, 1;
+	mul.wide.u32 	%rd17, %r100, 4;
 	add.s64 	%rd18, %rd14, %rd17;
-	ld.global.u32 	%r66, [%rd18];
-	ld.global.u32 	%r9, [%rd16];
-	sub.s32 	%r10, %r66, %r9;
-	and.b32  	%r92, %r49, 31;
-	setp.ge.u32 	%p12, %r92, %r10;
-	@%p12 bra 	$L__BB0_23;
+	ld.global.u32 	%r18, [%rd18];
+	setp.le.u32 	%p12, %r18, %r17;
+	@%p12 bra 	$L__BB0_45;
 
-	shl.b32 	%r69, %r8, 2;
-	mov.u32 	%r70, _ZZ18led_astar_navigateE12sharedGScore;
-	add.s32 	%r71, %r70, %r69;
-	ld.shared.f32 	%f2, [%r71];
-	ld.global.u64 	%rd20, [%rd11+8];
-	cvta.to.global.u64 	%rd1, %rd20;
-	ld.global.u64 	%rd21, [%rd11+16];
-	cvta.to.global.u64 	%rd2, %rd21;
-	add.s32 	%r91, %r92, %r9;
+	ld.global.u64 	%rd19, [%rd3+-24];
+	cvta.to.global.u64 	%rd4, %rd19;
+	ld.global.u64 	%rd20, [%rd3+-16];
+	cvta.to.global.u64 	%rd5, %rd20;
+	shl.b32 	%r101, %r15, 2;
+	add.s32 	%r19, %r93, %r101;
+	sub.s32 	%r103, %r18, %r17;
+	and.b32  	%r20, %r103, 3;
+	setp.eq.s32 	%p13, %r20, 0;
+	mov.u32 	%r189, %r17;
+	@%p13 bra 	$L__BB0_31;
 
-$L__BB0_20:
-	mul.wide.u32 	%rd22, %r91, 4;
-	add.s64 	%rd23, %rd1, %rd22;
-	add.s64 	%rd24, %rd2, %rd22;
-	ld.global.u32 	%r73, [%rd24];
-	and.b32  	%r74, %r73, 65535;
-	cvt.rn.f32.u32 	%f7, %r74;
-	shr.u32 	%r75, %r73, 16;
-	cvt.rn.f32.u32 	%f8, %r75;
-	mul.f32 	%f9, %f8, %f5;
-	fma.rn.f32 	%f10, %f7, %f4, %f9;
-	add.f32 	%f3, %f2, %f10;
-	ld.global.u32 	%r15, [%rd23];
-	shl.b32 	%r76, %r15, 2;
-	add.s32 	%r16, %r70, %r76;
-	ld.shared.f32 	%f11, [%r16];
-	setp.geu.f32 	%p13, %f3, %f11;
-	@%p13 bra 	$L__BB0_22;
+	mul.wide.u32 	%rd21, %r17, 4;
+	add.s64 	%rd22, %rd4, %rd21;
+	add.s64 	%rd23, %rd5, %rd21;
+	ld.global.u32 	%r104, [%rd23];
+	and.b32  	%r105, %r104, 65535;
+	cvt.rn.f32.u32 	%f14, %r105;
+	shr.u32 	%r106, %r104, 16;
+	cvt.rn.f32.u32 	%f15, %r106;
+	mul.f32 	%f16, %f15, %f12;
+	fma.rn.f32 	%f17, %f14, %f11, %f16;
+	ld.shared.f32 	%f18, [%r19];
+	add.f32 	%f4, %f18, %f17;
+	ld.global.u32 	%r21, [%rd22];
+	shl.b32 	%r107, %r21, 2;
+	add.s32 	%r22, %r93, %r107;
+	ld.shared.f32 	%f19, [%r22];
+	setp.geu.f32 	%p14, %f4, %f19;
+	@%p14 bra 	$L__BB0_22;
 
-	st.shared.f32 	[%r16], %f3;
-	add.s32 	%r80, %r55, %r76;
-	add.f32 	%f12, %f3, 0f00000000;
-	st.shared.f32 	[%r80], %f12;
-	mov.u32 	%r81, _ZZ18led_astar_navigateE12sharedParent;
-	add.s32 	%r82, %r81, %r76;
-	st.shared.u32 	[%r82], %r8;
+	st.shared.f32 	[%r22], %f4;
+	st.shared.f32 	[%r22+16384], %f4;
+	st.shared.u32 	[%r22+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p15, %r193, 4095;
+	@%p15 bra 	$L__BB0_22;
+
+	shl.b32 	%r109, %r193, 2;
+	add.s32 	%r111, %r93, %r109;
+	st.shared.u32 	[%r111+49152], %r21;
+	ld.shared.u32 	%r112, [sharedBytes+65536];
+	add.s32 	%r193, %r112, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
 
 $L__BB0_22:
-	add.s32 	%r92, %r92, 32;
-	add.s32 	%r91, %r91, 32;
-	setp.lt.u32 	%p14, %r92, %r10;
-	@%p14 bra 	$L__BB0_20;
+	add.s32 	%r189, %r17, 1;
+	setp.eq.s32 	%p16, %r20, 1;
+	@%p16 bra 	$L__BB0_31;
 
-$L__BB0_23:
-	bar.sync 	0;
-	ld.shared.u32 	%r83, [_ZZ18led_astar_navigateE12frontierSize];
-	setp.eq.s32 	%p15, %r83, 0;
-	@%p15 bra 	$L__BB0_24;
-	bra.uni 	$L__BB0_9;
+	mul.wide.u32 	%rd24, %r189, 4;
+	add.s64 	%rd25, %rd4, %rd24;
+	add.s64 	%rd26, %rd5, %rd24;
+	ld.global.u32 	%r113, [%rd26];
+	and.b32  	%r114, %r113, 65535;
+	cvt.rn.f32.u32 	%f20, %r114;
+	shr.u32 	%r115, %r113, 16;
+	cvt.rn.f32.u32 	%f21, %r115;
+	mul.f32 	%f22, %f21, %f12;
+	fma.rn.f32 	%f23, %f20, %f11, %f22;
+	ld.shared.f32 	%f24, [%r19];
+	add.f32 	%f5, %f24, %f23;
+	ld.global.u32 	%r27, [%rd25];
+	shl.b32 	%r116, %r27, 2;
+	add.s32 	%r28, %r93, %r116;
+	ld.shared.f32 	%f25, [%r28];
+	setp.geu.f32 	%p17, %f5, %f25;
+	@%p17 bra 	$L__BB0_26;
 
-$L__BB0_24:
-	@%p1 bra 	$L__BB0_31;
+	st.shared.f32 	[%r28], %f5;
+	st.shared.f32 	[%r28+16384], %f5;
+	st.shared.u32 	[%r28+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p18, %r193, 4095;
+	@%p18 bra 	$L__BB0_26;
 
-	cvta.to.global.u64 	%rd27, %rd10;
-	mov.u32 	%r89, 0;
-	st.global.u32 	[%rd27], %r89;
-	bra.uni 	$L__BB0_31;
+	shl.b32 	%r118, %r193, 2;
+	add.s32 	%r120, %r93, %r118;
+	st.shared.u32 	[%r120+49152], %r27;
+	ld.shared.u32 	%r121, [sharedBytes+65536];
+	add.s32 	%r193, %r121, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
 
 $L__BB0_26:
-	@%p1 bra 	$L__BB0_31;
+	add.s32 	%r189, %r17, 2;
+	setp.eq.s32 	%p19, %r20, 2;
+	@%p19 bra 	$L__BB0_31;
 
-	setp.eq.s32 	%p17, %r94, %r24;
-	setp.eq.s32 	%p18, %r26, 0;
-	cvta.to.global.u64 	%rd3, %rd9;
-	mov.u32 	%r95, 1;
-	or.pred  	%p19, %p18, %p17;
-	mov.u64 	%rd29, %rd3;
-	@%p19 bra 	$L__BB0_30;
+	mul.wide.u32 	%rd27, %r189, 4;
+	add.s64 	%rd28, %rd4, %rd27;
+	add.s64 	%rd29, %rd5, %rd27;
+	ld.global.u32 	%r122, [%rd29];
+	and.b32  	%r123, %r122, 65535;
+	cvt.rn.f32.u32 	%f26, %r123;
+	shr.u32 	%r124, %r122, 16;
+	cvt.rn.f32.u32 	%f27, %r124;
+	mul.f32 	%f28, %f27, %f12;
+	fma.rn.f32 	%f29, %f26, %f11, %f28;
+	ld.shared.f32 	%f30, [%r19];
+	add.f32 	%f6, %f30, %f29;
+	ld.global.u32 	%r33, [%rd28];
+	shl.b32 	%r125, %r33, 2;
+	add.s32 	%r34, %r93, %r125;
+	ld.shared.f32 	%f31, [%r34];
+	setp.geu.f32 	%p20, %f6, %f31;
+	@%p20 bra 	$L__BB0_30;
 
-	cvta.to.global.u64 	%rd29, %rd9;
-	mov.u32 	%r93, 1;
+	st.shared.f32 	[%r34], %f6;
+	st.shared.f32 	[%r34+16384], %f6;
+	st.shared.u32 	[%r34+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p21, %r193, 4095;
+	@%p21 bra 	$L__BB0_30;
 
-$L__BB0_29:
-	st.global.u32 	[%rd29], %r94;
-	shl.b32 	%r86, %r94, 2;
-	mov.u32 	%r87, _ZZ18led_astar_navigateE12sharedParent;
-	add.s32 	%r88, %r87, %r86;
-	ld.shared.u32 	%r94, [%r88];
-	setp.ne.s32 	%p20, %r94, %r24;
-	setp.lt.u32 	%p21, %r93, %r26;
-	and.pred  	%p22, %p21, %p20;
-	add.s32 	%r95, %r93, 1;
-	mul.wide.u32 	%rd25, %r93, 4;
-	add.s64 	%rd29, %rd3, %rd25;
-	mov.u32 	%r93, %r95;
-	@%p22 bra 	$L__BB0_29;
+	shl.b32 	%r127, %r193, 2;
+	add.s32 	%r129, %r93, %r127;
+	st.shared.u32 	[%r129+49152], %r33;
+	ld.shared.u32 	%r130, [sharedBytes+65536];
+	add.s32 	%r193, %r130, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
 
 $L__BB0_30:
-	st.global.u32 	[%rd29], %r24;
-	cvta.to.global.u64 	%rd26, %rd10;
-	st.global.u32 	[%rd26], %r95;
+	add.s32 	%r189, %r17, 3;
 
 $L__BB0_31:
+	not.b32 	%r131, %r17;
+	add.s32 	%r132, %r18, %r131;
+	setp.lt.u32 	%p22, %r132, 3;
+	@%p22 bra 	$L__BB0_45;
+
+$L__BB0_32:
+	mul.wide.u32 	%rd30, %r189, 4;
+	add.s64 	%rd31, %rd4, %rd30;
+	add.s64 	%rd32, %rd5, %rd30;
+	ld.global.u32 	%r133, [%rd32];
+	and.b32  	%r134, %r133, 65535;
+	cvt.rn.f32.u32 	%f32, %r134;
+	shr.u32 	%r135, %r133, 16;
+	cvt.rn.f32.u32 	%f33, %r135;
+	mul.f32 	%f34, %f33, %f12;
+	fma.rn.f32 	%f35, %f32, %f11, %f34;
+	ld.shared.f32 	%f36, [%r19];
+	add.f32 	%f7, %f36, %f35;
+	ld.global.u32 	%r43, [%rd31];
+	shl.b32 	%r136, %r43, 2;
+	add.s32 	%r44, %r93, %r136;
+	ld.shared.f32 	%f37, [%r44];
+	setp.geu.f32 	%p23, %f7, %f37;
+	@%p23 bra 	$L__BB0_35;
+
+	st.shared.f32 	[%r44], %f7;
+	st.shared.f32 	[%r44+16384], %f7;
+	st.shared.u32 	[%r44+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p24, %r193, 4095;
+	@%p24 bra 	$L__BB0_35;
+
+	shl.b32 	%r138, %r193, 2;
+	add.s32 	%r140, %r93, %r138;
+	st.shared.u32 	[%r140+49152], %r43;
+	ld.shared.u32 	%r141, [sharedBytes+65536];
+	add.s32 	%r193, %r141, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
+
+$L__BB0_35:
+	add.s32 	%r142, %r189, 1;
+	mul.wide.u32 	%rd33, %r142, 4;
+	add.s64 	%rd34, %rd4, %rd33;
+	add.s64 	%rd35, %rd5, %rd33;
+	ld.global.u32 	%r143, [%rd35];
+	and.b32  	%r144, %r143, 65535;
+	cvt.rn.f32.u32 	%f38, %r144;
+	shr.u32 	%r145, %r143, 16;
+	cvt.rn.f32.u32 	%f39, %r145;
+	mul.f32 	%f40, %f39, %f12;
+	fma.rn.f32 	%f41, %f38, %f11, %f40;
+	ld.shared.f32 	%f42, [%r19];
+	add.f32 	%f8, %f42, %f41;
+	ld.global.u32 	%r48, [%rd34];
+	shl.b32 	%r146, %r48, 2;
+	add.s32 	%r49, %r93, %r146;
+	ld.shared.f32 	%f43, [%r49];
+	setp.geu.f32 	%p25, %f8, %f43;
+	@%p25 bra 	$L__BB0_38;
+
+	st.shared.f32 	[%r49], %f8;
+	st.shared.f32 	[%r49+16384], %f8;
+	st.shared.u32 	[%r49+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p26, %r193, 4095;
+	@%p26 bra 	$L__BB0_38;
+
+	shl.b32 	%r148, %r193, 2;
+	add.s32 	%r150, %r93, %r148;
+	st.shared.u32 	[%r150+49152], %r48;
+	ld.shared.u32 	%r151, [sharedBytes+65536];
+	add.s32 	%r193, %r151, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
+
+$L__BB0_38:
+	add.s32 	%r152, %r189, 2;
+	mul.wide.u32 	%rd36, %r152, 4;
+	add.s64 	%rd37, %rd4, %rd36;
+	add.s64 	%rd38, %rd5, %rd36;
+	ld.global.u32 	%r153, [%rd38];
+	and.b32  	%r154, %r153, 65535;
+	cvt.rn.f32.u32 	%f44, %r154;
+	shr.u32 	%r155, %r153, 16;
+	cvt.rn.f32.u32 	%f45, %r155;
+	mul.f32 	%f46, %f45, %f12;
+	fma.rn.f32 	%f47, %f44, %f11, %f46;
+	ld.shared.f32 	%f48, [%r19];
+	add.f32 	%f9, %f48, %f47;
+	ld.global.u32 	%r53, [%rd37];
+	shl.b32 	%r156, %r53, 2;
+	add.s32 	%r54, %r93, %r156;
+	ld.shared.f32 	%f49, [%r54];
+	setp.geu.f32 	%p27, %f9, %f49;
+	@%p27 bra 	$L__BB0_41;
+
+	st.shared.f32 	[%r54], %f9;
+	st.shared.f32 	[%r54+16384], %f9;
+	st.shared.u32 	[%r54+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p28, %r193, 4095;
+	@%p28 bra 	$L__BB0_41;
+
+	shl.b32 	%r158, %r193, 2;
+	add.s32 	%r160, %r93, %r158;
+	st.shared.u32 	[%r160+49152], %r53;
+	ld.shared.u32 	%r161, [sharedBytes+65536];
+	add.s32 	%r193, %r161, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
+
+$L__BB0_41:
+	add.s32 	%r162, %r189, 3;
+	mul.wide.u32 	%rd39, %r162, 4;
+	add.s64 	%rd40, %rd4, %rd39;
+	add.s64 	%rd41, %rd5, %rd39;
+	ld.global.u32 	%r163, [%rd41];
+	and.b32  	%r164, %r163, 65535;
+	cvt.rn.f32.u32 	%f50, %r164;
+	shr.u32 	%r165, %r163, 16;
+	cvt.rn.f32.u32 	%f51, %r165;
+	mul.f32 	%f52, %f51, %f12;
+	fma.rn.f32 	%f53, %f50, %f11, %f52;
+	ld.shared.f32 	%f54, [%r19];
+	add.f32 	%f10, %f54, %f53;
+	ld.global.u32 	%r58, [%rd40];
+	shl.b32 	%r166, %r58, 2;
+	add.s32 	%r59, %r93, %r166;
+	ld.shared.f32 	%f55, [%r59];
+	setp.geu.f32 	%p29, %f10, %f55;
+	@%p29 bra 	$L__BB0_44;
+
+	st.shared.f32 	[%r59], %f10;
+	st.shared.f32 	[%r59+16384], %f10;
+	st.shared.u32 	[%r59+32768], %r15;
+	ld.shared.u32 	%r193, [sharedBytes+65536];
+	setp.gt.u32 	%p30, %r193, 4095;
+	@%p30 bra 	$L__BB0_44;
+
+	shl.b32 	%r168, %r193, 2;
+	add.s32 	%r170, %r93, %r168;
+	st.shared.u32 	[%r170+49152], %r58;
+	ld.shared.u32 	%r171, [sharedBytes+65536];
+	add.s32 	%r193, %r171, 1;
+	st.shared.u32 	[sharedBytes+65536], %r193;
+
+$L__BB0_44:
+	add.s32 	%r189, %r189, 4;
+	setp.lt.u32 	%p31, %r189, %r18;
+	@%p31 bra 	$L__BB0_32;
+
+$L__BB0_45:
+	setp.eq.s32 	%p32, %r193, 0;
+	@%p32 bra 	$L__BB0_46;
+	bra.uni 	$L__BB0_10;
+
+$L__BB0_46:
+	mov.u32 	%r177, 0;
+	st.global.u32 	[%rd1], %r177;
+	bra.uni 	$L__BB0_51;
+
+$L__BB0_47:
+	setp.eq.s32 	%p33, %r198, %r70;
+	setp.eq.s32 	%p34, %r72, 0;
+	mov.u32 	%r199, 1;
+	or.pred  	%p35, %p34, %p33;
+	mov.u64 	%rd44, %rd2;
+	@%p35 bra 	$L__BB0_50;
+
+	mov.u32 	%r197, 1;
+	mov.u64 	%rd44, %rd2;
+
+$L__BB0_49:
+	st.global.u32 	[%rd44], %r198;
+	shl.b32 	%r174, %r198, 2;
+	add.s32 	%r176, %r93, %r174;
+	ld.shared.u32 	%r198, [%r176+32768];
+	setp.ne.s32 	%p36, %r198, %r70;
+	setp.lt.u32 	%p37, %r197, %r72;
+	and.pred  	%p38, %p37, %p36;
+	add.s32 	%r199, %r197, 1;
+	mul.wide.u32 	%rd42, %r197, 4;
+	add.s64 	%rd44, %rd2, %rd42;
+	mov.u32 	%r197, %r199;
+	@%p38 bra 	$L__BB0_49;
+
+$L__BB0_50:
+	st.global.u32 	[%rd44], %r70;
+	st.global.u32 	[%rd1], %r199;
+
+$L__BB0_51:
 	ret;
 
 }

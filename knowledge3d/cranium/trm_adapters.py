@@ -597,9 +597,8 @@ class SelfUpdatingAdapter(AdapterWeights):
             raise ValueError(f"Gradient shape {(grad_rows, grad_cols)} != adapter shape {(dims, dims)}")
 
         gradient_host = HostTensorF32.from_array_like(gradient, rows=dims, cols=dims)
-        gradient_transposed = gradient_host.transpose()
         RPNMathCore.copy_to_device(gradient_host, buffers.gradient.ptr)
-        RPNMathCore.copy_to_device(gradient_transposed, buffers.gradient_transposed.ptr)
+        self._math_core.transpose_2d(buffers.gradient_transposed, buffers.gradient)
 
         a_weights, b_weights, a_transposed, b_transposed = self._ensure_device_weight_set(shadow=shadow)
         grad_vec = self._vector_view(buffers.gradient)
