@@ -253,6 +253,33 @@ class NineChainSpecializedBridge:
 
         return output, chain_states, resonance_weights
 
+    def execute_swarm_device(
+        self,
+        input_embedding,
+        *,
+        d_candidate_indices: int | None = None,
+        candidate_count: int = 0,
+        num_iterations: int = 1,
+        reset_state: bool = False,
+    ) -> tuple[int, int, int]:
+        """Run the swarm while keeping outputs resident on device."""
+        vec = HostTensorF32.from_array_like(input_embedding, rows=self.dim, cols=1)
+        if vec.shape != (self.dim, 1):
+            raise ValueError(f"input_embedding must have shape ({self.dim},), got {vec.shape}")
+        if reset_state or not self.persistent_state:
+            self.reset_states()
+        loader.memcpy_htod(
+            self._d_input,
+            ctypes.c_void_p(vec.data_ptr),
+            self.dim * 4,
+        )
+        iterations = max(1, int(num_iterations))
+        for _ in range(iterations):
+            self._run_once()
+        loader.synchronize()
+        self._diagnostics_dirty = True
+        return int(self._d_chain9.value), int(self.dim), int(self._d_resonance_matrix.value)
+
     def get_chain_diagnostics(self) -> SwarmDiagnostics:
         """Return the most recent diagnostic snapshot."""
         if self._last_diag is None or self._diagnostics_dirty:

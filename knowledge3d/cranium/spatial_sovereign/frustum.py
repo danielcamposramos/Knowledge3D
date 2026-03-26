@@ -300,6 +300,65 @@ class FrustumCuller:
 
         return visible_indices
 
+    def cull_nodes_device(
+        self,
+        positions_ptr: loader.CUdeviceptr | int,
+        d_candidate_indices: loader.CUdeviceptr | int,
+        candidate_count: int,
+        *,
+        view_proj: Optional[object] = None,
+        view: Optional[object] = None,
+    ) -> tuple[loader.CUdeviceptr, int]:
+        """Cull using device-resident positions and candidate indices."""
+        count = int(candidate_count)
+        if count <= 0:
+            return self._flags_ptr or loader.CUdeviceptr(0), 0
+        if view_proj is not None:
+            self.upload_view_projection(view_proj, view)
+        elif not self._view_proj_uploaded:
+            raise RuntimeError("View-projection matrix not uploaded. Call upload_view_projection() first.")
+        self._ensure_flag_capacity(count)
+        loader.memcpy_htod(
+            self._flags_ptr,
+            ctypes.c_void_p(ctypes.addressof(self._zero_template)),
+            count,
+        )
+        count_c = ctypes.c_uint32(count)
+        grid_x = (count + self.block_size - 1) // self.block_size
+        loader.launch(
+            self._kernel,
+            (grid_x, 1, 1),
+            (self.block_size, 1, 1),
+            [
+                self._coerce_device_ptr(positions_ptr),
+                self._coerce_device_ptr(d_candidate_indices),
+                count_c,
+                self._flags_ptr,
+            ],
+        )
+        loader.synchronize()
+        return self._flags_ptr, count
+
+    def read_flags(
+        self,
+        count: int,
+        *,
+        flags_ptr: loader.CUdeviceptr | int | None = None,
+    ) -> list[int]:
+        actual_count = max(0, int(count))
+        if actual_count <= 0:
+            return []
+        ptr = flags_ptr if flags_ptr is not None else self._flags_ptr
+        if ptr is None:
+            return []
+        flags_host = (ctypes.c_uint8 * actual_count)()
+        loader.memcpy_dtoh(
+            ctypes.c_void_p(ctypes.addressof(flags_host)),
+            self._coerce_device_ptr(ptr),
+            actual_count,
+        )
+        return [int(flags_host[idx]) for idx in range(actual_count)]
+
     def cull_from_octree(
         self,
         candidates: object,
@@ -342,6 +401,12 @@ class FrustumCuller:
         self.total_output_nodes = 0
         self.total_time_ms = 0.0
         self._last_elapsed_ms = None
+
+    @staticmethod
+    def _coerce_device_ptr(value: loader.CUdeviceptr | int) -> loader.CUdeviceptr:
+        if isinstance(value, loader.CUdeviceptr):
+            return value
+        return loader.CUdeviceptr(int(value))
 
 
 # ----------------------------------------------------------------------

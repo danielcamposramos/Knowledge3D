@@ -11,6 +11,7 @@ from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 class _FakeMorton:
     def __init__(self, *args, **kwargs) -> None:
         self.bound = None
+        self.positions_device_ptr = 111
 
     def build_tree(self, positions):
         self.bound = positions
@@ -21,6 +22,15 @@ class _FakeMorton:
 
     def query_radius(self, query_center, *, morton_radius, euclidean_radius, max_results):
         return qhs.UInt32Vector([2, 0, 1])
+
+    def query_radius_device(self, query_center, *, morton_radius, euclidean_radius, max_results):
+        return qhs.loader.CUdeviceptr(12345), 3
+
+    def read_indices(self, device_ptr, count, *, limit=None):
+        values = [2, 0, 1]
+        if limit is not None:
+            values = values[: int(limit)]
+        return qhs.UInt32Vector(values)
 
     def close(self) -> None:
         pass
@@ -33,6 +43,12 @@ class _FakeFrustum:
     def cull_nodes(self, positions, candidate_indices, view_proj=None, view=None):
         return qhs.UInt32Vector(index for index in candidate_indices if int(index) != 1)
 
+    def cull_nodes_device(self, positions_ptr, d_candidate_indices, candidate_count, *, view_proj=None, view=None):
+        return qhs.loader.CUdeviceptr(67890), int(candidate_count)
+
+    def read_flags(self, count, *, flags_ptr=None):
+        return [1, 1, 0][: int(count)]
+
     def close(self) -> None:
         pass
 
@@ -40,6 +56,7 @@ class _FakeFrustum:
 class _FakeDynamicLod:
     def __init__(self, *args, **kwargs) -> None:
         self.bound = None
+        self._host_saliency = HostTensorF32.zeros(3, 2)
 
     def bind_unified_buffer(self, host_buffer, node_count: int) -> None:
         self.bound = (host_buffer, int(node_count))
@@ -51,6 +68,15 @@ class _FakeDynamicLod:
         return buf
 
     def tune(self, query_embedding16, node_count: int, saliency_threshold: float = 0.62):
+        rows = []
+        for idx in range(int(node_count)):
+            rows.append([0.1 * float(idx + 1), float(idx)])
+        return HostTensorF32.from_array_like(rows, rows=int(node_count), cols=2)
+
+    def tune_device(self, query_embedding16, node_count: int, saliency_threshold: float = 0.62):
+        return qhs.loader.CUdeviceptr(24680), int(node_count)
+
+    def read_saliency(self, node_count: int):
         rows = []
         for idx in range(int(node_count)):
             rows.append([0.1 * float(idx + 1), float(idx)])
@@ -129,3 +155,41 @@ def test_query_head_substrate_build_and_queries(monkeypatch):
     assert metrics[0][1] == 0
     assert metrics[2][0] == pytest.approx(0.3)
     assert metrics[2][1] == 2
+
+    d_candidates, count = substrate.morton_locate_device(
+        query_embedding16=[0.1] * 16,
+        allowed_galaxy_indexes={1},
+        max_results=8,
+        morton_radius=4,
+        euclidean_radius=1.0,
+    )
+    assert d_candidates == 12345
+    assert count == 3
+
+    d_visible, visible_count = substrate.frustum_visible_device(
+        query_embedding16=[0.1] * 16,
+        d_candidate_indices=d_candidates,
+        candidate_count=count,
+    )
+    assert d_visible == d_candidates
+    assert visible_count == 3
+
+    d_lod, lod_count = substrate.lod_metrics_device(
+        query_embedding16=[0.1] * 16,
+        d_candidate_indices=d_visible,
+        candidate_count=visible_count,
+        saliency_threshold=0.62,
+    )
+    assert d_lod == d_visible
+    assert lod_count == visible_count
+
+    top_candidates, device_metrics, stats = substrate.read_top_candidates(
+        d_indices=d_lod,
+        count=lod_count,
+        top_k=2,
+        focus_level=1,
+    )
+    assert top_candidates == [0, 2]
+    assert device_metrics[0] == pytest.approx((0.1, 0))
+    assert stats["raw_count"] == 3
+    assert stats["visible_count"] == 2

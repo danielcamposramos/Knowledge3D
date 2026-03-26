@@ -55,6 +55,14 @@ def _u32_buffer(values: Iterable[int]) -> ctypes.Array:
     return (ctypes.c_uint32 * len(items))(*items)
 
 
+def _coerce_device_ptr(value: loader.CUdeviceptr | int | None) -> loader.CUdeviceptr:
+    if isinstance(value, loader.CUdeviceptr):
+        return value
+    if value is None:
+        return loader.CUdeviceptr(0)
+    return loader.CUdeviceptr(int(value))
+
+
 def _point3(values: object) -> tuple[float, float, float]:
     tensor = HostTensorF32.from_array_like(values)
     flat = tensor.to_flat_list()
@@ -151,6 +159,11 @@ class LEDPathfinderSovereign:
         self._gt_program = _u16_buffer([0x0000, 0x0001, 0x0028])
         self._dummy_vectors = HostTensorF32.zeros(1, 3)
         self._octree = MortonOctreeSovereign()
+        self._d_device_lazy = None
+        self._device_lazy_capacity = 0
+        self._d_device_path = None
+        self._device_path_capacity = 0
+        self._d_device_path_len = None
 
     def _configure_astar_kernel(self) -> None:
         if not hasattr(loader.nvcuda, "cuFuncSetAttribute"):
@@ -431,6 +444,127 @@ class LEDPathfinderSovereign:
             loader.gpu_free(d_path_len)
             loader.gpu_free(d_kernel)
 
+    def navigate_csr_device(
+        self,
+        d_row_offsets: int | loader.CUdeviceptr,
+        d_col_indices: int | loader.CUdeviceptr,
+        d_packed_costs: int | loader.CUdeviceptr,
+        num_vertices: int,
+        num_edges: int,
+        *,
+        start: int,
+        goal: int,
+        alpha: float = 0.35,
+        beta: float = 0.65,
+        max_path_length: int = 128,
+    ) -> tuple[int, int]:
+        """Run LED-A* against device-resident CSR buffers."""
+        vertices = int(num_vertices)
+        edges = int(num_edges)
+        if vertices <= 0:
+            return 0, 0
+        if not (0 <= int(start) < vertices and 0 <= int(goal) < vertices):
+            raise ValueError(f"start/goal must be in [0, {vertices - 1}]")
+        if self._astar_kernel is None:
+            raise RuntimeError("led_astar_navigate kernel unavailable")
+        if vertices > self._MAX_VERTICES:
+            raise RuntimeError(
+                f"CSR graph has {vertices} vertices, exceeding the {self._MAX_VERTICES} "
+                "shared-memory limit of led_astar_navigate.ptx"
+            )
+
+        self._ensure_device_runtime(vertices=vertices, max_path_length=max_path_length)
+        lazy_zeros = (ctypes.c_uint8 * self._device_lazy_capacity)()
+        zero_len = (ctypes.c_uint32 * 1)(0)
+        loader.memcpy_htod(
+            self._d_device_lazy,
+            ctypes.c_void_p(ctypes.addressof(lazy_zeros)),
+            ctypes.sizeof(lazy_zeros),
+        )
+        loader.memcpy_htod(
+            self._d_device_path_len,
+            ctypes.c_void_p(ctypes.addressof(zero_len)),
+            ctypes.sizeof(zero_len),
+        )
+
+        kernel_desc = _DependencyKernelHost(
+            rowOffsets=int(_coerce_device_ptr(d_row_offsets).value),
+            colIndices=int(_coerce_device_ptr(d_col_indices).value),
+            packedCosts=int(_coerce_device_ptr(d_packed_costs).value),
+            lazyBitmask=int(self._d_device_lazy.value),
+            numVertices=vertices,
+            numEdges=edges,
+        )
+        d_kernel = loader.gpu_malloc(ctypes.sizeof(kernel_desc))
+        try:
+            loader.memcpy_htod(
+                d_kernel,
+                ctypes.cast(ctypes.byref(kernel_desc), ctypes.c_void_p),
+                ctypes.sizeof(kernel_desc),
+            )
+            loader.launch(
+                self._astar_kernel,
+                grid=(1, 1, 1),
+                block=(128, 1, 1),
+                shared_mem=self._SHARED_BYTES,
+                params=[
+                    ctypes.c_uint64(d_kernel.value),
+                    ctypes.c_uint32(int(start)),
+                    ctypes.c_uint32(int(goal)),
+                    ctypes.c_float(float(alpha)),
+                    ctypes.c_float(float(beta)),
+                    ctypes.c_uint64(self._d_device_path.value),
+                    ctypes.c_uint64(self._d_device_path_len.value),
+                    ctypes.c_uint32(int(max_path_length)),
+                ],
+            )
+            loader.synchronize()
+            path_len = (ctypes.c_uint32 * 1)()
+            loader.memcpy_dtoh(
+                ctypes.c_void_p(ctypes.addressof(path_len)),
+                self._d_device_path_len,
+                ctypes.sizeof(path_len),
+            )
+            actual = int(path_len[0])
+            if actual <= 0:
+                raise RuntimeError("led_astar_navigate returned empty path")
+            return int(self._d_device_path.value), actual
+        finally:
+            loader.gpu_free(d_kernel)
+
+    def read_device_path(
+        self,
+        device_ptr: int | loader.CUdeviceptr,
+        path_length: int,
+    ) -> UInt32Vector:
+        actual = max(0, int(path_length))
+        if actual <= 0:
+            return UInt32Vector()
+        path = (ctypes.c_uint32 * actual)()
+        loader.memcpy_dtoh(
+            ctypes.c_void_p(ctypes.addressof(path)),
+            _coerce_device_ptr(device_ptr),
+            ctypes.sizeof(path),
+        )
+        return UInt32Vector(int(path[idx]) for idx in range(actual - 1, -1, -1))
+
+    def close(self) -> None:
+        for attr in ("_d_device_lazy", "_d_device_path", "_d_device_path_len"):
+            ptr = getattr(self, attr, None)
+            if ptr is None:
+                continue
+            try:
+                loader.gpu_free(ptr)
+            except Exception:
+                pass
+            setattr(self, attr, None)
+        self._device_lazy_capacity = 0
+        self._device_path_capacity = 0
+        try:
+            self._octree.close()
+        except Exception:
+            pass
+
     # ------------------------------------------------------------------ #
     # Internal helpers
     # ------------------------------------------------------------------ #
@@ -483,6 +617,22 @@ class LEDPathfinderSovereign:
         if _dot3(_sub3(centroid, mid), axis) < 0.0:
             offset = _scale3(offset, -1.0)
         return _add3(mid, offset)
+
+    def _ensure_device_runtime(self, *, vertices: int, max_path_length: int) -> None:
+        lazy_bytes = max(8, int(vertices) * 8)
+        if self._d_device_lazy is None or lazy_bytes > self._device_lazy_capacity:
+            if self._d_device_lazy is not None:
+                loader.gpu_free(self._d_device_lazy)
+            self._d_device_lazy = loader.gpu_malloc(lazy_bytes)
+            self._device_lazy_capacity = lazy_bytes
+        path_bytes = max(4, int(max_path_length) * 4)
+        if self._d_device_path is None or path_bytes > self._device_path_capacity:
+            if self._d_device_path is not None:
+                loader.gpu_free(self._d_device_path)
+            self._d_device_path = loader.gpu_malloc(path_bytes)
+            self._device_path_capacity = path_bytes
+        if self._d_device_path_len is None:
+            self._d_device_path_len = loader.gpu_malloc(4)
 
 
 __all__ = ["LEDPathfinderSovereign"]

@@ -188,6 +188,23 @@ class MortonOctreeSovereign:
         max_results: int = 1024,
     ) -> UInt32Vector:
         """Query the uploaded Morton index around a semantic position."""
+        device_ptr, count = self.query_radius_device(
+            query_center,
+            morton_radius=morton_radius,
+            euclidean_radius=euclidean_radius,
+            max_results=max_results,
+        )
+        return self.read_indices(device_ptr, count)
+
+    def query_radius_device(
+        self,
+        query_center: object,
+        *,
+        morton_radius: int = 4096,
+        euclidean_radius: float | None = None,
+        max_results: int = 1024,
+    ) -> tuple[loader.CUdeviceptr, int]:
+        """Query the uploaded Morton index and keep result indices on device."""
         if (
             self._last_positions is None
             or self._last_sorted_codes is None
@@ -196,7 +213,7 @@ class MortonOctreeSovereign:
         ):
             raise RuntimeError("Morton tree not built; call build_tree() before query_radius().")
         if max_results <= 0:
-            return UInt32Vector()
+            return self._d_refined_results or self._d_query_results, 0
 
         query = _vector3(query_center)
         query_code = self._encode_query_point(query)
@@ -227,16 +244,10 @@ class MortonOctreeSovereign:
         loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(query_count)), self._d_query_count, ctypes.sizeof(query_count))
         candidate_count = int(query_count[0])
         if candidate_count <= 0:
-            return UInt32Vector()
+            return self._d_query_results, 0
 
         if euclidean_radius is None or euclidean_radius <= 0.0:
-            results = (ctypes.c_uint32 * candidate_count)()
-            loader.memcpy_dtoh(
-                ctypes.c_void_p(ctypes.addressof(results)),
-                self._d_query_results,
-                ctypes.sizeof(results),
-            )
-            return UInt32Vector(int(results[idx]) for idx in range(candidate_count))
+            return self._d_query_results, int(candidate_count)
 
         threads = min(self.block_size, max(1, candidate_count))
         blocks = (candidate_count + threads - 1) // threads
@@ -263,19 +274,38 @@ class MortonOctreeSovereign:
         loader.memcpy_dtoh(ctypes.c_void_p(ctypes.addressof(refined_count)), self._d_refined_count, ctypes.sizeof(refined_count))
         final_count = min(int(refined_count[0]), int(max_results))
         if final_count <= 0:
-            return UInt32Vector()
+            return self._d_refined_results, 0
 
-        results = (ctypes.c_uint32 * final_count)()
+        return self._d_refined_results, int(final_count)
+
+    def read_indices(
+        self,
+        device_ptr: loader.CUdeviceptr | int | None,
+        count: int,
+        *,
+        limit: int | None = None,
+    ) -> UInt32Vector:
+        actual_count = max(0, int(count))
+        if limit is not None:
+            actual_count = min(actual_count, int(limit))
+        if actual_count <= 0 or device_ptr is None:
+            return UInt32Vector()
+        ptr = self._coerce_device_ptr(device_ptr)
+        results = (ctypes.c_uint32 * actual_count)()
         loader.memcpy_dtoh(
             ctypes.c_void_p(ctypes.addressof(results)),
-            self._d_refined_results,
+            ptr,
             ctypes.sizeof(results),
         )
-        return UInt32Vector(int(results[idx]) for idx in range(final_count))
+        return UInt32Vector(int(results[idx]) for idx in range(actual_count))
 
     def get_stats(self) -> dict:
         """Return cached stats from the last build."""
         return dict(self._stats)
+
+    @property
+    def positions_device_ptr(self) -> loader.CUdeviceptr | None:
+        return self._d_positions
 
     # ------------------------------------------------------------------
     # Helpers
@@ -413,6 +443,12 @@ class MortonOctreeSovereign:
         self._d_query_count = loader.gpu_malloc(count_bytes)
         self._d_refined_count = loader.gpu_malloc(count_bytes)
         self._query_capacity = int(max_results)
+
+    @staticmethod
+    def _coerce_device_ptr(value: loader.CUdeviceptr | int) -> loader.CUdeviceptr:
+        if isinstance(value, loader.CUdeviceptr):
+            return value
+        return loader.CUdeviceptr(int(value))
 
 
 __all__ = ["MortonOctreeSovereign"]

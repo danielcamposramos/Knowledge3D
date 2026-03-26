@@ -21,6 +21,7 @@ from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.spatial_sovereign.frustum import UInt32Vector
 from knowledge3d.cranium.sovereign.loader import (
     get_vram_usage,
     gpu_malloc,
@@ -758,6 +759,10 @@ class Knowledgeverse:
     def _trm_navigation_env_enabled() -> bool:
         return os.getenv("K3D_TRM_NAVIGATE", "0").strip().lower() in {"1", "true", "yes"}
 
+    @staticmethod
+    def _device_pipeline_env_enabled() -> bool:
+        return os.getenv("K3D_DEVICE_PIPELINE", "0").strip().lower() in {"1", "true", "yes"}
+
     def _pin_all_default_gpu_binding(self, *, force: bool = False) -> dict[str, Any]:
         binding = self.bind_gpu_galaxy_runtime(galaxy_names=list(self.DEFAULT_GALAXIES), force=force)
         self._pinned_all_default_binding = True
@@ -946,11 +951,11 @@ class Knowledgeverse:
             return
         for name in ("d_q_input", "d_y", "d_z", "d_z_new", "d_y_new", "d_workspace"):
             float_count = int(self.TRM_STATE_BUFFER_FLOATS[name])
-            zeros = np.zeros(float_count, dtype=np.float32)
+            zeros = (ctypes.c_float * float_count)()
             memcpy_htod(
                 self._trm_state_buffers[name],
-                ctypes.c_void_p(zeros.ctypes.data),
-                zeros.nbytes,
+                ctypes.c_void_p(ctypes.addressof(zeros)),
+                ctypes.sizeof(zeros),
             )
 
     def _run_single_trm_tick(self, query_embedding: Any) -> dict[str, Any]:
@@ -1001,17 +1006,23 @@ class Knowledgeverse:
             gpu_free(d_steps)
             gpu_free(d_drift)
 
-    def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[np.ndarray, np.ndarray, str]:
-        y_new_host = np.asarray(list(y_new_vector_512), dtype=np.float32).reshape(-1)
+    def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[list[float], list[float], str]:
+        y_new_host = [float(value) for value in list(y_new_vector_512)]
         if self._trm_galaxy_decoder is not None:
-            logits = (
-                np.asarray(self._trm_galaxy_decoder["W_galaxy"], dtype=np.float32) @ y_new_host
-            ) + np.asarray(self._trm_galaxy_decoder["b_galaxy"], dtype=np.float32)
+            weights = self._trm_galaxy_decoder["W_galaxy"]
+            biases = self._trm_galaxy_decoder["b_galaxy"]
+            logits = []
+            for row_index, bias in enumerate(biases):
+                row = weights[row_index]
+                accum = float(bias)
+                for col_index, value in enumerate(y_new_host):
+                    accum += float(row[col_index]) * float(value)
+                logits.append(float(accum))
             decoder_source = "checkpoint"
         else:
-            logits = np.asarray(y_new_host[: len(self.DEFAULT_GALAXIES)], dtype=np.float32)
+            logits = [float(value) for value in y_new_host[: len(self.DEFAULT_GALAXIES)]]
             decoder_source = "raw_head"
-        distribution = softmax(logits)
+        distribution = [float(value) for value in softmax(logits)]
         return logits, distribution, decoder_source
 
     def _trm_shadow_probe(
@@ -1025,12 +1036,21 @@ class Knowledgeverse:
         if not self._trm_ready or self._trm is None:
             return {}
         tick = dict(trm_tick or self._run_single_trm_tick(query_embedding))
-        y_new_host = np.asarray(list(tick.get("y_new_vector_512", [])), dtype=np.float32).reshape(-1)
-        projected_query = np.asarray(list(tick.get("query_embedding_512", [])), dtype=np.float32).reshape(-1)
+        y_new_host = [float(value) for value in list(tick.get("y_new_vector_512", []))]
+        projected_query = [float(value) for value in list(tick.get("query_embedding_512", []))]
         latency_us = float(tick.get("trm_latency_us", 0.0))
         logits, distribution, decoder_source = self._decode_trm_galaxy_distribution(y_new_host)
-        top_indexes = np.argsort(distribution)[-3:][::-1]
-        entropy = float(-np.sum(distribution * np.log(np.clip(distribution, 1e-9, 1.0))))
+        top_indexes = sorted(
+            range(len(distribution)),
+            key=lambda idx: float(distribution[idx]),
+            reverse=True,
+        )[:3]
+        entropy = float(
+            -sum(
+                float(probability) * math.log(max(1e-9, min(1.0, float(probability))))
+                for probability in distribution
+            )
+        )
         return {
             "y_new_top3_galaxies": [
                 {
@@ -1044,8 +1064,8 @@ class Knowledgeverse:
             "trm_latency_us": latency_us,
             "python_galaxies": [str(name) for name in target_galaxies],
             "python_program": str(reasoning_program_id),
-            "query_embedding_512": projected_query.astype(np.float32, copy=False).tolist(),
-            "y_new_vector_512": y_new_host.astype(np.float32, copy=False).tolist(),
+            "query_embedding_512": list(projected_query),
+            "y_new_vector_512": list(y_new_host),
             "decoder_source": decoder_source,
             "decoder_checkpoint": str(self._trm_galaxy_decoder_path),
             "trm_recursion_steps": int(tick.get("trm_recursion_steps", 0) or 0),
@@ -1329,6 +1349,7 @@ class Knowledgeverse:
             knn_k=12,
             similarity_threshold=0.3,
         )
+        self._semantic_csr_graph.ensure_device_buffers()
         self._query_head_substrate = QueryHeadSubstrate.build(
             signature=str(self._semantic_csr_graph.signature),
             catalog=catalog,
@@ -1344,6 +1365,11 @@ class Knowledgeverse:
     def invalidate_gpu_galaxy_binding(self) -> None:
         if self._query_head_substrate is not None:
             self._query_head_substrate.close()
+        if self._semantic_csr_graph is not None and hasattr(self._semantic_csr_graph, "close"):
+            try:
+                self._semantic_csr_graph.close()
+            except Exception:
+                pass
         self._pinned_all_default_binding = False
         self._gpu_galaxy_binding = None
         self._gpu_galaxy_catalog = []
@@ -1363,6 +1389,7 @@ class Knowledgeverse:
                 knn_k=12,
                 similarity_threshold=0.3,
             )
+            self._semantic_csr_graph.ensure_device_buffers()
         if self._query_head_substrate is None and self._semantic_csr_graph is not None:
             self._query_head_substrate = QueryHeadSubstrate.build(
                 signature=str(self._semantic_csr_graph.signature),
@@ -1931,6 +1958,28 @@ class Knowledgeverse:
             return all(math.isfinite(float(value)) for value in values)
         except Exception:
             return False
+
+    @classmethod
+    def _flatten_float_values(cls, values: Any) -> list[float]:
+        if values is None:
+            return []
+        if isinstance(values, (list, tuple)):
+            flattened: list[float] = []
+            for item in values:
+                if isinstance(item, (list, tuple)):
+                    flattened.extend(cls._flatten_float_values(item))
+                else:
+                    flattened.append(cls._finite_float_or_default(item, 0.0))
+            return flattened
+        if hasattr(values, "tolist"):
+            try:
+                return cls._flatten_float_values(values.tolist())
+            except Exception:
+                pass
+        try:
+            return [cls._finite_float_or_default(values, 0.0)]
+        except Exception:
+            return []
 
     @staticmethod
     def _normalize_embedding(values: list[float]) -> list[float]:
@@ -9455,6 +9504,23 @@ class Knowledgeverse:
         return 2, 0.6, 0.4
 
     @staticmethod
+    def _local_csr_row_bounds(
+        local_rows: list[int],
+        local_cols: list[int],
+        local_costs: list[int] | None,
+        local_index: int,
+    ) -> tuple[int, int]:
+        next_index = int(local_index) + 1
+        if not (0 <= int(local_index) < len(local_rows)) or next_index >= len(local_rows):
+            return 0, 0
+        edge_limit = len(local_cols)
+        if local_costs is not None:
+            edge_limit = min(edge_limit, len(local_costs))
+        row_start = max(0, min(int(local_rows[int(local_index)]), edge_limit))
+        row_end = max(row_start, min(int(local_rows[next_index]), edge_limit))
+        return row_start, row_end
+
+    @staticmethod
     def _build_candidate_adjacency(
         visible_indices: list[int],
         local_nodes: list[int],
@@ -9475,8 +9541,12 @@ class Knowledgeverse:
             if local_index is None:
                 adjacency[int(global_index)] = []
                 continue
-            row_start = int(local_rows[local_index])
-            row_end = int(local_rows[local_index + 1])
+            row_start, row_end = Knowledgeverse._local_csr_row_bounds(
+                local_rows,
+                local_cols,
+                None,
+                local_index,
+            )
             neighbors: list[int] = []
             for edge_index in range(row_start, row_end):
                 local_neighbor_index = int(local_cols[edge_index])
@@ -9750,7 +9820,7 @@ class Knowledgeverse:
                         euclidean_radius=euclidean_radius,
                     ).tolist()
                 )
-            candidate_indexes = np.asarray(list(dict.fromkeys(candidate_indexes)), dtype=np.uint32)
+            candidate_indexes = UInt32Vector(list(dict.fromkeys(int(index) for index in candidate_indexes)))
         else:
             candidate_indexes = substrate.morton_locate(
                 query_embedding16=query_embedding,
@@ -9988,8 +10058,12 @@ class Knowledgeverse:
             row_offsets.append(len(col_indices))
 
             for local_index, global_index in enumerate(local_nodes):
-                row_start = int(local_rows[local_index])
-                row_end = int(local_rows[local_index + 1])
+                row_start, row_end = self._local_csr_row_bounds(
+                    local_rows,
+                    local_cols,
+                    local_costs,
+                    local_index,
+                )
                 for edge_idx in range(row_start, row_end):
                     col_indices.append(first_real_node + int(local_cols[edge_idx]))
                     packed_costs.append(int(local_costs[edge_idx]))
@@ -10187,6 +10261,548 @@ class Knowledgeverse:
         )
         return candidates[:24]
 
+    def _compose_head_navigation_candidates_device_basic(
+        self,
+        *,
+        binding: dict[str, Any],
+        target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
+        reasoning_program_id: str,
+        query_embedding: list[float],
+        task_type: str,
+        selection_steps: list[str],
+        task: dict[str, Any] | None = None,
+        query_text: str = "",
+        domain_hint: str | None = None,
+    ) -> list[dict[str, Any]]:
+        substrate = self.get_query_head_substrate()
+        catalog = self.get_gpu_galaxy_catalog()
+        if not catalog or substrate is None:
+            return []
+        if not all(
+            hasattr(substrate, attr)
+            for attr in (
+                "morton_locate_device",
+                "frustum_visible_device",
+                "lod_metrics_device",
+                "read_top_candidates",
+            )
+        ):
+            return self._compose_head_navigation_candidates(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+
+        normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
+        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
+        allowed_indexes = {
+            self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
+            for name in allowed_galaxies
+            if str(name).strip()
+        }
+        morton_radius, euclidean_radius, max_results = self._task_morton_search_config(task_type)
+        focus_level = self._task_lod_focus_level(task_type)
+        selection_steps.append("Device pipeline: morton -> frustum -> lod chained on GPU")
+
+        d_morton_indices, morton_count = substrate.morton_locate_device(
+            query_embedding16=query_embedding,
+            allowed_galaxy_indexes=allowed_indexes or None,
+            max_results=max_results,
+            morton_radius=morton_radius,
+            euclidean_radius=euclidean_radius,
+        )
+        if morton_count <= 0:
+            selection_steps.append("Morton locate/device: 0 candidates")
+            return []
+        selection_steps.append(
+            f"Morton locate/device: {int(morton_count)} raw candidates (radius={morton_radius}, target={len(target_galaxies)})"
+        )
+
+        d_visible_indices, visible_count = substrate.frustum_visible_device(
+            query_embedding16=query_embedding,
+            d_candidate_indices=d_morton_indices,
+            candidate_count=morton_count,
+        )
+        d_lod_indices, lod_count = substrate.lod_metrics_device(
+            query_embedding16=query_embedding,
+            d_candidate_indices=d_visible_indices,
+            candidate_count=visible_count,
+            saliency_threshold=self._task_lod_saliency_threshold(task_type),
+        )
+        visible_index_list, lod_metrics, device_stats = substrate.read_top_candidates(
+            d_indices=d_lod_indices,
+            count=lod_count,
+            top_k=36,
+            focus_level=focus_level,
+        )
+        selection_steps.append(
+            f"Frustum cull/device: {int(device_stats.get('visible_count', 0))}/{int(device_stats.get('raw_count', morton_count))} visible"
+        )
+        if lod_metrics:
+            lod_values = [level for _, level in lod_metrics.values()]
+            selection_steps.append(
+                f"Dynamic LOD/device: range={min(lod_values)}-{max(lod_values)} across {len(lod_values)} visible nodes"
+            )
+
+        visible_index_list = [
+            int(raw_index)
+            for raw_index in visible_index_list
+            if 0 <= int(raw_index) < len(catalog)
+            and self._benchmark_navigation_entry_allowed(
+                entry=catalog[int(raw_index)],
+                task_type=task_type,
+                task=task,
+                query_text=query_text,
+            )
+        ]
+        if not visible_index_list:
+            return []
+
+        subject_seed_bias: dict[int, float] = {}
+        if task_type == "MMLU_TASK" and str(domain_hint or "").strip():
+            for candidate_index in visible_index_list:
+                subject_seed_bias[int(candidate_index)] = self._subject_anchor_match_score(
+                    entry=catalog[int(candidate_index)],
+                    subject_hint=str(domain_hint),
+                    match_mode="mmlu",
+                )
+            matched_seed_count = sum(1 for value in subject_seed_bias.values() if float(value) > 0.0)
+            if matched_seed_count > 0:
+                selection_steps.append(
+                    f"MMLU seed bias/device: {matched_seed_count}/{len(visible_index_list)} subject-matched candidates"
+                )
+
+        visible_embeddings = [
+            list(catalog[candidate_index].get("embedding16", []))
+            for candidate_index in visible_index_list
+        ]
+        visible_similarities = self._embedding_similarities(query_embedding, visible_embeddings)
+        visible_similarity_map = {
+            int(candidate_index): float(similarity)
+            for candidate_index, similarity in zip(visible_index_list, visible_similarities)
+        }
+
+        candidates: list[dict[str, Any]] = []
+        for candidate_index in visible_index_list:
+            match = dict(catalog[candidate_index])
+            match["_candidate_global_idx"] = int(candidate_index)
+            similarity = float(visible_similarity_map.get(candidate_index, 0.0))
+            lod_saliency, lod_level = lod_metrics.get(candidate_index, (similarity, focus_level + 1))
+            candidates.append(
+                {
+                    "match": match,
+                    "candidate_global_idx": int(candidate_index),
+                    "similarity": float(similarity),
+                    "lod_saliency": float(lod_saliency),
+                    "lod_level": int(lod_level),
+                    "lod_focus": 1.0 if int(lod_level) <= focus_level else 0.0,
+                    "led_focus": 0.0,
+                    "galaxy_weight": self._galaxy_weight_for_name(
+                        str(match.get("galaxy", "")),
+                        normalized_galaxy_weights,
+                    ),
+                    "subject_anchor_focus": float(subject_seed_bias.get(int(candidate_index), 0.0)),
+                    "led_path": [],
+                    "led_path_position": -1,
+                    "graph_neighbors": [],
+                }
+            )
+        if task_type == "LHE_TASK":
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.2,
+                max_neighbors=8,
+            )
+        elif task_type in {"ARC_TASK", "MATH_TASK", "MMLU_TASK"}:
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.3,
+                max_neighbors=4,
+            )
+        candidates.sort(
+            key=lambda candidate: (
+                float(candidate.get("led_focus", 0.0)),
+                float(candidate.get("lod_focus", 0.0)),
+                float(candidate.get("galaxy_weight", 0.0)),
+                float(candidate.get("lod_saliency", 0.0)),
+                float(candidate.get("similarity", 0.0)),
+                float(candidate["match"].get("confidence", 0.0)),
+            ),
+            reverse=True,
+        )
+        return candidates[:24]
+
+    def _compose_head_navigation_candidates_device(
+        self,
+        *,
+        binding: dict[str, Any],
+        target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
+        reasoning_program_id: str,
+        query_embedding: list[float],
+        task_type: str,
+        selection_steps: list[str],
+        task: dict[str, Any] | None = None,
+        query_text: str = "",
+        domain_hint: str | None = None,
+    ) -> list[dict[str, Any]]:
+        graph = self.get_semantic_csr_graph()
+        substrate = self.get_query_head_substrate()
+        catalog = self.get_gpu_galaxy_catalog()
+        if (
+            graph is None
+            or substrate is None
+            or not catalog
+            or not all(
+                hasattr(graph, attr)
+                for attr in (
+                    "select_seed_nodes_device",
+                    "read_seed_pairs",
+                    "extract_local_kernel_device",
+                    "read_selected_nodes",
+                    "read_local_csr",
+                )
+            )
+        ):
+            return self._compose_head_navigation_candidates_device_basic(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+
+        normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
+        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
+        allowed_indexes = {
+            self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
+            for name in allowed_galaxies
+            if str(name).strip()
+        }
+        seed_limit = self._graph_seed_limit(task_type)
+        seed_threshold = self._graph_seed_similarity_threshold(task_type)
+        target_cluster_id = 0
+        cluster_bias = 0.0
+        if task_type == "MMLU_TASK" and str(domain_hint or "").strip():
+            try:
+                target_cluster_id = int(graph.subject_cluster_id(str(domain_hint)))
+            except Exception:
+                target_cluster_id = 0
+            cluster_bias = float(self.MMLU_SUBJECT_SEED_WEIGHT) if target_cluster_id > 0 else 0.0
+
+        selection_steps.append("Device pipeline: seed_select -> graph_expand -> LED-A -> frustum -> lod")
+        try:
+            d_seed_indices, d_seed_scores, seed_count = graph.select_seed_nodes_device(
+                query_embedding=query_embedding,
+                allowed_galaxy_indexes=allowed_indexes or None,
+                top_k=seed_limit,
+                similarity_threshold=seed_threshold,
+                target_cluster_id=target_cluster_id,
+                cluster_bias=cluster_bias,
+            )
+        except Exception:
+            return self._compose_head_navigation_candidates_device_basic(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+        if seed_count <= 0:
+            selection_steps.append("Seed select/device: 0 seeds")
+            return self._compose_head_navigation_candidates_device_basic(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+
+        seed_pairs = graph.read_seed_pairs(d_seed_indices, d_seed_scores, seed_count)
+        seed_pairs = [
+            (int(index), float(similarity))
+            for index, similarity in seed_pairs
+            if 0 <= int(index) < len(catalog)
+        ]
+        if not seed_pairs:
+            selection_steps.append("Seed select/device: empty after readback")
+            return self._compose_head_navigation_candidates_device_basic(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+        selection_steps.append(
+            f"Seed select/device: {len(seed_pairs)} seeds (threshold={seed_threshold:.2f})"
+        )
+
+        local_graph = graph.extract_local_kernel_device(
+            seed_indices_ptr=d_seed_indices,
+            seed_count=len(seed_pairs),
+            max_nodes=self._graph_local_kernel_limit(task_type),
+            max_edge_expansions=24576,
+            alpha=0.35,
+            beta=0.65,
+        )
+        local_count = int(local_graph.get("selected_count", 0))
+        if local_count <= 0:
+            selection_steps.append("Graph expand/device: 0 local nodes")
+            return self._compose_head_navigation_candidates_device_basic(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=query_text,
+                domain_hint=domain_hint,
+            )
+        local_nodes = graph.read_selected_nodes(
+            local_graph["selected_nodes_ptr"],
+            local_count,
+        )
+        local_rows, local_cols, local_costs = graph.read_local_csr(
+            row_offsets_ptr=local_graph["local_row_offsets_ptr"],
+            col_indices_ptr=local_graph["local_col_indices_ptr"],
+            packed_costs_ptr=local_graph["local_packed_costs_ptr"],
+            node_count=local_count,
+            edge_count=int(local_graph.get("local_edge_count", 0)),
+        )
+        selection_steps.append(
+            f"Graph expand/device: {len(local_nodes)} local nodes, {int(local_graph.get('local_edge_count', 0))} local edges"
+        )
+
+        led_focus_index: int | None = None
+        led_path_nodes: list[int] = []
+        led_path_positions: dict[int, int] = {}
+        pathfinder = self.get_led_pathfinder()
+        local_similarity_map: dict[int, float] = {}
+        if local_nodes:
+            local_embeddings = [
+                list(catalog[int(node_index)].get("embedding16", []))
+                for node_index in local_nodes
+            ]
+            local_similarities = self._embedding_similarities(query_embedding, local_embeddings)
+            local_similarity_map = {
+                int(node_index): float(similarity)
+                for node_index, similarity in zip(local_nodes, local_similarities)
+            }
+
+        if local_nodes:
+            start_global = int(seed_pairs[0][0])
+            if start_global not in local_nodes:
+                start_global = int(local_nodes[0])
+            goal_global = int(local_nodes[0])
+            goal_score = float("-inf")
+            for global_index in local_nodes:
+                goal_cost = self._goal_edge_cost(
+                    match=catalog[int(global_index)],
+                    task_type=task_type,
+                    target_galaxies=target_galaxies,
+                    galaxy_weights=normalized_galaxy_weights,
+                    reasoning_program_id=reasoning_program_id,
+                    query_embedding=query_embedding,
+                )
+                if goal_cost is None:
+                    continue
+                candidate_score = max(
+                    float(local_similarity_map.get(int(global_index), 0.0)),
+                    1.0 - float(goal_cost),
+                )
+                if candidate_score > goal_score:
+                    goal_score = candidate_score
+                    goal_global = int(global_index)
+            global_to_local = {int(node): idx for idx, node in enumerate(local_nodes)}
+            start_local = int(global_to_local.get(int(start_global), 0))
+            goal_local = int(global_to_local.get(int(goal_global), start_local))
+            if pathfinder is not None and len(local_nodes) > 1 and goal_local != start_local:
+                try:
+                    d_path, path_count = pathfinder.navigate_csr_device(
+                        local_graph["local_row_offsets_ptr"],
+                        local_graph["local_col_indices_ptr"],
+                        local_graph["local_packed_costs_ptr"],
+                        len(local_nodes),
+                        int(local_graph.get("local_edge_count", 0)),
+                        start=start_local,
+                        goal=goal_local,
+                        alpha=0.35,
+                        beta=0.65,
+                        max_path_length=max(16, len(local_nodes)),
+                    )
+                    local_path = pathfinder.read_device_path(d_path, path_count).tolist()
+                except Exception:
+                    local_path = []
+            else:
+                local_path = [goal_local]
+            if local_path:
+                led_path_nodes = [int(local_nodes[int(local_idx)]) for local_idx in local_path if 0 <= int(local_idx) < len(local_nodes)]
+                if led_path_nodes:
+                    led_focus_index = int(led_path_nodes[-1])
+                    for path_position, global_index in enumerate(led_path_nodes):
+                        led_path_positions[int(global_index)] = int(path_position)
+                    selection_steps.append(
+                        "LED-A device local graph: "
+                        f"[{str(catalog[led_focus_index].get('galaxy', 'unknown'))}] "
+                        f"{str(catalog[led_focus_index].get('id', 'entry')).strip()} "
+                        f"(path_hops={max(0, len(led_path_nodes) - 1)}, local_nodes={len(local_nodes)})"
+                    )
+
+        focus_level = self._task_lod_focus_level(task_type)
+        d_visible_indices, visible_count = substrate.frustum_visible_device(
+            query_embedding16=query_embedding,
+            d_candidate_indices=local_graph["selected_nodes_ptr"],
+            candidate_count=local_count,
+        )
+        d_lod_indices, lod_count = substrate.lod_metrics_device(
+            query_embedding16=query_embedding,
+            d_candidate_indices=d_visible_indices,
+            candidate_count=visible_count,
+            saliency_threshold=self._task_lod_saliency_threshold(task_type),
+        )
+        visible_index_list, lod_metrics, device_stats = substrate.read_top_candidates(
+            d_indices=d_lod_indices,
+            count=lod_count,
+            top_k=36,
+            focus_level=focus_level,
+        )
+        selection_steps.append(
+            f"Frustum cull/device: {int(device_stats.get('visible_count', 0))}/{int(device_stats.get('raw_count', local_count))} visible"
+        )
+        if lod_metrics:
+            lod_values = [level for _, level in lod_metrics.values()]
+            selection_steps.append(
+                f"Dynamic LOD/device: range={min(lod_values)}-{max(lod_values)} across {len(lod_values)} visible nodes"
+            )
+
+        if not visible_index_list:
+            visible_index_list = list(local_nodes[:36])
+        visible_index_list = [
+            int(raw_index)
+            for raw_index in visible_index_list
+            if 0 <= int(raw_index) < len(catalog)
+            and self._benchmark_navigation_entry_allowed(
+                entry=catalog[int(raw_index)],
+                task_type=task_type,
+                task=task,
+                query_text=query_text,
+            )
+        ]
+        if led_focus_index is not None and int(led_focus_index) not in visible_index_list:
+            visible_index_list = [int(led_focus_index)] + list(visible_index_list)
+        visible_index_list = list(dict.fromkeys(visible_index_list))[:36]
+        if not visible_index_list:
+            return []
+
+        subject_seed_bias: dict[int, float] = {}
+        if target_cluster_id > 0:
+            for candidate_index in visible_index_list:
+                subject_seed_bias[int(candidate_index)] = (
+                    1.0
+                    if int(graph.subject_cluster_for_index(int(candidate_index))) == int(target_cluster_id)
+                    else 0.0
+                )
+            matched_seed_count = sum(1 for value in subject_seed_bias.values() if float(value) > 0.0)
+            if matched_seed_count > 0:
+                selection_steps.append(
+                    f"MMLU subject cluster bias/device: {matched_seed_count}/{len(visible_index_list)} cluster-matched candidates"
+                )
+
+        visible_embeddings = [
+            list(catalog[candidate_index].get("embedding16", []))
+            for candidate_index in visible_index_list
+        ]
+        visible_similarities = self._embedding_similarities(query_embedding, visible_embeddings)
+        visible_similarity_map = {
+            int(candidate_index): float(similarity)
+            for candidate_index, similarity in zip(visible_index_list, visible_similarities)
+        }
+        candidate_adjacency = self._build_candidate_adjacency(
+            visible_indices=visible_index_list,
+            local_nodes=local_nodes,
+            local_rows=local_rows,
+            local_cols=local_cols,
+        )
+        candidates: list[dict[str, Any]] = []
+        for candidate_index in visible_index_list:
+            match = dict(catalog[candidate_index])
+            match["_candidate_global_idx"] = int(candidate_index)
+            similarity = float(visible_similarity_map.get(candidate_index, 0.0))
+            lod_saliency, lod_level = lod_metrics.get(candidate_index, (similarity, focus_level + 1))
+            candidates.append(
+                {
+                    "match": match,
+                    "candidate_global_idx": int(candidate_index),
+                    "similarity": float(similarity),
+                    "lod_saliency": float(lod_saliency),
+                    "lod_level": int(lod_level),
+                    "lod_focus": 1.0 if int(lod_level) <= focus_level else 0.0,
+                    "led_focus": 1.0 if led_focus_index == candidate_index else 0.0,
+                    "galaxy_weight": self._galaxy_weight_for_name(
+                        str(match.get("galaxy", "")),
+                        normalized_galaxy_weights,
+                    ),
+                    "subject_anchor_focus": float(subject_seed_bias.get(int(candidate_index), 0.0)),
+                    "led_path": list(led_path_nodes),
+                    "led_path_position": int(led_path_positions.get(int(candidate_index), -1)),
+                    "graph_neighbors": list(candidate_adjacency.get(int(candidate_index), [])),
+                }
+            )
+        if task_type == "LHE_TASK":
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.2,
+                max_neighbors=8,
+            )
+        elif task_type in {"ARC_TASK", "MATH_TASK", "MMLU_TASK"}:
+            self._build_candidate_graph_edges(
+                candidates,
+                similarity_threshold=0.3,
+                max_neighbors=4,
+            )
+        candidates.sort(
+            key=lambda candidate: (
+                float(candidate.get("led_focus", 0.0)),
+                float(candidate.get("lod_focus", 0.0)),
+                float(candidate.get("galaxy_weight", 0.0)),
+                float(candidate.get("lod_saliency", 0.0)),
+                float(candidate.get("similarity", 0.0)),
+                float(candidate["match"].get("confidence", 0.0)),
+            ),
+            reverse=True,
+        )
+        return candidates[:24]
+
     def _dispatch_swarm_weights(
         self,
         *,
@@ -10221,7 +10837,10 @@ class Knowledgeverse:
                     diagnostics.resonance_matrix,
                     diagnostics.chain_norms[: len(raw_weights)],
                 )
-                trust_values = [max(0.0, float(value)) for value in np.asarray(trust_weights).reshape(-1).tolist()]
+                trust_values = [
+                    max(0.0, float(value))
+                    for value in self._flatten_float_values(trust_weights)
+                ]
                 if len(trust_values) == len(raw_weights):
                     executive_mix = max(0.2, min(0.5, 0.2 + (0.3 * max(0.0, float(coherence_score)))))
                     blended_weights = [
@@ -10940,6 +11559,7 @@ class Knowledgeverse:
         domain_hint: str | None,
         selection_steps: list[str],
         parse_bundle: dict[str, Any] | None = None,
+        _device_pipeline_override: bool | None = None,
     ) -> dict[str, Any] | None:
         navigation_reference_embedding = list(query_embedding)
         nav_embed_started = time.perf_counter()
@@ -11109,17 +11729,37 @@ class Knowledgeverse:
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("nav_embed", time.perf_counter() - nav_embed_started)
         morton_started = time.perf_counter()
-        navigation_candidates = self._compose_head_navigation_candidates(
-            binding=binding,
-            target_galaxies=target_galaxies,
-            galaxy_weights=galaxy_weights,
-            reasoning_program_id=reasoning_program_id,
-            query_embedding=navigation_reference_embedding,
-            task_type=task_type,
-            selection_steps=selection_steps,
-            task=task,
-            query_text=benchmark_query_text,
-            domain_hint=domain_hint,
+        use_device_pipeline = (
+            self._device_pipeline_env_enabled()
+            if _device_pipeline_override is None
+            else bool(_device_pipeline_override)
+        )
+        navigation_candidates = (
+            self._compose_head_navigation_candidates_device(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=navigation_reference_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=benchmark_query_text,
+                domain_hint=domain_hint,
+            )
+            if use_device_pipeline
+            else self._compose_head_navigation_candidates(
+                binding=binding,
+                target_galaxies=target_galaxies,
+                galaxy_weights=galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=navigation_reference_embedding,
+                task_type=task_type,
+                selection_steps=selection_steps,
+                task=task,
+                query_text=benchmark_query_text,
+                domain_hint=domain_hint,
+            )
         )
         if not navigation_candidates and task_type != "MMLU_TASK":
             return None
@@ -11510,17 +12150,32 @@ class Knowledgeverse:
                 )
                 continue
             if task_type == "MMLU_TASK" and option_embedding is not None:
-                path_navigation_candidates = self._compose_head_navigation_candidates(
-                    binding=binding,
-                    target_galaxies=path_target_galaxies,
-                    galaxy_weights=galaxy_weights,
-                    reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
-                    query_embedding=option_embedding,
-                    task_type=task_type,
-                    selection_steps=[],
-                    task=task,
-                    query_text=benchmark_query_text,
-                    domain_hint=domain_hint,
+                path_navigation_candidates = (
+                    self._compose_head_navigation_candidates_device(
+                        binding=binding,
+                        target_galaxies=path_target_galaxies,
+                        galaxy_weights=galaxy_weights,
+                        reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
+                        query_embedding=option_embedding,
+                        task_type=task_type,
+                        selection_steps=[],
+                        task=task,
+                        query_text=benchmark_query_text,
+                        domain_hint=domain_hint,
+                    )
+                    if use_device_pipeline
+                    else self._compose_head_navigation_candidates(
+                        binding=binding,
+                        target_galaxies=path_target_galaxies,
+                        galaxy_weights=galaxy_weights,
+                        reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
+                        query_embedding=option_embedding,
+                        task_type=task_type,
+                        selection_steps=[],
+                        task=task,
+                        query_text=benchmark_query_text,
+                        domain_hint=domain_hint,
+                    )
                 )
                 if not path_navigation_candidates:
                     path_navigation_candidates = navigation_candidates
@@ -12163,6 +12818,38 @@ class Knowledgeverse:
             selection_steps=selection_steps,
         )
 
+    def _select_composed_head_candidate_device(
+        self,
+        *,
+        task: dict[str, Any] | None,
+        binding: dict[str, Any],
+        paths: list[dict[str, Any]],
+        target_galaxies: list[str],
+        galaxy_weights: dict[str, Any] | None,
+        reasoning_program_id: str,
+        query_embedding: list[float],
+        task_type: str,
+        options: list[str] | None,
+        domain_hint: str | None,
+        selection_steps: list[str],
+        parse_bundle: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        return self._select_composed_head_candidate(
+            task=task,
+            binding=binding,
+            paths=paths,
+            target_galaxies=target_galaxies,
+            galaxy_weights=galaxy_weights,
+            reasoning_program_id=reasoning_program_id,
+            query_embedding=query_embedding,
+            task_type=task_type,
+            options=options,
+            domain_hint=domain_hint,
+            selection_steps=selection_steps,
+            parse_bundle=parse_bundle,
+            _device_pipeline_override=True,
+        )
+
     def _goal_edge_cost(
         self,
         *,
@@ -12263,8 +12950,12 @@ class Knowledgeverse:
         row_offsets.append(len(col_indices))
 
         for local_index, global_index in enumerate(local_nodes):
-            row_start = int(local_rows[local_index])
-            row_end = int(local_rows[local_index + 1])
+            row_start, row_end = self._local_csr_row_bounds(
+                local_rows,
+                local_cols,
+                local_costs,
+                local_index,
+            )
             for edge_idx in range(row_start, row_end):
                 col_indices.append(first_real_node + int(local_cols[edge_idx]))
                 packed_costs.append(int(local_costs[edge_idx]))
@@ -13279,20 +13970,36 @@ class Knowledgeverse:
         selection_steps: list[str] = []
         selection_started = time.perf_counter()
         try:
-            best_candidate = self._select_composed_head_candidate(
-                task=task,
-                binding=binding,
-                paths=paths,
-                target_galaxies=target_galaxies,
-                galaxy_weights=trm_galaxy_weights,
-                reasoning_program_id=reasoning_program_id,
-                query_embedding=query_embedding,
-                task_type=task_type,
-                options=options,
-                domain_hint=resolved_domain_hint,
-                selection_steps=selection_steps,
-                parse_bundle=parse_bundle,
-            )
+            if self._device_pipeline_env_enabled():
+                best_candidate = self._select_composed_head_candidate_device(
+                    task=task,
+                    binding=binding,
+                    paths=paths,
+                    target_galaxies=target_galaxies,
+                    galaxy_weights=trm_galaxy_weights,
+                    reasoning_program_id=reasoning_program_id,
+                    query_embedding=query_embedding,
+                    task_type=task_type,
+                    options=options,
+                    domain_hint=resolved_domain_hint,
+                    selection_steps=selection_steps,
+                    parse_bundle=parse_bundle,
+                )
+            else:
+                best_candidate = self._select_composed_head_candidate(
+                    task=task,
+                    binding=binding,
+                    paths=paths,
+                    target_galaxies=target_galaxies,
+                    galaxy_weights=trm_galaxy_weights,
+                    reasoning_program_id=reasoning_program_id,
+                    query_embedding=query_embedding,
+                    task_type=task_type,
+                    options=options,
+                    domain_hint=resolved_domain_hint,
+                    selection_steps=selection_steps,
+                    parse_bundle=parse_bundle,
+                )
         finally:
             if lhe_timing_active:
                 self._record_active_lhe_timing("selection", time.perf_counter() - selection_started)

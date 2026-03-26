@@ -1,10 +1,12 @@
 """Sovereign LED pathfinder smoke tests."""
 from __future__ import annotations
 
+import ctypes
 import numpy as np
 import pytest
 
 from knowledge3d.spatial.led_pathfinder import LEDPathfinder
+from knowledge3d.cranium.sovereign import loader
 
 
 @pytest.fixture
@@ -81,3 +83,40 @@ class TestLEDPathfinderSovereign:
         )
 
         assert path.tolist() == [0, 1, 2]
+
+    def test_csr_navigation_device(self, pathfinder: LEDPathfinder):
+        row_offsets = np.array([0, 2, 3, 4], dtype=np.uint32)
+        col_indices = np.array([1, 2, 2, 1], dtype=np.uint32)
+        packed_costs = np.array(
+            [
+                (10 << 16) | 1,
+                (100 << 16) | 8,
+                (5 << 16) | 1,
+                (5 << 16) | 1,
+            ],
+            dtype=np.uint32,
+        )
+
+        d_rows = loader.gpu_malloc(row_offsets.nbytes)
+        d_cols = loader.gpu_malloc(col_indices.nbytes)
+        d_costs = loader.gpu_malloc(packed_costs.nbytes)
+        try:
+            loader.memcpy_htod(d_rows, row_offsets.ctypes.data_as(ctypes.c_void_p), row_offsets.nbytes)
+            loader.memcpy_htod(d_cols, col_indices.ctypes.data_as(ctypes.c_void_p), col_indices.nbytes)
+            loader.memcpy_htod(d_costs, packed_costs.ctypes.data_as(ctypes.c_void_p), packed_costs.nbytes)
+
+            d_path, path_len = pathfinder.navigate_csr_device(
+                d_rows,
+                d_cols,
+                d_costs,
+                int(len(row_offsets) - 1),
+                int(len(col_indices)),
+                start=0,
+                goal=2,
+            )
+            path = pathfinder.read_device_path(d_path, path_len)
+            assert path.tolist() == [0, 1, 2]
+        finally:
+            loader.gpu_free(d_rows)
+            loader.gpu_free(d_cols)
+            loader.gpu_free(d_costs)
