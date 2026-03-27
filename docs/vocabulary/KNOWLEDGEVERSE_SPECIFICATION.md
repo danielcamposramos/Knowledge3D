@@ -285,10 +285,14 @@ class RegionWatermark:
     RED = 0.95     # >92% - emergency compaction, strict admission control
 
 # Actions by watermark:
-# GREEN:  All operations allowed
-# YELLOW: Pause low-priority prefetch, evict COLD
-# ORANGE: Reduce world stream window, freeze optional adapters
-# RED:    Emergency compaction, postpone SleepTime, emit OOM warning
+# GREEN:  All operations allowed, full reasoning budget
+# YELLOW: Pause low-priority prefetch, evict COLD, reduce reasoning budget by 25%
+# ORANGE: Reduce world stream window, freeze optional adapters, cap sub-task depth at D_max/2
+# RED:    Emergency compaction, postpone SleepTime, emit OOM warning, serialize all reasoning
+#
+# Reasoning budget integration: Memory watermarks constrain the Adaptive Reasoning Budget
+# (see ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md §11). Budget, decomposition depth, and
+# worker count are reduced proportionally under YELLOW/ORANGE/RED pressure.
 ```
 
 ---

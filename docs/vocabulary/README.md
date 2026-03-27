@@ -266,6 +266,28 @@ Defines the PTX-based execution layer that enables zero-dependency inference.
 
 ---
 
+### [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) 🆕
+**Ternary-Gated Adaptive Computation Governance**
+
+Defines the **Adaptive Reasoning Budget (ARB)** — a ternary-signal-driven computation governance mechanism that wraps the TRM game loop. The budget scales exponentially with knowledge uncertainty, decomposes into recursive sub-tasks via HTN patterns, and manages parallel-to-serial overflow when processing limits are reached.
+
+**Key Concepts:**
+- **Ternary knowledge signal**: 5 sources aggregated via Kleene conjunction (+1/0/−1)
+- **Budget formula**: B(q) = B_base × 2^(1−σ(q)) — exponential scaling by signal
+- **Minimum budget enforcement**: Aspiration levels prevent premature halting
+- **Recursive sub-task decomposition**: HTN-style task splitting with dependency DAGs
+- **Parallel saturation → serial prioritization**: Work-stealing then priority queue
+- **Knowledge persistence**: ALL intermediate results as MeaningCentricStars
+- **Memory watermark governance**: Budget/depth/worker reduction under VRAM pressure
+
+**X3D Companion**: [../w3c/x3d/PM_KR_X3D_ADAPTIVE_REASONING_COMPONENT.md](../w3c/x3d/PM_KR_X3D_ADAPTIVE_REASONING_COMPONENT.md)
+
+**Production Status**: 📐 Architecture specification (grounded in ACT, PonderNet, Metareasoning, HTN, SOAR research)
+
+**Integration**: Wraps TRM game loop (Three Brain System §3.2), extends Halting Gate (Sovereign NSI §9.2), respects memory watermarks (Knowledgeverse §3.3), budget as Class B RPN recipes (RPN Opcode Registry §6)
+
+---
+
 ## Domain-Specific Specifications
 
 ### [MATH_CORE_SPECIFICATION.md](MATH_CORE_SPECIFICATION.md)
@@ -502,6 +524,10 @@ HYPER_MODULAR_ARCHITECTURE (Structure Paradigm — Cross-Cutting)
 HYPER_PARALLEL_PROCESSING (Function Paradigm — Cross-Cutting)
 │   └── Applies to ALL reasoning (specialist swarm, ternary-ready registers, persistent brain model)
 │   └── Companion to Hyper-Modular: structure + function = complete cognitive architecture
+│
+ADAPTIVE_REASONING_BUDGET (Computation Governance — Cross-Cutting)
+│   └── Wraps TRM game loop: ternary-gated budget → recursive decomposition → parallel/serial overflow
+│   └── Integrates: Halting Gate (NSI §9.2), Memory Watermarks (Knowledgeverse §3.3), RPN recipes (Opcode Registry §6)
 │
 Knowledgeverse (Runtime Substrate)
 ├── THREE_BRAIN_SYSTEM (Cranium + Galaxy + House)

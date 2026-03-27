@@ -931,9 +931,9 @@ These kernels compose the Nine-Chain Swarm reasoning pipeline. Each produces per
 | **Bridge** | `MultimodalHaltingGate.analyze_scores()` |
 | **Input** | `scores[N]` float32, `candidate_hashes[N]` uint32 |
 | **Output** | `flags[4]` uint32 (minimum_met, gap_met, agreement_met, halted), `metrics[3]` float32 (top_score, gap, agreement_ratio) |
-| **Params** | `minimum_threshold`, `gap_threshold`, `agreement_threshold` |
-| **Algorithm** | Check three convergence criteria: (1) top score exceeds minimum, (2) gap between top-2 exceeds threshold, (3) agreement among top candidates exceeds threshold. All three must be met to halt. |
-| **Invariant** | `halted = minimum_met AND gap_met AND agreement_met` |
+| **Params** | `minimum_threshold`, `gap_threshold`, `agreement_threshold`, `budget_remaining` (uint32), `budget_min` (uint32), `composite_signal` (int8: +1/0/−1) |
+| **Algorithm** | Check three convergence criteria: (1) top score exceeds minimum, (2) gap between top-2 exceeds threshold, (3) agreement among top candidates exceeds threshold. All three must be met to halt. **Extended by ARB**: if `budget_remaining > 0` AND confidence below aspiration level for current `composite_signal`, halting is suppressed even if convergence criteria are met — ensuring minimum computational depth for uncertain knowledge. See [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](../vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) §10. |
+| **Invariant** | `halted = minimum_met AND gap_met AND agreement_met AND (budget_remaining == 0 OR confidence >= aspiration[composite_signal])` |
 
 #### `gre_sub100micro_gate` — Latency Guard
 

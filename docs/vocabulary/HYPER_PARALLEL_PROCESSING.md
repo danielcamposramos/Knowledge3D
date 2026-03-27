@@ -315,7 +315,10 @@ Each lab starts from the same base brain and grows their own specialist ecosyste
 | Specialist adapters | Python-selected (navigator_specialist) | TRM-spawnable LoRA |
 | Swarm workers | 9 fixed chains | N dynamic specialist cores |
 | Halting gate | GPU-native convergence | Dimensional + specialist consensus |
+| Reasoning budget | Fixed 9-iteration cap | Ternary-gated adaptive budget (ARB) |
 | Sleep-time consolidation | Grammar Galaxy growth | Specialist creation/pruning |
+
+**Adaptive Reasoning Budget**: Iteration depth and specialist allocation are now governed by the ternary knowledge signal. High-confidence queries (+1) converge in B_base=5 iterations; uncertain/contradictory queries (0/−1) receive exponentially expanded budgets with recursive sub-task decomposition. See: [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) for the formal budget computation, sub-task decomposition, and parallel saturation governance.
 
 ---
 

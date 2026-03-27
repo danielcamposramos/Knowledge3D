@@ -167,7 +167,7 @@ Cranium Components:
 **Core Reasoning Operations**:
 - RPN stack machine execution (stack-based VM)
 - TRM forward pass (pattern matching, 2-layer transformations)
-- Recursive refinement (iterative convergence for complex queries)
+- Recursive refinement (iterative convergence for complex queries; budget governed by ternary knowledge signal — see [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md))
 
 **Spatial Operations**:
 - Frustum culling (view-based filtering)

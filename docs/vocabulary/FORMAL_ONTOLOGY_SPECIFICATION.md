@@ -405,7 +405,9 @@ The TRMAgent's internal cognitive architecture has its own ontological structure
 
 **NavigationTrace** — The path through Galaxy space taken during LED-A* pathfinding. A trace connects seed nodes (navigation origins) to focus nodes (destinations) via intermediate hops. Traces are the computational analogue of chains of thought — but spatial and inspectable.
 
-**ConvergenceState** — The Halting Gate's ternary assessment of whether the swarm has reached a unified answer: converged (+1), diverging (−1), or still processing (0).
+**ConvergenceState** — The Halting Gate's ternary assessment of whether the swarm has reached a unified answer: converged (+1), diverging (−1), or still processing (0). The number of iterations before convergence is governed by the **Adaptive Reasoning Budget** — a ternary-gated computation allocation that scales exponentially with knowledge uncertainty and decomposes into recursive sub-tasks when budget exceeds threshold. See: [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md).
+
+**AdaptiveReasoningBudget** — The computation governance mechanism that wraps the TRM game loop. Computes iteration budget B(q) = B_base × 2^(1−σ(q)) from the composite ternary signal σ(q), enforces minimum aspiration levels, triggers HTN-style sub-task decomposition, and manages parallel-to-serial overflow. Formal definition: [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md).
 
 **ShadowCopy** — The inference-time learning mechanism. When a successful reasoning trace is completed, the shadow copy records the trace for sleep-time consolidation. This is the computational analogue of short-term memory formation.
 

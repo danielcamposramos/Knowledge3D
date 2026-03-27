@@ -448,7 +448,9 @@ The AI avatar's body is driven by `trm_step_fused.ptx`, executing continuously a
 4. DECIDE
    ├── Halting Gate checks convergence
    ├── If converged: emit answer
-   └── If not converged: iterate (up to maxRecursionSteps)
+   └── If not converged: iterate (budget governed by Adaptive Reasoning Budget;
+       B(q) = B_base × 2^(1−σ(q)), minimum B_base=5, maximum D_max=8 recursion depth;
+       see ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md)
 
 5. ACT
    ├── Spatial action: walk to object, point at shelf, open book

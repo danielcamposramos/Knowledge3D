@@ -189,6 +189,17 @@ The principle from Section 1 ("programs before opcodes") is formalized here as a
 | **Test coverage** | Sovereignty tests + functional tests |
 | **Sovereignty review** | Pure PTX, no CPU fallbacks, no external dependencies |
 
+### Budget Control Recipes (Class B — Stage 0-1)
+
+The **Adaptive Reasoning Budget** (see [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) §A.2) is expressed entirely as Class B recipes using existing opcodes — no new kernel admission required:
+
+- **Budget state** stored in STORE/RECALL registers 60-67 (budget_total, budget_remaining, budget_min, ternary_signal, decomposition_depth, sub_task_count, priority, watermark_level)
+- **Budget computation**: `OP_PUSH B_base → OP_PUSH 2 → OP_PUSH 1 → OP_RECALL signal → OP_SUB → OP_POW → OP_MUL` = B(q) = B_base × 2^(1−σ)
+- **Budget enforcement**: `OP_RECALL budget_remaining → OP_PUSH 0 → OP_CMP → OP_BRANCH halt_if_zero`
+- **Sub-task decomposition**: `OP_RECALL depth → OP_PUSH D_max → OP_CMP → OP_BRANCH decompose_or_serialize`
+
+These recipes demonstrate the "programs before opcodes" principle: budget governance composes from existing RPN primitives. If profiling shows budget computation as a bottleneck (unlikely — budget logic runs once per TRM tick, not per-element), promotion to Stage 2 is warranted.
+
 ### Multimodal Target Opcodes (Stage 2 Candidates)
 
 The following are valid design targets currently at Stage 0-1. They MUST pass the promotion pipeline before receiving PTX kernels:
