@@ -45,6 +45,17 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "state_machine_start_prompt" in ids
     assert "screen_transition_dismiss" in ids
     assert "post_transition_new_context" in ids
+    assert "movement_budget_visual_bar" in ids
+    assert "movement_budget_depletion_penalty" in ids
+    assert "movement_budget_conservation" in ids
+    assert "lives_system" in ids
+    assert "lives_visual_indicator" in ids
+    assert "strategic_reset" in ids
+    assert "budget_sufficiency_check" in ids
+    assert "screen_flash_failure" in ids
+    assert "screen_flash_color_semantics" in ids
+    assert "reference_box_current_state" in ids
+    assert "level_count_indicator" in ids
     assert rows[0]["meaning_rpn"]
     assert rows[0]["behavior_rpn"]
     assert rows[0]["meta_refs"]
@@ -74,6 +85,11 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "grammar_transition_game_state" in grammar_ids
     assert "grammar_detect_transition_screen" in grammar_ids
     assert "grammar_reperceive_after_transition" in grammar_ids
+    assert "grammar_decode_movement_budget_bar" in grammar_ids
+    assert "grammar_decode_lives_indicator" in grammar_ids
+    assert "grammar_trigger_strategic_reset" in grammar_ids
+    assert "grammar_classify_failure_flash" in grammar_ids
+    assert "grammar_compare_reference_box_to_target" in grammar_ids
 
     tool_rows = [
         json.loads(line)
@@ -87,6 +103,9 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "meta_read_visual_affordance_before_action" in tool_ids
     assert "meta_dismiss_transition_before_navigation" in tool_ids
     assert "meta_reset_context_after_level_completion" in tool_ids
+    assert "meta_compare_budget_to_route_before_commit" in tool_ids
+    assert "meta_reset_before_budget_depletion" in tool_ids
+    assert "meta_reperceive_after_failure_flash" in tool_ids
 
 
 def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
@@ -136,6 +155,13 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "reality_gravity_field" in reality_ids
     assert "reality_transition_screen_state" in reality_ids
     assert "reality_post_transition_context" in reality_ids
+    assert "reality_movement_budget_visual_bar" in reality_ids
+    assert "reality_movement_budget_depletion_penalty" in reality_ids
+    assert "reality_lives_counter" in reality_ids
+    assert "reality_failure_flash_state" in reality_ids
+    assert "reality_reference_box_state" in reality_ids
+    assert "reality_level_count_progress" in reality_ids
+    assert "reality_strategic_reset_affordance" in reality_ids
 
 
 def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
@@ -160,12 +186,24 @@ def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
     assert "screen_transition_uniform_color" in star_ids
     assert "screen_transition_dismiss" in star_ids
     assert "post_transition_new_context" in star_ids
+    assert "movement_budget_visual_bar" in star_ids
+    assert "lives_system" in star_ids
+    assert "strategic_reset" in star_ids
+    assert "screen_flash_failure" in star_ids
+    assert "reference_box_current_state" in star_ids
+    assert "level_count_indicator" in star_ids
     assert "reality_level_topology" in star_ids
     assert "reality_transition_screen_state" in star_ids
+    assert "reality_movement_budget_visual_bar" in star_ids
+    assert "reality_lives_counter" in star_ids
+    assert "reality_failure_flash_state" in star_ids
     assert "grammar_transition_game_state" in star_ids
     assert "grammar_detect_transition_screen" in star_ids
+    assert "grammar_decode_movement_budget_bar" in star_ids
+    assert "grammar_trigger_strategic_reset" in star_ids
     assert "meta_start_from_title_state" in star_ids
     assert "meta_dismiss_transition_before_navigation" in star_ids
+    assert "meta_reset_before_budget_depletion" in star_ids
     assert len(build_game_mechanics_entries()) >= 100
     assert len(build_game_reality_entries()) >= 20
     assert len(build_game_grammar_rules()) >= 20

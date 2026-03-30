@@ -4793,7 +4793,10 @@ class Knowledgeverse:
         if str(domain_hint or "").strip().lower() == "arc3_interactive" and str(query_text or "").strip():
             _qt = str(query_text).lower()
             _arc3_direct_index: int | None = None
-            if "screen transition" in _qt and ("dismiss" in _qt or "primary action perform" in _qt):
+            _arc3_direct_action_name: str | None = None
+            if "primary action reset" in _qt or "strategic reset" in _qt:
+                _arc3_direct_action_name = "RESET"
+            elif "screen transition" in _qt and ("dismiss" in _qt or "primary action perform" in _qt):
                 _arc3_direct_index = 4  # Perform / dismiss transition
             elif "primary action move up" in _qt:
                 _arc3_direct_index = 0  # Move Up
@@ -4825,7 +4828,7 @@ class Knowledgeverse:
                 _arc3_direct_index = 2
             elif "object centered balanced" in _qt and "action perform" in _qt:
                 _arc3_direct_index = 4
-            if _arc3_direct_index is not None:
+            if _arc3_direct_action_name is not None or _arc3_direct_index is not None:
                 thinking_trace = self._build_gpu_thinking_trace(
                     binding=binding,
                     program_id=str(reasoning_program.get("id", "")),
@@ -4835,15 +4838,17 @@ class Knowledgeverse:
                     read_field="arc3_direct_query_decode",
                     extra_steps=list(selection_steps),
                 )
+                direct_answer = _arc3_direct_action_name if _arc3_direct_action_name is not None else _arc3_direct_index
                 return {
                     "status": "ok",
                     "answer_index": _arc3_direct_index,
-                    "answer": str(_arc3_direct_index),
-                    "response": str(_arc3_direct_index),
-                    "result": _arc3_direct_index,
+                    "action_name": _arc3_direct_action_name,
+                    "answer": str(direct_answer),
+                    "response": str(direct_answer),
+                    "result": direct_answer,
                     "thinking_trace": thinking_trace,
                     "reasoning_trace": list(thinking_trace),
-                    "thinking_xml": self._render_thinking_xml(thinking_trace, _arc3_direct_index),
+                    "thinking_xml": self._render_thinking_xml(thinking_trace, direct_answer),
                     "gpu_execution": True,
                     "runtime": "knowledgeverse_gpu_query",
                     "program_id": str(reasoning_program.get("id", "")),
@@ -4876,6 +4881,40 @@ class Knowledgeverse:
             for src, dst in dict(color_mapping_raw).items()
         }
         metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        action_name_raw = str(metadata.get("action_name") or match.get("action_name") or "").strip().upper()
+        if action_name_raw:
+            thinking_trace = self._build_gpu_thinking_trace(
+                binding=binding,
+                program_id=str(reasoning_program.get("id", "")),
+                match=match,
+                similarity=similarity,
+                specialist=specialist,
+                read_field="action_name",
+                extra_steps=list(selection_steps),
+            )
+            return {
+                "status": "ok",
+                "action_name": action_name_raw,
+                "answer": action_name_raw,
+                "response": action_name_raw,
+                "result": action_name_raw,
+                "thinking_trace": thinking_trace,
+                "reasoning_trace": list(thinking_trace),
+                "thinking_xml": self._render_thinking_xml(thinking_trace, action_name_raw),
+                "gpu_execution": True,
+                "runtime": "knowledgeverse_gpu_query",
+                "program_id": str(reasoning_program.get("id", "")),
+                "program_type": "gpu_spatial_navigation_rule",
+                "solver": "knowledgeverse_gpu_query",
+                "patterns_used": 1,
+                "query_text": query_text,
+                "top_match_similarity": similarity,
+                "route": {
+                    "specialist": specialist,
+                    "galaxy_names": list(route_galaxies or []),
+                    "domain_hint": str(domain_hint or ""),
+                },
+            }
         action_index_raw = None
         if "action_index" in metadata:
             action_index_raw = metadata.get("action_index")

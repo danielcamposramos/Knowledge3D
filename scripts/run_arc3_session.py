@@ -133,12 +133,28 @@ def run_single_game(
             if action["action"] == "ACTION6":
                 payload["x"] = int(action.get("x", max(0, len(frame[0]) // 2) if frame and frame[0] else 0))
                 payload["y"] = int(action.get("y", max(0, len(frame) // 2)))
-
-            response = session.post(
-                f"{api_url}/api/cmd/{action['action']}",
-                json=payload,
-                timeout=30,
-            ).json()
+            if action["action"] == "RESET":
+                response = session.post(
+                    f"{api_url}/api/cmd/RESET",
+                    json={
+                        "card_id": card_id,
+                        "game_id": game_id,
+                        "reasoning": {
+                            "agent": "k3d-living-session",
+                            "confidence": action["confidence"],
+                            "converged": action["converged"],
+                        },
+                    },
+                    timeout=30,
+                ).json()
+                goal_frame = normalize_goal_frame(response)
+                task_data = response.get("task_data") or task_data
+            else:
+                response = session.post(
+                    f"{api_url}/api/cmd/{action['action']}",
+                    json=payload,
+                    timeout=30,
+                ).json()
             frame = normalize_frame(response.get("frame", frame))
             guid = response.get("guid", guid)
             state = response.get("state", state)
@@ -170,6 +186,19 @@ def run_single_game(
                     "x": action.get("x"),
                     "y": action.get("y"),
                     "click_reason": str(action.get("click_reason", "")),
+                    "frame_state": str(action.get("frame_state", "")),
+                    "fresh_context": bool(action.get("fresh_context", False)),
+                    "movement_budget": dict(action.get("movement_budget") or {}),
+                    "lives_remaining": action.get("lives_remaining"),
+                    "reference_box_visible": bool(action.get("reference_box_visible", False)),
+                    "flash_semantics": str(action.get("flash_semantics", "")),
+                    "target_label": str(action.get("target_label", "")),
+                    "attempt_actions": int(action.get("attempt_actions", 0)),
+                    "program_type": str(action.get("task_result", {}).get("program_type", "")),
+                    "program_id": str(action.get("task_result", {}).get("program_id", "")),
+                    "result_answer_index": action.get("task_result", {}).get("answer_index"),
+                    "result_action_name": str(action.get("task_result", {}).get("action_name", "")),
+                    "result_error": str(action.get("task_result", {}).get("error", "")),
                     "frame": _clone_frame(frame),
                 },
             )

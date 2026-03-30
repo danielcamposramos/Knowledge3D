@@ -103,6 +103,49 @@ def test_arc3_agent_query_text_uses_goal_relative_direction():
     assert "primary action move down" in query_text
 
 
+def test_arc3_agent_encodes_budget_lives_reference_and_reset():
+    kv = _FakeKnowledgeverse({"action_name": "RESET", "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    frame = [[4] * 64 for _ in range(64)]
+    frame[48][32] = 0
+    frame[49][31] = 1
+    frame[49][32] = 0
+    frame[49][33] = 0
+    frame[50][32] = 1
+    for row in range(6, 9):
+        for col in range(50, 53):
+            if row == 7 or col == 51:
+                frame[row][col] = 11
+    for row in range(56, 61):
+        for col in range(0, 10):
+            frame[row][col] = 9
+    for row in (61, 62):
+        for col in range(12, 52):
+            frame[row][col] = 3
+        for col in range(52, 56):
+            frame[row][col] = 11
+    for row in (61, 62):
+        for base in (58, 62):
+            frame[row][base] = 8
+            frame[row][base + 1] = 8
+
+    action = agent.choose_action(frame, available_actions=[1, 2, 3, 4])
+
+    query_text = kv.calls[-1]["task"]["query"]
+    assert "movement budget visual bar" in query_text
+    assert "movement budget critical" in query_text
+    assert "lives system" in query_text
+    assert "reference box current state visible" in query_text
+    assert "strategic reset" in query_text
+    assert "primary action reset" in query_text
+    assert action["action"] == "RESET"
+    assert action["label"] == "Reset"
+    assert action["movement_budget"]["bucket"] == "critical"
+    assert action["lives_remaining"] == 2
+    assert action["reference_box_visible"] is True
+
+
 def test_arc3_agent_uses_neutral_bridge_for_transition_frame_after_level_completion():
     kv = _FakeKnowledgeverse({"answer_index": 0, "gpu_execution": True})
     agent = K3DARC3Agent(knowledgeverse=kv)
@@ -394,6 +437,31 @@ def test_answer_arc_query_transitional_decode_handles_transition_dismiss():
 
     assert result["status"] == "ok"
     assert result["answer_index"] == 4
+    assert result["program_type"] == "transitional_io_decode"
+
+
+def test_answer_arc_query_transitional_decode_handles_strategic_reset():
+    harness = _AnswerIndexHarness()
+
+    result = Knowledgeverse._answer_arc_query(
+        harness,
+        task={"type": "ARC_TASK", "input_grid": [[0]]},
+        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
+        reasoning_program={"id": "arc3_program"},
+        route_galaxies=["Grammar", "Tool", "Reality"],
+        match={"id": "reasoning_arc_grid_transform_top1"},
+        similarity=0.55,
+        route={"specialist": "visual"},
+        specialist="visual",
+        domain_hint="arc3_interactive",
+        query_text="arc3 interactive game frame movement budget critical strategic reset primary action reset",
+        use_enriched=False,
+        query_type="ARC_TASK",
+        selection_steps=["arc3 transitional decode"],
+    )
+
+    assert result["status"] == "ok"
+    assert result["action_name"] == "RESET"
     assert result["program_type"] == "transitional_io_decode"
 
 

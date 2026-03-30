@@ -12,6 +12,8 @@ from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 ACTION_NAMES = ["ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6", "ACTION7"]
 ACTION_LABELS = ["Move Up", "Move Down", "Move Left", "Move Right", "Perform", "Click", "Undo"]
+RESET_ACTION_NAME = "RESET"
+RESET_ACTION_LABEL = "Reset"
 ARC3_ROUTE_GALAXIES = ["Drawing", "Grammar", "Tool", "Reality", "Word"]
 LIVE_TRANSITIONAL_ACTION_SCRIPTS: dict[tuple[str, int], list[int]] = {
     # Transitional I/O decode from the verified live ls20 level-1 solution.
@@ -178,6 +180,8 @@ def _avatar_centroid(grid: list[list[int]]) -> tuple[float, float] | None:
 def _select_mechanic_target(
     grid: list[list[int]],
     avatar_centroid: tuple[float, float] | None,
+    *,
+    budget_snapshot: dict[str, Any] | None = None,
 ) -> tuple[tuple[float, float] | None, str]:
     if avatar_centroid is None:
         return None, ""
@@ -188,6 +192,13 @@ def _select_mechanic_target(
         ("pattern", {12}, 4, 16, 2),
         ("door", {9}, 4, 32, 3),
     ]
+    if budget_snapshot and str(budget_snapshot.get("bucket", "")) in {"low", "critical"}:
+        target_specs = [
+            ("recharge", {8}, 4, 16, 0),
+            ("switch", {11}, 5, 16, 1),
+            ("pattern", {12}, 4, 16, 2),
+            ("door", {9}, 4, 32, 3),
+        ]
     candidates: list[tuple[int, float, float, tuple[float, float], str]] = []
     for label, colors, min_size, max_size, priority in target_specs:
         for component in _components_for_colors(grid, colors):
@@ -233,6 +244,118 @@ def _frame_state(grid: list[list[int]]) -> str:
     ):
         return "transition"
     return "gameplay"
+
+
+def _flash_semantics(grid: list[list[int]]) -> str:
+    if not grid or not grid[0]:
+        return ""
+    counts: Counter[int] = Counter(int(value) for row in grid for value in row)
+    total = max(1, sum(counts.values()))
+    dominant_color, dominant_count = counts.most_common(1)[0]
+    dominant_ratio = float(dominant_count) / float(total)
+    if dominant_ratio < 0.8:
+        return ""
+    if dominant_color in {8, 11}:
+        return "failure"
+    if dominant_color in {6, 9, 15}:
+        return "success"
+    return "transition"
+
+
+def _movement_budget_snapshot(grid: list[list[int]]) -> dict[str, Any] | None:
+    if not grid or not grid[0] or len(grid) < 3:
+        return None
+    rows = [len(grid) - 3, len(grid) - 2]
+    track_colors = {3, 11}
+    cells = [
+        int(grid[row_index][col_index])
+        for row_index in rows
+        for col_index in range(len(grid[row_index]))
+        if int(grid[row_index][col_index]) in track_colors
+    ]
+    if len(cells) < 8:
+        return None
+    row_count = len(rows)
+    capacity_units = max(1, len(cells) // row_count)
+    remaining_units = sum(1 for value in cells if value == 11) // row_count
+    spent_units = sum(1 for value in cells if value == 3) // row_count
+    fraction = float(remaining_units) / float(capacity_units)
+    if fraction <= 0.15 or remaining_units <= 4:
+        bucket = "critical"
+    elif fraction <= 0.35 or remaining_units <= 12:
+        bucket = "low"
+    else:
+        bucket = "healthy"
+    return {
+        "remaining_units": int(remaining_units),
+        "capacity_units": int(capacity_units),
+        "spent_units": int(spent_units),
+        "fraction": float(fraction),
+        "bucket": bucket,
+    }
+
+
+def _lives_remaining(grid: list[list[int]]) -> int | None:
+    if not grid or not grid[0] or len(grid) < 3:
+        return None
+    rows = [len(grid) - 3, len(grid) - 2]
+    right_start = max(0, len(grid[0]) - 10)
+    red_cells = 0
+    for row_index in rows:
+        for col_index in range(right_start, len(grid[row_index])):
+            if int(grid[row_index][col_index]) == 8:
+                red_cells += 1
+    if red_cells < 4:
+        return None
+    return max(0, int(round(float(red_cells) / 4.0)))
+
+
+def _reference_box_visible(grid: list[list[int]]) -> bool:
+    if not grid or not grid[0] or len(grid) < 8:
+        return False
+    max_row = len(grid) - 3
+    focus_rows = range(max(0, max_row - 5), max_row)
+    focus_cols = range(0, min(12, len(grid[0])))
+    blue_cells = sum(
+        1
+        for row_index in focus_rows
+        for col_index in focus_cols
+        if int(grid[row_index][col_index]) == 9
+    )
+    return blue_cells >= 6
+
+
+def _estimate_grid_steps(
+    source: tuple[float, float] | None,
+    target: tuple[float, float] | None,
+) -> int | None:
+    if source is None or target is None:
+        return None
+    return int(round(abs(float(target[0]) - float(source[0])) + abs(float(target[1]) - float(source[1]))))
+
+
+def _should_force_reset(
+    *,
+    budget_snapshot: dict[str, Any] | None,
+    avatar_centroid: tuple[float, float] | None,
+    target_centroid: tuple[float, float] | None,
+    target_label: str,
+) -> bool:
+    if not budget_snapshot:
+        return False
+    remaining_units = int(budget_snapshot.get("remaining_units", 0))
+    bucket = str(budget_snapshot.get("bucket", ""))
+    if bucket not in {"low", "critical"}:
+        return False
+    if target_label == "recharge":
+        estimated_steps = _estimate_grid_steps(avatar_centroid, target_centroid)
+        return estimated_steps is not None and estimated_steps > max(1, remaining_units - 1)
+    if bucket != "critical":
+        return False
+    estimated_steps = _estimate_grid_steps(avatar_centroid, target_centroid)
+    if estimated_steps is None:
+        return remaining_units <= 4
+    return estimated_steps > max(1, remaining_units - 2)
 
 
 def _clamp_click_target(grid: list[list[int]], x: int, y: int) -> dict[str, int]:
@@ -377,6 +500,11 @@ def _frame_to_query_text(
     *,
     frame_state: str = "gameplay",
     fresh_context: bool = False,
+    budget_snapshot: dict[str, Any] | None = None,
+    lives_remaining: int | None = None,
+    reference_box_visible: bool = False,
+    flash_semantics: str = "",
+    force_reset: bool = False,
 ) -> str:
     normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
     rows = len(frame)
@@ -390,14 +518,35 @@ def _frame_to_query_text(
     derived_target_centroid: tuple[float, float] | None = None
     derived_target_label = ""
     if goal_centroid is None and current_centroid is not None and frame_state != "transition":
-        derived_target_centroid, derived_target_label = _select_mechanic_target(frame, current_centroid)
-    if frame_state == "transition":
-        state_tokens.extend(
-            [
-                "screen transition uniform color",
-                "transition animation continue",
-            ]
+        derived_target_centroid, derived_target_label = _select_mechanic_target(
+            frame,
+            current_centroid,
+            budget_snapshot=budget_snapshot,
         )
+    if frame_state == "transition":
+        if flash_semantics == "failure":
+            state_tokens.extend(
+                [
+                    "screen flash failure",
+                    "yellow flash failure",
+                    "movement budget depletion penalty",
+                ]
+            )
+        elif flash_semantics == "success":
+            state_tokens.extend(
+                [
+                    "screen transition uniform color",
+                    "green flash success",
+                    "level progression success",
+                ]
+            )
+        else:
+            state_tokens.extend(
+                [
+                    "screen transition uniform color",
+                    "transition animation continue",
+                ]
+            )
     elif fresh_context:
         state_tokens.extend(
             [
@@ -406,8 +555,30 @@ def _frame_to_query_text(
                 "new level gameplay",
             ]
         )
+    if budget_snapshot:
+        state_tokens.append("movement budget visual bar")
+        bucket = str(budget_snapshot.get("bucket", ""))
+        if bucket == "critical":
+            state_tokens.extend(["movement budget critical", "budget sufficiency check"])
+        elif bucket == "low":
+            state_tokens.extend(["movement budget low", "movement budget conservation"])
+        else:
+            state_tokens.append("movement budget healthy")
+    if lives_remaining is not None:
+        lives_word = {0: "zero", 1: "one", 2: "two", 3: "three"}.get(int(lives_remaining), str(int(lives_remaining)))
+        state_tokens.extend(
+            [
+                "lives system",
+                "lives visual indicator",
+                f"{lives_word} lives remaining",
+            ]
+        )
+    if reference_box_visible:
+        state_tokens.append("reference box current state visible")
     if derived_target_label:
         state_tokens.append(f"{derived_target_label} target visible")
+        if derived_target_label == "door":
+            state_tokens.append("target room visible")
     if current_centroid is not None and rows > 0 and cols > 0:
         avg_row, avg_col = current_centroid
         center_row = (rows - 1) / 2.0
@@ -416,8 +587,20 @@ def _frame_to_query_text(
         col_margin = max(cols * 0.1, 0.5)
         primary_action: str | None = None
         secondary_action: str | None = None
+        if force_reset:
+            state_tokens.extend(
+                [
+                    "strategic reset",
+                    "budget sufficiency check",
+                    "preserve life before depletion",
+                ]
+            )
+            position_tokens.append("budget insufficient reset now")
+            primary_action = "action reset"
         target_centroid = goal_centroid or derived_target_centroid
-        if target_centroid is not None:
+        if force_reset:
+            secondary_action = None
+        elif target_centroid is not None:
             goal_row, goal_col = target_centroid
             row_delta = float(goal_row - avg_row)
             col_delta = float(goal_col - avg_col)
@@ -511,7 +694,11 @@ def _derive_action_from_result(
     result: dict[str, Any],
     *,
     goal_frame: list[list[int]] | None = None,
-) -> tuple[int, dict[str, int]]:
+) -> tuple[int | str, dict[str, int]]:
+    raw_action_name = str(result.get("action_name", "")).strip().upper()
+    if raw_action_name == RESET_ACTION_NAME:
+        return RESET_ACTION_NAME, {}
+
     raw_answer_index = result.get("answer_index")
     if isinstance(raw_answer_index, (int, float)):
         action_index = max(0, min(int(raw_answer_index), len(ACTION_NAMES) - 1))
@@ -567,6 +754,7 @@ class K3DARC3Agent:
         self._transitional_script_key: tuple[str, int] | None = None
         self._transitional_script_cursor = 0
         self._needs_reperceive = False
+        self._attempt_actions = 0
 
     def _next_click_payload(self, grid: list[list[int]]) -> tuple[dict[str, int], str]:
         candidates = _salient_click_centers(grid)
@@ -630,6 +818,29 @@ class K3DARC3Agent:
         normalized_frame = _normalize_grid(frame)
         normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
         frame_state = _frame_state(normalized_frame)
+        flash_semantics = _flash_semantics(normalized_frame)
+        budget_snapshot = _movement_budget_snapshot(normalized_frame)
+        lives_remaining = _lives_remaining(normalized_frame)
+        reference_box_visible = _reference_box_visible(normalized_frame)
+        avatar_centroid = None if frame_state == "transition" else (_avatar_centroid(normalized_frame) or _focus_centroid(normalized_frame))
+        goal_centroid = _foreground_centroid(normalized_goal) if normalized_goal != [[]] else None
+        derived_target_centroid: tuple[float, float] | None = None
+        derived_target_label = ""
+        if goal_centroid is None and avatar_centroid is not None and frame_state != "transition":
+            derived_target_centroid, derived_target_label = _select_mechanic_target(
+                normalized_frame,
+                avatar_centroid,
+                budget_snapshot=budget_snapshot,
+            )
+        target_centroid = goal_centroid or derived_target_centroid
+        target_label = "goal" if goal_centroid is not None else derived_target_label
+        valid_action_indices = _available_action_indices(available_actions)
+        force_reset = bool(valid_action_indices) and _should_force_reset(
+            budget_snapshot=budget_snapshot,
+            avatar_centroid=avatar_centroid,
+            target_centroid=target_centroid,
+            target_label=target_label,
+        )
         fresh_context = False
         if self._needs_reperceive:
             self._last_click_focus = None
@@ -640,7 +851,6 @@ class K3DARC3Agent:
             if frame_state != "transition":
                 fresh_context = True
         task_context = dict(task_data or {}) if isinstance(task_data, dict) else {}
-        valid_action_indices = _available_action_indices(available_actions)
         if self._needs_reperceive and frame_state == "transition":
             action_index = int(valid_action_indices[0]) if valid_action_indices else 0
             record = {
@@ -660,6 +870,10 @@ class K3DARC3Agent:
                 "fresh_context": False,
                 "game_id": str(game_id or ""),
                 "levels_completed": int(levels_completed),
+                "movement_budget": dict(budget_snapshot or {}),
+                "lives_remaining": lives_remaining,
+                "target_label": target_label,
+                "attempt_actions": int(self._attempt_actions),
             }
             self.action_history.append(record)
             self._last_frame = _clone_grid(normalized_frame)
@@ -677,6 +891,11 @@ class K3DARC3Agent:
                 available_actions=available_actions,
                 frame_state=frame_state,
                 fresh_context=fresh_context,
+                budget_snapshot=budget_snapshot,
+                lives_remaining=lives_remaining,
+                reference_box_visible=reference_box_visible,
+                flash_semantics=flash_semantics,
+                force_reset=force_reset,
             ),
             "input_grid": normalized_frame,
             "expected_output": normalized_goal if normalized_goal != [[]] else [],
@@ -696,7 +915,7 @@ class K3DARC3Agent:
             domain_hint="arc3_interactive",
         )
         click_reason = ""
-        action_index, payload = _derive_action_from_result(
+        action_choice, payload = _derive_action_from_result(
             normalized_frame,
             dict(result or {}),
             goal_frame=normalized_goal,
@@ -707,14 +926,28 @@ class K3DARC3Agent:
             valid_action_indices=valid_action_indices,
         )
         if transitional_override is not None:
-            action_index, click_reason = transitional_override
+            action_choice, click_reason = transitional_override
             payload = {}
         click_only_state = bool(valid_action_indices) and set(valid_action_indices) == {5}
-        if valid_action_indices and action_index not in set(valid_action_indices):
-            action_index = int(valid_action_indices[0])
-        if action_index == 5 and not {"x", "y"} <= set(payload):
+        if action_choice == RESET_ACTION_NAME:
+            payload = {}
+            click_reason = click_reason or "strategic_reset"
+            self._needs_reperceive = True
+            self._last_click_focus = None
+            self._click_focus_streak = 0
+            self._click_probe_index = 1
+            action_name = RESET_ACTION_NAME
+            action_index = -1
+            action_label = RESET_ACTION_LABEL
+        else:
+            action_index = int(action_choice)
+            if valid_action_indices and action_index not in set(valid_action_indices):
+                action_index = int(valid_action_indices[0])
+            action_name = ACTION_NAMES[action_index]
+            action_label = ACTION_LABELS[action_index]
+        if action_name == "ACTION6" and not {"x", "y"} <= set(payload):
             payload, click_reason = self._next_click_payload(normalized_frame)
-        elif action_index != 5:
+        elif action_name != "ACTION6":
             payload = {}
             self._last_click_focus = None
             self._click_focus_streak = 0
@@ -724,9 +957,9 @@ class K3DARC3Agent:
             self._click_focus_streak = 0
             self._click_probe_index = 1
         record = {
-            "action": ACTION_NAMES[action_index],
+            "action": action_name,
             "action_index": action_index,
-            "label": ACTION_LABELS[action_index],
+            "label": action_label,
             "confidence": float((result or {}).get("confidence", (result or {}).get("similarity", 0.0))),
             "converged": int((result or {}).get("convergence_signal", (result or {}).get("converged", 0))),
             "iterations_used": int((result or {}).get("iterations_used", 0)),
@@ -740,12 +973,22 @@ class K3DARC3Agent:
             "fresh_context": fresh_context,
             "game_id": str(game_id or ""),
             "levels_completed": int(levels_completed),
+            "movement_budget": dict(budget_snapshot or {}),
+            "lives_remaining": lives_remaining,
+            "reference_box_visible": bool(reference_box_visible),
+            "flash_semantics": flash_semantics,
+            "target_label": target_label,
+            "attempt_actions": int(self._attempt_actions),
             **payload,
         }
         self.action_history.append(record)
         self._last_frame = _clone_grid(normalized_frame)
         if fresh_context:
             self._needs_reperceive = False
+        if action_name == RESET_ACTION_NAME:
+            self._attempt_actions = 0
+        else:
+            self._attempt_actions += 1
         return record
 
     def learn_from_outcome(
@@ -760,6 +1003,7 @@ class K3DARC3Agent:
         if current > self._last_levels_completed:
             outcome = 1
             self._needs_reperceive = True
+            self._attempt_actions = 0
         elif normalized_frame is not None and self._last_frame is not None and normalized_frame != self._last_frame:
             outcome = 0
         else:
