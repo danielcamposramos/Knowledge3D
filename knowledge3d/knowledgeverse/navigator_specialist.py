@@ -755,7 +755,7 @@ class NavigatorSpecialist:
                 continue
             if galaxy != "Grammar":
                 continue
-            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            metadata = self.knowledgeverse._catalog_metadata(entry)
             if not str(metadata.get("goal_type", "")).strip():
                 continue
             if allowed_subfields is not None:
@@ -764,7 +764,7 @@ class NavigatorSpecialist:
                     continue
             if not list(entry.get("embedding16", [])):
                 continue
-            rows.append(dict(entry))
+            rows.append(self.knowledgeverse._resolve_catalog_entry(entry))
         return rows
 
     @staticmethod

@@ -72,11 +72,21 @@ class SleepTimeConsolidation:
                 "stage_b": stage_b_result,
             }
             self._commit_transaction(result)
-            if self.kv is not None and hasattr(self.kv, "save_house_state"):
+            checkpoint_saver = None
+            if self.kv is not None:
+                checkpoint_saver = getattr(self.kv, "_save_consolidated_state", None)
+                if checkpoint_saver is None:
+                    checkpoint_saver = getattr(self.kv, "save_consolidated_state", None)
+            if callable(checkpoint_saver):
+                try:
+                    result["checkpoint"] = checkpoint_saver()
+                except Exception as exc:
+                    result["checkpoint_error"] = str(exc)
+            elif self.kv is not None and hasattr(self.kv, "save_house_state"):
                 try:
                     result["house_state"] = self.kv.save_house_state()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    result["house_state_error"] = str(exc)
             return result
         except SleepTimeError as exc:
             rollback_temporal = self.temporal_manager.create_metadata(
@@ -120,7 +130,7 @@ class SleepTimeConsolidation:
         jarvis_summary = None
         if hasattr(self.kv, "jarvis_sleep_consolidation"):
             try:
-                jarvis_summary = self.kv.jarvis_sleep_consolidation()
+                jarvis_summary = self.kv.jarvis_sleep_consolidation(persist=False)
             except Exception:
                 jarvis_summary = None
         return {

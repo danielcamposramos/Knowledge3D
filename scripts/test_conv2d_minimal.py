@@ -36,7 +36,16 @@ def test_minimal():
     # Compile
     import subprocess
     ptx_path = "/tmp/test_minimal.ptx"
-    cmd = ["nvcc", "-ptx", cu_path, "-o", ptx_path, "-arch=sm_75"]
+    cmd = [
+        "nvcc",
+        "-ptx",
+        cu_path,
+        "-o",
+        ptx_path,
+        "-arch=sm_75",
+        "--compiler-bindir",
+        "/usr/bin/gcc-13",
+    ]
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:

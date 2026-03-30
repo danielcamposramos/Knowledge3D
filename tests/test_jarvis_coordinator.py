@@ -126,3 +126,5 @@ def test_jarvis_sleep_consolidation_summarizes_patterns(tmp_path):
     assert summary["recommended_groups_by_task"]["MATH_TASK"] >= 1
     assert summary["top_worker_pairs"][0]["pair"] == "g1.w1|g1.w2"
     assert summary["top_cross_connections"][0]["pattern"] == "combine hypothesis and validation traces"
+    assert summary["checkpoint"]["galaxy_consolidated"]["saved"] is True
+    assert (tmp_path / "checkpoints" / "galaxy_consolidated_latest.json").exists()

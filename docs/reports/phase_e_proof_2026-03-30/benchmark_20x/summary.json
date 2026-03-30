@@ -1,0 +1,288 @@
+{
+  "timestamp": "20260330_143210",
+  "elapsed_seconds": 2923.18,
+  "log_dir": "/K3D/Knowledge3D.local/logs/phase_e_20260330_143210",
+  "suites": {
+    "mmlu": {
+      "benchmark": "MMLU",
+      "total_questions": 20,
+      "correct": 6,
+      "accuracy": 0.3,
+      "use_enriched": true,
+      "dataset_path": "/K3D/K3D_llama_cpp/datasets/MMLU/data",
+      "dataset_source": "MMLU",
+      "synthetic_fallback": false,
+      "subjects_tested": 18,
+      "domain_breakdown": {
+        "stem": {
+          "correct": 2,
+          "total": 5,
+          "accuracy": 0.4
+        },
+        "social_sciences": {
+          "correct": 0,
+          "total": 4,
+          "accuracy": 0.0
+        },
+        "other": {
+          "correct": 2,
+          "total": 6,
+          "accuracy": 0.3333333333333333
+        },
+        "humanities": {
+          "correct": 2,
+          "total": 5,
+          "accuracy": 0.4
+        }
+      },
+      "suite": "mmlu",
+      "total": 20
+    },
+    "gsm8k": {
+      "benchmark": "GSM8K",
+      "total_questions": 20,
+      "correct": 0,
+      "accuracy": 0.0,
+      "use_enriched": true,
+      "dataset_path": "/K3D/K3D_llama_cpp/datasets/GSM8K/grade_school_math/data/test.jsonl",
+      "dataset_source": "GSM8K",
+      "synthetic_fallback": false,
+      "suite": "gsm8k",
+      "total": 20
+    },
+    "lhe": {
+      "benchmark": "Last Humanity Exam",
+      "dataset_path": "/K3D/K3D_llama_cpp/datasets/last_humanity_exam",
+      "dataset_source": "file",
+      "dataset_file": "/K3D/K3D_llama_cpp/datasets/last_humanity_exam/last_humanity_exam.json",
+      "synthetic_fallback": false,
+      "use_enriched": true,
+      "total_questions": 20,
+      "correct": 1,
+      "accuracy": 0.05,
+      "results_by_domain": {
+        "Chess": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Quantum Computing": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Mathematics": {
+          "total": 5,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Logic": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Microbiology": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Chemistry": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Molecular Biology": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Law": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Computer Science": {
+          "total": 2,
+          "correct": 1,
+          "accuracy": 0.5
+        },
+        "Physics": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Linguistics": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Applied Mathematics": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Programming": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Trivia": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        },
+        "Art History": {
+          "total": 1,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "suite": "lhe",
+      "total": 20
+    },
+    "arc2": {
+      "benchmark": "ARC-AGI 2/3",
+      "dataset_path": "/K3D/K3D_llama_cpp/datasets/ARC-AGI-master/data/evaluation",
+      "dataset_version": "arc_agi_2",
+      "use_enriched": true,
+      "total_tasks": 20,
+      "correct": 1,
+      "accuracy": 0.05,
+      "generated_pattern_total": 0,
+      "tasks_with_generated_patterns": 0,
+      "pattern_source_accuracy": {
+        "unknown": {
+          "correct": 1.0,
+          "total": 20.0,
+          "accuracy": 0.05
+        }
+      },
+      "oracle_diagnostics": {
+        "top_1_accuracy": 0.05,
+        "oracle_at_3": 0.0,
+        "oracle_at_10": 0.0,
+        "oracle_at_all": 0.0,
+        "avg_correct_rank": null,
+        "generation_failure_rate": 1.0,
+        "ranking_failure_rate": 0.0,
+        "ranking_change_rate": 0.0,
+        "fuzzy_oracle_at_all": 0.0,
+        "oracle_fuzzy_0_80": 0.0,
+        "oracle_fuzzy_0_85": 0.0,
+        "oracle_fuzzy_0_90": 0.0,
+        "oracle_fuzzy_0_95": 0.0,
+        "fuzzy_best_score_mean": 0.0,
+        "rejected_was_better_count": 0,
+        "rejected_was_better_rate": 0.0,
+        "rejected_fuzzy_delta_mean": 0.0,
+        "validity_reject_rate_mean": 0.0,
+        "family_rejects_mean": 0.0,
+        "shape_rejects_mean": 0.0,
+        "palette_rejects_mean": 0.0,
+        "object_rejects_mean": 0.0,
+        "generation_family_rejects_mean": 0.0,
+        "generation_shape_rejects_mean": 0.0,
+        "generation_palette_rejects_mean": 0.0,
+        "generation_object_rejects_mean": 0.0,
+        "ranking_family_score_mean": 0.0,
+        "ranking_shape_score_mean": 0.0,
+        "ranking_palette_score_mean": 0.0,
+        "ranking_object_score_mean": 0.0,
+        "generation_filter_accept_rate_mean": 0.0,
+        "generation_filter_reject_rate_mean": 0.0,
+        "generation_filter_generated_total": 0,
+        "generation_object_count_distribution": {},
+        "generation_object_count_distribution_accepted": {},
+        "generation_object_count_distribution_rejected": {},
+        "query_based_coverage": {
+          "avg_queried_galaxies_per_task": 0.0,
+          "unique_queried_galaxies": [],
+          "queried_galaxy_task_counts": {},
+          "source_galaxy_query_counts": {},
+          "target_galaxy_query_counts": {},
+          "cross_galaxy_navigation_rate": 0.0
+        },
+        "failure_mode_query_coverage": {
+          "family": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          },
+          "shape": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          },
+          "palette": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          },
+          "object_count": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          },
+          "generation_gap": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          },
+          "near_miss": {
+            "tasks": 0,
+            "avg_queried_galaxies": 0.0,
+            "queried_galaxy_task_counts": {},
+            "unique_queried_galaxies": []
+          }
+        },
+        "composition_depth": {
+          "avg": 1.0,
+          "distribution": {
+            "1": 20
+          }
+        },
+        "rescue_lane_enabled_rate": 0.0,
+        "oracle_rejected_rescue_candidate_count_mean": 0.0,
+        "oracle_rejected_rescue_exact_rate": 0.0,
+        "oracle_rejected_rescue_fuzzy_rate": 0.0,
+        "oracle_rejected_rescue_reason_counts": {},
+        "selected_exact_rate": 0.0,
+        "selected_oracle_track_counts": {
+          "rank_top1": 20
+        },
+        "ptx_ranking_enabled_rate": 0.0,
+        "ptx_ranking_used_rate": 0.0,
+        "ptx_ranking_error_rate": 0.0,
+        "ptx_full_enabled_rate": 0.0,
+        "ptx_full_used_rate": 0.0,
+        "ptx_oracle_used_rate": 0.0,
+        "oracle_failure_mode_counts": {
+          "family": 0,
+          "shape": 0,
+          "palette": 0,
+          "object_count": 0,
+          "generation_gap": 0,
+          "near_miss": 0
+        }
+      },
+      "suite": "arc2",
+      "total": 20
+    },
+    "arc3_local": {
+      "suite": "arc3_local",
+      "total": 20,
+      "solved": 20,
+      "correct": 20,
+      "accuracy": 1.0,
+      "correct_first_moves": 20,
+      "first_move_accuracy": 1.0,
+      "avg_steps": 5.7,
+      "avg_optimality": 0.9
+    }
+  }
+}

@@ -1,7 +1,7 @@
 # CODEX.md -- Implementation Lead Guide
 
-**Last Updated:** March 16, 2026
-**Version:** 6.1 (Track A landed, Track C in progress, Phase D queued)
+**Last Updated:** March 30, 2026
+**Version:** 6.2 (Track A landed, Track C in progress, live ARC3 level-1 milestone recorded)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read the latest briefing first for the full architecture; this file captures Codex's role, patterns, and backlog.
 
@@ -21,8 +21,12 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 | GSM8K | — | 2/10 | Track A (Pass 4 semantic verification) landed; upstream parse/strategy failures dominate |
 | LHE | — | 6/10 | Track B (pre-scoring crystallization) REVERTED — regressed to 5/10; stays post-hoc |
 | MMLU | — | 12-15/50 | Variance 11-16 across checkpoint roots; Track C (Galaxy expansion) in progress |
+| ARC3 Local | 20/20 | — | Goal-relative local spatial path benchmark solved end-to-end |
+| ARC3 Live | — | level 1 on `ls20-9607627b` | First real live level completion recorded on March 30, 2026; see `docs/reports/ARC3_LIVE_LEVEL1_MILESTONE_2026-03-30.md` |
 
 **Key Achievement:** First sovereign GPU-converged answer ("What is 2+3?" = 5) with ZERO Python fallback.
+
+**Newest milestone:** First live ARC3 level completion through the full living path. The run on `ls20-9607627b` reached `levels_completed=1` at `action_count=13` and completed a 15-action probe without resetting the world state.
 
 **Sovereignty note (current truth):**
 - ALL benchmarks route through `Knowledgeverse.execute_task() -> query() -> knowledgeverse_gpu_query`

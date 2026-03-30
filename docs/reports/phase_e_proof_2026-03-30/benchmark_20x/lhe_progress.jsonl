@@ -1,0 +1,20 @@
+{"completed": 1, "total": 20, "correct": 0, "elapsed_s": 12.893689968987019, "benchmark": "lhe", "domain": "Chess", "suite": "lhe"}
+{"completed": 2, "total": 20, "correct": 0, "elapsed_s": 42.34404762998747, "benchmark": "lhe", "domain": "Quantum Computing", "suite": "lhe"}
+{"completed": 3, "total": 20, "correct": 0, "elapsed_s": 55.91683107298741, "benchmark": "lhe", "domain": "Mathematics", "suite": "lhe"}
+{"completed": 4, "total": 20, "correct": 0, "elapsed_s": 68.80356412098627, "benchmark": "lhe", "domain": "Mathematics", "suite": "lhe"}
+{"completed": 5, "total": 20, "correct": 0, "elapsed_s": 82.10944619298971, "benchmark": "lhe", "domain": "Logic", "suite": "lhe"}
+{"completed": 6, "total": 20, "correct": 0, "elapsed_s": 96.20270834698749, "benchmark": "lhe", "domain": "Microbiology", "suite": "lhe"}
+{"completed": 7, "total": 20, "correct": 0, "elapsed_s": 109.23406957399857, "benchmark": "lhe", "domain": "Chemistry", "suite": "lhe"}
+{"completed": 8, "total": 20, "correct": 0, "elapsed_s": 124.58168374899833, "benchmark": "lhe", "domain": "Molecular Biology", "suite": "lhe"}
+{"completed": 9, "total": 20, "correct": 0, "elapsed_s": 139.10988788599207, "benchmark": "lhe", "domain": "Mathematics", "suite": "lhe"}
+{"completed": 10, "total": 20, "correct": 0, "elapsed_s": 155.14604149399383, "benchmark": "lhe", "domain": "Law", "suite": "lhe"}
+{"completed": 11, "total": 20, "correct": 1, "elapsed_s": 169.50872168799106, "benchmark": "lhe", "domain": "Computer Science", "suite": "lhe"}
+{"completed": 12, "total": 20, "correct": 1, "elapsed_s": 182.91329264699016, "benchmark": "lhe", "domain": "Mathematics", "suite": "lhe"}
+{"completed": 13, "total": 20, "correct": 1, "elapsed_s": 198.2301451329986, "benchmark": "lhe", "domain": "Physics", "suite": "lhe"}
+{"completed": 14, "total": 20, "correct": 1, "elapsed_s": 212.61961383699963, "benchmark": "lhe", "domain": "Computer Science", "suite": "lhe"}
+{"completed": 15, "total": 20, "correct": 1, "elapsed_s": 227.51686015998712, "benchmark": "lhe", "domain": "Linguistics", "suite": "lhe"}
+{"completed": 16, "total": 20, "correct": 1, "elapsed_s": 250.72559610698954, "benchmark": "lhe", "domain": "Applied Mathematics", "suite": "lhe"}
+{"completed": 17, "total": 20, "correct": 1, "elapsed_s": 265.66124160999607, "benchmark": "lhe", "domain": "Programming", "suite": "lhe"}
+{"completed": 18, "total": 20, "correct": 1, "elapsed_s": 281.9941909869958, "benchmark": "lhe", "domain": "Mathematics", "suite": "lhe"}
+{"completed": 19, "total": 20, "correct": 1, "elapsed_s": 295.60697485899436, "benchmark": "lhe", "domain": "Trivia", "suite": "lhe"}
+{"completed": 20, "total": 20, "correct": 1, "elapsed_s": 309.0458239319996, "benchmark": "lhe", "domain": "Art History", "suite": "lhe"}

@@ -2076,21 +2076,46 @@ class ModularRPNEngine:
         embedding_offset: int = 3,
         embedding_dim: int = 16,
     ) -> dict[str, int]:
-        data = [float(value) for value in flat_entries]
         if entry_count < 0:
             raise ValueError("entry_count must be non-negative")
         expected = int(entry_count) * int(entry_stride)
-        if expected != len(data):
-            raise ValueError(f"Galaxy buffer length mismatch: expected {expected}, got {len(data)}")
+        host_ptr: ctypes.c_void_p | None = None
+        host_nbytes = 0
+        data_len = 0
+        if (
+            hasattr(flat_entries, "dtype")
+            and hasattr(flat_entries, "ctypes")
+            and hasattr(flat_entries, "reshape")
+            and str(getattr(flat_entries, "dtype", "")) == "float32"
+        ):
+            try:
+                flat_array = flat_entries.reshape(-1)
+                data_len = int(flat_array.size)
+                host_nbytes = int(flat_array.nbytes)
+                host_ptr = flat_array.ctypes.data_as(ctypes.c_void_p)
+            except Exception:
+                host_ptr = None
+                data_len = 0
+                host_nbytes = 0
+        if host_ptr is None:
+            data = [float(value) for value in flat_entries]
+            data_len = len(data)
+            if data:
+                FloatArray = ctypes.c_float * len(data)
+                host = FloatArray(*data)
+                host_ptr = ctypes.cast(host, ctypes.c_void_p)
+                host_nbytes = ctypes.sizeof(host)
+            else:
+                host_nbytes = 0
+        if expected != data_len:
+            raise ValueError(f"Galaxy buffer length mismatch: expected {expected}, got {data_len}")
 
         if self.d_galaxy_entries is not None:
             gpu_free(self.d_galaxy_entries)
             self.d_galaxy_entries = None
-        if data:
-            FloatArray = ctypes.c_float * len(data)
-            host = FloatArray(*data)
-            self.d_galaxy_entries = gpu_malloc(ctypes.sizeof(host))
-            memcpy_htod(self.d_galaxy_entries, ctypes.cast(host, ctypes.c_void_p), ctypes.sizeof(host))
+        if data_len > 0 and host_ptr is not None and host_nbytes > 0:
+            self.d_galaxy_entries = gpu_malloc(host_nbytes)
+            memcpy_htod(self.d_galaxy_entries, host_ptr, host_nbytes)
         self._galaxy_entry_count = int(entry_count)
         self._galaxy_entry_stride = int(entry_stride)
         self._galaxy_embedding_offset = int(embedding_offset)

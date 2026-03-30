@@ -1,8 +1,8 @@
-"""Bind-time semantic CSR graph construction for Knowledgeverse LED navigation.
+"""Semantic CSR graph construction for Knowledgeverse LED navigation.
 
-This module is intentionally build-time / query-support code. It can use NumPy
-because it is not part of the sovereign PTX hot path itself; it prepares sparse
-graph structures that the LED bridge consumes during query execution.
+The KNN neighborhood build is sovereign GPU work over Galaxy embeddings. CPU
+only packs the resulting top-K neighborhoods into CSR arrays and persists the
+cache payload used by LED navigation.
 """
 
 from __future__ import annotations
@@ -10,12 +10,22 @@ from __future__ import annotations
 import ctypes
 from dataclasses import dataclass, field
 import heapq
+import math
 from pathlib import Path
+import shutil
+import subprocess
+import time
 from typing import Any
 
 import numpy as np
 
 from knowledge3d.cranium.sovereign import loader
+
+
+PTX_DIR = Path(__file__).resolve().parents[1] / "cranium" / "ptx"
+KNN_GRAPH_BUILD_SOURCE = PTX_DIR / "knn_graph_build.cu"
+KNN_GRAPH_BUILD_PTX = PTX_DIR / "knn_graph_build.ptx"
+KNN_GRAPH_BUILD_THREADS = 128
 
 
 def _fnv1a_u32(parts: list[str]) -> str:
@@ -27,10 +37,59 @@ def _fnv1a_u32(parts: list[str]) -> str:
     return f"{acc:08x}"
 
 
-def _normalize_rows(matrix: np.ndarray) -> np.ndarray:
-    norms = np.linalg.norm(matrix, axis=1, keepdims=True)
-    norms = np.where(norms > 1e-8, norms, 1.0)
-    return matrix / norms
+def _normalize_rows_inplace(matrix: np.ndarray) -> np.ndarray:
+    rows = int(matrix.shape[0]) if matrix.ndim > 0 else 0
+    cols = int(matrix.shape[1]) if matrix.ndim > 1 else 0
+    for row_index in range(rows):
+        norm_sq = 0.0
+        for col_index in range(cols):
+            value = float(matrix[row_index, col_index])
+            norm_sq += value * value
+        if norm_sq <= 1e-16:
+            continue
+        inv_norm = 1.0 / math.sqrt(norm_sq)
+        for col_index in range(cols):
+            matrix[row_index, col_index] = float(matrix[row_index, col_index]) * inv_norm
+    return matrix
+
+
+def _normalized_query_vector(values: list[float], dim: int) -> np.ndarray:
+    padded = np.zeros(dim, dtype=np.float32)
+    width = min(len(values), dim)
+    norm_sq = 0.0
+    for index in range(width):
+        value = float(values[index])
+        padded[index] = value
+        norm_sq += value * value
+    if norm_sq > 1e-16:
+        inv_norm = 1.0 / math.sqrt(norm_sq)
+        for index in range(dim):
+            padded[index] = float(padded[index]) * inv_norm
+    return padded
+
+
+def _ensure_knn_graph_build_ptx() -> Path:
+    PTX_DIR.mkdir(parents=True, exist_ok=True)
+    newest = KNN_GRAPH_BUILD_SOURCE.stat().st_mtime
+    if KNN_GRAPH_BUILD_PTX.exists() and KNN_GRAPH_BUILD_PTX.stat().st_mtime >= newest:
+        return KNN_GRAPH_BUILD_PTX
+    nvcc = shutil.which("nvcc")
+    if not nvcc:
+        raise RuntimeError("nvcc_not_found_for_knn_graph_build")
+    subprocess.run(
+        [
+            nvcc,
+            "-ptx",
+            "-arch=sm_86",
+            "--compiler-bindir",
+            "/usr/bin/gcc-13",
+            "-o",
+            str(KNN_GRAPH_BUILD_PTX),
+            str(KNN_GRAPH_BUILD_SOURCE),
+        ],
+        check=True,
+    )
+    return KNN_GRAPH_BUILD_PTX
 
 
 def _normalized_subject_aliases(subject_hint: str) -> list[str]:
@@ -60,10 +119,14 @@ def _normalized_subject_aliases(subject_hint: str) -> list[str]:
 def _entry_subject_aliases(entry: dict[str, Any]) -> list[str]:
     metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
     aliases: list[str] = []
-    explicit = metadata.get("mmlu_subjects") if isinstance(metadata.get("mmlu_subjects"), list) else []
+    explicit = entry.get("mmlu_subjects") if isinstance(entry.get("mmlu_subjects"), list) else []
+    if not explicit:
+        explicit = metadata.get("mmlu_subjects") if isinstance(metadata.get("mmlu_subjects"), list) else []
     for item in explicit:
         aliases.extend(_normalized_subject_aliases(str(item)))
     for raw in (
+        entry.get("subject"),
+        entry.get("subfield"),
         entry.get("subject"),
         metadata.get("subject"),
         metadata.get("subfield"),
@@ -72,7 +135,9 @@ def _entry_subject_aliases(entry: dict[str, Any]) -> list[str]:
     ):
         if str(raw or "").strip():
             aliases.extend(_normalized_subject_aliases(str(raw)))
-    metadata_aliases = metadata.get("aliases") if isinstance(metadata.get("aliases"), list) else []
+    metadata_aliases = entry.get("aliases") if isinstance(entry.get("aliases"), list) else []
+    if not metadata_aliases:
+        metadata_aliases = metadata.get("aliases") if isinstance(metadata.get("aliases"), list) else []
     for item in metadata_aliases:
         aliases.extend(_normalized_subject_aliases(str(item)))
     seen: set[str] = set()
@@ -154,6 +219,9 @@ class SemanticCSRGraph:
     subject_clusters: np.ndarray
     knn_k: int
     similarity_threshold: float
+    cache_hit: bool = False
+    build_backend: str = "gpu_knn"
+    build_seconds: float = 0.0
     subject_alias_clusters: dict[str, int] = field(default_factory=dict, repr=False)
     _seed_module: Any | None = field(default=None, init=False, repr=False)
     _seed_kernel: Any | None = field(default=None, init=False, repr=False)
@@ -188,29 +256,13 @@ class SemanticCSRGraph:
         top_k: int = 8,
         similarity_threshold: float = 0.18,
     ) -> list[tuple[int, float]]:
-        query = np.asarray(query_embedding, dtype=np.float32).reshape(1, -1)
-        if query.shape[1] != self.embeddings.shape[1]:
-            padded = np.zeros((1, self.embeddings.shape[1]), dtype=np.float32)
-            width = min(query.shape[1], self.embeddings.shape[1])
-            padded[0, :width] = query[0, :width]
-            query = padded
-        query = _normalize_rows(query)
-        similarities = (self.embeddings @ query[0]).astype(np.float32)
-        if allowed_galaxy_indexes:
-            mask = np.isin(self.galaxy_indexes, np.asarray(sorted(allowed_galaxy_indexes), dtype=np.int32))
-            similarities = np.where(mask, similarities, -np.inf)
-        candidates: list[tuple[int, float]] = []
-        limit = min(int(top_k), int(similarities.shape[0]))
-        if limit <= 0:
-            return candidates
-        top_idx = np.argpartition(similarities, -limit)[-limit:]
-        ordered = top_idx[np.argsort(similarities[top_idx])[::-1]]
-        for raw_index in ordered.tolist():
-            similarity = float(similarities[raw_index])
-            if similarity < float(similarity_threshold):
-                continue
-            candidates.append((int(raw_index), similarity))
-        return candidates
+        indices_ptr, scores_ptr, count = self.select_seed_nodes_device(
+            query_embedding=query_embedding,
+            allowed_galaxy_indexes=allowed_galaxy_indexes,
+            top_k=top_k,
+            similarity_threshold=similarity_threshold,
+        )
+        return self.read_seed_pairs(indices_ptr, scores_ptr, count)
 
     def subject_cluster_id(self, subject_hint: str) -> int:
         for alias in _normalized_subject_aliases(subject_hint):
@@ -225,11 +277,19 @@ class SemanticCSRGraph:
         return int(self.subject_clusters[int(index)])
 
     def ensure_device_buffers(self) -> None:
-        if self._d_embeddings is not None:
+        if (
+            self._d_embeddings is not None
+            and self._d_galaxy_indexes is not None
+            and self._d_row_offsets is not None
+            and self._d_col_indices is not None
+            and self._d_packed_costs is not None
+            and self._d_subject_clusters is not None
+            and self._seed_kernel is not None
+            and self._graph_kernel is not None
+        ):
             return
-        ptx_dir = Path(__file__).resolve().parents[1] / "cranium" / "ptx"
-        seed_ptx = ptx_dir / "seed_select_top_k.ptx"
-        graph_ptx = ptx_dir / "graph_expand_bfs.ptx"
+        seed_ptx = PTX_DIR / "seed_select_top_k.ptx"
+        graph_ptx = PTX_DIR / "graph_expand_bfs.ptx"
         if not seed_ptx.exists():
             raise FileNotFoundError(f"Seed selection PTX missing: {seed_ptx}")
         if not graph_ptx.exists():
@@ -373,14 +433,7 @@ class SemanticCSRGraph:
         cluster_bias: float = 0.0,
     ) -> tuple[int, int, int]:
         self.ensure_device_buffers()
-        query = np.asarray(query_embedding, dtype=np.float32).reshape(1, -1)
-        if query.shape[1] != self.embeddings.shape[1]:
-            padded = np.zeros((1, self.embeddings.shape[1]), dtype=np.float32)
-            width = min(query.shape[1], self.embeddings.shape[1])
-            padded[0, :width] = query[0, :width]
-            query = padded
-        query = _normalize_rows(query)
-        query_host = np.asarray(query[0], dtype=np.float32)
+        query_host = _normalized_query_vector(query_embedding, int(self.embeddings.shape[1]))
         d_query = loader.gpu_malloc(int(query_host.nbytes))
         try:
             loader.memcpy_htod(d_query, query_host.ctypes.data_as(ctypes.c_void_p), int(query_host.nbytes))
@@ -647,6 +700,104 @@ def _cache_path(cache_root: Path, signature: str, knn_k: int, similarity_thresho
     return cache_root / f"semantic_csr_{signature}_k{int(knn_k)}_t{threshold_key}.npz"
 
 
+def _gpu_build_knn_neighbors(
+    *,
+    embeddings: np.ndarray,
+    catalog: list[dict[str, Any]],
+    knn_k: int,
+    similarity_threshold: float,
+    batch_size: int,
+) -> list[dict[int, int]]:
+    ptx_path = _ensure_knn_graph_build_ptx()
+    module = loader.load_module_from_file(str(ptx_path))
+    kernel = loader.get_function(module, "knn_graph_build")
+    node_count = int(embeddings.shape[0])
+    dim = int(embeddings.shape[1])
+    effective_k = max(1, min(int(knn_k), max(1, node_count - 1)))
+    effective_batch = max(1, min(int(batch_size), max(1, node_count)))
+
+    neighbors: list[dict[int, int]] = [dict() for _ in range(node_count)]
+    d_embeddings: loader.CUdeviceptr | None = None
+    d_neighbors: loader.CUdeviceptr | None = None
+    d_scores: loader.CUdeviceptr | None = None
+    d_counts: loader.CUdeviceptr | None = None
+    try:
+        d_embeddings = loader.gpu_malloc(int(embeddings.nbytes))
+        d_neighbors = loader.gpu_malloc(effective_batch * effective_k * 4)
+        d_scores = loader.gpu_malloc(effective_batch * effective_k * 4)
+        d_counts = loader.gpu_malloc(effective_batch * 4)
+        loader.memcpy_htod(d_embeddings, embeddings.ctypes.data_as(ctypes.c_void_p), int(embeddings.nbytes))
+        for start in range(0, node_count, effective_batch):
+            batch_count = min(effective_batch, node_count - start)
+            loader.launch(
+                kernel,
+                grid=(batch_count, 1, 1),
+                block=(KNN_GRAPH_BUILD_THREADS, 1, 1),
+                params=[
+                    d_embeddings,
+                    ctypes.c_int32(node_count),
+                    ctypes.c_int32(dim),
+                    ctypes.c_int32(start),
+                    ctypes.c_int32(batch_count),
+                    ctypes.c_int32(effective_k),
+                    ctypes.c_float(float(similarity_threshold)),
+                    d_neighbors,
+                    d_scores,
+                    d_counts,
+                ],
+            )
+            loader.synchronize()
+
+            neighbor_buf = (ctypes.c_int32 * (batch_count * effective_k))()
+            score_buf = (ctypes.c_float * (batch_count * effective_k))()
+            count_buf = (ctypes.c_int32 * batch_count)()
+            loader.memcpy_dtoh(
+                ctypes.c_void_p(ctypes.addressof(neighbor_buf)),
+                d_neighbors,
+                ctypes.sizeof(neighbor_buf),
+            )
+            loader.memcpy_dtoh(
+                ctypes.c_void_p(ctypes.addressof(score_buf)),
+                d_scores,
+                ctypes.sizeof(score_buf),
+            )
+            loader.memcpy_dtoh(
+                ctypes.c_void_p(ctypes.addressof(count_buf)),
+                d_counts,
+                ctypes.sizeof(count_buf),
+            )
+
+            for local_row in range(batch_count):
+                source_index = start + local_row
+                source_entry = catalog[source_index]
+                actual_count = max(0, min(int(count_buf[local_row]), effective_k))
+                row_base = local_row * effective_k
+                for slot in range(actual_count):
+                    target_index = int(neighbor_buf[row_base + slot])
+                    similarity = float(score_buf[row_base + slot])
+                    if not (0 <= target_index < node_count):
+                        continue
+                    if similarity < float(similarity_threshold):
+                        continue
+                    target_entry = catalog[target_index]
+                    packed_cost = _pack_led_cost(
+                        _semantic_cost_from_similarity(similarity),
+                        _geometric_cost(source_entry, target_entry),
+                    )
+                    current = neighbors[source_index].get(target_index)
+                    if current is None or packed_cost < current:
+                        neighbors[source_index][target_index] = packed_cost
+                    reverse = neighbors[target_index].get(source_index)
+                    if reverse is None or packed_cost < reverse:
+                        neighbors[target_index][source_index] = packed_cost
+    finally:
+        for ptr in (d_counts, d_scores, d_neighbors, d_embeddings):
+            if ptr is None:
+                continue
+            loader.gpu_free(ptr)
+    return neighbors
+
+
 def load_or_build_semantic_csr_graph(
     *,
     catalog: list[dict[str, Any]],
@@ -655,6 +806,7 @@ def load_or_build_semantic_csr_graph(
     similarity_threshold: float = 0.3,
     batch_size: int = 512,
 ) -> SemanticCSRGraph:
+    build_t0 = time.perf_counter()
     cache_dir = Path(cache_root)
     cache_dir.mkdir(parents=True, exist_ok=True)
     signature = _catalog_signature(catalog)
@@ -675,6 +827,9 @@ def load_or_build_semantic_csr_graph(
             ),
             knn_k=int(payload["knn_k"][0]),
             similarity_threshold=float(payload["similarity_threshold"][0]),
+            cache_hit=True,
+            build_backend="cache",
+            build_seconds=float(time.perf_counter() - build_t0),
             subject_alias_clusters=_build_subject_clusters(catalog)[1],
         )
 
@@ -688,38 +843,17 @@ def load_or_build_semantic_csr_graph(
     )
     if embeddings.ndim != 2 or embeddings.shape[0] == 0:
         raise ValueError("semantic CSR graph requires at least one embedding row")
-    embeddings = _normalize_rows(embeddings)
+    embeddings = _normalize_rows_inplace(embeddings)
     subject_clusters, subject_alias_clusters = _build_subject_clusters(catalog)
 
     node_count = int(embeddings.shape[0])
-    neighbors: list[dict[int, int]] = [dict() for _ in range(node_count)]
-    k_eff = max(1, min(int(knn_k), max(1, node_count - 1)))
-
-    for start in range(0, node_count, int(batch_size)):
-        end = min(node_count, start + int(batch_size))
-        sims = (embeddings[start:end] @ embeddings.T).astype(np.float32)
-        row_ids = np.arange(start, end, dtype=np.int64)
-        sims[np.arange(end - start), row_ids - start] = -np.inf
-        top_idx = np.argpartition(sims, -k_eff, axis=1)[:, -k_eff:]
-        for local_row, candidate_indexes in enumerate(top_idx):
-            source_index = start + local_row
-            ordered = candidate_indexes[np.argsort(sims[local_row, candidate_indexes])[::-1]]
-            source_entry = catalog[source_index]
-            for target_index in ordered.tolist():
-                similarity = float(sims[local_row, target_index])
-                if similarity < float(similarity_threshold):
-                    continue
-                target_entry = catalog[int(target_index)]
-                packed_cost = _pack_led_cost(
-                    _semantic_cost_from_similarity(similarity),
-                    _geometric_cost(source_entry, target_entry),
-                )
-                current = neighbors[source_index].get(int(target_index))
-                if current is None or packed_cost < current:
-                    neighbors[source_index][int(target_index)] = packed_cost
-                reverse = neighbors[int(target_index)].get(source_index)
-                if reverse is None or packed_cost < reverse:
-                    neighbors[int(target_index)][source_index] = packed_cost
+    neighbors = _gpu_build_knn_neighbors(
+        embeddings=embeddings,
+        catalog=catalog,
+        knn_k=knn_k,
+        similarity_threshold=similarity_threshold,
+        batch_size=batch_size,
+    )
 
     row_offsets = [0]
     col_indices: list[int] = []
@@ -752,6 +886,9 @@ def load_or_build_semantic_csr_graph(
         subject_clusters=subject_clusters,
         knn_k=int(knn_k),
         similarity_threshold=float(similarity_threshold),
+        cache_hit=False,
+        build_backend="gpu_knn",
+        build_seconds=float(time.perf_counter() - build_t0),
         subject_alias_clusters=subject_alias_clusters,
     )
 

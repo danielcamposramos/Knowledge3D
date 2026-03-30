@@ -338,7 +338,7 @@ class K3DDaemon:
 
     def _warmup_gpu_runtime_binding(self) -> dict[str, Any]:
         try:
-            binding = self.kv.bind_gpu_galaxy_runtime(galaxy_names=list(self.kv.DEFAULT_GALAXIES))
+            binding = self.kv.bind_gpu_galaxy_runtime(galaxy_names=self.kv._discover_live_galaxy_names())
             return {
                 "status": "ok",
                 "entry_count": int(binding.get("entry_count", 0)),
@@ -390,7 +390,7 @@ class K3DDaemon:
     def _vram_report_payload(self) -> dict[str, Any]:
         galaxy_entry_counts = {
             name: len(self.kv.galaxy_manager.get_galaxy(name).entries)
-            for name in self.kv.DEFAULT_GALAXIES
+            for name in self.kv._discover_live_galaxy_names()
         }
         return {
             "status": "ok",
@@ -413,7 +413,7 @@ class K3DDaemon:
         }
 
     def _all_default_galaxies(self) -> list[str]:
-        return [str(name) for name in self.kv.DEFAULT_GALAXIES]
+        return list(self.kv._discover_live_galaxy_names())
 
     def _looks_like_math_prompt(self, text: str) -> bool:
         prompt = str(text).strip().lower()
@@ -507,7 +507,7 @@ class K3DDaemon:
         if refiner is None:
             return {"status": "skipped", "reason": "sleep_cluster_refiner_unavailable"}
         sample_rows = self._live_embedding_rows(
-            galaxy_names=list(self.kv.DEFAULT_GALAXIES),
+            galaxy_names=self.kv._discover_live_galaxy_names(),
             limit=min(int(self.config.sleep_sample_size), 512),
         )
         if len(sample_rows) < 2:
@@ -560,7 +560,7 @@ class K3DDaemon:
         except Exception:
             return {"status": "skipped", "reason": "galaxy_memory_updater_unavailable"}
         sample_rows = self._live_embedding_rows(
-            galaxy_names=list(self.kv.DEFAULT_GALAXIES),
+            galaxy_names=self.kv._discover_live_galaxy_names(),
             limit=min(int(self.config.sleep_sample_size), 256),
         )
         if len(sample_rows) < 2:
@@ -662,7 +662,7 @@ class K3DDaemon:
 
         persisted = 0
         failures: list[str] = []
-        for galaxy_name in self.kv.DEFAULT_GALAXIES:
+        for galaxy_name in self.kv._discover_live_galaxy_names():
             try:
                 galaxy = manager.get_galaxy(galaxy_name)
                 manager._rewrite_galaxy_disk(str(galaxy_name), galaxy)

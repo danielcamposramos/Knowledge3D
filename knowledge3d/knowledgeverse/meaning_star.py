@@ -39,6 +39,15 @@ def _coerce_refs(values: Any) -> list[str]:
     return [str(value).strip() for value in values if str(value).strip()]
 
 
+def _coerce_optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text or text.lower() in {"none", "null"}:
+        return None
+    return text
+
+
 def _coerce_embedding(values: Any, dim: int) -> EmbeddingVector | None:
     if values is None:
         return None
@@ -132,16 +141,16 @@ class MeaningCentricStar:
             for language, value in dict(self.surface_forms).items()
             if str(language).strip()
         }
-        self.visual_rpn = str(self.visual_rpn).strip() or None
         self.visual_refs = _coerce_refs(self.visual_refs)
-        self.audio_rpn = str(self.audio_rpn).strip() or None
+        self.visual_rpn = _coerce_optional_text(self.visual_rpn)
+        self.audio_rpn = _coerce_optional_text(self.audio_rpn)
         self.audio_refs = _coerce_refs(self.audio_refs)
         self.pronunciations = {
             str(language).strip().lower(): str(ref).strip()
             for language, ref in dict(self.pronunciations).items()
             if str(language).strip() and str(ref).strip()
         }
-        self.behavior_rpn = str(self.behavior_rpn).strip() or None
+        self.behavior_rpn = _coerce_optional_text(self.behavior_rpn)
         self.reality_refs = _coerce_refs(self.reality_refs)
         self.grammar_refs = _coerce_refs(self.grammar_refs)
         self.meta_refs = _coerce_refs(self.meta_refs)

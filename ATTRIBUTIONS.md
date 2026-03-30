@@ -1296,6 +1296,35 @@ SPINdle's CONCEPTS enter the Galaxy as principled metadata. The IMPLEMENTATION s
 
 ---
 
+### 5.5 Wine (Wine Is Not an Emulator)
+
+**Source**: [WineHQ](https://www.winehq.org/) / [Wine Wiki](https://wiki.winehq.org/)
+**Original Work**: Bob Amstadt, Eric Youngdale (1993); maintained by Alexandre Julliard and the Wine community
+
+**What It Does**:
+- Translates Windows API calls to POSIX equivalents at runtime
+- Does NOT emulate Windows — it provides a **compatibility layer** that lets Windows programs run natively on Linux/macOS
+- Thin translation: each Win32 syscall maps to a native equivalent, no full OS simulation
+- Philosophy: translate, don't emulate — the native kernel does the real work
+
+**Our Adaptation**:
+- **Benchmark WINE Layers**: External interfaces (ARC-AGI-3 game frames, MMLU questions, GSM8K problems, human input) are NOT emulated with special code paths. Instead, thin WINE-style translation layers **proceduralize** external formats into Memory Tablet input (RPN programs referencing Galaxy entries)
+- **One Living System**: Just as WINE lets any Windows app use the same Linux kernel, K3D lets any external input reach the same TRM game loop through the same Tablet interface
+- **No Special Paths**: WINE doesn't build a separate emulator for each Windows app. K3D doesn't build a separate adapter for each benchmark — it proceduralizes all inputs to the same Tablet format
+
+**The Lineage**:
+```
+Wine (1993): Win32 API → POSIX translation layer → Linux kernel
+    ↓ (Inspiration: Translate, Don't Emulate)
+K3D Tablet WINE Layers (2026)
+    ↓ (Transformation: External formats → Tablet RPN → TRM game loop)
+All benchmarks, all human input, all API calls → same sovereign path
+```
+
+**Credit**: The Wine project and its community for demonstrating that a thin translation layer is architecturally superior to emulation. The principle that the native system should do the real work — not a simulation of someone else's system — directly inspired K3D's approach to external interfaces.
+
+---
+
 ## 5. Datasets & Corpora
 
 ### 5.1 WordNet

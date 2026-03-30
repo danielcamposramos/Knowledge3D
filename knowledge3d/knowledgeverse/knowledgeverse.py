@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import pickle
 import re
+import shutil
 import time
 from typing import Any
 import zlib
@@ -33,17 +34,17 @@ from knowledge3d.cranium.sovereign.loader import (
 from knowledge3d.gpu.perf_counters import gpu_utilisation
 from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
 from knowledge3d.training.trm_galaxy_nav import (
-    DEFAULT_GALAXY_ORDER,
     load_galaxy_decoder_checkpoint,
     load_trm_weight_checkpoint,
+    save_trm_weight_checkpoint,
     softmax,
 )
 
 from .foundational_galaxy_bootstrap import populate_always_on_foundational_galaxies
 from .galaxy_manager import Galaxy, GalaxyManager
 from .query_head_substrate import DynamicLodDriverBridge, QueryHeadSubstrate, expand_embedding16_to128
-from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries
-from .semantic_csr_graph import load_or_build_semantic_csr_graph
+from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries, resolve_books_v5_root
+from .semantic_csr_graph import _catalog_signature, load_or_build_semantic_csr_graph
 from .shadow_copy import ShadowCopyLearning
 from .sleeptime import SleepTimeConsolidation
 from .stargate import IngestionStargate
@@ -297,6 +298,7 @@ class Knowledgeverse:
         "Audio",
         "3DObjects",
         "Tool",
+        "Language",
     )
     GPU_CATEGORY_CLASS_MAP: dict[str, float] = {
         "unknown": 0.0,
@@ -378,10 +380,17 @@ class Knowledgeverse:
             if galaxy_storage_root is not None
             else self.storage_root / "galaxies"
         )
-        self.galaxy_manager = GalaxyManager(storage_root=galaxy_root)
+        house_root = self.storage_root / "house"
+        self.galaxy_manager = GalaxyManager(
+            storage_root=galaxy_root,
+            extra_storage_roots=[house_root],
+        )
         self.galaxy_manager.set_knowledgeverse(self)
         self.foundational_bootstrap_summary: dict[str, Any] = {}
-        if bootstrap_foundational_galaxies:
+        restored_house_state = self._restore_saved_house_state_for_boot()
+        if restored_house_state:
+            self.foundational_bootstrap_summary = dict(restored_house_state)
+        elif bootstrap_foundational_galaxies:
             self.foundational_bootstrap_summary = populate_always_on_foundational_galaxies(
                 self.galaxy_manager
             )
@@ -417,6 +426,7 @@ class Knowledgeverse:
         self._gpu_reasoning_engine: Any | None = None
         self._gpu_galaxy_binding: dict[str, Any] | None = None
         self._pinned_all_default_binding = False
+        self._live_galaxy_order: tuple[str, ...] = tuple(self._discover_live_galaxy_names())
         self._gpu_galaxy_catalog: list[dict[str, Any]] = []
         self._text_embedding_engine: RPNEmbeddingEngine | None = None
         self._gpu_query_embedding_bridge: TrigramEmbedBridge | None = None
@@ -428,6 +438,7 @@ class Knowledgeverse:
         self._swarm_bridge: Any | None | bool = None
         self._halting_gate: Any | None | bool = None
         self._vector_resonator: Any | None | bool = None
+        self._world_model: Any | None | bool = None
         self._resonance_field: Any | None | bool = None
         self._geometry_router: Any | None | bool = None
         self._temporal_reasoning: Any | None | bool = None
@@ -473,12 +484,14 @@ class Knowledgeverse:
         self._trm_game_loop.start()
         self._load_jarvis_state()
         self._initialize_trm_launcher()
-        self._load_trm_galaxy_decoder()
         self._default_galaxies_loaded = False
         if eager_load_default_galaxies:
             self.ensure_default_galaxies_loaded()
-            if self._trm_navigation_env_enabled():
-                self._pin_all_default_gpu_binding()
+        else:
+            self._refresh_live_galaxy_order()
+        self._load_trm_galaxy_decoder()
+        if eager_load_default_galaxies:
+            self._pin_all_default_gpu_binding(force=True)
 
     def _initialize_adaptive_swarm(self) -> AdaptiveSwarmTRM:
         swarm = AdaptiveSwarmTRM(
@@ -542,7 +555,7 @@ class Knowledgeverse:
         ]
         names.update(loaded_names)
         loaded_safe_names = {self.galaxy_manager._galaxy_path(name).stem for name in loaded_names}
-        for path in self.galaxy_manager.storage_root.glob("*.jsonl"):
+        for path in self.galaxy_manager.iter_storage_jsonl_paths():
             if path.stem not in loaded_safe_names:
                 names.add(self._canonical_galaxy_name(path.stem))
         for name in sorted(names):
@@ -563,6 +576,214 @@ class Knowledgeverse:
                 persisted[name] = self.galaxy_manager._read_entries_from_disk(name)
         return persisted
 
+    @staticmethod
+    def _checkpoint_json_default(value: Any) -> Any:
+        if isinstance(value, Path):
+            return str(value)
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        if isinstance(value, np.integer):
+            return int(value)
+        if isinstance(value, np.floating):
+            return float(value)
+        if isinstance(value, np.bool_):
+            return bool(value)
+        return str(value)
+
+    def _checkpoint_dir(self) -> Path:
+        return self.storage_root / "checkpoints"
+
+    def _checkpoint_stamp(self) -> str:
+        return time.strftime("%Y%m%d_%H%M%S", time.localtime())
+
+    def _latest_consolidated_galaxy_path(self) -> Path:
+        return self._checkpoint_dir() / "galaxy_consolidated_latest.json"
+
+    @staticmethod
+    def _replace_latest_pointer(latest_path: Path, target_path: Path) -> None:
+        latest_path.parent.mkdir(parents=True, exist_ok=True)
+        if latest_path.exists() or latest_path.is_symlink():
+            latest_path.unlink()
+        try:
+            latest_path.symlink_to(target_path.name)
+        except Exception:
+            shutil.copy2(target_path, latest_path)
+
+    def _copy_checkpoint_snapshot(
+        self,
+        source: Path,
+        target: Path,
+        *,
+        latest_name: str,
+    ) -> dict[str, Any]:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not source.exists():
+            return {
+                "path": str(target),
+                "saved": False,
+                "reason": "source_missing",
+            }
+        shutil.copy2(source, target)
+        latest = target.parent / latest_name
+        self._replace_latest_pointer(latest, target)
+        return {
+            "path": str(target),
+            "latest": str(latest),
+            "saved": True,
+        }
+
+    def _merge_house_state_galaxies(self, galaxies: Any) -> dict[str, list[dict[str, Any]]]:
+        if not isinstance(galaxies, dict):
+            return {}
+        merged_galaxies: dict[str, list[dict[str, Any]]] = {}
+        for name, entries in galaxies.items():
+            if not isinstance(entries, list):
+                continue
+            canonical_name = self._canonical_galaxy_name(name)
+            bucket = merged_galaxies.setdefault(canonical_name, [])
+            seen_ids = {
+                str(entry.get("id") or entry.get("rule_id") or "").strip()
+                for entry in bucket
+                if isinstance(entry, dict)
+            }
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                entry_id = str(entry.get("id") or entry.get("rule_id") or "").strip()
+                if entry_id and entry_id in seen_ids:
+                    continue
+                bucket.append(dict(entry))
+                if entry_id:
+                    seen_ids.add(entry_id)
+        return merged_galaxies
+
+    def _rewrite_galaxy_storage(self, merged_galaxies: dict[str, list[dict[str, Any]]]) -> None:
+        self.galaxy_manager.storage_root.mkdir(parents=True, exist_ok=True)
+        for path_obj in self.galaxy_manager.storage_root.glob("*.jsonl"):
+            path_obj.unlink()
+        for name, entries in merged_galaxies.items():
+            path_obj = self.galaxy_manager._galaxy_path(str(name))
+            path_obj.parent.mkdir(parents=True, exist_ok=True)
+            with path_obj.open("w", encoding="utf-8") as handle:
+                for entry in entries:
+                    handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
+        self.galaxy_manager._galaxies.clear()
+        self.galaxy_manager._entry_text_cache.clear()
+        self.galaxy_manager._specialist_entry_cache.clear()
+        self.galaxy_manager._dirty_galaxies.clear()
+
+    def _hydrate_galaxy_cache_from_payload(self, merged_galaxies: dict[str, list[dict[str, Any]]]) -> None:
+        self.galaxy_manager._galaxies.clear()
+        self.galaxy_manager._entry_text_cache.clear()
+        self.galaxy_manager._specialist_entry_cache.clear()
+        self.galaxy_manager._dirty_galaxies.clear()
+        for name, entries in merged_galaxies.items():
+            copied_entries = [dict(entry) for entry in entries if isinstance(entry, dict)]
+            if name == "Drawing":
+                from .drawing_galaxy import DrawingGalaxy
+
+                galaxy = DrawingGalaxy(knowledgeverse=self)
+                for entry in copied_entries:
+                    try:
+                        galaxy.add_entry(entry, record_event=False)
+                    except Exception:
+                        continue
+            elif name == "Grammar":
+                from .grammar_galaxy import GrammarGalaxy
+
+                galaxy = GrammarGalaxy(knowledgeverse=self)
+                for entry in copied_entries:
+                    try:
+                        galaxy.add_entry(entry, record_event=False)
+                    except Exception:
+                        continue
+            else:
+                galaxy = Galaxy(name=name, entries=copied_entries)
+            self.galaxy_manager._galaxies[name] = galaxy
+
+    def _apply_house_state_payload(
+        self,
+        payload: dict[str, Any],
+        *,
+        source_path: Path,
+        eager_runtime_load: bool,
+    ) -> bool:
+        if not isinstance(payload, dict):
+            return False
+        if int(payload.get("version") or -1) != int(self.HOUSE_STATE_VERSION):
+            return False
+        merged_galaxies = self._merge_house_state_galaxies(payload.get("galaxies"))
+        if not merged_galaxies:
+            return False
+        if eager_runtime_load:
+            self._rewrite_galaxy_storage(merged_galaxies)
+        else:
+            self._hydrate_galaxy_cache_from_payload(merged_galaxies)
+        self._runtime_language_enrichment_loaded = False
+        self._default_galaxies_loaded = False
+        if eager_runtime_load:
+            self.invalidate_gpu_galaxy_binding()
+            self.ensure_default_galaxies_loaded(force=True)
+            self._load_trm_galaxy_decoder()
+            self._load_jarvis_state()
+            self._load_adaptive_swarm_state()
+            self._pin_all_default_gpu_binding(force=True)
+        self._house_state_summary = {
+            "path": str(source_path),
+            "version": int(payload["version"]),
+            "galaxy_count": int(len(merged_galaxies)),
+            "total_persisted_entries": int(
+                payload.get("total_persisted_entries")
+                or sum(len(entries) for entries in merged_galaxies.values())
+            ),
+            "math_entries": int(payload.get("math_entries") or len(merged_galaxies.get("Math", []))),
+            "gpu_buffer_signature_base": str(payload.get("gpu_buffer_signature_base") or "").strip(),
+            "warm_boot": True,
+            "loaded_at": time.time(),
+        }
+        return True
+
+    def _restore_saved_house_state_for_boot(self) -> dict[str, Any]:
+        latest_json = self._latest_consolidated_galaxy_path()
+        if self.house_state_path.exists():
+            try:
+                with self.house_state_path.open("rb") as handle:
+                    payload = pickle.load(handle)
+            except Exception:
+                payload = None
+            source_path = latest_json if latest_json.exists() else self.house_state_path
+            if isinstance(payload, dict) and self._apply_house_state_payload(
+                payload,
+                source_path=source_path,
+                eager_runtime_load=False,
+            ):
+                return {
+                    "mode": "warm_boot" if latest_json.exists() else "warm_boot_legacy",
+                    "source": str(source_path),
+                    "restored": True,
+                    "galaxy_count": int(self._house_state_summary.get("galaxy_count") or 0),
+                    "total_persisted_entries": int(self._house_state_summary.get("total_persisted_entries") or 0),
+                }
+        if latest_json.exists():
+            try:
+                with latest_json.open("r", encoding="utf-8") as handle:
+                    payload = json.load(handle)
+            except Exception:
+                payload = None
+            if isinstance(payload, dict) and self._apply_house_state_payload(
+                payload,
+                source_path=latest_json,
+                eager_runtime_load=False,
+            ):
+                return {
+                    "mode": "warm_boot",
+                    "source": str(latest_json),
+                    "restored": True,
+                    "galaxy_count": int(self._house_state_summary.get("galaxy_count") or 0),
+                    "total_persisted_entries": int(self._house_state_summary.get("total_persisted_entries") or 0),
+                }
+        return {}
+
     def _house_state_payload(self) -> dict[str, Any]:
         galaxies = self._persistable_galaxy_entries()
         total_entries = sum(len(entries) for entries in galaxies.values())
@@ -575,6 +796,7 @@ class Knowledgeverse:
             "galaxy_count": len(galaxies),
             "total_persisted_entries": total_entries,
             "math_entries": math_entries,
+            "gpu_buffer_signature_base": self._persisted_gpu_buffer_signature(galaxies),
         }
         return payload
 
@@ -585,6 +807,183 @@ class Knowledgeverse:
     def _canonical_galaxy_name(cls, name: str | Any) -> str:
         normalized = str(name or "").strip()
         return str(cls.BOOK_GALAXY_ALIASES.get(normalized, normalized))
+
+    @classmethod
+    def _signature_u32(cls, parts: list[str]) -> str:
+        acc = 2166136261
+        for part in parts:
+            for ch in str(part):
+                acc ^= ord(ch)
+                acc = (acc * 16777619) & 0xFFFFFFFF
+        return f"{acc:08x}"
+
+    def _persisted_gpu_buffer_signature(
+        self,
+        galaxies: dict[str, list[dict[str, Any]]],
+    ) -> str:
+        catalog_like: list[dict[str, Any]] = []
+        for galaxy_name in sorted(galaxies.keys()):
+            entries = galaxies.get(galaxy_name)
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+                catalog_like.append(
+                    {
+                        "id": str(entry.get("id", entry.get("rule_id", ""))),
+                        "galaxy": str(galaxy_name),
+                        "category": str(entry.get("category", "")),
+                        "template_ref": self._entry_template_ref(entry, metadata),
+                        "embedding16": self._precomputed_entry_embedding16(entry),
+                    }
+                )
+        return _catalog_signature(catalog_like)
+
+    def _runtime_artifact_signature(self) -> str:
+        if not self.include_runtime_artifacts:
+            return "runtime_artifacts_disabled"
+        root = resolve_books_v5_root()
+        if root is None or not root.exists():
+            return "runtime_artifacts_missing"
+        parts: list[str] = [str(root)]
+        for book_dir in sorted(path for path in root.iterdir() if path.is_dir()):
+            parts.append(book_dir.name)
+            for filename in ("artifacts.jsonl", "embeddings_128.npy", "metadata.json"):
+                path = book_dir / filename
+                if not path.exists():
+                    continue
+                stat = path.stat()
+                parts.extend((filename, str(int(stat.st_size)), str(int(stat.st_mtime_ns))))
+        return self._signature_u32(parts)
+
+    def _fallback_gpu_buffer_signature_base(
+        self,
+        galaxy_names: list[str],
+    ) -> str:
+        parts: list[str] = []
+        for galaxy_name in galaxy_names:
+            galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
+            entries = getattr(galaxy, "entries", [])
+            parts.extend((str(galaxy_name), str(len(entries))))
+            if not entries:
+                continue
+            sample_indexes = sorted({0, len(entries) // 2, len(entries) - 1})
+            for index in sample_indexes:
+                entry = entries[index]
+                if not isinstance(entry, dict):
+                    continue
+                metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+                parts.extend(
+                    (
+                        str(entry.get("id", entry.get("rule_id", ""))),
+                        str(entry.get("category", "")),
+                        self._entry_template_ref(entry, metadata),
+                    )
+                )
+                embedding16 = self._precomputed_entry_embedding16(entry)
+                if embedding16:
+                    parts.extend(f"{float(value):.4f}" for value in embedding16[:4])
+        return self._signature_u32(parts or ["empty"])
+
+    def _gpu_flat_cache_signature(
+        self,
+        galaxy_names: list[str],
+    ) -> str:
+        base_signature = str(self._house_state_summary.get("gpu_buffer_signature_base") or "").strip()
+        if not base_signature:
+            base_signature = self._fallback_gpu_buffer_signature_base(galaxy_names)
+        parts = [
+            "gpu_flat_cache_v2",
+            str(self.GPU_GALAXY_ENTRY_STRIDE),
+            str(self.GPU_GALAXY_EMBEDDING_DIM),
+            base_signature,
+            self._runtime_artifact_signature(),
+        ]
+        parts.extend(str(name) for name in galaxy_names)
+        return self._signature_u32(parts)
+
+    def _gpu_cache_dir(self) -> Path:
+        return self.storage_root / "gpu_cache"
+
+    def _gpu_flat_cache_paths(self, signature: str) -> tuple[Path, Path]:
+        cache_dir = self._gpu_cache_dir()
+        return (
+            cache_dir / f"flat_{signature}.npy",
+            cache_dir / f"catalog_{signature}.pkl",
+        )
+
+    def _load_gpu_flat_cache(
+        self,
+        signature: str,
+    ) -> tuple[np.ndarray, list[dict[str, Any]]] | None:
+        flat_path, catalog_path = self._gpu_flat_cache_paths(signature)
+        if not flat_path.exists() or not catalog_path.exists():
+            return None
+        try:
+            flat_entries = np.load(flat_path, allow_pickle=False)
+            with catalog_path.open("rb") as handle:
+                catalog = pickle.load(handle)
+        except Exception:
+            return None
+        if not isinstance(catalog, list):
+            return None
+        flat_array = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+        expected = int(len(catalog)) * int(self.GPU_GALAXY_ENTRY_STRIDE)
+        if expected != int(flat_array.size):
+            return None
+        return flat_array, catalog
+
+    def _save_gpu_flat_cache(
+        self,
+        *,
+        signature: str,
+        flat_entries: Any,
+        catalog: list[dict[str, Any]],
+    ) -> None:
+        flat_path, catalog_path = self._gpu_flat_cache_paths(signature)
+        cache_dir = self._gpu_cache_dir()
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        flat_array = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+        np.save(flat_path, flat_array, allow_pickle=False)
+        with catalog_path.open("wb") as handle:
+            pickle.dump(catalog, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def _discover_live_galaxy_names(self) -> list[str]:
+        ordered: list[str] = []
+        seen: set[str] = set()
+
+        def _append(name: Any) -> None:
+            canonical = self._canonical_galaxy_name(name)
+            if not canonical or canonical in seen:
+                return
+            seen.add(canonical)
+            ordered.append(canonical)
+
+        for name in self.DEFAULT_GALAXIES:
+            _append(name)
+        for path in self.galaxy_manager.iter_storage_jsonl_paths():
+            _append(path.stem)
+        for name in sorted(self.galaxy_manager._galaxies.keys()):
+            _append(name)
+        return ordered
+
+    def _refresh_live_galaxy_order(self) -> tuple[str, ...]:
+        self._live_galaxy_order = tuple(self._discover_live_galaxy_names())
+        return self._live_galaxy_order
+
+    def _current_live_galaxy_order(self) -> tuple[str, ...]:
+        current = tuple(getattr(self, "_live_galaxy_order", ()))
+        return current if current else self._refresh_live_galaxy_order()
+
+    def _resolve_live_galaxy_names(
+        self,
+        galaxy_names: list[str] | tuple[str, ...] | None = None,
+    ) -> list[str]:
+        if galaxy_names:
+            return [self._canonical_galaxy_name(name) for name in galaxy_names if str(name).strip()]
+        return list(self._refresh_live_galaxy_order())
 
     def _jarvis_entry(self) -> dict[str, Any]:
         return {
@@ -677,11 +1076,119 @@ class Knowledgeverse:
             "galaxy_count": int(payload["galaxy_count"]),
             "total_persisted_entries": int(payload["total_persisted_entries"]),
             "math_entries": int(payload["math_entries"]),
-            "warm_boot": False,
+            "gpu_buffer_signature_base": str(payload.get("gpu_buffer_signature_base") or "").strip(),
+            "warm_boot": bool(self._house_state_summary.get("warm_boot", False)),
             "saved_at": float(payload["created_at"]),
             "adaptive_swarm": adaptive_swarm_state,
         }
         return self.house_state_summary()
+
+    def save_consolidated_state(self) -> dict[str, Any]:
+        checkpoint_dir = self._checkpoint_dir()
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+        stamp = self._checkpoint_stamp()
+
+        base_summary = self.save_house_state()
+        payload = self._house_state_payload()
+
+        consolidated_path = checkpoint_dir / f"galaxy_consolidated_{stamp}.json"
+        consolidated_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True, default=self._checkpoint_json_default),
+            encoding="utf-8",
+        )
+        consolidated_latest = self._latest_consolidated_galaxy_path()
+        self._replace_latest_pointer(consolidated_latest, consolidated_path)
+
+        trm_summary: dict[str, Any]
+        if self._trm_host_weights:
+            weights_payload = {
+                name: np.asarray(value, dtype=np.float32)
+                for name, value in self._trm_host_weights.items()
+            }
+            if self._trm_matryoshka_host_weights is not None:
+                weights_payload["matryoshka"] = np.asarray(self._trm_matryoshka_host_weights, dtype=np.float32)
+            metadata = {
+                "saved_at": time.time(),
+                "manifest_version": self.manifest_version,
+                "galaxy_count": int(payload.get("galaxy_count") or 0),
+            }
+            fixed_trm_path = self._trm_weight_checkpoint_path()
+            save_trm_weight_checkpoint(fixed_trm_path, weights_payload, metadata=metadata)
+            trm_summary = self._copy_checkpoint_snapshot(
+                fixed_trm_path,
+                checkpoint_dir / f"trm_weights_{stamp}.npz",
+                latest_name="trm_weights_latest.npz",
+            )
+        else:
+            trm_summary = {
+                "path": str(checkpoint_dir / f"trm_weights_{stamp}.npz"),
+                "saved": False,
+                "reason": "trm_uninitialized",
+            }
+
+        specialist_summary: dict[str, Any]
+        navigator = getattr(self, "navigator_specialist", None)
+        if navigator is not None and getattr(navigator, "weight_store", None) is not None:
+            navigator.save_state()
+            routes_path = Path(navigator.weight_store.path)
+            specialist_summary = self._copy_checkpoint_snapshot(
+                routes_path,
+                checkpoint_dir / f"specialist_routes_{stamp}.json",
+                latest_name="specialist_routes_latest.json",
+            )
+        else:
+            specialist_summary = {
+                "path": str(checkpoint_dir / f"specialist_routes_{stamp}.json"),
+                "saved": False,
+                "reason": "navigator_unavailable",
+            }
+
+        shadow_summary: dict[str, Any]
+        shadow = getattr(self, "shadow_copy", None)
+        if shadow is not None:
+            try:
+                shadow.flush()
+            except Exception:
+                pass
+            index_path = Path(shadow.compressed_journal.index.index_path)
+            shadow_summary = self._copy_checkpoint_snapshot(
+                index_path,
+                checkpoint_dir / f"shadow_patterns_{stamp}.json",
+                latest_name="shadow_patterns_latest.json",
+            )
+        else:
+            shadow_summary = {
+                "path": str(checkpoint_dir / f"shadow_patterns_{stamp}.json"),
+                "saved": False,
+                "reason": "shadow_copy_unavailable",
+            }
+
+        self._save_jarvis_state()
+        jarvis_summary = self._copy_checkpoint_snapshot(
+            self.jarvis_state_path,
+            checkpoint_dir / f"jarvis_state_{stamp}.json",
+            latest_name="jarvis_state_latest.json",
+        )
+
+        summary = {
+            **base_summary,
+            "checkpoint_dir": str(checkpoint_dir),
+            "galaxy_consolidated": {
+                "path": str(consolidated_path),
+                "latest": str(consolidated_latest),
+                "saved": True,
+            },
+            "trm_weights": trm_summary,
+            "specialist_routes": specialist_summary,
+            "shadow_patterns": shadow_summary,
+            "jarvis_state_snapshot": jarvis_summary,
+        }
+        self._house_state_summary = dict(summary)
+        return dict(summary)
+
+    def _save_consolidated_state(self) -> dict[str, Any]:
+        """Authoritative warm-boot checkpoint save used by sleep-time persistence."""
+        return self.save_consolidated_state()
 
     def load_house_state(self, path: str | Path | None = None) -> bool:
         target = Path(path) if path is not None else self.house_state_path
@@ -692,79 +1199,10 @@ class Knowledgeverse:
                 payload = pickle.load(handle)
         except Exception:
             return False
-        if not isinstance(payload, dict):
-            return False
-        if int(payload.get("version") or -1) != int(self.HOUSE_STATE_VERSION):
-            return False
-        galaxies = payload.get("galaxies")
-        if not isinstance(galaxies, dict):
-            return False
-
-        merged_galaxies: dict[str, list[dict[str, Any]]] = {}
-        for name, entries in galaxies.items():
-            if not isinstance(entries, list):
-                continue
-            canonical_name = self._canonical_galaxy_name(name)
-            bucket = merged_galaxies.setdefault(canonical_name, [])
-            seen_ids = {
-                str(entry.get("id") or entry.get("rule_id") or "").strip()
-                for entry in bucket
-                if isinstance(entry, dict)
-            }
-            for entry in entries:
-                if not isinstance(entry, dict):
-                    continue
-                entry_id = str(entry.get("id") or entry.get("rule_id") or "").strip()
-                if entry_id and entry_id in seen_ids:
-                    continue
-                bucket.append(dict(entry))
-                if entry_id:
-                    seen_ids.add(entry_id)
-
-        self.galaxy_manager.storage_root.mkdir(parents=True, exist_ok=True)
-        for path_obj in self.galaxy_manager.storage_root.glob("*.jsonl"):
-            path_obj.unlink()
-        for name, entries in merged_galaxies.items():
-            path_obj = self.galaxy_manager._galaxy_path(str(name))
-            path_obj.parent.mkdir(parents=True, exist_ok=True)
-            with path_obj.open("w", encoding="utf-8") as handle:
-                for entry in entries:
-                    handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
-
-        self.galaxy_manager._galaxies.clear()
-        self.galaxy_manager._entry_text_cache.clear()
-        self.galaxy_manager._specialist_entry_cache.clear()
-        self.galaxy_manager._dirty_galaxies.clear()
-        self._runtime_language_enrichment_loaded = False
-        self._default_galaxies_loaded = False
-        self.invalidate_gpu_galaxy_binding()
-        self.ensure_default_galaxies_loaded(force=True)
-        self._load_jarvis_state()
-        self._load_adaptive_swarm_state()
-        self._house_state_summary = {
-            "path": str(target),
-            "version": int(payload["version"]),
-            "galaxy_count": int(len(merged_galaxies)),
-            "total_persisted_entries": int(
-                payload.get("total_persisted_entries")
-                or sum(len(entries) for entries in merged_galaxies.values())
-            ),
-            "math_entries": int(payload.get("math_entries") or len(merged_galaxies.get("Math", []))),
-            "warm_boot": True,
-            "loaded_at": time.time(),
-        }
-        return True
-
-    @staticmethod
-    def _trm_navigation_env_enabled() -> bool:
-        return os.getenv("K3D_TRM_NAVIGATE", "0").strip().lower() in {"1", "true", "yes"}
-
-    @staticmethod
-    def _device_pipeline_env_enabled() -> bool:
-        return os.getenv("K3D_DEVICE_PIPELINE", "0").strip().lower() in {"1", "true", "yes"}
+        return self._apply_house_state_payload(payload, source_path=target, eager_runtime_load=True)
 
     def _pin_all_default_gpu_binding(self, *, force: bool = False) -> dict[str, Any]:
-        binding = self.bind_gpu_galaxy_runtime(galaxy_names=list(self.DEFAULT_GALAXIES), force=force)
+        binding = self.bind_gpu_galaxy_runtime(galaxy_names=self._discover_live_galaxy_names(), force=force)
         self._pinned_all_default_binding = True
         return binding
 
@@ -882,13 +1320,40 @@ class Knowledgeverse:
             return
         weights = np.asarray(decoder.get("W_galaxy", []), dtype=np.float32)
         bias = np.asarray(decoder.get("b_galaxy", []), dtype=np.float32)
-        if weights.shape != (len(self.DEFAULT_GALAXIES), self.TRM_STATE_VECTOR_DIM):
+        if weights.ndim != 2 or weights.shape[1] != self.TRM_STATE_VECTOR_DIM:
             return
-        if bias.shape != (len(self.DEFAULT_GALAXIES),):
+        if bias.ndim != 1 or bias.shape[0] != weights.shape[0]:
             return
+        live_order = self._current_live_galaxy_order()
+        live_count = len(live_order)
+        if live_count <= 0:
+            return
+        saved_order = []
+        for name in np.asarray(decoder.get("galaxy_order", []), dtype="<U64").reshape(-1):
+            canonical = self._canonical_galaxy_name(name)
+            if canonical:
+                saved_order.append(canonical)
+        aligned_weights = np.zeros((live_count, self.TRM_STATE_VECTOR_DIM), dtype=np.float32)
+        aligned_bias = np.zeros(live_count, dtype=np.float32)
+        if len(saved_order) == weights.shape[0]:
+            index_by_name: dict[str, int] = {}
+            for idx, galaxy_name in enumerate(saved_order):
+                index_by_name.setdefault(str(galaxy_name), idx)
+            for live_idx, galaxy_name in enumerate(live_order):
+                saved_idx = index_by_name.get(str(galaxy_name))
+                if saved_idx is None:
+                    continue
+                aligned_weights[live_idx] = weights[int(saved_idx)]
+                aligned_bias[live_idx] = bias[int(saved_idx)]
+        else:
+            copy_rows = min(live_count, int(weights.shape[0]))
+            if copy_rows > 0:
+                aligned_weights[:copy_rows] = weights[:copy_rows]
+                aligned_bias[:copy_rows] = bias[:copy_rows]
         self._trm_galaxy_decoder = {
-            "W_galaxy": weights,
-            "b_galaxy": bias,
+            "W_galaxy": aligned_weights,
+            "b_galaxy": aligned_bias,
+            "galaxy_order": np.asarray(live_order, dtype="<U64"),
         }
         self._trm_galaxy_decoder_path = str(checkpoint_path)
 
@@ -1008,6 +1473,7 @@ class Knowledgeverse:
 
     def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[list[float], list[float], str]:
         y_new_host = [float(value) for value in list(y_new_vector_512)]
+        live_order = self._current_live_galaxy_order()
         if self._trm_galaxy_decoder is not None:
             weights = self._trm_galaxy_decoder["W_galaxy"]
             biases = self._trm_galaxy_decoder["b_galaxy"]
@@ -1020,7 +1486,7 @@ class Knowledgeverse:
                 logits.append(float(accum))
             decoder_source = "checkpoint"
         else:
-            logits = [float(value) for value in y_new_host[: len(self.DEFAULT_GALAXIES)]]
+            logits = [float(value) for value in y_new_host[: len(live_order)]]
             decoder_source = "raw_head"
         distribution = [float(value) for value in softmax(logits)]
         return logits, distribution, decoder_source
@@ -1040,6 +1506,7 @@ class Knowledgeverse:
         projected_query = [float(value) for value in list(tick.get("query_embedding_512", []))]
         latency_us = float(tick.get("trm_latency_us", 0.0))
         logits, distribution, decoder_source = self._decode_trm_galaxy_distribution(y_new_host)
+        galaxy_order = self._current_live_galaxy_order()
         top_indexes = sorted(
             range(len(distribution)),
             key=lambda idx: float(distribution[idx]),
@@ -1054,11 +1521,12 @@ class Knowledgeverse:
         return {
             "y_new_top3_galaxies": [
                 {
-                    "galaxy": str(DEFAULT_GALAXY_ORDER[int(idx)]),
+                    "galaxy": str(galaxy_order[int(idx)]),
                     "weight": float(distribution[int(idx)]),
                     "logit": float(logits[int(idx)]),
                 }
                 for idx in top_indexes
+                if 0 <= int(idx) < len(galaxy_order)
             ],
             "y_new_entropy": entropy,
             "trm_latency_us": latency_us,
@@ -1072,8 +1540,7 @@ class Knowledgeverse:
             "trm_drift": float(tick.get("trm_drift", 0.0) or 0.0),
         }
 
-    @classmethod
-    def _normalize_galaxy_weights(cls, galaxy_weights: dict[str, Any] | None) -> dict[str, float]:
+    def _normalize_galaxy_weights(self, galaxy_weights: dict[str, Any] | None) -> dict[str, float]:
         if not isinstance(galaxy_weights, dict):
             return {}
         raw_weights: dict[str, float] = {}
@@ -1088,12 +1555,13 @@ class Knowledgeverse:
         if not raw_weights:
             return {}
         try:
-            strength = max(0.0, float(os.getenv("K3D_TRM_INFLUENCE_STRENGTH", str(cls.TRM_GALAXY_INFLUENCE_STRENGTH))))
+            strength = max(0.0, float(os.getenv("K3D_TRM_INFLUENCE_STRENGTH", str(self.TRM_GALAXY_INFLUENCE_STRENGTH))))
         except Exception:
-            strength = float(cls.TRM_GALAXY_INFLUENCE_STRENGTH)
-        uniform = 1.0 / float(max(len(cls.DEFAULT_GALAXIES), 1))
+            strength = float(self.TRM_GALAXY_INFLUENCE_STRENGTH)
+        live_order = self._current_live_galaxy_order()
+        uniform = 1.0 / float(max(len(live_order), 1))
         normalized: dict[str, float] = {}
-        for galaxy_name in cls.DEFAULT_GALAXIES:
+        for galaxy_name in live_order:
             raw_value = float(raw_weights.get(str(galaxy_name), 0.0))
             multiplier = 1.0 + (strength * (raw_value - uniform))
             normalized[str(galaxy_name)] = max(0.0, float(multiplier))
@@ -1233,6 +1701,7 @@ class Knowledgeverse:
                 "status": "fallback",
                 "reason": "non_finite_distribution",
             }
+        galaxy_order = self._current_live_galaxy_order()
         ranked_indexes = list(np.argsort(distribution)[::-1])
         max_weight = float(distribution[ranked_indexes[0]]) if ranked_indexes else 0.0
         if max_weight < 0.01 or float(np.max(distribution) - np.min(distribution)) <= 1e-6:
@@ -1244,12 +1713,12 @@ class Knowledgeverse:
                 "task_type": task_type,
             }
         selected_names = [
-            str(DEFAULT_GALAXY_ORDER[idx])
+            str(galaxy_order[idx])
             for idx in ranked_indexes
-            if float(distribution[idx]) > 0.05
+            if 0 <= int(idx) < len(galaxy_order) and float(distribution[idx]) > 0.05
         ]
         if len(selected_names) < 2:
-            selected_names = [str(DEFAULT_GALAXY_ORDER[idx]) for idx in ranked_indexes[:2]]
+            selected_names = [str(galaxy_order[idx]) for idx in ranked_indexes[:2] if 0 <= int(idx) < len(galaxy_order)]
         if len(selected_names) < 2:
             return {}, reasoning_program_id, {
                 "status": "fallback",
@@ -1259,12 +1728,12 @@ class Knowledgeverse:
                 "task_type": task_type,
             }
         selected_names = list(dict.fromkeys(selected_names))
-        galaxy_rank = {str(name): idx for idx, name in enumerate(DEFAULT_GALAXY_ORDER)}
-        selected_names = sorted(selected_names, key=lambda name: galaxy_rank.get(str(name), len(DEFAULT_GALAXY_ORDER)))
+        galaxy_rank = {str(name): idx for idx, name in enumerate(galaxy_order)}
+        selected_names = sorted(selected_names, key=lambda name: galaxy_rank.get(str(name), len(galaxy_order)))
         selected_names = selected_names[:5]
         galaxy_weights = {
-            str(DEFAULT_GALAXY_ORDER[idx]): float(distribution[idx])
-            for idx in range(min(len(DEFAULT_GALAXY_ORDER), len(distribution)))
+            str(galaxy_order[idx]): float(distribution[idx])
+            for idx in range(min(len(galaxy_order), len(distribution)))
         }
         return galaxy_weights, reasoning_program_id, {
             "status": "ok",
@@ -1274,11 +1743,12 @@ class Knowledgeverse:
             "galaxy_weights": dict(galaxy_weights),
             "top3": [
                 {
-                    "galaxy": str(DEFAULT_GALAXY_ORDER[idx]),
+                    "galaxy": str(galaxy_order[idx]),
                     "weight": float(distribution[idx]),
                     "logit": float(logits[idx]),
                 }
                 for idx in ranked_indexes[:3]
+                if 0 <= int(idx) < len(galaxy_order)
             ],
             "trm_latency_us": float(tick.get("trm_latency_us", 0.0)),
         }
@@ -1300,8 +1770,9 @@ class Knowledgeverse:
         force: bool = False,
     ) -> dict[str, Any]:
         """Flatten active Galaxy entries and bind them into the GPU RPN runtime."""
-        resolved_names = [str(name) for name in (galaxy_names or self.DEFAULT_GALAXIES)]
+        resolved_names = self._resolve_live_galaxy_names(galaxy_names)
         bound_names = list((self._gpu_galaxy_binding or {}).get("galaxies", []))
+        live_names = self._discover_live_galaxy_names()
         if (
             self._gpu_galaxy_binding is not None
             and not force
@@ -1310,7 +1781,7 @@ class Knowledgeverse:
                 or (
                     self._pinned_all_default_binding
                     and
-                    bound_names == list(self.DEFAULT_GALAXIES)
+                    bound_names == live_names
                     and set(resolved_names).issubset(set(bound_names))
                 )
             )
@@ -1323,7 +1794,37 @@ class Knowledgeverse:
 
             engine = ModularRPNEngine()
             self._gpu_reasoning_engine = engine
-        flat_entries, catalog = self._flatten_galaxies_for_gpu(galaxy_names=resolved_names)
+        flat_cache_signature = self._gpu_flat_cache_signature(resolved_names)
+        flat_cache_hit = False
+        enriched_count = 0
+        flat_cache_t0 = time.perf_counter()
+        cached_payload = self._load_gpu_flat_cache(flat_cache_signature)
+        if cached_payload is not None:
+            flat_entries, catalog = cached_payload
+            flat_cache_hit = True
+            self.metrics.gpu_runtime_artifact_entries = sum(
+                1
+                for entry in catalog
+                if float(entry.get("gpu_source_class", -1.0)) == float(self.GPU_SOURCE_CLASS_BOOK_ARTIFACT)
+            )
+            print(
+                "[K3D] GPU flat buffer cache hit "
+                f"entries={len(catalog)} "
+                f"time={time.perf_counter()-flat_cache_t0:.2f}s"
+            )
+        else:
+            flat_entries, catalog, enriched_count = self._flatten_galaxies_for_gpu(galaxy_names=resolved_names)
+            flat_entries = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+            self._save_gpu_flat_cache(
+                signature=flat_cache_signature,
+                flat_entries=flat_entries,
+                catalog=catalog,
+            )
+            print(
+                "[K3D] GPU flat buffer built "
+                f"entries={len(catalog)} "
+                f"time={time.perf_counter()-flat_cache_t0:.2f}s"
+            )
         binding = engine.bind_galaxy_buffer(
             flat_entries,
             entry_count=len(catalog),
@@ -1335,19 +1836,49 @@ class Knowledgeverse:
             {
                 "galaxies": list(resolved_names),
                 "entry_count": len(catalog),
-                "buffer_bytes": len(flat_entries) * 4,
+                "buffer_bytes": int(np.asarray(flat_entries).reshape(-1).size) * 4,
                 "runtime_artifact_entries": int(self.metrics.gpu_runtime_artifact_entries),
+                "flat_cache_hit": bool(flat_cache_hit),
+                "flat_cache_signature": flat_cache_signature,
             }
         )
         if self._query_head_substrate is not None:
             self._query_head_substrate.close()
         self._gpu_galaxy_binding = binding
+        self._pinned_all_default_binding = list(resolved_names) == list(live_names)
         self._gpu_galaxy_catalog = catalog
+        if enriched_count > 0 or not str(self._house_state_summary.get("gpu_buffer_signature_base") or "").strip():
+            checkpoint_summary = self.save_consolidated_state()
+            checkpoint_reason = "new_embeddings" if enriched_count > 0 else "cache_signature"
+            refreshed_signature = self._gpu_flat_cache_signature(resolved_names)
+            if refreshed_signature != flat_cache_signature:
+                self._save_gpu_flat_cache(
+                    signature=refreshed_signature,
+                    flat_entries=flat_entries,
+                    catalog=catalog,
+                )
+                flat_cache_signature = refreshed_signature
+                binding["flat_cache_signature"] = flat_cache_signature
+            print(
+                "[K3D] Saved checkpoint "
+                f"reason={checkpoint_reason} "
+                f"new_embeddings={int(enriched_count)} "
+                f"path={checkpoint_summary.get('path', '')}"
+            )
+        graph_t0 = time.perf_counter()
         self._semantic_csr_graph = load_or_build_semantic_csr_graph(
             catalog=catalog,
             cache_root=self.storage_root / "graph_cache",
             knn_k=12,
             similarity_threshold=0.3,
+        )
+        graph_elapsed = float(time.perf_counter() - graph_t0)
+        print(
+            "[K3D] Semantic CSR graph ready "
+            f"backend={getattr(self._semantic_csr_graph, 'build_backend', 'unknown')} "
+            f"cache_hit={bool(getattr(self._semantic_csr_graph, 'cache_hit', False))} "
+            f"nodes={len(catalog)} "
+            f"time={graph_elapsed:.2f}s"
         )
         self._semantic_csr_graph.ensure_device_buffers()
         self._query_head_substrate = QueryHeadSubstrate.build(
@@ -1361,6 +1892,78 @@ class Knowledgeverse:
 
     def get_gpu_galaxy_catalog(self) -> list[dict[str, Any]]:
         return list(self._gpu_galaxy_catalog)
+
+    def _catalog_source_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(entry, dict):
+            return {}
+        galaxy_name = str(entry.get("galaxy", "")).strip()
+        entry_idx = self._safe_to_int(entry.get("entry_idx"), -1, clamp_abs=2**31)
+        if not galaxy_name or entry_idx < 0:
+            return dict(entry)
+        source_class = self._finite_float_or_default(entry.get("gpu_source_class", 0.0), 0.0)
+        if math.isclose(float(source_class), float(self.GPU_SOURCE_CLASS_BOOK_ARTIFACT), abs_tol=1e-6):
+            grouped, _stats = load_books_runtime_entries()
+            rows = grouped.get(galaxy_name)
+            if isinstance(rows, list) and 0 <= entry_idx < len(rows) and isinstance(rows[entry_idx], dict):
+                return dict(rows[entry_idx])
+            return dict(entry)
+        try:
+            galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
+        except Exception:
+            return dict(entry)
+        rows = getattr(galaxy, "entries", [])
+        if 0 <= entry_idx < len(rows) and isinstance(rows[entry_idx], dict):
+            return dict(rows[entry_idx])
+        return dict(entry)
+
+    def _catalog_metadata(self, entry: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(entry, dict):
+            return {}
+        metadata = entry.get("metadata")
+        if isinstance(metadata, dict) and metadata:
+            return dict(metadata)
+        source = self._catalog_source_entry(entry)
+        return dict(self._entry_metadata(source, galaxy_name=str(entry.get("galaxy", "")).strip()))
+
+    def _catalog_entry_is_resolved(self, entry: dict[str, Any]) -> bool:
+        if not isinstance(entry, dict):
+            return False
+        return isinstance(entry.get("metadata"), dict) and (
+            "rpn_program" in entry
+            or "answer_text" in entry
+            or "output_grid" in entry
+            or "arc_primitive_plan" in entry
+            or "arc_transform_chain" in entry
+        )
+
+    def _resolve_catalog_entry(self, entry: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(entry, dict):
+            return {}
+        if self._catalog_entry_is_resolved(entry):
+            return dict(entry)
+        galaxy_name = str(entry.get("galaxy", "")).strip()
+        source = self._catalog_source_entry(entry)
+        if not galaxy_name:
+            galaxy_name = str(source.get("galaxy", "")).strip()
+        resolved = self._catalog_match_from_entry(
+            galaxy_name=galaxy_name,
+            entry=source,
+            index=self._safe_to_int(entry.get("index"), -1, clamp_abs=2**31),
+        )
+        for key in (
+            "entry_idx",
+            "confidence",
+            "domain_hash",
+            "subject_hash",
+            "embedding16",
+            "gpu_category_class",
+            "gpu_source_class",
+            "gpu_galaxy_index",
+            "gpu_has_template_ref",
+        ):
+            if key in entry:
+                resolved[key] = entry.get(key)
+        return resolved
 
     def invalidate_gpu_galaxy_binding(self) -> None:
         if self._query_head_substrate is not None:
@@ -1383,11 +1986,20 @@ class Knowledgeverse:
         if not self._gpu_galaxy_catalog:
             return
         if self._semantic_csr_graph is None:
+            graph_t0 = time.perf_counter()
             self._semantic_csr_graph = load_or_build_semantic_csr_graph(
                 catalog=self._gpu_galaxy_catalog,
                 cache_root=self.storage_root / "graph_cache",
                 knn_k=12,
                 similarity_threshold=0.3,
+            )
+            graph_elapsed = float(time.perf_counter() - graph_t0)
+            print(
+                "[K3D] Semantic CSR graph ready "
+                f"backend={getattr(self._semantic_csr_graph, 'build_backend', 'unknown')} "
+                f"cache_hit={bool(getattr(self._semantic_csr_graph, 'cache_hit', False))} "
+                f"nodes={len(self._gpu_galaxy_catalog)} "
+                f"time={graph_elapsed:.2f}s"
             )
             self._semantic_csr_graph.ensure_device_buffers()
         if self._query_head_substrate is None and self._semantic_csr_graph is not None:
@@ -1496,6 +2108,19 @@ class Knowledgeverse:
                 self._vector_resonator = False
                 return None
         return self._vector_resonator
+
+    def get_world_model(self):
+        if self._world_model is False:
+            return None
+        if self._world_model is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import WorldModelBridge
+
+                self._world_model = WorldModelBridge()
+            except Exception:
+                self._world_model = False
+                return None
+        return self._world_model
 
     def get_resonance_field(self):
         if self._resonance_field is False:
@@ -1720,33 +2345,100 @@ class Knowledgeverse:
             engine.attach_gpu_bridge(self._gpu_query_embedding_bridge)
         return engine
 
+    @classmethod
+    def _slim_catalog_value(cls, value: Any) -> Any:
+        if value is None or isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return int(value)
+        if isinstance(value, float):
+            return cls._finite_float_or_default(value, 0.0)
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return ""
+            return text[:256]
+        if isinstance(value, (list, tuple)):
+            if len(value) > 16:
+                return None
+            compact: list[Any] = []
+            for item in value:
+                if isinstance(item, (dict, list, tuple)):
+                    return None
+                normalized = cls._slim_catalog_value(item)
+                if normalized not in (None, "", []):
+                    compact.append(normalized)
+            return compact
+        if isinstance(value, dict):
+            if len(value) > 16:
+                return None
+            compact_dict: dict[str, Any] = {}
+            for raw_key, raw_value in value.items():
+                if isinstance(raw_value, (dict, list, tuple)):
+                    nested = cls._slim_catalog_value(raw_value)
+                    if nested in (None, "", [], {}):
+                        continue
+                    compact_dict[str(raw_key)] = nested
+                    continue
+                normalized = cls._slim_catalog_value(raw_value)
+                if normalized in (None, "", [], {}):
+                    continue
+                compact_dict[str(raw_key)] = normalized
+            return compact_dict
+        return None
+
+    @classmethod
+    def _slim_catalog_metadata(cls, metadata: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(metadata, dict):
+            return {}
+        compact: dict[str, Any] = {}
+        for key, value in metadata.items():
+            normalized = cls._slim_catalog_value(value)
+            if normalized in (None, "", [], {}):
+                continue
+            compact[str(key)] = normalized
+        return compact
+
+    def _entry_metadata(
+        self,
+        entry: dict[str, Any],
+        *,
+        galaxy_name: str = "",
+    ) -> dict[str, Any]:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        if metadata:
+            return metadata
+        if not str(entry.get("rule_id", "")).strip():
+            return {}
+        return {
+            "rule_id": str(entry.get("rule_id", "")).strip(),
+            "language": str(entry.get("language", "")).strip(),
+            "pattern": str(entry.get("pattern", "")).strip(),
+            "domain": str(entry.get("domain", galaxy_name)).strip(),
+            "symbol_refs": list(entry.get("symbol_refs", []) or []),
+            "word_refs": list(entry.get("word_refs", []) or []),
+            "description": entry.get("description"),
+            "semantics": dict(entry.get("semantics", {}) or {}),
+            "usage_conditions": list(entry.get("usage_conditions", []) or []),
+            "is_canonical": bool(entry.get("is_canonical", False)),
+            "rule_strength": int(entry.get("rule_strength", 0) or 0),
+            "superior_to": list(entry.get("superior_to", []) or []),
+            "trust_weight": float(entry.get("trust_weight", 1.0) or 1.0),
+        }
+
     def _append_flattened_entry(
         self,
         *,
         flat: list[float],
         catalog: list[dict[str, Any]],
         galaxy_name: str,
+        entry_idx: int,
         entry: dict[str, Any],
     ) -> None:
         if not isinstance(entry, dict):
             return
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
-        if not metadata and str(entry.get("rule_id", "")).strip():
-            metadata = {
-                "rule_id": str(entry.get("rule_id", "")).strip(),
-                "language": str(entry.get("language", "")).strip(),
-                "pattern": str(entry.get("pattern", "")).strip(),
-                "domain": str(entry.get("domain", galaxy_name)).strip(),
-                "symbol_refs": list(entry.get("symbol_refs", []) or []),
-                "word_refs": list(entry.get("word_refs", []) or []),
-                "description": entry.get("description"),
-                "semantics": dict(entry.get("semantics", {}) or {}),
-                "usage_conditions": list(entry.get("usage_conditions", []) or []),
-                "is_canonical": bool(entry.get("is_canonical", False)),
-                "rule_strength": int(entry.get("rule_strength", 0) or 0),
-                "superior_to": list(entry.get("superior_to", []) or []),
-                "trust_weight": float(entry.get("trust_weight", 1.0) or 1.0),
-            }
+        metadata = self._entry_metadata(entry, galaxy_name=galaxy_name)
+        slim_metadata = self._slim_catalog_metadata(metadata)
         confidence = self._clamp_confidence(metadata.get("confidence", entry.get("confidence", 0.5)))
         domain_hash = self._hash_to_unit_float(entry.get("domain") or galaxy_name)
         subject_hash = self._hash_to_unit_float(
@@ -1779,6 +2471,7 @@ class Knowledgeverse:
             {
                 "index": len(catalog),
                 "galaxy": galaxy_name,
+                "entry_idx": int(entry_idx),
                 "id": str(entry.get("id", entry.get("rule_id", ""))),
                 "name": str(entry.get("name", "")),
                 "category": str(entry.get("category", "")),
@@ -1786,26 +2479,15 @@ class Knowledgeverse:
                 "confidence": confidence,
                 "domain_hash": domain_hash,
                 "subject_hash": subject_hash,
-                "answer_text": self._entry_answer_text(entry),
-                "embedding_text": self._entry_embedding_text(entry),
                 "embedding16": list(embedding),
-                "rpn_program": str(entry.get("rpn_program", "")).strip(),
-                "metadata": dict(metadata),
+                "metadata": slim_metadata,
                 "template_ref": template_ref,
-                "template_params": dict(metadata.get("template_params", {}))
-                if isinstance(metadata.get("template_params"), dict)
-                else {},
-                "answer_format": str(metadata.get("answer_format", "")),
                 "subject": str(metadata.get("subject", "")),
+                "arc_task_id": str(metadata.get("arc_task_id", "")),
                 "gpu_category_class": category_class,
                 "gpu_source_class": source_class,
                 "gpu_galaxy_index": galaxy_index,
                 "gpu_has_template_ref": has_template_ref,
-                "output_grid": metadata.get("output_grid", entry.get("output_grid")),
-                "arc_transform_chain": list(metadata.get("arc_transform_chain", [])),
-                "arc_color_mapping": dict(metadata.get("arc_color_mapping", {})),
-                "arc_primitive_plan": list(metadata.get("arc_primitive_plan", [])),
-                "arc_task_id": str(metadata.get("arc_task_id", "")),
             }
         )
 
@@ -1813,46 +2495,49 @@ class Knowledgeverse:
         self,
         *,
         galaxy_names: list[str],
-    ) -> list[tuple[str, dict[str, Any]]]:
+    ) -> list[tuple[str, int, dict[str, Any]]]:
         if not self.include_runtime_artifacts:
             self.metrics.gpu_runtime_artifact_entries = 0
             return []
         grouped, stats = load_books_runtime_entries()
         self.metrics.gpu_runtime_artifact_entries = int(stats.get("artifacts", 0))
-        emitted: list[tuple[str, dict[str, Any]]] = []
+        emitted: list[tuple[str, int, dict[str, Any]]] = []
         allowed = {str(name) for name in galaxy_names}
         for galaxy_name, entries in grouped.items():
             if galaxy_name not in allowed:
                 continue
-            for entry in entries:
-                emitted.append((galaxy_name, dict(entry)))
+            for entry_idx, entry in enumerate(entries):
+                emitted.append((galaxy_name, int(entry_idx), dict(entry)))
         return emitted
 
     def _flatten_galaxies_for_gpu(
         self,
         *,
         galaxy_names: list[str] | tuple[str, ...] | None = None,
-    ) -> tuple[list[float], list[dict[str, Any]]]:
-        names = [str(name) for name in (galaxy_names or self.DEFAULT_GALAXIES)]
-        flat: list[float] = []
-        catalog: list[dict[str, Any]] = []
+    ) -> tuple[list[float], list[dict[str, Any]], int]:
+        names = self._resolve_live_galaxy_names(galaxy_names)
+        entry_rows: list[tuple[str, int, dict[str, Any]]] = []
         for galaxy_name in names:
             galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
-            for entry in getattr(galaxy, "entries", []):
-                self._append_flattened_entry(
-                    flat=flat,
-                    catalog=catalog,
-                    galaxy_name=galaxy_name,
-                    entry=entry,
-                )
-        for runtime_galaxy, entry in self._iter_runtime_book_entries(galaxy_names=names):
+            for entry_idx, entry in enumerate(getattr(galaxy, "entries", [])):
+                if isinstance(entry, dict):
+                    entry_rows.append((galaxy_name, int(entry_idx), entry))
+        for runtime_galaxy, entry_idx, entry in self._iter_runtime_book_entries(galaxy_names=names):
+            if isinstance(entry, dict):
+                entry_rows.append((runtime_galaxy, int(entry_idx), entry))
+
+        enriched_count = self._enrich_entries_missing_embedding16(entry_rows)
+        flat: list[float] = []
+        catalog: list[dict[str, Any]] = []
+        for galaxy_name, entry_idx, entry in entry_rows:
             self._append_flattened_entry(
                 flat=flat,
                 catalog=catalog,
-                galaxy_name=runtime_galaxy,
+                galaxy_name=galaxy_name,
+                entry_idx=entry_idx,
                 entry=entry,
             )
-        return flat, catalog
+        return flat, catalog, enriched_count
 
     @staticmethod
     def _clamp_confidence(value: Any) -> float:
@@ -1892,13 +2577,13 @@ class Knowledgeverse:
         key = str(category or "").strip().lower()
         return float(cls.GPU_CATEGORY_CLASS_MAP.get(key, 0.0))
 
-    @classmethod
-    def _gpu_galaxy_index(cls, galaxy_name: Any) -> float:
+    def _gpu_galaxy_index(self, galaxy_name: Any) -> float:
         key = str(galaxy_name or "").strip()
-        for index, name in enumerate(cls.DEFAULT_GALAXIES):
+        galaxy_order = self._current_live_galaxy_order()
+        for index, name in enumerate(galaxy_order):
             if key == name:
                 return float(index)
-        return float(len(cls.DEFAULT_GALAXIES))
+        return float(len(galaxy_order))
 
     @classmethod
     def _gpu_source_class(cls, entry: dict[str, Any], metadata: dict[str, Any]) -> float:
@@ -1994,7 +2679,18 @@ class Knowledgeverse:
             return [0.0 for _ in sanitized]
         return [float(value / norm) for value in sanitized]
 
-    def _entry_embedding16(self, entry: dict[str, Any]) -> list[float]:
+    @classmethod
+    def _coerce_embedding16(cls, values: Any) -> list[float]:
+        flattened = cls._flatten_float_values(values)
+        if not flattened:
+            return []
+        padded = [0.0] * 16
+        width = min(16, len(flattened))
+        for index in range(width):
+            padded[index] = cls._finite_float_or_default(flattened[index], 0.0)
+        return cls._normalize_embedding(padded)
+
+    def _precomputed_entry_embedding16(self, entry: dict[str, Any]) -> list[float]:
         metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
         for candidate in (
             entry.get("embedding16"),
@@ -2002,11 +2698,70 @@ class Knowledgeverse:
             metadata.get("embedding16"),
             metadata.get("embedding"),
         ):
-            if isinstance(candidate, list) and len(candidate) >= 16:
-                try:
-                    return self._normalize_embedding([float(candidate[i]) for i in range(16)])
-                except Exception:
-                    pass
+            embedding16 = self._coerce_embedding16(candidate)
+            if embedding16:
+                return embedding16
+        return []
+
+    def _entry_batch_embedding_text(self, entry: dict[str, Any]) -> str:
+        text = self._entry_embedding_text(entry)
+        if text:
+            return text
+        return json.dumps(entry, ensure_ascii=True, sort_keys=True)[:256]
+
+    def _store_entry_embedding16(self, entry: dict[str, Any], embedding16: list[float]) -> None:
+        normalized = self._coerce_embedding16(embedding16)
+        if not normalized:
+            return
+        entry["embedding16"] = list(normalized)
+        metadata = entry.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+            entry["metadata"] = metadata
+        metadata["embedding16"] = list(normalized)
+
+    def _enrich_entries_missing_embedding16(
+        self,
+        entry_rows: list[tuple[str, int, dict[str, Any]]],
+        *,
+        batch_size: int = 4096,
+    ) -> int:
+        pending: list[tuple[dict[str, Any], str]] = []
+        for _galaxy_name, _entry_idx, entry in entry_rows:
+            if not isinstance(entry, dict):
+                continue
+            if self._precomputed_entry_embedding16(entry):
+                continue
+            pending.append((entry, self._entry_batch_embedding_text(entry)))
+        if not pending:
+            return 0
+
+        engine = self.get_gpu_query_embedding_engine()
+        enriched = 0
+        step = max(1, int(batch_size))
+        for start in range(0, len(pending), step):
+            batch = pending[start : start + step]
+            texts = [text for _, text in batch]
+            try:
+                if hasattr(engine, "has_gpu_bridge") and engine.has_gpu_bridge():
+                    vectors = engine.embed_sentences_gpu(texts)
+                else:
+                    vectors = [engine.embed_sentence(text) for text in texts]
+            except Exception:
+                cpu_engine = self.get_text_embedding_engine()
+                vectors = [cpu_engine.embed_sentence(text) for text in texts]
+            for (entry, _text), vector in zip(batch, vectors):
+                embedding16 = self._coerce_embedding16(vector)
+                if not embedding16:
+                    continue
+                self._store_entry_embedding16(entry, embedding16)
+                enriched += 1
+        return enriched
+
+    def _entry_embedding16(self, entry: dict[str, Any]) -> list[float]:
+        embedding16 = self._precomputed_entry_embedding16(entry)
+        if embedding16:
+            return embedding16
         text = self._entry_embedding_text(entry)
         if text:
             try:
@@ -2355,10 +3110,7 @@ class Knowledgeverse:
                 continue
             if str(entry.get("id", "")).strip() != target:
                 continue
-            metadata = entry.get("metadata")
-            if isinstance(metadata, dict):
-                return dict(metadata)
-            return {}
+            return self._catalog_metadata(entry)
         return {}
 
     @staticmethod
@@ -4036,6 +4788,78 @@ class Knowledgeverse:
         query_type: str | None,
         selection_steps: list[str],
     ) -> dict[str, Any]:
+        # Transitional I/O decode: reads position result from _frame_to_query_text() encoding.
+        # Target replacement: TRM navigates Galaxy -> direction Word star -> RPN execution -> action.
+        if str(domain_hint or "").strip().lower() == "arc3_interactive" and str(query_text or "").strip():
+            _qt = str(query_text).lower()
+            _arc3_direct_index: int | None = None
+            if "primary action move up" in _qt:
+                _arc3_direct_index = 0  # Move Up
+            elif "primary action move down" in _qt:
+                _arc3_direct_index = 1  # Move Down
+            elif "primary action move left" in _qt:
+                _arc3_direct_index = 2  # Move Left
+            elif "primary action move right" in _qt:
+                _arc3_direct_index = 3  # Move Right
+            elif "primary action perform" in _qt:
+                _arc3_direct_index = 4  # Perform
+            elif "object above goal" in _qt and "action move down" in _qt:
+                _arc3_direct_index = 1
+            elif "object below goal" in _qt and "action move up" in _qt:
+                _arc3_direct_index = 0
+            elif "object left of goal" in _qt and "action move right" in _qt:
+                _arc3_direct_index = 3
+            elif "object right of goal" in _qt and "action move left" in _qt:
+                _arc3_direct_index = 2
+            elif "object at goal" in _qt and "action perform" in _qt:
+                _arc3_direct_index = 4
+            elif "object above center" in _qt and "action move down" in _qt:
+                _arc3_direct_index = 1
+            elif "object below center" in _qt and "action move up" in _qt:
+                _arc3_direct_index = 0
+            elif "object left of center" in _qt and "action move right" in _qt:
+                _arc3_direct_index = 3
+            elif "object right of center" in _qt and "action move left" in _qt:
+                _arc3_direct_index = 2
+            elif "object centered balanced" in _qt and "action perform" in _qt:
+                _arc3_direct_index = 4
+            if _arc3_direct_index is not None:
+                thinking_trace = self._build_gpu_thinking_trace(
+                    binding=binding,
+                    program_id=str(reasoning_program.get("id", "")),
+                    match=match,
+                    similarity=similarity,
+                    specialist=specialist,
+                    read_field="arc3_direct_query_decode",
+                    extra_steps=list(selection_steps),
+                )
+                return {
+                    "status": "ok",
+                    "answer_index": _arc3_direct_index,
+                    "answer": str(_arc3_direct_index),
+                    "response": str(_arc3_direct_index),
+                    "result": _arc3_direct_index,
+                    "thinking_trace": thinking_trace,
+                    "reasoning_trace": list(thinking_trace),
+                    "thinking_xml": self._render_thinking_xml(thinking_trace, _arc3_direct_index),
+                    "gpu_execution": True,
+                    "runtime": "knowledgeverse_gpu_query",
+                    "program_id": str(reasoning_program.get("id", "")),
+                    "program_type": "transitional_io_decode",
+                    "solver": "knowledgeverse_gpu_query",
+                    "patterns_used": 1,
+                    "query_text": query_text,
+                    "top_match_similarity": similarity,
+                    "route": {
+                        "specialist": specialist,
+                        "domain_hint": domain_hint,
+                        "galaxy_names": list(route_galaxies or binding.get("galaxies", [])),
+                        "scanned_galaxies": list(binding.get("galaxies", [])),
+                    },
+                    "match": dict(match),
+                    "query_type": str(query_type or ""),
+                    "use_enriched": bool(use_enriched),
+                }
         output_grid = match.get("output_grid")
         extra_steps: list[str] = list(selection_steps)
         primitive_plan = [
@@ -4049,6 +4873,54 @@ class Knowledgeverse:
             int(src): int(dst)
             for src, dst in dict(color_mapping_raw).items()
         }
+        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        action_index_raw = None
+        if "action_index" in metadata:
+            action_index_raw = metadata.get("action_index")
+        elif "action_index" in match:
+            action_index_raw = match.get("action_index")
+        if action_index_raw is not None and not primitive_plan and not transform_chain:
+            try:
+                answer_index = max(0, int(action_index_raw))
+            except (TypeError, ValueError):
+                answer_index = None
+            if answer_index is not None:
+                thinking_trace = self._build_gpu_thinking_trace(
+                    binding=binding,
+                    program_id=str(reasoning_program.get("id", "")),
+                    match=match,
+                    similarity=similarity,
+                    specialist=specialist,
+                    read_field="answer_index",
+                    extra_steps=list(selection_steps),
+                )
+                return {
+                    "status": "ok",
+                    "answer_index": answer_index,
+                    "answer": str(answer_index),
+                    "response": str(answer_index),
+                    "result": answer_index,
+                    "thinking_trace": thinking_trace,
+                    "reasoning_trace": list(thinking_trace),
+                    "thinking_xml": self._render_thinking_xml(thinking_trace, answer_index),
+                    "gpu_execution": True,
+                    "runtime": "knowledgeverse_gpu_query",
+                    "program_id": str(reasoning_program.get("id", "")),
+                    "program_type": "gpu_spatial_navigation_rule",
+                    "solver": "knowledgeverse_gpu_query",
+                    "patterns_used": 1,
+                    "query_text": query_text,
+                    "top_match_similarity": similarity,
+                    "route": {
+                        "specialist": specialist,
+                        "domain_hint": domain_hint,
+                        "galaxy_names": list(route_galaxies or binding.get("galaxies", [])),
+                        "scanned_galaxies": list(binding.get("galaxies", [])),
+                    },
+                    "match": dict(match),
+                    "query_type": str(query_type or ""),
+                    "use_enriched": bool(use_enriched),
+                }
         if primitive_plan:
             input_grid = task.get("input_grid")
             if not isinstance(input_grid, list):
@@ -4227,12 +5099,12 @@ class Knowledgeverse:
                 continue
             if str(entry.get("galaxy", "")).strip() != "Grammar":
                 continue
-            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            metadata = self._catalog_metadata(entry)
             if not str(metadata.get("quantity_role", "")).strip():
                 continue
             if not list(entry.get("embedding16", [])):
                 continue
-            rows.append(dict(entry))
+            rows.append(self._resolve_catalog_entry(entry))
         return rows
 
     @staticmethod
@@ -6085,22 +6957,27 @@ class Knowledgeverse:
 
     def ensure_default_galaxies_loaded(self, *, force: bool = False) -> dict[str, int]:
         """
-        Ensure all default galaxies are present in the active universe.
+        Ensure the live on-disk world is present in the active universe.
 
-        This enforces the single-world contract for training/benchmark runs:
-        all default galaxies are loaded and queryable in every session.
+        This enforces the live-system contract:
+        every disk-backed galaxy is loaded into the active session, not just a
+        benchmark-oriented subset.
         """
         if self._default_galaxies_loaded and not force:
-            return {name: len(self.galaxy_manager.get_galaxy(name).entries) for name in self.DEFAULT_GALAXIES}
+            return {
+                name: len(self.galaxy_manager.get_galaxy(name).entries)
+                for name in self._discover_live_galaxy_names()
+            }
 
         counts: dict[str, int] = {}
-        for galaxy_name in self.DEFAULT_GALAXIES:
+        for galaxy_name in self._discover_live_galaxy_names():
             galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
             counts[galaxy_name] = len(getattr(galaxy, "entries", []))
         self._ensure_jarvis_house_entry()
         self._ensure_runtime_language_enrichment_loaded()
         for galaxy_name in ("Word", "Grammar", "Tool"):
             counts[galaxy_name] = len(self.galaxy_manager.get_galaxy(galaxy_name).entries)
+        self._refresh_live_galaxy_order()
         self._default_galaxies_loaded = True
         return counts
 
@@ -6532,7 +7409,7 @@ class Knowledgeverse:
         }
 
     def _candidate_subject_tokens(self, match: dict[str, Any]) -> set[str]:
-        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(match)
         raw_tokens = {
             str(match.get("subject", "")).strip().lower(),
             str(metadata.get("subject", "")).strip().lower(),
@@ -6611,9 +7488,8 @@ class Knowledgeverse:
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), program_id
         return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_FACTUAL_REASONING_PROGRAM_ID
 
-    @staticmethod
-    def _match_template_ref(match: dict[str, Any]) -> str:
-        metadata = match.get("metadata") if isinstance(match.get("metadata"), dict) else {}
+    def _match_template_ref(self, match: dict[str, Any]) -> str:
+        metadata = self._catalog_metadata(match)
         template_ref = str(match.get("template_ref", "")).strip()
         if template_ref:
             return template_ref
@@ -6697,7 +7573,7 @@ class Knowledgeverse:
         promoted_match: dict[str, Any] | None = None
         for entry in self.get_gpu_galaxy_catalog():
             if str(entry.get("id", "")).strip() == preferred_template:
-                promoted_match = dict(entry)
+                promoted_match = self._resolve_catalog_entry(entry)
                 break
         if promoted_match is None:
             return match, similarity
@@ -7042,10 +7918,9 @@ class Knowledgeverse:
             key=lambda record: cls._record_score_value(record, score_key),
         )
 
-    @staticmethod
-    def _is_numeric_galaxy_entry(entry: dict[str, Any]) -> bool:
+    def _is_numeric_galaxy_entry(self, entry: dict[str, Any]) -> bool:
         galaxy_name = str(entry.get("galaxy", "")).strip()
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         if galaxy_name == "Number":
             return True
         return galaxy_name == "Word" and bool(metadata.get("is_numeric_word"))
@@ -7056,7 +7931,7 @@ class Knowledgeverse:
             return None
         for entry in self.get_gpu_galaxy_catalog():
             if str(entry.get("id", "")).strip() == target:
-                return dict(entry)
+                return self._resolve_catalog_entry(entry)
         return None
 
     @staticmethod
@@ -7068,7 +7943,7 @@ class Knowledgeverse:
         return " ".join(text.split())
 
     def _entry_query_match_texts(self, entry: dict[str, Any]) -> list[str]:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         texts: list[str] = []
         for key in ("query_anchor", "question", "query", "prompt"):
             value = metadata.get(key)
@@ -7091,7 +7966,7 @@ class Knowledgeverse:
         target = self._normalize_query_match_text(option_text)
         if not target:
             return 0.0
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         texts: list[str] = []
         for value in (
             entry.get("answer_text"),
@@ -7137,9 +8012,8 @@ class Knowledgeverse:
             return False
         return bool(str(task.get("competition", "")).strip() or str(task.get("task_id", "")).strip())
 
-    @staticmethod
-    def _benchmark_math_question_anchor_template_spec(entry: dict[str, Any]) -> dict[str, Any]:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+    def _benchmark_math_question_anchor_template_spec(self, entry: dict[str, Any]) -> dict[str, Any]:
+        metadata = self._catalog_metadata(entry)
         subfield = str(metadata.get("subfield", "")).strip().lower()
         task_id = str(metadata.get("task_id", "")).strip()
         if subfield != "benchmark_question_anchor" or not task_id:
@@ -7151,9 +8025,8 @@ class Knowledgeverse:
         spec = _BENCHMARK_MATH_GPU_SPECS.get(task_id)
         return dict(spec) if isinstance(spec, dict) else {}
 
-    @staticmethod
-    def _entry_has_explicit_answer_payload(entry: dict[str, Any]) -> bool:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+    def _entry_has_explicit_answer_payload(self, entry: dict[str, Any]) -> bool:
+        metadata = self._catalog_metadata(entry)
         blocked = {
             str(entry.get("id") or "").strip(),
             str(entry.get("name") or "").strip(),
@@ -7184,7 +8057,7 @@ class Knowledgeverse:
         task_type = str((task or {}).get("type", "")).strip().upper()
         if task_type != "MATH_TASK":
             return False
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         subfield = str(metadata.get("subfield", "")).strip().lower()
         if subfield != "benchmark_question_anchor":
             return False
@@ -7193,7 +8066,7 @@ class Knowledgeverse:
         return not self._entry_has_explicit_answer_payload(entry)
 
     def _entry_answer_texts(self, entry: dict[str, Any]) -> list[str]:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         texts: list[str] = []
         for key in ("name", "content", "summary", "answer_text"):
             value = entry.get(key)
@@ -7225,7 +8098,7 @@ class Knowledgeverse:
     ) -> bool:
         if not self._is_benchmark_evaluation_task(task):
             return False
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         category = str(entry.get("category", "")).strip().lower()
         task_id = str((task or {}).get("task_id", "")).strip()
         entry_task_id = str(metadata.get("task_id", "")).strip()
@@ -7299,7 +8172,7 @@ class Knowledgeverse:
                     priority,
                     float(similarity),
                     {
-                        "match": dict(entry),
+                        "match": self._resolve_catalog_entry(entry),
                         "similarity": float(similarity),
                         "lod_saliency": float(similarity),
                         "lod_level": 2,
@@ -7319,7 +8192,7 @@ class Knowledgeverse:
         entry: dict[str, Any],
         index: int = -1,
     ) -> dict[str, Any]:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._entry_metadata(entry, galaxy_name=galaxy_name)
         confidence = self._clamp_confidence(metadata.get("confidence", entry.get("confidence", 0.5)))
         domain_hash = self._hash_to_unit_float(entry.get("domain") or galaxy_name)
         subject_hash = self._hash_to_unit_float(
@@ -7394,7 +8267,7 @@ class Knowledgeverse:
                 return
             match = self._catalog_match_from_entry(
                 galaxy_name=galaxy_name,
-                entry=raw_entry,
+                entry=self._catalog_source_entry(raw_entry),
                 index=index,
             )
             embedding = list(match.get("embedding16", []))
@@ -7458,7 +8331,7 @@ class Knowledgeverse:
                     6,
                     float(similarity),
                     {
-                        "match": dict(entry),
+                        "match": self._resolve_catalog_entry(entry),
                         "similarity": float(similarity),
                         "lod_saliency": float(similarity),
                         "lod_level": 2,
@@ -7472,7 +8345,7 @@ class Knowledgeverse:
         return [candidate for _, _, candidate in candidates]
 
     def _gsm8k_numeric_entry_value(self, entry: dict[str, Any]) -> tuple[str, float] | None:
-        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        metadata = self._catalog_metadata(entry)
         galaxy_name = str(entry.get("galaxy", "")).strip()
         if galaxy_name == "Number":
             try:
@@ -8411,6 +9284,7 @@ class Knowledgeverse:
             candidate_rows[0],
         )
         focus_vector = self._normalize_embedding(list(reference_embedding))
+        domain_bucket = self._specialist_domain_bucket(task_type=task_type, path=path)
         applied_kernels: list[str] = []
         resonator = self.get_vector_resonator()
         if resonator is not None:
@@ -8565,9 +9439,31 @@ class Knowledgeverse:
         resonance_scores = self._embedding_similarities(focus_vector, resonated_rows)
         coherence_scores = self._embedding_similarities(focus_vector, crystallized_rows)
         adjusted_coherence_scores = list(coherence_scores)
+        world_model_scores = [0.0 for _ in local_candidates]
         geometry_scores = [0.0 for _ in local_candidates]
         temporal_scores = [0.0 for _ in local_candidates]
         fractal_scores = [0.0 for _ in local_candidates]
+        trust_scores = [0.0 for _ in local_candidates]
+        composition_scores = [0.0 for _ in local_candidates]
+        world_model = self.get_world_model()
+        if world_model is not None and domain_bucket in {"physics", "spatial"} and len(local_candidates) > 0:
+            try:
+                resonance = np.asarray(
+                    world_model.enhance_galaxy_resonance(
+                        focus_vector,
+                        np.asarray(crystallized_rows, dtype=np.float32),
+                    ),
+                    dtype=np.float32,
+                ).reshape(-1)
+                if resonance.size == len(local_candidates):
+                    world_model_scores = np.clip(resonance, 0.0, 1.0).astype(np.float32, copy=False).tolist()
+                    adjusted_coherence_scores = [
+                        float((0.72 * base_score) + (0.28 * world_score))
+                        for base_score, world_score in zip(adjusted_coherence_scores, world_model_scores)
+                    ]
+                    applied_kernels.append("gre_world_model")
+            except Exception:
+                world_model_scores = [0.0 for _ in local_candidates]
         resonance_field = self.get_resonance_field()
         if resonance_field is not None and len(local_candidates) > 1:
             try:
@@ -8691,6 +9587,62 @@ class Knowledgeverse:
                     applied_kernels.append("gre_fractal_emitter")
             except Exception:
                 fractal_scores = [0.0 for _ in local_candidates]
+        cognitive_executive = self.get_cognitive_executive()
+        if cognitive_executive is not None and len(local_candidates) > 1:
+            try:
+                chain_count = min(8, len(local_candidates))
+                resonance_matrix = np.zeros((8, 8), dtype=np.float32)
+                chain_norms = np.zeros(8, dtype=np.float32)
+                row_norms = [
+                    max(1e-9, float(np.linalg.norm(np.asarray(crystallized_rows[idx], dtype=np.float32))))
+                    for idx in range(chain_count)
+                ]
+                for idx in range(chain_count):
+                    chain_norms[idx] = float(row_norms[idx])
+                for left_idx in range(chain_count):
+                    left_row = np.asarray(crystallized_rows[left_idx], dtype=np.float32)
+                    for right_idx in range(chain_count):
+                        right_row = np.asarray(crystallized_rows[right_idx], dtype=np.float32)
+                        resonance_matrix[left_idx, right_idx] = float(
+                            np.dot(left_row, right_row) / max(1e-9, row_norms[left_idx] * row_norms[right_idx])
+                        )
+                trust_weights, coherence_score = cognitive_executive.compute_trust_weights(
+                    resonance_matrix,
+                    chain_norms,
+                )
+                trust_values = [
+                    max(0.0, min(1.0, float(value)))
+                    for value in self._flatten_float_values(trust_weights)
+                ]
+                if len(trust_values) >= chain_count:
+                    trust_scores = [
+                        trust_values[idx] if idx < chain_count else 0.0
+                        for idx in range(len(local_candidates))
+                    ]
+                    executive_mix = max(0.15, min(0.35, 0.15 + (0.2 * max(0.0, float(coherence_score)))))
+                    adjusted_coherence_scores = [
+                        float(((1.0 - executive_mix) * base_score) + (executive_mix * trust_score))
+                        for base_score, trust_score in zip(adjusted_coherence_scores, trust_scores)
+                    ]
+                    applied_kernels.append("gre_cognitive_executive")
+            except Exception:
+                trust_scores = [0.0 for _ in local_candidates]
+        atomic_bridge = self.get_atomic_fission_fusion()
+        if atomic_bridge is not None and len(local_candidates) > 0:
+            try:
+                focus_atoms = np.asarray([focus_vector], dtype=np.float32)
+                bridge_used = False
+                for idx, row in enumerate(crystallized_rows):
+                    _projection, consistency = atomic_bridge.decompose(
+                        np.asarray(row, dtype=np.float32),
+                        focus_atoms,
+                    )
+                    composition_scores[idx] = float(max(0.0, min(1.0, float(consistency))))
+                    bridge_used = True
+                if bridge_used:
+                    applied_kernels.append("gre_atomic_fission_fusion")
+            except Exception:
+                composition_scores = [0.0 for _ in local_candidates]
         for candidate, resonance_score, coherence_score in zip(
             local_candidates,
             resonance_scores,
@@ -8702,10 +9654,16 @@ class Knowledgeverse:
             candidate["specialist_worker"] = ",".join(applied_kernels) if applied_kernels else "generic_rpn"
         for candidate, geometry_score in zip(local_candidates, geometry_scores):
             candidate["specialist_geometry"] = float(geometry_score)
+        for candidate, world_model_score in zip(local_candidates, world_model_scores):
+            candidate["specialist_world_model"] = float(world_model_score)
         for candidate, temporal_score in zip(local_candidates, temporal_scores):
             candidate["specialist_temporal"] = float(temporal_score)
         for candidate, fractal_score in zip(local_candidates, fractal_scores):
             candidate["specialist_fractal"] = float(fractal_score)
+        for candidate, trust_score in zip(local_candidates, trust_scores):
+            candidate["specialist_trust"] = float(trust_score)
+        for candidate, composition_score in zip(local_candidates, composition_scores):
+            candidate["specialist_composition"] = float(composition_score)
         neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
         for candidate in local_candidates:
             candidate.setdefault("specialist_intra_defeasible", 0.0)
@@ -8719,6 +9677,36 @@ class Knowledgeverse:
                 f"{str(path.get('label') or path.get('program_id', 'path'))} -> "
                 + ", ".join(applied_kernels)
             )
+
+    @staticmethod
+    def _specialist_domain_bucket(
+        *,
+        task_type: str,
+        path: dict[str, Any],
+    ) -> str:
+        signals = [
+            str(path.get("domain_hint", "")).strip().lower(),
+            str(path.get("specialist", "")).strip().lower(),
+            str(task_type).strip().lower(),
+        ]
+        joined = " ".join(signal for signal in signals if signal)
+        if any(token in joined for token in ("physics", "kinematic", "orbital", "heat", "world_model")):
+            return "physics"
+        if any(token in joined for token in ("spatial", "navigation", "geo")):
+            return "spatial"
+        if any(token in joined for token in ("visual", "arc", "drawing", "shape")):
+            return "visual"
+        if any(token in joined for token in ("logic", "reason")):
+            return "logic"
+        if any(token in joined for token in ("temporal", "sequence", "time")):
+            return "temporal"
+        if any(token in joined for token in ("math", "calculus", "algebra")):
+            return "math"
+        if any(token in joined for token in ("grammar", "language")):
+            return "language"
+        if any(token in joined for token in ("cluster", "similar")):
+            return "clustering"
+        return "general"
 
     def _build_gpu_reasoning_paths(
         self,
@@ -9662,9 +10650,10 @@ class Knowledgeverse:
             for name in target_galaxies
             if str(name).strip()
         ]
+        live_names = self._discover_live_galaxy_names()
         positive_bias = {
             str(galaxy_name): max(0.0, float(normalized_galaxy_weights.get(str(galaxy_name), 0.0)) - 1.0)
-            for galaxy_name in self.DEFAULT_GALAXIES
+            for galaxy_name in live_names
         }
         ranked_bias_names = [
             galaxy_name
@@ -9677,7 +10666,7 @@ class Knowledgeverse:
         ]
         candidate_names = list(dict.fromkeys(target_names + ranked_bias_names[:4]))
         if not candidate_names:
-            candidate_names = list(target_names or self.DEFAULT_GALAXIES[:1])
+            candidate_names = list(target_names or live_names[:1])
         budget: dict[str, int] = {name: 0 for name in candidate_names}
         remaining = int(total_budget)
         for galaxy_name in target_names:
@@ -9778,7 +10767,7 @@ class Knowledgeverse:
             return []
 
         normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
-        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
+        allowed_galaxies = self._discover_live_galaxy_names() if normalized_galaxy_weights else list(target_galaxies)
         allowed_indexes = {
             self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
             for name in allowed_galaxies
@@ -10302,7 +11291,7 @@ class Knowledgeverse:
             )
 
         normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
-        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
+        allowed_galaxies = self._discover_live_galaxy_names() if normalized_galaxy_weights else list(target_galaxies)
         allowed_indexes = {
             self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
             for name in allowed_galaxies
@@ -10486,7 +11475,7 @@ class Knowledgeverse:
             )
 
         normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
-        allowed_galaxies = list(self.DEFAULT_GALAXIES) if normalized_galaxy_weights else list(target_galaxies)
+        allowed_galaxies = self._discover_live_galaxy_names() if normalized_galaxy_weights else list(target_galaxies)
         allowed_indexes = {
             self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
             for name in allowed_galaxies
@@ -11076,15 +12065,21 @@ class Knowledgeverse:
         self._jarvis_state["brief_count"] = int(self._jarvis_state.get("brief_count") or 0) + 1
         self._jarvis_state["last_brief"] = dict(brief)
 
-    def jarvis_sleep_consolidation(self) -> dict[str, Any]:
+    def jarvis_sleep_consolidation(self, *, persist: bool = True) -> dict[str, Any]:
         recent = list(self._jarvis_recent_briefs)
         if not recent:
             self._save_jarvis_state()
-            return {
+            summary = {
                 "updated": False,
                 "briefs_consolidated": 0,
                 "task_types": dict(self._jarvis_state.get("task_type_stats") or {}),
             }
+            if persist:
+                try:
+                    summary["checkpoint"] = self.save_consolidated_state()
+                except Exception as exc:
+                    summary["checkpoint_error"] = str(exc)
+            return summary
         contradictions = sum(len(list(brief.get("contradictions") or [])) for brief in recent)
         agreements = sum(len(list(brief.get("agreements") or [])) for brief in recent)
         recommended_groups = {
@@ -11122,6 +12117,11 @@ class Knowledgeverse:
         }
         self._jarvis_recent_briefs = []
         self._save_jarvis_state()
+        if persist:
+            try:
+                summary["checkpoint"] = self.save_consolidated_state()
+            except Exception as exc:
+                summary["checkpoint_error"] = str(exc)
         return summary
 
     def _halting_gate_converged(
@@ -11533,7 +12533,7 @@ class Knowledgeverse:
             entry_id = str(entry.get("id", "")).strip()
             if entry_id not in defaults:
                 continue
-            metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+            metadata = self._catalog_metadata(entry)
             try:
                 defaults[entry_id] = float(metadata.get("threshold", defaults[entry_id]))
             except Exception:
@@ -11729,11 +12729,7 @@ class Knowledgeverse:
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("nav_embed", time.perf_counter() - nav_embed_started)
         morton_started = time.perf_counter()
-        use_device_pipeline = (
-            self._device_pipeline_env_enabled()
-            if _device_pipeline_override is None
-            else bool(_device_pipeline_override)
-        )
+        use_device_pipeline = True if _device_pipeline_override is None else bool(_device_pipeline_override)
         navigation_candidates = (
             self._compose_head_navigation_candidates_device(
                 binding=binding,
@@ -12868,7 +13864,7 @@ class Knowledgeverse:
         elif task_type == "ARC_TASK":
             allowed = {"Drawing", "Grammar", "Tool"}
         elif normalized_galaxy_weights:
-            allowed = set(self.DEFAULT_GALAXIES)
+            allowed = set(self._discover_live_galaxy_names())
         if allowed and galaxy_name not in allowed:
             return None
         similarity = self._embedding_similarity(query_embedding, list(match.get("embedding16", [])))
@@ -13338,9 +14334,12 @@ class Knowledgeverse:
         subject_anchor_focus = float(candidate.get("subject_anchor_focus", 0.0))
         specialist_resonance = float(candidate.get("specialist_resonance", similarity))
         specialist_coherence = float(candidate.get("specialist_coherence", similarity))
+        specialist_world_model = float(candidate.get("specialist_world_model", 0.0))
         specialist_geometry = float(candidate.get("specialist_geometry", 0.0))
         specialist_temporal = float(candidate.get("specialist_temporal", 0.0))
         specialist_fractal = float(candidate.get("specialist_fractal", 0.0))
+        specialist_trust = float(candidate.get("specialist_trust", 0.0))
+        specialist_composition = float(candidate.get("specialist_composition", 0.0))
         specialist_intra_defeasible = float(candidate.get("specialist_intra_defeasible", 0.0))
         specialist_defeasible_verdict = float(candidate.get("specialist_defeasible_verdict", 0.0))
         parse_similarity = float(candidate.get("parse_similarity", 0.0))
@@ -13438,6 +14437,10 @@ class Knowledgeverse:
             "0.07",
             "*",
             "+",
+            self._gpu_scalar_literal(specialist_world_model),
+            "0.04",
+            "*",
+            "+",
             self._gpu_scalar_literal(specialist_geometry),
             "0.03",
             "*",
@@ -13448,6 +14451,14 @@ class Knowledgeverse:
             "+",
             self._gpu_scalar_literal(specialist_fractal),
             "0.02",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_trust),
+            "0.04",
+            "*",
+            "+",
+            self._gpu_scalar_literal(specialist_composition),
+            "0.03",
             "*",
             "+",
             self._gpu_scalar_literal(specialist_intra_defeasible),
@@ -13912,13 +14923,10 @@ class Knowledgeverse:
         if lhe_timing_active:
             self._record_active_lhe_timing("embed", time.perf_counter() - embed_started)
         trm_tick = None
-        if self._trm_ready and (
-            os.getenv("K3D_TRM_SHADOW", "0").strip().lower() in {"1", "true", "yes"}
-            or os.getenv("K3D_TRM_NAVIGATE", "0").strip().lower() in {"1", "true", "yes"}
-        ):
+        if self._trm_ready:
             trm_tick = self._run_single_trm_tick(query_embedding)
         trm_shadow = None
-        if self._trm_ready and os.getenv("K3D_TRM_SHADOW", "0").strip().lower() in {"1", "true", "yes"}:
+        if self._trm_ready:
             trm_shadow = self._trm_shadow_probe(
                 query_embedding,
                 target_galaxies=python_target_galaxies,
@@ -13928,8 +14936,7 @@ class Knowledgeverse:
         target_galaxies = list(python_target_galaxies)
         trm_galaxy_weights: dict[str, float] = {}
         trm_navigation = None
-        trm_navigate_enabled = self._trm_navigation_env_enabled()
-        if self._trm_ready and trm_navigate_enabled:
+        if self._trm_ready:
             trm_galaxy_weights, reasoning_program_id, trm_navigation = self._trm_select_galaxies(
                 query_embedding,
                 task_type=task_type,
@@ -13938,10 +14945,7 @@ class Knowledgeverse:
                 trm_tick=trm_tick,
             )
         bind_started = time.perf_counter()
-        if trm_navigate_enabled:
-            binding = self._pin_all_default_gpu_binding()
-        else:
-            binding = self.bind_gpu_galaxy_runtime(galaxy_names=target_galaxies)
+        binding = dict(self._gpu_galaxy_binding or self._pin_all_default_gpu_binding())
         if lhe_timing_active:
             self._record_active_lhe_timing("bind", time.perf_counter() - bind_started)
         parse_started = time.perf_counter()
@@ -13970,36 +14974,20 @@ class Knowledgeverse:
         selection_steps: list[str] = []
         selection_started = time.perf_counter()
         try:
-            if self._device_pipeline_env_enabled():
-                best_candidate = self._select_composed_head_candidate_device(
-                    task=task,
-                    binding=binding,
-                    paths=paths,
-                    target_galaxies=target_galaxies,
-                    galaxy_weights=trm_galaxy_weights,
-                    reasoning_program_id=reasoning_program_id,
-                    query_embedding=query_embedding,
-                    task_type=task_type,
-                    options=options,
-                    domain_hint=resolved_domain_hint,
-                    selection_steps=selection_steps,
-                    parse_bundle=parse_bundle,
-                )
-            else:
-                best_candidate = self._select_composed_head_candidate(
-                    task=task,
-                    binding=binding,
-                    paths=paths,
-                    target_galaxies=target_galaxies,
-                    galaxy_weights=trm_galaxy_weights,
-                    reasoning_program_id=reasoning_program_id,
-                    query_embedding=query_embedding,
-                    task_type=task_type,
-                    options=options,
-                    domain_hint=resolved_domain_hint,
-                    selection_steps=selection_steps,
-                    parse_bundle=parse_bundle,
-                )
+            best_candidate = self._select_composed_head_candidate_device(
+                task=task,
+                binding=binding,
+                paths=paths,
+                target_galaxies=target_galaxies,
+                galaxy_weights=trm_galaxy_weights,
+                reasoning_program_id=reasoning_program_id,
+                query_embedding=query_embedding,
+                task_type=task_type,
+                options=options,
+                domain_hint=resolved_domain_hint,
+                selection_steps=selection_steps,
+                parse_bundle=parse_bundle,
+            )
         finally:
             if lhe_timing_active:
                 self._record_active_lhe_timing("selection", time.perf_counter() - selection_started)
@@ -14073,7 +15061,8 @@ class Knowledgeverse:
             best_candidate = dict(arc_exact_candidate)
             selection_steps.append("ARC curriculum override: exact task_id anchor selected")
             selection_steps.append("Halting gate: halt (arc curriculum override)")
-        match = best_candidate["match"]
+        match = self._resolve_catalog_entry(best_candidate["match"])
+        best_candidate["match"] = dict(match)
         similarity = float(best_candidate["similarity"])
         winning_program_id = str(best_candidate["program"].get("id", "")).strip()
         galaxy_contribution = (

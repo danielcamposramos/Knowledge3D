@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
@@ -18,6 +19,165 @@ def _env_true(name: str, default: str = "false") -> bool:
     return str(os.environ.get(name, default)).strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _decode_legacy_literal(value: Any) -> Any:
+    if value is None or isinstance(value, (dict, list, tuple, int, float, bool)):
+        return value
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if not stripped:
+        return ""
+    lowered = stripped.lower()
+    if lowered in {"none", "null"}:
+        return None
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    if stripped[:1] in {"{", "[", "("}:
+        try:
+            return json.loads(stripped)
+        except Exception:
+            try:
+                return ast.literal_eval(stripped)
+            except Exception:
+                return value
+    return value
+
+
+def _coerce_legacy_refs(value: Any) -> list[str]:
+    decoded = _decode_legacy_literal(value)
+    if decoded is None:
+        return []
+    if isinstance(decoded, tuple):
+        decoded = list(decoded)
+    if not isinstance(decoded, list):
+        return []
+    return [str(item).strip() for item in decoded if str(item).strip()]
+
+
+def _coerce_legacy_position(value: Any) -> list[float]:
+    decoded = _decode_legacy_literal(value)
+    if isinstance(decoded, tuple):
+        decoded = list(decoded)
+    if not isinstance(decoded, list):
+        decoded = [0.0, 0.0, 0.0]
+    resolved: list[float] = []
+    for item in decoded[:3]:
+        try:
+            resolved.append(float(item))
+        except Exception:
+            resolved.append(0.0)
+    while len(resolved) < 3:
+        resolved.append(0.0)
+    return resolved
+
+
+def _coerce_legacy_optional_text(value: Any) -> str | None:
+    decoded = _decode_legacy_literal(value)
+    if decoded is None:
+        return None
+    text = str(decoded).strip()
+    return text or None
+
+
+def _coerce_legacy_surface_forms(value: Any) -> dict[str, Any]:
+    decoded = _decode_legacy_literal(value)
+    if not isinstance(decoded, dict):
+        return {}
+    return {
+        str(language).strip().lower(): raw_value
+        for language, raw_value in decoded.items()
+        if str(language).strip()
+    }
+
+
+def normalize_meaning_layer_entry(
+    entry: dict[str, Any],
+    *,
+    galaxy_name: str = "meaning_layer_stars",
+) -> dict[str, Any]:
+    raw = dict(entry)
+    star_payload = {
+        "star_id": str(raw.get("star_id") or raw.get("id") or "").strip(),
+        "meaning_class": str(raw.get("meaning_class") or raw.get("category") or "meaning_star").strip(),
+        "meaning_rpn": str(raw.get("meaning_rpn") or raw.get("rpn_program") or raw.get("content") or "").strip(),
+        "domain": str(raw.get("domain") or raw.get("galaxy") or galaxy_name).strip(),
+        "taxonomy_refs": _coerce_legacy_refs(raw.get("taxonomy_refs")),
+        "surface_forms": _coerce_legacy_surface_forms(raw.get("surface_forms")),
+        "visual_rpn": _coerce_legacy_optional_text(raw.get("visual_rpn")),
+        "visual_refs": _coerce_legacy_refs(raw.get("visual_refs")),
+        "audio_rpn": _coerce_legacy_optional_text(raw.get("audio_rpn")),
+        "audio_refs": _coerce_legacy_refs(raw.get("audio_refs")),
+        "pronunciations": _decode_legacy_literal(raw.get("pronunciations")) or {},
+        "behavior_rpn": _coerce_legacy_optional_text(raw.get("behavior_rpn")),
+        "reality_refs": _coerce_legacy_refs(raw.get("reality_refs")),
+        "grammar_refs": _coerce_legacy_refs(raw.get("grammar_refs")),
+        "meta_refs": _coerce_legacy_refs(raw.get("meta_refs")),
+        "house_position": _coerce_legacy_position(raw.get("house_position")),
+        "house_room": str(raw.get("house_room") or "").strip(),
+        "galaxy_ref": str(raw.get("galaxy_ref") or galaxy_name).strip(),
+        "confidence": raw.get("confidence"),
+        "polarity": raw.get("polarity"),
+        "component_refs": _coerce_legacy_refs(raw.get("component_refs")),
+        "composite_of": _coerce_legacy_refs(raw.get("composite_of")),
+    }
+    star = MeaningCentricStar.from_dict(star_payload)
+    name = star._preferred_name()
+    rpn_text = str(star.meaning_rpn or "").strip()
+    metadata = {
+        "meaning_star": star.to_dict(),
+        "meaning_star_id": star.star_id,
+        "meaning_class": star.meaning_class,
+        "house_room": star.house_room,
+        "surface_form_languages": sorted(star.surface_forms.keys()),
+        "surface_forms": {
+            language: surface_form.to_dict()
+            for language, surface_form in star.surface_forms.items()
+        },
+        "house_position": [float(value) for value in star.house_position],
+        "confidence": int(star.confidence),
+        "polarity": int(star.polarity),
+        "taxonomy_refs": list(star.taxonomy_refs),
+        "component_refs": list(star.component_refs),
+        "grammar_refs": list(star.grammar_refs),
+        "reality_refs": list(star.reality_refs),
+    }
+    if star.behavior_rpn:
+        metadata["behavior_rpn"] = str(star.behavior_rpn)
+    if star.visual_rpn:
+        metadata["visual_rpn"] = str(star.visual_rpn)
+    if star.audio_rpn:
+        metadata["audio_rpn"] = str(star.audio_rpn)
+    if star.domain:
+        metadata["domain"] = str(star.domain)
+    if star.galaxy_ref:
+        metadata["galaxy_ref"] = str(star.galaxy_ref)
+    return {
+        "id": star.star_id,
+        "name": name,
+        "galaxy": str(galaxy_name),
+        "domain": str(star.domain or galaxy_name).strip().lower(),
+        "category": str(star.meaning_class or "meaning_star").strip().lower(),
+        "layer": 2,
+        "content": rpn_text or name,
+        "summary": name or rpn_text,
+        "description": rpn_text or name,
+        "rpn_program": rpn_text,
+        "metadata": metadata,
+    }
+
+
+def normalize_disk_entry(
+    galaxy_name: str,
+    entry: dict[str, Any],
+) -> dict[str, Any]:
+    raw = dict(entry)
+    if "star_id" in raw and "id" not in raw:
+        return normalize_meaning_layer_entry(raw, galaxy_name=galaxy_name)
+    return raw
+
+
 @dataclass
 class Galaxy:
     """Simple galaxy container with list-backed entries."""
@@ -29,9 +189,17 @@ class Galaxy:
 class GalaxyManager:
     """Galaxy manager with persistence and resilient query surface."""
 
-    def __init__(self, storage_root: str | Path = "../Knowledge3D.local/galaxies"):
+    def __init__(
+        self,
+        storage_root: str | Path = "../Knowledge3D.local/galaxies",
+        *,
+        extra_storage_roots: Sequence[str | Path] | None = None,
+    ):
         self.storage_root = Path(storage_root)
         self.storage_root.mkdir(parents=True, exist_ok=True)
+        self.extra_storage_roots = [Path(path) for path in list(extra_storage_roots or [])]
+        for root in self.extra_storage_roots:
+            root.mkdir(parents=True, exist_ok=True)
         self._galaxies: dict[str, Any] = {}
         self._knowledgeverse: Any | None = None
         # Sovereign query is currently token/rule matching only. Any future
@@ -46,6 +214,24 @@ class GalaxyManager:
         # the full galaxy file once per upsert.
         self._disk_sync_depth = 0
         self._dirty_galaxies: set[str] = set()
+
+    def _iter_storage_roots(self) -> list[Path]:
+        ordered = [self.storage_root, *self.extra_storage_roots]
+        unique: list[Path] = []
+        seen: set[Path] = set()
+        for root in ordered:
+            resolved = root.resolve()
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            unique.append(root)
+        return unique
+
+    def iter_storage_jsonl_paths(self) -> list[Path]:
+        paths: list[Path] = []
+        for root in self._iter_storage_roots():
+            paths.extend(sorted(root.glob("*.jsonl")))
+        return paths
 
     def set_knowledgeverse(self, knowledgeverse: Any) -> None:
         """Attach parent Knowledgeverse reference for specialized galaxy classes."""
@@ -415,16 +601,27 @@ class GalaxyManager:
                 self._rewrite_galaxy_disk(galaxy_name, galaxy)
 
     def _read_entries_from_disk(self, name: str) -> list[dict[str, Any]]:
-        path = self._galaxy_path(name)
         entries: list[dict[str, Any]] = []
-        if path.exists():
+        seen_ids: set[str] = set()
+        for path in self._candidate_galaxy_paths(name):
+            if not path.exists():
+                continue
             for line in path.read_text(encoding="utf-8").splitlines():
                 if not line.strip():
                     continue
                 try:
-                    entries.append(json.loads(line))
+                    entry = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if not isinstance(entry, dict):
+                    continue
+                normalized = normalize_disk_entry(name, entry)
+                entry_id = self._entry_identifier(normalized)
+                if entry_id and entry_id in seen_ids:
+                    continue
+                entries.append(normalized)
+                if entry_id:
+                    seen_ids.add(entry_id)
         return entries
 
     def _hydrate_specialized_galaxy(self, galaxy_name: str, galaxy: Any) -> None:
@@ -438,6 +635,10 @@ class GalaxyManager:
     def _galaxy_path(self, name: str) -> Path:
         safe = name.replace("/", "_").replace(" ", "_")
         return self.storage_root / f"{safe}.jsonl"
+
+    def _candidate_galaxy_paths(self, name: str) -> list[Path]:
+        safe = name.replace("/", "_").replace(" ", "_")
+        return [root / f"{safe}.jsonl" for root in self._iter_storage_roots()]
 
     def _append_entry_to_disk(self, galaxy_name: str, entry: dict[str, Any]) -> None:
         path = self._galaxy_path(galaxy_name)

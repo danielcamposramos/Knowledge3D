@@ -131,8 +131,64 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 
 ---
 
-This roadmap is a living document. Update it whenever milestones shift, and cross-link new specs or implementation guides when a deliverable begins.
+## Current Active Phase: Phase E — ARC-AGI-3 Game-Loop + Python→PTX Sovereignty _(Status: Active, March 2026)_
+
+> **Note (2026-03-27):** Phases A–D above reflect original roadmap structure. Current work is tracked via TEMP/ phase reports. The active workstream is Phase E below, which subsumes the sovereignty migration goals of the original Phase D.
+
+**Objective:** Integrate ARC-AGI-3 (interactive game-loop benchmark), eliminate remaining Python from the hot path, and proceduralize all grammar rules/meta-rules as sovereign Galaxy entries.
+
+**Context:** ARC-AGI-3 shifted from static grid I/O to a real-time interactive game (agents submit actions, receive frames). This matches K3D's TRM game-loop architecture exactly. See: [TEMP/CLAUDE_PHASE_E_ARC_AGI_3_SOVEREIGNTY_SPEC_03.27.2026.md](../TEMP/CLAUDE_PHASE_E_ARC_AGI_3_SOVEREIGNTY_SPEC_03.27.2026.md)
+
+### Phase E.1 — Grid Perception (GPU-Native)
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| ARC-AGI-3 thin Python client | HTTP I/O only (~50 lines), marshal frames to GPU, read actions from GPU | ⏳ Planned |
+| `gre_flood_fill.cu` | Replace Python DFS connected components (knowledgeverse.py:92-128) | ⏳ Planned |
+| GPU histogram reduction | Replace `_dominant_grid_color()` Python | ⏳ Planned |
+| GPU symmetry detection | Replace `_grid_has_symmetry()` Python | ⏳ Planned |
+| TRM always-on | Remove env-var gating (`K3D_TRM_SHADOW`, `K3D_TRM_NAVIGATE`) | ⏳ Planned |
+
+### Phase E.2 — Action Selection (GPU-Native)
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Replace `_select_composed_head_candidate()` | 1,157 lines Python → GPU scoring in composed head chain | ⏳ Planned |
+| Wire all 15 GRE specialist kernels | All loaded kernels callable by swarm workers | ⏳ Planned |
+| Action output protocol | TRM tick output → GameAction mapping | ⏳ Planned |
+
+### Phase E.3 — Grammar Sovereignty
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Grammar rules → VRAM hash table | 245+ ARC primitives as first-class Galaxy entries | ⏳ Planned |
+| Bidirectional symlink index | GPU pointer graph for dual-way traversal | ⏳ Planned |
+| Regex elimination | Text normalization as Grammar Galaxy rule application | ⏳ Planned |
+| Meta-rules as Galaxy entries | Game strategies as procedural RPN programs | ⏳ Planned |
+
+### Phase E.4 — Strategy + Consolidation
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Sleeptime sovereignty | Remove numpy/fallbacks, implement Stage A/B consolidation | ⏳ Planned |
+| Game trace consolidation | Successful ARC-AGI-3 action sequences → Grammar rules | ⏳ Planned |
+| RPN composition enrichment | Replace text-append enrichment with RPN program composition | ⏳ Planned |
+
+**Quality gates (per sub-phase):** ARC-AGI-2 10/10 regression pinned, Math 20/20 pinned, GPU utilization increase, knowledgeverse.py line count decrease, zero Python fallbacks in hot path.
+
+**Exit criteria:** K3D plays ARC-AGI-3 games autonomously via TRM game loop. Grammar rules and meta-rules are sovereign Galaxy entries with bidirectional symlinks. `knowledgeverse.py` < 1,000 lines. GPU utilization > 30%.
+
+**Key specs:**
+- [ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) — ternary-gated computation governance
+- [PM_KR_X3D_ADAPTIVE_REASONING_COMPONENT.md](w3c/x3d/PM_KR_X3D_ADAPTIVE_REASONING_COMPONENT.md) — X3D budget component
+- [HYPER_PARALLEL_PROCESSING.md](vocabulary/HYPER_PARALLEL_PROCESSING.md) — specialist swarm paradigm
+
+**Benchmark state entering Phase E (D.3, 2026-03-26):**
+- Combined: 857/5954 (14.39%) — warm 35%
+- ARC: 2/42, Math: 1/500, GSM8K: 3/462, LHE: 1/35, MMLU: 850/4915
+- Sleep-time: checkpoint saved, 18,189 specialist routes updated
+- GPU util: 0.17% avg (target: >30%)
 
 ---
 
-This roadmap is a living document and will be updated as the project progresses. For a more detailed technical breakdown, please refer to the main [research document](k3d-research.md).
+This roadmap is a living document. Update it whenever milestones shift, and cross-link new specs or implementation guides when a deliverable begins.

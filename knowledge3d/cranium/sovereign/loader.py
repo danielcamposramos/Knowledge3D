@@ -442,6 +442,27 @@ def gpu_free(ptr: CUdeviceptr) -> None:
         return
     ck(nvcuda.cuMemFree(ptr))
 
+
+def _coerce_host_pointer(value: object) -> ctypes.c_void_p:
+    if isinstance(value, ctypes.c_void_p):
+        return value
+    try:
+        return ctypes.c_void_p(int(value))
+    except Exception:
+        pass
+    try:
+        return ctypes.cast(value, ctypes.c_void_p)
+    except Exception:
+        pass
+    inner = getattr(value, "_obj", None)
+    if inner is not None:
+        try:
+            return ctypes.c_void_p(ctypes.addressof(inner))
+        except Exception:
+            pass
+    raise TypeError(f"Cannot coerce host pointer from {type(value)!r}")
+
+
 def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: int) -> None:
     """Copy from host to device.
 
@@ -477,7 +498,7 @@ def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: 
         return
     if _cuMemcpyHtoD is None:
         raise RuntimeError("cuMemcpyHtoD not available in CUDA driver.")
-    host_ptr = src_host if isinstance(src_host, ctypes.c_void_p) else ctypes.c_void_p(int(src_host))
+    host_ptr = _coerce_host_pointer(src_host)
     res = _cuMemcpyHtoD(dst_device.value, host_ptr, ctypes.c_size_t(size_bytes))
     if (
         res == 201
@@ -527,7 +548,7 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
         return
     if _cuMemcpyDtoH is None:
         raise RuntimeError("cuMemcpyDtoH not available in CUDA driver.")
-    host_ptr = dst_host if isinstance(dst_host, ctypes.c_void_p) else ctypes.c_void_p(int(dst_host))
+    host_ptr = _coerce_host_pointer(dst_host)
     res = _cuMemcpyDtoH(host_ptr, src_device.value, ctypes.c_size_t(size_bytes))
     if (
         res == 201

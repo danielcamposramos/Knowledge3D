@@ -94,3 +94,32 @@ def test_house_state_preserves_book_galaxy_logical_names(tmp_path) -> None:
     assert second.load_house_state() is True
     restored = second.galaxy_manager.get_galaxy("Book/MathematicsPrimer").entries
     assert any(entry.get("id") == "unit_book_entry" for entry in restored)
+
+
+def test_consolidated_checkpoint_warm_boot_restores_latest_state(tmp_path) -> None:
+    storage_root = tmp_path / "kv_consolidated_state"
+    first = Knowledgeverse(storage_root=storage_root, eager_load_default_galaxies=False)
+    first.galaxy_manager.add_entry(
+        "Math",
+        {
+            "id": "unit_math_checkpoint_entry",
+            "domain": "math",
+            "category": "unit_test",
+            "value": 11,
+        },
+    )
+
+    summary = first.save_consolidated_state()
+
+    latest_path = storage_root / "checkpoints" / "galaxy_consolidated_latest.json"
+    assert latest_path.exists()
+    assert summary["galaxy_consolidated"]["saved"] is True
+
+    for path in (storage_root / "galaxies").glob("*.jsonl"):
+        path.unlink()
+
+    second = Knowledgeverse(storage_root=storage_root, eager_load_default_galaxies=False)
+    restored = second.galaxy_manager.get_galaxy("Math").entries
+    assert any(entry.get("id") == "unit_math_checkpoint_entry" for entry in restored)
+    assert second.house_state_summary()["warm_boot"] is True
+    assert "galaxy_consolidated_latest.json" in second.house_state_summary()["path"]

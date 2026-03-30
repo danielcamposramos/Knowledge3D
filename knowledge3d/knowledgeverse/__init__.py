@@ -49,9 +49,11 @@ from .tool_galaxy import (
     build_tool_payload,
     default_tool_entries,
 )
+from .gpu_task_dispatch import GPUTaskDispatch
 from .trm_game_loop import TRMGameLoop
 from .trm_navigator import TRMNavigator
 from .trm_weight_store import TRMWeightStore
+from .vram_task_buffer import VRAMTaskBuffer
 
 __all__ = [
     "BTreeIndex",
@@ -106,11 +108,13 @@ __all__ = [
     "TemporalMetadata",
     "TemporalMetadataManager",
     "ToolNode",
+    "GPUTaskDispatch",
     "TRMGameLoop",
     "QualityPrior",
     "TernaryQualityMemory",
     "TRMNavigator",
     "TRMWeightStore",
+    "VRAMTaskBuffer",
     "WORKSHOP_TOOLS",
     "build_house_nav_graph",
     "bootstrap_tool_galaxy",

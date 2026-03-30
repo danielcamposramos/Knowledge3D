@@ -46,6 +46,9 @@ def test_phase_d_boot_wires_trm_launcher_without_enabling_it(tmp_path):
     assert kv._trm_matryoshka_host_weights is not None
     assert kv._trm_matryoshka_weight_buffer is not None
     assert kv._trm_galaxy_decoder is None
+    assert kv._gpu_galaxy_binding is not None
+    assert tuple(kv._gpu_galaxy_binding.get("galaxies", ())) == kv._live_galaxy_order
+    assert kv._pinned_all_default_binding is True
 
 
 def test_phase_d_state_buffers_and_stimulus_encoding_are_bootstrapped(tmp_path):
@@ -130,6 +133,8 @@ def test_phase_d_trm_shadow_probe_returns_expected_diagnostics(tmp_path):
         "y_new_vector_512",
         "decoder_source",
         "decoder_checkpoint",
+        "trm_recursion_steps",
+        "trm_drift",
     }
     assert shadow["python_galaxies"] == ["Math", "Reality"]
     assert shadow["python_program"] == kv.GPU_MATH_REASONING_PROGRAM_ID
@@ -192,7 +197,7 @@ def test_phase_d_trm_influence_strength_biases_around_uniform(tmp_path, monkeypa
         }
     )
 
-    uniform = 1.0 / float(len(kv.DEFAULT_GALAXIES))
+    uniform = 1.0 / float(len(kv._live_galaxy_order))
     assert normalized["Math"] == pytest.approx(1.0 + (0.99997 - uniform))
     assert normalized["Grammar"] == pytest.approx(1.0 + (0.00003 - uniform))
     assert normalized["Reality"] == pytest.approx(1.0 - uniform)
@@ -210,7 +215,7 @@ def test_phase_d_zero_trm_influence_strength_is_neutral(tmp_path, monkeypatch):
         }
     )
 
-    for galaxy_name in kv.DEFAULT_GALAXIES:
+    for galaxy_name in kv._live_galaxy_order:
         assert normalized[galaxy_name] == pytest.approx(1.0)
 
 
@@ -1822,19 +1827,18 @@ def test_track_c_grammar_rules_and_anchor_context_cover_new_mmlu_subjects(tmp_pa
     )
 
 
-def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path, monkeypatch):
-    monkeypatch.setenv("K3D_TRM_NAVIGATE", "1")
+def test_phase_d_boot_binding_reuses_all_default_catalog_for_subset_requests(tmp_path):
     kv = Knowledgeverse(storage_root=tmp_path / "kv_trm_bind_once")
 
     assert kv._gpu_galaxy_binding is not None
-    assert list(kv._gpu_galaxy_binding.get("galaxies", [])) == list(kv.DEFAULT_GALAXIES)
+    assert list(kv._gpu_galaxy_binding.get("galaxies", [])) == list(kv._live_galaxy_order)
     assert kv._pinned_all_default_binding is True
     initial_rebuilds = int(kv.metrics.gpu_bind_rebuilds)
     initial_entries = len(kv.get_gpu_galaxy_catalog())
 
     subset_binding = kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar"])
 
-    assert list(subset_binding.get("galaxies", [])) == list(kv.DEFAULT_GALAXIES)
+    assert list(subset_binding.get("galaxies", [])) == list(kv._live_galaxy_order)
     assert len(kv.get_gpu_galaxy_catalog()) == initial_entries
     assert int(kv.metrics.gpu_bind_rebuilds) == initial_rebuilds
 
@@ -1873,14 +1877,21 @@ def test_phase_d_shadow_mode_does_not_change_query_answer(tmp_path, monkeypatch)
     assert baseline["status"] == "ok"
     assert shadow["status"] == "ok"
     assert baseline["answer"] == shadow["answer"]
-    assert "trm_shadow" not in baseline
+    assert "trm_shadow" in baseline
     assert "trm_shadow" in shadow
+    assert baseline["trm_shadow"]["python_program"] == shadow["trm_shadow"]["python_program"]
     assert float(shadow["trm_shadow"]["trm_latency_us"]) > 0.0
 
 
 def test_phase_d_galaxy_decoder_checkpoint_round_trip(tmp_path):
     storage_root = tmp_path / "kv_trm_decoder"
     checkpoint_path = storage_root / "checkpoints" / "trm_galaxy_nav_weights.npz"
+    galaxy_root = storage_root / "galaxies"
+    galaxy_root.mkdir(parents=True, exist_ok=True)
+    (galaxy_root / "Physics.jsonl").write_text(
+        "{\"id\":\"physics_anchor\",\"name\":\"Physics Anchor\",\"embedding\":[0.1,0.2,0.3]}\n",
+        encoding="utf-8",
+    )
     decoder = {
         "W_galaxy": np.arange(10 * 512, dtype=np.float32).reshape(10, 512) / np.float32(1000.0),
         "b_galaxy": np.linspace(-0.25, 0.25, num=10, dtype=np.float32),
@@ -1891,8 +1902,25 @@ def test_phase_d_galaxy_decoder_checkpoint_round_trip(tmp_path):
     kv = Knowledgeverse(storage_root=storage_root)
 
     assert kv._trm_galaxy_decoder is not None
-    np.testing.assert_allclose(kv._trm_galaxy_decoder["W_galaxy"], decoder["W_galaxy"])
-    np.testing.assert_allclose(kv._trm_galaxy_decoder["b_galaxy"], decoder["b_galaxy"])
+    assert kv._trm_galaxy_decoder["W_galaxy"].shape == (len(kv._live_galaxy_order), 512)
+    assert kv._trm_galaxy_decoder["b_galaxy"].shape == (len(kv._live_galaxy_order),)
+    for galaxy_name in DEFAULT_GALAXY_ORDER:
+        live_idx = kv._live_galaxy_order.index(galaxy_name)
+        saved_idx = DEFAULT_GALAXY_ORDER.index(galaxy_name)
+        np.testing.assert_allclose(
+            kv._trm_galaxy_decoder["W_galaxy"][live_idx],
+            decoder["W_galaxy"][saved_idx],
+        )
+        np.testing.assert_allclose(
+            kv._trm_galaxy_decoder["b_galaxy"][live_idx],
+            decoder["b_galaxy"][saved_idx],
+        )
+    language_idx = kv._live_galaxy_order.index("Language")
+    physics_idx = kv._live_galaxy_order.index("Physics")
+    np.testing.assert_array_equal(kv._trm_galaxy_decoder["W_galaxy"][language_idx], np.zeros(512, dtype=np.float32))
+    np.testing.assert_array_equal(kv._trm_galaxy_decoder["W_galaxy"][physics_idx], np.zeros(512, dtype=np.float32))
+    assert float(kv._trm_galaxy_decoder["b_galaxy"][language_idx]) == 0.0
+    assert float(kv._trm_galaxy_decoder["b_galaxy"][physics_idx]) == 0.0
     assert kv._trm_galaxy_decoder_path == str(checkpoint_path)
 
 
@@ -2143,7 +2171,11 @@ def test_sleeptime_stage_b_consolidates_trm_weights(tmp_path):
     assert stage_b["updated_count"] >= 1
     weights_path = Path(stage_b["weights_path"])
     assert weights_path.exists()
+    latest_checkpoint = storage_root / "checkpoints" / "galaxy_consolidated_latest.json"
+    assert latest_checkpoint.exists()
+    assert result["checkpoint"]["galaxy_consolidated"]["saved"] is True
 
     kv_reloaded = Knowledgeverse(storage_root=storage_root)
     bias = kv_reloaded.trm_navigator.specialist_router.get_specialist_bias()
     assert bias["visual"] > 0.0
+    assert kv_reloaded.house_state_summary()["warm_boot"] is True
