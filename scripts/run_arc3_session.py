@@ -222,7 +222,7 @@ def run_single_game(
 def run_arc3_session(
     *,
     game_ids: list[str],
-    max_actions_per_game: int = 80,
+    max_actions_per_game: int = 500,
     api_url: str = "https://three.arcprize.org",
     log_dir: Path | None = None,
     storage_root: str | Path = STORAGE_ROOT,
@@ -262,7 +262,7 @@ def run_arc3_session(
 def main() -> int:
     parser = argparse.ArgumentParser(description="K3D ARC-AGI-3 living session")
     parser.add_argument("--game-id", dest="game_ids", action="append", required=True)
-    parser.add_argument("--max-actions-per-game", type=int, default=80)
+    parser.add_argument("--max-actions-per-game", type=int, default=500)
     parser.add_argument("--api-url", default="https://three.arcprize.org")
     parser.add_argument("--log-dir", default="")
     parser.add_argument("--storage-root", default=str(STORAGE_ROOT))

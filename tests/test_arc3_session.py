@@ -39,7 +39,7 @@ def test_run_arc3_session_reuses_one_knowledgeverse(tmp_path, monkeypatch):
             return {"updated": True}
 
     class _Agent:
-        def __init__(self, *, max_actions=80, log_path=None, knowledgeverse=None) -> None:
+        def __init__(self, *, max_actions=500, log_path=None, knowledgeverse=None) -> None:
             self.max_actions = max_actions
             self.log_path = log_path
             self.kv = knowledgeverse

@@ -283,7 +283,7 @@ def run_live_arc3(
 def main() -> int:
     parser = argparse.ArgumentParser(description="K3D ARC-AGI-3 sovereign agent")
     parser.add_argument("--game-id", required=True)
-    parser.add_argument("--max-actions", type=int, default=80)
+    parser.add_argument("--max-actions", type=int, default=500)
     parser.add_argument("--log-path", default=str(default_live_log_path()))
     parser.add_argument("--api-url", default="https://three.arcprize.org")
     parser.add_argument("--storage-root", default=str(STORAGE_ROOT))

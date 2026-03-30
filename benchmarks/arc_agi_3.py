@@ -738,7 +738,7 @@ class K3DARC3Agent:
 
     def __init__(
         self,
-        max_actions: int = 80,
+        max_actions: int = 500,
         log_path: str | Path | None = None,
         knowledgeverse: Knowledgeverse | None = None,
     ) -> None:
