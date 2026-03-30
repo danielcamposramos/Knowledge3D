@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections import Counter
+from collections import Counter, deque
 from pathlib import Path
 from typing import Any
 
@@ -51,9 +51,188 @@ def _foreground_centroid(grid: list[list[int]]) -> tuple[float, float] | None:
     return avg_row, avg_col
 
 
+def _focus_centroid(grid: list[list[int]]) -> tuple[float, float] | None:
+    if not grid or not isinstance(grid[0], list):
+        return None
+    background = _background_value(grid)
+    non_background_counts: Counter[int] = Counter(
+        int(value) for row in grid for value in row if int(value) != int(background)
+    )
+    if not non_background_counts:
+        return None
+
+    # Prefer salient rare colors, which in live ARC3 more often correspond to
+    # the avatar, key state, or new interactive blocks than the broad terrain.
+    preferred_colors = [0, 1, 6, 9, 11, 12, 15]
+    candidate_colors = [
+        color
+        for color in preferred_colors
+        if color in non_background_counts and non_background_counts[color] <= 128
+    ]
+    if not candidate_colors:
+        rarest_count = min(non_background_counts.values())
+        candidate_colors = [
+            color
+            for color, count in non_background_counts.items()
+            if count == rarest_count or count <= max(rarest_count * 2, 64)
+        ]
+
+    cells = [
+        (row_index, col_index)
+        for row_index, row in enumerate(grid)
+        for col_index, value in enumerate(row)
+        if int(value) in set(candidate_colors)
+    ]
+    if cells:
+        avg_row = sum(float(row_index) for row_index, _ in cells) / float(len(cells))
+        avg_col = sum(float(col_index) for _, col_index in cells) / float(len(cells))
+        return avg_row, avg_col
+    return _foreground_centroid(grid)
+
+
+def _components_for_colors(grid: list[list[int]], colors: set[int]) -> list[dict[str, Any]]:
+    if not grid or not isinstance(grid[0], list):
+        return []
+    rows = len(grid)
+    cols = len(grid[0])
+    allowed = {int(color) for color in colors}
+    seen: set[tuple[int, int]] = set()
+    components: list[dict[str, Any]] = []
+
+    for row in range(rows):
+        for col in range(cols):
+            value = int(grid[row][col])
+            if value not in allowed or (row, col) in seen:
+                continue
+            queue: deque[tuple[int, int]] = deque([(row, col)])
+            seen.add((row, col))
+            points: list[tuple[int, int]] = []
+            color_counts: Counter[int] = Counter()
+            while queue:
+                current_row, current_col = queue.popleft()
+                current_value = int(grid[current_row][current_col])
+                points.append((current_row, current_col))
+                color_counts[current_value] += 1
+                for next_row, next_col in (
+                    (current_row - 1, current_col),
+                    (current_row + 1, current_col),
+                    (current_row, current_col - 1),
+                    (current_row, current_col + 1),
+                ):
+                    if not (0 <= next_row < rows and 0 <= next_col < cols):
+                        continue
+                    if (next_row, next_col) in seen:
+                        continue
+                    if int(grid[next_row][next_col]) not in allowed:
+                        continue
+                    seen.add((next_row, next_col))
+                    queue.append((next_row, next_col))
+            if not points:
+                continue
+            row_values = [point[0] for point in points]
+            col_values = [point[1] for point in points]
+            components.append(
+                {
+                    "size": len(points),
+                    "centroid": (
+                        sum(float(point[0]) for point in points) / float(len(points)),
+                        sum(float(point[1]) for point in points) / float(len(points)),
+                    ),
+                    "bbox": (
+                        min(row_values),
+                        min(col_values),
+                        max(row_values),
+                        max(col_values),
+                    ),
+                    "colors": set(color_counts.keys()),
+                }
+            )
+    return components
+
+
+def _avatar_centroid(grid: list[list[int]]) -> tuple[float, float] | None:
+    if not grid or not isinstance(grid[0], list):
+        return None
+    rows = len(grid)
+    cols = len(grid[0])
+    center_row = (rows - 1) / 2.0
+    center_col = (cols - 1) / 2.0
+    candidates = [
+        component
+        for component in _components_for_colors(grid, {0, 1})
+        if component["size"] <= 8 and {0, 1}.issubset(component["colors"])
+    ]
+    if not candidates:
+        return None
+    best = min(
+        candidates,
+        key=lambda component: (
+            abs(int(component["size"]) - 5),
+            abs(float(component["centroid"][0]) - center_row)
+            + abs(float(component["centroid"][1]) - center_col),
+        ),
+    )
+    return float(best["centroid"][0]), float(best["centroid"][1])
+
+
+def _select_mechanic_target(
+    grid: list[list[int]],
+    avatar_centroid: tuple[float, float] | None,
+) -> tuple[tuple[float, float] | None, str]:
+    if avatar_centroid is None:
+        return None, ""
+    avatar_row, avatar_col = avatar_centroid
+    target_specs = [
+        ("switch", {11}, 5, 16, 0),
+        ("recharge", {8}, 4, 16, 1),
+        ("pattern", {12}, 4, 16, 2),
+        ("door", {9}, 4, 32, 3),
+    ]
+    candidates: list[tuple[int, float, float, tuple[float, float], str]] = []
+    for label, colors, min_size, max_size, priority in target_specs:
+        for component in _components_for_colors(grid, colors):
+            size = int(component["size"])
+            if size < min_size or size > max_size:
+                continue
+            centroid = (
+                float(component["centroid"][0]),
+                float(component["centroid"][1]),
+            )
+            distance = abs(centroid[0] - avatar_row) + abs(centroid[1] - avatar_col)
+            ideal_size = (min_size + max_size) / 2.0
+            size_penalty = abs(float(size) - ideal_size)
+            candidates.append((priority, distance, size_penalty, centroid, label))
+    if not candidates:
+        return None, ""
+    _, _, _, centroid, label = min(candidates)
+    return centroid, label
+
+
 def _background_value(grid: list[list[int]]) -> int:
     counts: Counter[int] = Counter(int(value) for row in grid for value in row)
     return int(counts.most_common(1)[0][0]) if counts else 0
+
+
+def _frame_state(grid: list[list[int]]) -> str:
+    if not grid or not grid[0]:
+        return "unknown"
+    rows = len(grid)
+    cols = len(grid[0]) if grid and isinstance(grid[0], list) else 0
+    counts: Counter[int] = Counter(int(value) for row in grid for value in row)
+    total = max(1, sum(counts.values()))
+    dominant_color, dominant_count = counts.most_common(1)[0]
+    dominant_ratio = float(dominant_count) / float(total)
+    distinct_colors = len(counts)
+    normal_gameplay_colors = {3, 4, 5}
+    if (
+        rows >= 32
+        and cols >= 32
+        and dominant_color not in normal_gameplay_colors
+        and dominant_ratio >= 0.8
+        and distinct_colors <= 4
+    ):
+        return "transition"
+    return "gameplay"
 
 
 def _clamp_click_target(grid: list[list[int]], x: int, y: int) -> dict[str, int]:
@@ -195,6 +374,9 @@ def _frame_to_query_text(
     frame: list[list[int]],
     goal_frame: list[list[int]] | None,
     available_actions: list[Any] | None = None,
+    *,
+    frame_state: str = "gameplay",
+    fresh_context: bool = False,
 ) -> str:
     normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
     rows = len(frame)
@@ -202,8 +384,30 @@ def _frame_to_query_text(
     goal_state = "goal present" if normalized_goal != [[]] else "goal absent"
     position_tokens: list[str] = []
     guidance_tokens: list[str] = []
-    current_centroid = _foreground_centroid(frame)
+    state_tokens: list[str] = []
+    current_centroid = None if frame_state == "transition" else (_avatar_centroid(frame) or _focus_centroid(frame))
     goal_centroid = _foreground_centroid(normalized_goal) if normalized_goal != [[]] else None
+    derived_target_centroid: tuple[float, float] | None = None
+    derived_target_label = ""
+    if goal_centroid is None and current_centroid is not None and frame_state != "transition":
+        derived_target_centroid, derived_target_label = _select_mechanic_target(frame, current_centroid)
+    if frame_state == "transition":
+        state_tokens.extend(
+            [
+                "screen transition uniform color",
+                "transition animation continue",
+            ]
+        )
+    elif fresh_context:
+        state_tokens.extend(
+            [
+                "post transition new context",
+                "re perceive fresh layout",
+                "new level gameplay",
+            ]
+        )
+    if derived_target_label:
+        state_tokens.append(f"{derived_target_label} target visible")
     if current_centroid is not None and rows > 0 and cols > 0:
         avg_row, avg_col = current_centroid
         center_row = (rows - 1) / 2.0
@@ -212,9 +416,9 @@ def _frame_to_query_text(
         col_margin = max(cols * 0.1, 0.5)
         primary_action: str | None = None
         secondary_action: str | None = None
-
-        if goal_centroid is not None:
-            goal_row, goal_col = goal_centroid
+        target_centroid = goal_centroid or derived_target_centroid
+        if target_centroid is not None:
+            goal_row, goal_col = target_centroid
             row_delta = float(goal_row - avg_row)
             col_delta = float(goal_col - avg_col)
             if row_delta > row_margin:
@@ -294,7 +498,7 @@ def _frame_to_query_text(
     for action_index in _available_action_indices(available_actions):
         action_tokens.append(ACTION_NAMES[int(action_index)].lower())
     actions_text = " ".join(action_tokens) if action_tokens else "actions unknown"
-    position_text = " ".join(position_tokens + guidance_tokens)
+    position_text = " ".join(state_tokens + position_tokens + guidance_tokens)
     return (
         f"arc3 interactive game frame grid {rows}x{cols} "
         f"{position_text} {goal_state} "
@@ -362,6 +566,7 @@ class K3DARC3Agent:
         self._click_probe_index = 1
         self._transitional_script_key: tuple[str, int] | None = None
         self._transitional_script_cursor = 0
+        self._needs_reperceive = False
 
     def _next_click_payload(self, grid: list[list[int]]) -> tuple[dict[str, int], str]:
         candidates = _salient_click_centers(grid)
@@ -424,7 +629,41 @@ class K3DARC3Agent:
         """Translate frame → ARC_TASK → kv.execute_task() → ARC3 action dict."""
         normalized_frame = _normalize_grid(frame)
         normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
+        frame_state = _frame_state(normalized_frame)
+        fresh_context = False
+        if self._needs_reperceive:
+            self._last_click_focus = None
+            self._click_focus_streak = 0
+            self._click_probe_index = 1
+            self._transitional_script_key = None
+            self._transitional_script_cursor = 0
+            if frame_state != "transition":
+                fresh_context = True
         task_context = dict(task_data or {}) if isinstance(task_data, dict) else {}
+        valid_action_indices = _available_action_indices(available_actions)
+        if self._needs_reperceive and frame_state == "transition":
+            action_index = int(valid_action_indices[0]) if valid_action_indices else 0
+            record = {
+                "action": ACTION_NAMES[action_index],
+                "action_index": action_index,
+                "label": ACTION_LABELS[action_index],
+                "confidence": 0.0,
+                "converged": 0,
+                "iterations_used": 0,
+                "frame_number": len(self.action_history) + 1,
+                "gpu_execution": False,
+                "solver": "arc3_transition_reperceive_bridge",
+                "task_result": {"program_type": "transition_anim_bridge"},
+                "available_actions": list(available_actions or []),
+                "click_reason": "transition_anim_neutral",
+                "frame_state": frame_state,
+                "fresh_context": False,
+                "game_id": str(game_id or ""),
+                "levels_completed": int(levels_completed),
+            }
+            self.action_history.append(record)
+            self._last_frame = _clone_grid(normalized_frame)
+            return record
         gpu_task = {
             "type": "ARC_TASK",
             "task_id": str(
@@ -436,6 +675,8 @@ class K3DARC3Agent:
                 normalized_frame,
                 normalized_goal,
                 available_actions=available_actions,
+                frame_state=frame_state,
+                fresh_context=fresh_context,
             ),
             "input_grid": normalized_frame,
             "expected_output": normalized_goal if normalized_goal != [[]] else [],
@@ -454,13 +695,12 @@ class K3DARC3Agent:
             specialist="visual",
             domain_hint="arc3_interactive",
         )
+        click_reason = ""
         action_index, payload = _derive_action_from_result(
             normalized_frame,
             dict(result or {}),
             goal_frame=normalized_goal,
         )
-        click_reason = ""
-        valid_action_indices = _available_action_indices(available_actions)
         transitional_override = self._next_transitional_script_action(
             game_id=game_id,
             levels_completed=levels_completed,
@@ -496,12 +736,16 @@ class K3DARC3Agent:
             "task_result": dict(result or {}),
             "available_actions": list(available_actions or []),
             "click_reason": click_reason,
+            "frame_state": frame_state,
+            "fresh_context": fresh_context,
             "game_id": str(game_id or ""),
             "levels_completed": int(levels_completed),
             **payload,
         }
         self.action_history.append(record)
         self._last_frame = _clone_grid(normalized_frame)
+        if fresh_context:
+            self._needs_reperceive = False
         return record
 
     def learn_from_outcome(
@@ -515,6 +759,7 @@ class K3DARC3Agent:
         normalized_frame = _normalize_grid(frame) if frame is not None else None
         if current > self._last_levels_completed:
             outcome = 1
+            self._needs_reperceive = True
         elif normalized_frame is not None and self._last_frame is not None and normalized_frame != self._last_frame:
             outcome = 0
         else:

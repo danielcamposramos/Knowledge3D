@@ -4793,7 +4793,9 @@ class Knowledgeverse:
         if str(domain_hint or "").strip().lower() == "arc3_interactive" and str(query_text or "").strip():
             _qt = str(query_text).lower()
             _arc3_direct_index: int | None = None
-            if "primary action move up" in _qt:
+            if "screen transition" in _qt and ("dismiss" in _qt or "primary action perform" in _qt):
+                _arc3_direct_index = 4  # Perform / dismiss transition
+            elif "primary action move up" in _qt:
                 _arc3_direct_index = 0  # Move Up
             elif "primary action move down" in _qt:
                 _arc3_direct_index = 1  # Move Down

@@ -431,6 +431,7 @@ VISUAL_MECHANICS = [
     {"id": "visual_shape_encodes_lock_class", "name": "Shape Encodes Lock Class", "description": "Shape class differentiates which doors, keys, or sockets correspond to one another.", "surface_forms": ["shape means class", "shape lock"], "tags": ["visual", "shape"]},
     {"id": "visual_pattern_encodes_state", "name": "Pattern Encodes State", "description": "Repeated visual motifs encode puzzle state, lock state, or object identity.", "surface_forms": ["pattern means state", "visual motif"], "tags": ["visual", "pattern"]},
     {"id": "visual_position_encodes_priority", "name": "Position Encodes Priority", "description": "Objects placed centrally, elevated, or isolated often deserve immediate attention.", "surface_forms": ["position means priority", "center is important"], "tags": ["visual", "layout"]},
+    {"id": "screen_transition_uniform_color", "name": "Screen Transition Uniform Color", "description": "A frame dominated by one unusual color with most gameplay elements absent indicates a transition or loading screen.", "surface_forms": ["transition screen", "uniform color screen", "green transition"], "tags": ["visual", "transition"]},
 ]
 
 LEVEL_DESIGN_MECHANICS = [
@@ -459,6 +460,8 @@ STATE_MACHINE_MECHANICS = [
     {"id": "state_machine_cutscene_gate", "name": "Cutscene Gate State", "description": "A non-interactive transition communicates story or puzzle consequences.", "surface_forms": ["cutscene", "transition scene"], "tags": ["state_machine", "transition"]},
     {"id": "state_machine_respawn", "name": "Respawn State", "description": "After death or failure, the avatar returns to a prior checkpoint or start.", "surface_forms": ["respawn", "restart"], "tags": ["state_machine", "failure"]},
     {"id": "state_machine_save_resume", "name": "Save Resume State", "description": "The game can leave and later restore the last persisted progress state.", "surface_forms": ["save and resume", "resume state"], "tags": ["state_machine", "persistence"]},
+    {"id": "screen_transition_dismiss", "name": "Screen Transition Dismiss", "description": "A transition screen advances when a dismiss or continue input is provided.", "surface_forms": ["dismiss transition", "continue screen", "advance transition"], "tags": ["state_machine", "transition"]},
+    {"id": "post_transition_new_context", "name": "Post Transition New Context", "description": "After a transition screen, the next gameplay frame must be perceived as a fresh context with a new layout and possibly new mechanics.", "surface_forms": ["new context after transition", "fresh level context"], "tags": ["state_machine", "transition"]},
 ]
 
 
@@ -708,6 +711,8 @@ GAME_REALITY_ENTRIES.extend(
             {"id": "reality_visual_signal", "name": "Visual Signal", "description": "Flashing, color, size, and animation encode interaction-relevant state.", "tags": ["visual", "signal"]},
             {"id": "reality_level_topology", "name": "Level Topology", "description": "A level has a traversable layout with branches, hubs, dead ends, and shortcuts.", "tags": ["level_design", "layout"]},
             {"id": "reality_ui_game_state", "name": "UI Game State", "description": "The game transitions through title, prompt, gameplay, completion, and next states.", "tags": ["state_machine", "ui"]},
+            {"id": "reality_transition_screen_state", "name": "Transition Screen State", "description": "A transient fullscreen state appears between solved levels and the next gameplay context.", "tags": ["state_machine", "transition"]},
+            {"id": "reality_post_transition_context", "name": "Post Transition Context", "description": "The first gameplay frame after a transition is a new context that should not inherit the previous level layout.", "tags": ["state_machine", "transition"]},
         ]
     )
 )
@@ -906,6 +911,9 @@ GAME_GRAMMAR_RULES.extend(
             {"id": "grammar_validate_sequence_trigger", "name": "Validate Sequence Trigger", "pattern": "ordered trigger sequence unlocks downstream gate", "rpn_program": "TRIGGER_TRACE REQUIRED_SEQUENCE EQUALS { GATE_UNLOCK } IF", "word_refs": ["sequence", "trigger"], "reality_refs": ["reality_sequence_trigger_state"], "tags": ["puzzle", "sequence"]},
             {"id": "grammar_decode_visual_signal", "name": "Decode Visual Signal", "pattern": "visual features map to game state cues", "rpn_program": "FRAME_FEATURES COLOR SHAPE FLASH SIZE MAP_TO_STATE", "word_refs": ["visual", "signal"], "reality_refs": ["reality_visual_signal", "reality_visual_state_encoding"], "tags": ["visual", "signal"]},
             {"id": "grammar_transition_game_state", "name": "Transition Game State", "pattern": "ui prompts and events move the game between lifecycle states", "rpn_program": "CURRENT_STATE EVENT LOOKUP NEXT_STATE TRANSITION", "word_refs": ["state", "transition"], "reality_refs": ["reality_ui_game_state"], "tags": ["state_machine", "ui"]},
+            {"id": "grammar_detect_transition_screen", "name": "Detect Transition Screen", "pattern": "uniform unusual color frame means transition screen", "rpn_program": "FRAME_COLOR_HISTOGRAM DOMINANT_RATIO 0.8 GT DISTINCT_COLORS 4 LTE AND TRANSITION_STATE", "word_refs": ["transition", "screen", "uniform"], "reality_refs": ["reality_transition_screen_state", "reality_visual_signal"], "rule_strength": 1, "tags": ["state_machine", "transition"]},
+            {"id": "grammar_dismiss_transition_screen", "name": "Dismiss Transition Screen", "pattern": "dismiss transition screen to advance to next level", "rpn_program": "TRANSITION_STATE TRUE { INPUT_PERFORM OR INPUT_CLICK_CENTER } IF", "word_refs": ["dismiss", "continue", "transition"], "reality_refs": ["reality_transition_screen_state", "reality_ui_game_state"], "rule_strength": 1, "tags": ["state_machine", "transition"]},
+            {"id": "grammar_reperceive_after_transition", "name": "Reperceive After Transition", "pattern": "after transition treat next gameplay frame as new context", "rpn_program": "PREV_STATE TRANSITION_STATE EQUALS { RESET_SPATIAL_MODEL PERCEIVE_ALL } IF", "word_refs": ["reperceive", "new context", "transition"], "reality_refs": ["reality_post_transition_context", "reality_ui_game_state"], "rule_strength": 1, "tags": ["state_machine", "transition"]},
             {"id": "grammar_follow_backtracking_route", "name": "Follow Backtracking Route", "pattern": "revisit earlier branch after unlocking new dependency", "rpn_program": "NEW_CAPABILITY PRIOR_BLOCKED_ROUTE REEVALUATE PATH_SELECT", "word_refs": ["backtrack", "route"], "reality_refs": ["reality_level_topology"], "tags": ["level_design", "layout"]},
             {"id": "grammar_escalate_difficulty_curve", "name": "Escalate Difficulty Curve", "pattern": "later rooms combine mastered mechanics into denser challenges", "rpn_program": "ROOM_INDEX PREVIOUS_MECHANICS COMBINE CHALLENGE_DENSITY INC", "word_refs": ["difficulty", "curve"], "reality_refs": ["reality_level_topology"], "tags": ["level_design", "progression"]},
         ]
@@ -1076,6 +1084,8 @@ GAME_META_RULES.extend(
             {"id": "meta_backtrack_when_dependency_unsatisfied", "name": "Backtrack When Dependency Unsatisfied", "category": "game_strategy", "condition": "GOAL_BLOCKED MISSING_DEPENDENCY AND", "action": "grammar_follow_backtracking_route APPLY_RULE", "rule_refs": ["grammar_follow_backtracking_route"], "priority": 0.93, "tags": ["level_design", "backtracking"]},
             {"id": "meta_use_checkpoint_after_progress", "name": "Use Checkpoint After Progress", "category": "game_strategy", "condition": "CHECKPOINT_VISIBLE RECENT_PROGRESS AND", "action": "MOVE_TO_CHECKPOINT", "rule_refs": ["grammar_route_agent_on_walkable_grid"], "priority": 0.83, "tags": ["progress", "checkpoint"]},
             {"id": "meta_start_from_title_state", "name": "Start From Title State", "category": "game_strategy", "condition": "CURRENT_STATE TITLE_OR_PROMPT", "action": "grammar_transition_game_state APPLY_RULE INPUT_ACTION_PERFORM", "rule_refs": ["grammar_transition_game_state"], "priority": 0.98, "tags": ["state_machine", "start"]},
+            {"id": "meta_dismiss_transition_before_navigation", "name": "Dismiss Transition Before Navigation", "category": "game_strategy", "condition": "TRANSITION_STATE TRUE", "action": "grammar_dismiss_transition_screen APPLY_RULE", "rule_refs": ["grammar_detect_transition_screen", "grammar_dismiss_transition_screen"], "priority": 0.99, "tags": ["state_machine", "transition"]},
+            {"id": "meta_reset_context_after_level_completion", "name": "Reset Context After Level Completion", "category": "self_reflection", "condition": "LEVELS_COMPLETED INCREASED", "action": "grammar_reperceive_after_transition APPLY_RULE", "rule_refs": ["grammar_reperceive_after_transition"], "priority": 0.97, "tags": ["state_machine", "transition"]},
         ]
     )
 )

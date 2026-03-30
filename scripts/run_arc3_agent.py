@@ -225,6 +225,8 @@ def run_live_arc3(
                 "x": action.get("x"),
                 "y": action.get("y"),
                 "click_reason": str(action.get("click_reason", "")),
+                "frame_state": str(action.get("frame_state", "")),
+                "fresh_context": bool(action.get("fresh_context", False)),
                 "program_type": str(action.get("task_result", {}).get("program_type", "")),
                 "program_id": str(action.get("task_result", {}).get("program_id", "")),
                 "result_answer_index": action.get("task_result", {}).get("answer_index"),

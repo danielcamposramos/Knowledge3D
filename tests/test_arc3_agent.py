@@ -103,6 +103,81 @@ def test_arc3_agent_query_text_uses_goal_relative_direction():
     assert "primary action move down" in query_text
 
 
+def test_arc3_agent_uses_neutral_bridge_for_transition_frame_after_level_completion():
+    kv = _FakeKnowledgeverse({"answer_index": 0, "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    gameplay_frame = [[0] * 8 for _ in range(8)]
+    gameplay_frame[1][1] = 1
+    agent.choose_action(gameplay_frame, levels_completed=0, available_actions=[1, 2, 3, 4])
+    agent.learn_from_outcome(levels_completed=1, frame=gameplay_frame)
+
+    frame = [[9] * 64 for _ in range(64)]
+    for row in range(31, 33):
+        for col in range(31, 33):
+            frame[row][col] = 4
+
+    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    assert action["frame_state"] == "transition"
+    assert action["action"] == "ACTION1"
+    assert action["click_reason"] == "transition_anim_neutral"
+    assert action["task_result"]["program_type"] == "transition_anim_bridge"
+    assert len(kv.calls) == 1
+
+
+def test_arc3_agent_reperceives_fresh_context_after_level_completion():
+    kv = _FakeKnowledgeverse({"answer_index": 1, "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    frame = [[0] * 8 for _ in range(8)]
+    frame[1][1] = 1
+    agent.choose_action(frame, levels_completed=0, available_actions=[1, 2, 3, 4])
+    agent.learn_from_outcome(levels_completed=1, frame=frame)
+
+    next_frame = [[4] * 8 for _ in range(8)]
+    next_frame[6][1] = 11
+    next_frame[6][2] = 11
+    next_frame[6][3] = 11
+    action = agent.choose_action(next_frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    query_text = kv.calls[-1]["task"]["query"]
+    assert "post transition new context" in query_text
+    assert "re perceive fresh layout" in query_text
+    assert action["frame_state"] == "gameplay"
+    assert action["fresh_context"] is True
+    assert action["action"] in {"ACTION1", "ACTION2", "ACTION3", "ACTION4"}
+
+
+def test_arc3_agent_targets_switch_from_avatar_cluster_after_level_completion():
+    kv = _FakeKnowledgeverse({"answer_index": 2, "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    prior_frame = [[0] * 8 for _ in range(8)]
+    prior_frame[1][1] = 1
+    agent.choose_action(prior_frame, levels_completed=0, available_actions=[1, 2, 3, 4])
+    agent.learn_from_outcome(levels_completed=1, frame=prior_frame)
+
+    frame = [[4] * 64 for _ in range(64)]
+    frame[46][51] = 0
+    frame[47][51] = 0
+    frame[47][52] = 0
+    frame[47][50] = 1
+    frame[48][51] = 1
+    for row in range(51, 54):
+        for col in range(40, 43):
+            if row == 52 or col == 41:
+                frame[row][col] = 11
+
+    agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    query_text = kv.calls[-1]["task"]["query"]
+    assert "post transition new context" in query_text
+    assert "switch target visible" in query_text
+    assert "object right of goal move left" in query_text
+    assert "primary action move left" in query_text
+
+
 def test_arc3_agent_derives_action_from_output_grid():
     kv = _FakeKnowledgeverse(
         {
@@ -294,6 +369,31 @@ def test_answer_arc_query_transitional_decode_uses_goal_relative_action():
 
     assert result["status"] == "ok"
     assert result["answer_index"] == 1
+    assert result["program_type"] == "transitional_io_decode"
+
+
+def test_answer_arc_query_transitional_decode_handles_transition_dismiss():
+    harness = _AnswerIndexHarness()
+
+    result = Knowledgeverse._answer_arc_query(
+        harness,
+        task={"type": "ARC_TASK", "input_grid": [[0]]},
+        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
+        reasoning_program={"id": "arc3_program"},
+        route_galaxies=["Grammar", "Tool", "Reality"],
+        match={"id": "reasoning_arc_grid_transform_top1"},
+        similarity=0.55,
+        route={"specialist": "visual"},
+        specialist="visual",
+        domain_hint="arc3_interactive",
+        query_text="arc3 interactive game frame screen transition uniform color screen transition dismiss primary action perform",
+        use_enriched=False,
+        query_type="ARC_TASK",
+        selection_steps=["arc3 transitional decode"],
+    )
+
+    assert result["status"] == "ok"
+    assert result["answer_index"] == 4
     assert result["program_type"] == "transitional_io_decode"
 
 

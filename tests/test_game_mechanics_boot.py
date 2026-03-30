@@ -40,8 +40,11 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "puzzle_sokoban_alignment" in ids
     assert "input_action_click" in ids
     assert "visual_flashing_temporary" in ids
+    assert "screen_transition_uniform_color" in ids
     assert "level_design_hub_spoke" in ids
     assert "state_machine_start_prompt" in ids
+    assert "screen_transition_dismiss" in ids
+    assert "post_transition_new_context" in ids
     assert rows[0]["meaning_rpn"]
     assert rows[0]["behavior_rpn"]
     assert rows[0]["meta_refs"]
@@ -69,6 +72,8 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "grammar_infer_rule_from_state_delta" in grammar_ids
     assert "grammar_apply_gravity" in grammar_ids
     assert "grammar_transition_game_state" in grammar_ids
+    assert "grammar_detect_transition_screen" in grammar_ids
+    assert "grammar_reperceive_after_transition" in grammar_ids
 
     tool_rows = [
         json.loads(line)
@@ -80,6 +85,8 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "meta_click_to_advance_after_completion" in tool_ids
     assert "meta_start_from_title_state" in tool_ids
     assert "meta_read_visual_affordance_before_action" in tool_ids
+    assert "meta_dismiss_transition_before_navigation" in tool_ids
+    assert "meta_reset_context_after_level_completion" in tool_ids
 
 
 def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
@@ -127,6 +134,8 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "reality_level_completion_signal" in reality_ids
     assert "reality_ui_game_state" in reality_ids
     assert "reality_gravity_field" in reality_ids
+    assert "reality_transition_screen_state" in reality_ids
+    assert "reality_post_transition_context" in reality_ids
 
 
 def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
@@ -148,9 +157,15 @@ def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
     assert "meta_probe_transform_blocks_on_mismatch" in star_ids
     assert "input_action_undo" in star_ids
     assert "visual_shape_encodes_lock_class" in star_ids
+    assert "screen_transition_uniform_color" in star_ids
+    assert "screen_transition_dismiss" in star_ids
+    assert "post_transition_new_context" in star_ids
     assert "reality_level_topology" in star_ids
+    assert "reality_transition_screen_state" in star_ids
     assert "grammar_transition_game_state" in star_ids
+    assert "grammar_detect_transition_screen" in star_ids
     assert "meta_start_from_title_state" in star_ids
+    assert "meta_dismiss_transition_before_navigation" in star_ids
     assert len(build_game_mechanics_entries()) >= 100
     assert len(build_game_reality_entries()) >= 20
     assert len(build_game_grammar_rules()) >= 20
