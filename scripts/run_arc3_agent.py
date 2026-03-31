@@ -167,6 +167,7 @@ def run_live_arc3(
     action_count = 0
     start = time.time()
     levels_completed = level_progress(reset.get("levels_completed", 0))
+    sleep_summary: dict[str, Any] = {}
 
     try:
         while state in ACTIVE_STATES and action_count < max_actions:
@@ -276,6 +277,11 @@ def run_live_arc3(
             if state in {"WIN", "GAME_OVER"}:
                 break
     finally:
+        if hasattr(kv, "jarvis_sleep_consolidation"):
+            try:
+                sleep_summary = dict(kv.jarvis_sleep_consolidation(persist=True) or {})
+            except Exception as exc:
+                sleep_summary = {"error": str(exc)}
         agent.close()
         session.post(f"{api_url}/api/scorecard/close", json={"card_id": card_id}, timeout=30)
 
@@ -289,6 +295,7 @@ def run_live_arc3(
         "levels_completed": levels_completed,
         "elapsed_seconds": round(elapsed, 2),
         "log_path": str(resolved_log_path),
+        "sleep_consolidation": sleep_summary,
     }
 
 
@@ -316,6 +323,13 @@ def main() -> int:
     print(f"Done: {summary['actions']} actions in {summary['elapsed_seconds']:.1f}s state={summary['state']}")
     print(f"Log: {summary['log_path']}")
     print(f"Scorecard URL: {summary['card_url']}")
+    sleep_summary = summary.get("sleep_consolidation") if isinstance(summary.get("sleep_consolidation"), dict) else {}
+    if sleep_summary:
+        print(
+            "Sleep: briefs="
+            f"{int(sleep_summary.get('briefs_consolidated', 0) or 0)} "
+            f"updated={bool(sleep_summary.get('updated', False))}"
+        )
     if summary["state"] == "WIN":
         print("WIN!")
     return 0

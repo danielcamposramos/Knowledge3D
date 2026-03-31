@@ -247,6 +247,7 @@ def run_full_benchmark(
     print(f"[E25] Initializing Knowledgeverse storage_root={storage_root}", flush=True)
     kv = Knowledgeverse(storage_root=storage_root)
     print("[E25] Knowledgeverse init complete", flush=True)
+    sleep_summary: dict[str, object] = {}
 
     all_results: dict[str, dict[str, object]] = {}
     suite_order = [
@@ -258,33 +259,44 @@ def run_full_benchmark(
         ("arc3_local", arc3_count),
     ]
 
-    for suite_name, suite_count in suite_order:
-        print(f"[E25] Starting suite: {suite_name} count={suite_count}", flush=True)
-        result = _run_native_suite(
-            suite_name=suite_name,
-            count=suite_count,
-            knowledgeverse=kv,
-            row_log_path=log_dir / f"{suite_name}.jsonl",
-            progress_log_path=log_dir / f"{suite_name}_progress.jsonl",
-        )
-        _write_jsonl(log_dir / f"{suite_name}.jsonl", list(result.get("results") or []))
-        print(f"[E25] {suite_name} complete", flush=True)
-        all_results[suite_name] = result
-        partial_summary = {
-            "timestamp": timestamp,
-            "elapsed_seconds": round(time.time() - start, 2),
-            "log_dir": str(log_dir),
-            "hardware_profile": hardware_profile,
-            "completed_suites": list(all_results.keys()),
-            "suites": {
-                name: {key: value for key, value in suite_result.items() if key != "results"}
-                for name, suite_result in all_results.items()
-            },
-        }
-        (log_dir / "summary.partial.json").write_text(
-            json.dumps(partial_summary, indent=2, ensure_ascii=False),
-            encoding="utf-8",
-        )
+    try:
+        for suite_name, suite_count in suite_order:
+            print(f"[E25] Starting suite: {suite_name} count={suite_count}", flush=True)
+            result = _run_native_suite(
+                suite_name=suite_name,
+                count=suite_count,
+                knowledgeverse=kv,
+                row_log_path=log_dir / f"{suite_name}.jsonl",
+                progress_log_path=log_dir / f"{suite_name}_progress.jsonl",
+            )
+            _write_jsonl(log_dir / f"{suite_name}.jsonl", list(result.get("results") or []))
+            print(f"[E25] {suite_name} complete", flush=True)
+            all_results[suite_name] = result
+            partial_summary = {
+                "timestamp": timestamp,
+                "elapsed_seconds": round(time.time() - start, 2),
+                "log_dir": str(log_dir),
+                "hardware_profile": hardware_profile,
+                "completed_suites": list(all_results.keys()),
+                "suites": {
+                    name: {key: value for key, value in suite_result.items() if key != "results"}
+                    for name, suite_result in all_results.items()
+                },
+            }
+            (log_dir / "summary.partial.json").write_text(
+                json.dumps(partial_summary, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+    finally:
+        if hasattr(kv, "jarvis_sleep_consolidation"):
+            try:
+                sleep_summary = dict(kv.jarvis_sleep_consolidation(persist=True) or {})
+            except Exception as exc:
+                sleep_summary = {"error": str(exc)}
+            (log_dir / "sleep_consolidation.json").write_text(
+                json.dumps(sleep_summary, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
 
     elapsed = round(time.time() - start, 2)
     summary = {
@@ -292,6 +304,7 @@ def run_full_benchmark(
         "elapsed_seconds": elapsed,
         "log_dir": str(log_dir),
         "hardware_profile": hardware_profile,
+        "sleep_consolidation": sleep_summary,
         "suites": {
             name: {key: value for key, value in result.items() if key != "results"}
             for name, result in all_results.items()

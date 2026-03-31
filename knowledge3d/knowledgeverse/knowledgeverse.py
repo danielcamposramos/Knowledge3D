@@ -251,7 +251,7 @@ class Knowledgeverse:
         "Tool",
         "Reality",
     )
-    GPU_GSM8K_TARGET_GALAXIES: tuple[str, ...] = (
+    GPU_WORD_PROBLEM_TARGET_GALAXIES: tuple[str, ...] = (
         "reasoning_strategies",
         "Grammar",
         "Tool",
@@ -3005,7 +3005,7 @@ class Knowledgeverse:
             "meta_rule",
         }
 
-    def _gsm8k_reasoning_strategy_rows(
+    def _math_reasoning_strategy_rows(
         self,
         *,
         catalog: list[dict[str, Any]],
@@ -3107,7 +3107,7 @@ class Knowledgeverse:
         allowed = (
             self.GPU_ARC_TARGET_GALAXIES
             if task_type == "ARC_TASK"
-            else self.GPU_GSM8K_TARGET_GALAXIES
+            else self.GPU_WORD_PROBLEM_TARGET_GALAXIES
             if gsm8k_mode
             else self.GPU_MATH_TARGET_GALAXIES
             if task_type == "MATH_TASK"
@@ -3130,7 +3130,7 @@ class Knowledgeverse:
             ]
             if selected:
                 if gsm8k_mode:
-                    return list(dict.fromkeys(selected + list(self.GPU_GSM8K_TARGET_GALAXIES)))
+                    return list(dict.fromkeys(selected + list(self.GPU_WORD_PROBLEM_TARGET_GALAXIES)))
                 if factual_chat:
                     return list(
                         dict.fromkeys(
@@ -3471,7 +3471,7 @@ class Knowledgeverse:
         if task_type in {"MMLU_TASK", "LHE_TASK"}:
             return str(record.get("option_text", "")).strip()
         if gsm8k_mode:
-            return self._gsm8k_preview_candidate_id(record)
+            return self._math_preview_candidate_id(record)
         candidate = record.get("candidate")
         if not isinstance(candidate, dict):
             return ""
@@ -3818,7 +3818,7 @@ class Knowledgeverse:
             weights["backward"] / total,
         )
 
-    def _gsm8k_strategy_weight(self, strategy: str) -> float:
+    def _math_strategy_weight(self, strategy: str) -> float:
         metadata = self._grammar_rule_metadata("reasoning_word_problem_chain")
         strategy_weights = metadata.get("strategy_weights") if isinstance(metadata.get("strategy_weights"), dict) else {}
         token = str(strategy or "").strip()
@@ -3829,7 +3829,7 @@ class Knowledgeverse:
         except Exception:
             return 1.0
 
-    def _gsm8k_halting_thresholds(self) -> tuple[float, float, float]:
+    def _math_halting_thresholds(self) -> tuple[float, float, float]:
         metadata = self._grammar_rule_metadata("halting_word_problem_consensus")
         defaults = {
             "minimum_threshold": 0.3,
@@ -5475,7 +5475,7 @@ class Knowledgeverse:
             trace.append("Jarvis execution signal: normalization gate")
         return trace
 
-    def _gsm8k_execution_priority(
+    def _math_execution_priority(
         self,
         *,
         candidate: dict[str, Any] | None,
@@ -5483,8 +5483,12 @@ class Knowledgeverse:
     ) -> float:
         payload = dict(candidate or {})
         context = payload.get("gsm8k_context") if isinstance(payload.get("gsm8k_context"), dict) else {}
-        preview_strategy = str(payload.get("gsm8k_preview_strategy", "")).strip().lower()
-        preview_program = str(payload.get("gsm8k_preview_program", "")).strip()
+        preview_strategy = str(
+            payload.get("math_preview_strategy", payload.get("gsm8k_preview_strategy", ""))
+        ).strip().lower()
+        preview_program = str(
+            payload.get("math_preview_program", payload.get("gsm8k_preview_program", ""))
+        ).strip()
         execution_ids = [
             str(value).strip()
             for value in context.get("execution_star_ids", [])
@@ -5501,8 +5505,14 @@ class Knowledgeverse:
             if str(value).strip()
         ]
         goal_operation = str(context.get("goal_operation", "")).strip().lower()
-        weighted_support = float(payload.get("gsm8k_consensus_weight", (record or {}).get("weighted_support", 0.0)) or 0.0)
-        support_count = int(payload.get("gsm8k_consensus_support", (record or {}).get("support_count", 0)) or 0)
+        weighted_support = float(
+            payload.get("math_consensus_weight", payload.get("gsm8k_consensus_weight", (record or {}).get("weighted_support", 0.0)))
+            or 0.0
+        )
+        support_count = int(
+            payload.get("math_consensus_support", payload.get("gsm8k_consensus_support", (record or {}).get("support_count", 0)))
+            or 0
+        )
         operator_tokens = [token for token in preview_program.split() if token in {"+", "-", "*", "/"}]
         operator_count = len(operator_tokens)
         expected_ops = max(
@@ -7031,10 +7041,10 @@ class Knowledgeverse:
             binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
             return preview_answer, [
                 *self._gsm8k_execution_trace(context),
-                "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
-                f"GSM8K candidate program: {preview_label or 'fusion_chain'}",
-                *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
-                f"GSM8K fusion eval: {preview_program}",
+                "Math atomic fission: operation/number context bound from navigator fusion parse",
+                f"Math candidate program: {preview_label or 'fusion_chain'}",
+                *([f"Math slot binding: {binding_summary}"] if binding_summary else []),
+                f"Math fusion eval: {preview_program}",
             ]
         path = candidate.get("path") if isinstance(candidate.get("path"), dict) else {}
         strategy = str(candidate.get("gsm8k_preview_strategy") or path.get("composition_strategy") or "fusion_chain")
@@ -7049,10 +7059,10 @@ class Knowledgeverse:
         binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
         return answer, [
             *self._gsm8k_execution_trace(context),
-            "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
-            f"GSM8K candidate program: {label}",
-            *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
-            f"GSM8K fusion eval: {program}",
+            "Math atomic fission: operation/number context bound from navigator fusion parse",
+            f"Math candidate program: {label}",
+            *([f"Math slot binding: {binding_summary}"] if binding_summary else []),
+            f"Math fusion eval: {program}",
         ]
 
     def _answer_math_query(
@@ -7080,7 +7090,7 @@ class Knowledgeverse:
         resolved = False
         program_type = "gpu_math_template_match_lookup"
         best_candidate_payload = best_candidate if isinstance(best_candidate, dict) else {}
-        gsm8k_context_payload = (
+        math_context_payload = (
             dict(best_candidate_payload.get("gsm8k_context", {}))
             if isinstance(best_candidate_payload.get("gsm8k_context"), dict)
             else {}
@@ -7094,7 +7104,7 @@ class Knowledgeverse:
                 answer, decomposition_steps = decomposition_result
                 extra_steps.extend(decomposition_steps)
                 resolved = True
-                if str(gsm8k_context_payload.get("dispatch_specialist", "")).strip():
+                if str(math_context_payload.get("dispatch_specialist", "")).strip():
                     program_type = "gpu_math_symlink_execution_chain"
         if not resolved and rpn_program and can_direct_eval:
             try:
@@ -7161,17 +7171,17 @@ class Knowledgeverse:
             "query_type": str(query_type or ""),
             "use_enriched": bool(use_enriched),
             "task_id": str(task.get("task_id", "")),
-            "gsm8k_preview_strategy": str(best_candidate_payload.get("gsm8k_preview_strategy", "")).strip(),
-            "gsm8k_preview_program": str(best_candidate_payload.get("gsm8k_preview_program", "")).strip(),
-            "gsm8k_consensus_support": int(best_candidate_payload.get("gsm8k_consensus_support", 0) or 0),
-            "gsm8k_execution_priority": float(best_candidate_payload.get("gsm8k_execution_priority", 0.0) or 0.0),
-            "gsm8k_operation_ids": list(
-                gsm8k_context_payload.get("operation_ids", [])
+            "math_preview_strategy": str(best_candidate_payload.get("gsm8k_preview_strategy", "")).strip(),
+            "math_preview_program": str(best_candidate_payload.get("gsm8k_preview_program", "")).strip(),
+            "math_consensus_support": int(best_candidate_payload.get("gsm8k_consensus_support", 0) or 0),
+            "math_execution_priority": float(best_candidate_payload.get("gsm8k_execution_priority", 0.0) or 0.0),
+            "math_operation_ids": list(
+                math_context_payload.get("operation_ids", [])
             ),
-            "gsm8k_strategy_ids": list(gsm8k_context_payload.get("strategy_ids", [])),
-            "gsm8k_execution_star_ids": list(gsm8k_context_payload.get("execution_star_ids", [])),
-            "gsm8k_execution_layers": dict(gsm8k_context_payload.get("execution_layers", {})),
-            "gsm8k_dispatch_specialist": str(gsm8k_context_payload.get("dispatch_specialist", "")).strip(),
+            "math_strategy_ids": list(math_context_payload.get("strategy_ids", [])),
+            "math_execution_star_ids": list(math_context_payload.get("execution_star_ids", [])),
+            "math_execution_layers": dict(math_context_payload.get("execution_layers", {})),
+            "math_dispatch_specialist": str(math_context_payload.get("dispatch_specialist", "")).strip(),
         }
 
     def _answer_mmlu_query(
@@ -7549,15 +7559,15 @@ class Knowledgeverse:
             match_id,
             str(result.get("winning_program_id") or result.get("program_id") or "").strip(),
             (
-                f"gsm8k_strategy_{str(result.get('gsm8k_preview_strategy', '')).strip()}"
-                if str(result.get("gsm8k_preview_strategy", "")).strip()
+                f"math_strategy_{str(result.get('math_preview_strategy', '')).strip()}"
+                if str(result.get("math_preview_strategy", "")).strip()
                 else ""
             ),
             *[
                 str(operation_id).strip()
                 for operation_id in (
-                    result.get("gsm8k_operation_ids")
-                    if isinstance(result.get("gsm8k_operation_ids"), list)
+                    result.get("math_operation_ids")
+                    if isinstance(result.get("math_operation_ids"), list)
                     else []
                 )
             ],
@@ -8826,7 +8836,7 @@ class Knowledgeverse:
         )
         quantity_role_values = self._gsm8k_role_values_from_candidates(quantity_candidates)
         role_map_variants = self._gsm8k_role_map_variants(quantity_candidates)
-        strategy_rows = self._gsm8k_reasoning_strategy_rows(
+        strategy_rows = self._math_reasoning_strategy_rows(
             catalog=catalog,
             target_galaxies=target_galaxies,
         )
@@ -10361,7 +10371,7 @@ class Knowledgeverse:
             return paths
         if task_type == "MATH_TASK":
             if self._is_gsm8k_math_task(task) and "reasoning_word_problem_fission" not in program_ids:
-                gsm8k_workers = [
+                math_workers = [
                     ("reasoning_word_problem_fission", "forward", "forward_chain"),
                     (self.GPU_MATH_REASONING_PROGRAM_ID, "backward", "backward_chain"),
                     ("reasoning_word_problem_fission", "fusion", "fusion_chain"),
@@ -10373,7 +10383,7 @@ class Knowledgeverse:
                     (self.GPU_FACTUAL_REASONING_PROGRAM_ID, "backward", "alt_div"),
                 ]
                 paths: list[dict[str, Any]] = []
-                for idx, (program_id, parse_name, composition_strategy) in enumerate(gsm8k_workers):
+                for idx, (program_id, parse_name, composition_strategy) in enumerate(math_workers):
                     variant = _variant_by_name(parse_name, idx)
                     variant_text = str(variant.get("query_text", "")).strip() or query_text
                     paths.append(
@@ -10385,7 +10395,7 @@ class Knowledgeverse:
                                 task=task,
                                 options=options,
                             ),
-                            "label": f"gsm8k_worker_{idx}",
+                            "label": f"math_worker_{idx}",
                             "parse_strategy": str(variant.get("strategy", "")).strip() or parse_name,
                             "parse_query_text": variant_text,
                             "composition_strategy": composition_strategy,
@@ -12796,7 +12806,7 @@ class Knowledgeverse:
             gap_threshold = self._mmlu_relative_gap_threshold()
             agreement_threshold = 0.0
         elif self._is_gsm8k_math_task(task):
-            minimum_threshold, gap_threshold, agreement_threshold = self._gsm8k_halting_thresholds()
+            minimum_threshold, gap_threshold, agreement_threshold = self._math_halting_thresholds()
         else:
             minimum_threshold, gap_threshold, agreement_threshold = self._halting_rule_thresholds()
         ordered_pairs = sorted(
@@ -12847,7 +12857,7 @@ class Knowledgeverse:
             if override_answer and (not converged or override_answer != top_answer):
                 converged = True
                 selection_steps.append(
-                    "GSM8K structural override: "
+                    "Math structural override: "
                     f"{override_answer} beats {top_answer or 'none'} "
                     + (
                         f"(priority={self._gsm8k_structural_override_priority(gsm8k_structural_override):.2f})"
@@ -12862,14 +12872,14 @@ class Knowledgeverse:
         return converged
 
     @staticmethod
-    def _gsm8k_preview_candidate_id(record: dict[str, Any]) -> str:
+    def _math_preview_candidate_id(record: dict[str, Any]) -> str:
         candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else {}
         preview_answer = str(candidate.get("gsm8k_preview_answer", "")).strip()
         if preview_answer:
             return preview_answer
         return str((candidate.get("match") or {}).get("id", "")).strip()
 
-    def _aggregate_gsm8k_preview_records(
+    def _aggregate_math_preview_records(
         self,
         *,
         engine: Any,
@@ -12878,7 +12888,7 @@ class Knowledgeverse:
     ) -> list[dict[str, Any]]:
         answer_groups: dict[str, list[dict[str, Any]]] = {}
         for record in path_best_records:
-            answer_key = self._gsm8k_preview_candidate_id(record)
+            answer_key = self._math_preview_candidate_id(record)
             if not answer_key:
                 continue
             answer_groups.setdefault(answer_key, []).append(record)
@@ -12941,7 +12951,7 @@ class Knowledgeverse:
             aggregate_score = float(aggregate_scores[score_index])
             weighted_support = float(aggregate_scores[score_index + 1])
             score_index += 2
-            execution_priority = self._gsm8k_execution_priority(
+            execution_priority = self._math_execution_priority(
                 candidate=candidate if isinstance(candidate, dict) else {},
                 record={
                     "weighted_support": float(weighted_support),
@@ -12968,7 +12978,7 @@ class Knowledgeverse:
                 }
             )
             selection_steps.append(
-                "GSM8K answer consensus: "
+                "Math answer consensus: "
                 f"{answer_key} (exec={execution_priority:.2f}, struct={best_structural_score:.2f}, workers={support_count}, weight={weighted_support:.2f}, mean={aggregate_score:.2f})"
             )
         # Phase B+ ceiling: structural verification only checks frame/slot fit, so semantically
@@ -13366,13 +13376,13 @@ class Knowledgeverse:
             if operation_ids:
                 top_operation = str(gsm8k_context.get("top_operation", "")).strip() or "pattern"
                 selection_steps.append(
-                    f"GSM8K fission: hit {top_operation} ({len(operation_ids)} entries)"
+                    f"Math word-problem fission: hit {top_operation} ({len(operation_ids)} entries)"
                 )
                 selection_steps.append(
-                    "GSM8K operation anchors: " + ", ".join(operation_ids)
+                    "Math operation anchors: " + ", ".join(operation_ids)
                 )
             else:
-                selection_steps.append("GSM8K fission: miss operation pattern (0 entries)")
+                selection_steps.append("Math word-problem fission: miss operation pattern (0 entries)")
             goal_type = str(gsm8k_context.get("goal_type", "")).strip()
             typed_roles = [
                 str(value).strip()
@@ -13380,7 +13390,7 @@ class Knowledgeverse:
                 if str(value).strip()
             ]
             selection_steps.append(
-                "GSM8K goal typing: "
+                "Math goal typing: "
                 + (
                     f"{goal_type or 'none'} via "
                     + ("typed_fusion" if bool(gsm8k_context.get("uses_typed_fusion", False)) else "generic_blocks")
@@ -13389,10 +13399,10 @@ class Knowledgeverse:
             )
             if number_ids:
                 selection_steps.append(
-                    "GSM8K number neighborhood: " + ", ".join(number_ids[:6])
+                    "Math number neighborhood: " + ", ".join(number_ids[:6])
                 )
             else:
-                selection_steps.append("GSM8K number neighborhood: miss (0 entries)")
+                selection_steps.append("Math number neighborhood: miss (0 entries)")
             execution_ids = [
                 str(value).strip()
                 for value in gsm8k_context.get("execution_star_ids", [])
@@ -13401,10 +13411,10 @@ class Knowledgeverse:
             dispatch_specialist = str(gsm8k_context.get("dispatch_specialist", "")).strip()
             if execution_ids:
                 selection_steps.append(
-                    "GSM8K execution stars: " + ", ".join(execution_ids)
+                    "Math execution stars: " + ", ".join(execution_ids)
                 )
             else:
-                selection_steps.append("GSM8K execution stars: miss (0 entries)")
+                selection_steps.append("Math execution stars: miss (0 entries)")
             if dispatch_specialist:
                 selection_steps.append(f"Jarvis dispatch seed: {dispatch_specialist}")
         if task_type == "LHE_TASK":
@@ -14118,13 +14128,13 @@ class Knowledgeverse:
                         best_for_path["gsm8k_slot_binding"] = binding_summary
                     strategy_name = preview_label or strategy_name
                     selection_steps.append(
-                        "GSM8K worker preview: "
+                        "Math worker preview: "
                         f"{str(path.get('label') or path.get('program_id', 'worker'))} "
                         f"{preview_label} -> {preview_answer}"
                     )
                     if binding_summary:
-                        selection_steps.append(f"GSM8K slot binding: {binding_summary}")
-                strategy_weight = self._gsm8k_strategy_weight(strategy_name)
+                        selection_steps.append(f"Math slot binding: {binding_summary}")
+                strategy_weight = self._math_strategy_weight(strategy_name)
                 best_for_path["gsm8k_strategy_weight"] = float(strategy_weight)
                 if strategy_weight != 1.0:
                     best_for_path["path_score"] = float(
@@ -14165,7 +14175,7 @@ class Knowledgeverse:
             return None
         selected_records = path_best_records
         if gsm8k_mode:
-            aggregated_records = self._aggregate_gsm8k_preview_records(
+            aggregated_records = self._aggregate_math_preview_records(
                 engine=engine,
                 path_best_records=path_best_records,
                 selection_steps=selection_steps,
@@ -14177,7 +14187,7 @@ class Knowledgeverse:
                     if str(record.get("option_text", "")).strip()
                 }
                 for record in path_best_records:
-                    answer_key = self._gsm8k_preview_candidate_id(record)
+                    answer_key = self._math_preview_candidate_id(record)
                     aggregate_record = aggregate_by_answer.get(answer_key)
                     if aggregate_record is None:
                         continue
@@ -14448,7 +14458,7 @@ class Knowledgeverse:
                 )
                 if isinstance(override_candidate, dict):
                     selection_steps.append(
-                        "GSM8K final selection: structural override -> "
+                        "Math final selection: structural override -> "
                         f"{str(gsm8k_structural_override.get('option_text', '')).strip()}"
                     )
                     return self._attach_galaxy_contribution(
