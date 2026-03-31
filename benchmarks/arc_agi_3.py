@@ -15,7 +15,7 @@ ACTION_LABELS = ["Move Up", "Move Down", "Move Left", "Move Right", "Perform", "
 RESET_ACTION_NAME = "RESET"
 RESET_ACTION_LABEL = "Reset"
 ARC3_ROUTE_GALAXIES = ["Drawing", "Grammar", "Tool", "Reality", "Word"]
-SPATIAL_WALKABLE_COLORS = {0, 1, 3, 9, 11, 12, 15}
+SPATIAL_WALKABLE_COLORS = {0, 1, 3}
 
 
 def _normalize_grid(value: Any) -> list[list[int]]:
@@ -33,6 +33,8 @@ def _gameplay_grid(grid: list[list[int]]) -> list[list[int]]:
         return [[]]
     if len(grid) <= 8:
         return _clone_grid(grid)
+    if len(grid) >= 60:
+        return _clone_grid(grid[:55])
     return _clone_grid(grid[:-5])
 
 
@@ -189,6 +191,94 @@ def _avatar_centroid(grid: list[list[int]]) -> tuple[float, float] | None:
     return float(best["centroid"][0]), float(best["centroid"][1])
 
 
+def _component_dimensions(component: dict[str, Any]) -> tuple[int, int]:
+    min_row, min_col, max_row, max_col = component["bbox"]
+    return int(max_row) - int(min_row) + 1, int(max_col) - int(min_col) + 1
+
+
+def _door_components(grid: list[list[int]]) -> list[dict[str, Any]]:
+    gameplay = _gameplay_grid(grid)
+    components: list[dict[str, Any]] = []
+    for component in _components_for_colors(gameplay, {5, 9}):
+        height, width = _component_dimensions(component)
+        if not {5, 9}.issubset(set(component["colors"])):
+            continue
+        if int(component["size"]) < 20:
+            continue
+        if height < 5 or width < 5:
+            continue
+        if int(component["bbox"][1]) <= 4:
+            continue
+        components.append(component)
+    if not components:
+        return []
+    top_row = min(float(component["centroid"][0]) for component in components)
+    return [
+        component
+        for component in components
+        if float(component["centroid"][0]) <= top_row + 1.0
+    ]
+
+
+def _switch_components(grid: list[list[int]]) -> list[dict[str, Any]]:
+    gameplay = _gameplay_grid(grid)
+    direct_components: list[dict[str, Any]] = []
+    for component in _components_for_colors(gameplay, {11, 15}):
+        height, width = _component_dimensions(component)
+        if 4 <= int(component["size"]) <= 16 and height <= 4 and width <= 4:
+            direct_components.append(component)
+    if direct_components:
+        return direct_components
+
+    fallback_components: list[dict[str, Any]] = []
+    for component in _components_for_colors(gameplay, {9}):
+        height, width = _component_dimensions(component)
+        if not (5 <= int(component["size"]) <= 9):
+            continue
+        if height > 4 or width > 4:
+            continue
+        points = {(int(row), int(col)) for row, col in component["points"]}
+        if any(
+            sum(
+                1
+                for neighbor in (
+                    (row - 1, col),
+                    (row + 1, col),
+                    (row, col - 1),
+                    (row, col + 1),
+                )
+                if neighbor in points
+            )
+            >= 3
+            for row, col in points
+        ):
+            fallback_components.append(component)
+    return fallback_components
+
+
+def _recharge_components(grid: list[list[int]]) -> list[dict[str, Any]]:
+    gameplay = _gameplay_grid(grid)
+    components: list[dict[str, Any]] = []
+    for component in _components_for_colors(gameplay, {12}):
+        height, width = _component_dimensions(component)
+        if not (4 <= int(component["size"]) <= 24):
+            continue
+        if height > 4 or width > 6:
+            continue
+        components.append(component)
+    return components
+
+
+def _target_components_for_label(label: str, grid: list[list[int]]) -> list[dict[str, Any]]:
+    if label == "switch":
+        return _switch_components(grid)
+    if label == "door":
+        return _door_components(grid)
+    if label == "recharge":
+        return _recharge_components(grid)
+    return []
+
+
 def _select_mechanic_target(
     grid: list[list[int]],
     avatar_centroid: tuple[float, float] | None,
@@ -199,30 +289,27 @@ def _select_mechanic_target(
         return None, ""
     avatar_row, avatar_col = avatar_centroid
     target_specs = [
-        ("switch", {11, 15}, 4, 16, 0),
-        ("door", {9}, 4, 32, 1),
-        ("recharge", {12}, 4, 16, 2),
+        ("switch", 0),
+        ("door", 1),
+        ("recharge", 2),
     ]
     if budget_snapshot and str(budget_snapshot.get("bucket", "")) in {"low", "critical"}:
         target_specs = [
-            ("recharge", {12}, 4, 16, 0),
-            ("switch", {11, 15}, 4, 16, 1),
-            ("door", {9}, 4, 32, 2),
+            ("recharge", 0),
+            ("switch", 1),
+            ("door", 2),
         ]
     candidates: list[tuple[int, float, float, tuple[float, float], str]] = []
-    for label, colors, min_size, max_size, priority in target_specs:
-        for component in _components_for_colors(grid, colors):
-            size = int(component["size"])
-            if size < min_size or size > max_size:
-                continue
+    for label, priority in target_specs:
+        components = _target_components_for_label(label, grid)
+        for component in components:
             centroid = (
                 float(component["centroid"][0]),
                 float(component["centroid"][1]),
             )
             distance = abs(centroid[0] - avatar_row) + abs(centroid[1] - avatar_col)
-            ideal_size = (min_size + max_size) / 2.0
-            size_penalty = abs(float(size) - ideal_size)
-            candidates.append((priority, distance, size_penalty, centroid, label))
+            size_penalty = abs(float(component["size"]) - 8.0)
+            candidates.append((int(priority), distance, size_penalty, centroid, label))
     if not candidates:
         return None, ""
     _, _, _, centroid, label = min(candidates)
@@ -597,17 +684,17 @@ def _decode_path_action(
     return None
 
 
-def _spatial_target_specs(budget_snapshot: dict[str, Any] | None) -> list[tuple[str, set[int], int, int, int]]:
+def _spatial_target_specs(budget_snapshot: dict[str, Any] | None) -> list[tuple[str, int]]:
     if budget_snapshot and str(budget_snapshot.get("bucket", "")) in {"low", "critical"}:
         return [
-            ("recharge", {12}, 4, 24, 0),
-            ("switch", {11, 15}, 4, 24, 1),
-            ("door", {9}, 4, 64, 2),
+            ("recharge", 0),
+            ("switch", 1),
+            ("door", 2),
         ]
     return [
-        ("switch", {11, 15}, 4, 24, 0),
-        ("door", {9}, 4, 64, 1),
-        ("recharge", {12}, 4, 24, 2),
+        ("switch", 0),
+        ("door", 1),
+        ("recharge", 2),
     ]
 
 
@@ -977,12 +1064,9 @@ class K3DARC3Agent:
 
         best_plan: dict[str, Any] | None = None
         gameplay = _gameplay_grid(grid)
-        for label, colors, min_size, max_size, priority in _spatial_target_specs(budget_snapshot):
-            components = _components_for_colors(gameplay, colors)
+        for label, priority in _spatial_target_specs(budget_snapshot):
+            components = _target_components_for_label(label, grid)
             for component in components:
-                size = int(component["size"])
-                if size < min_size or size > max_size:
-                    continue
                 goal_cells = _component_goal_cells(component, cell_to_index)
                 if not goal_cells:
                     continue

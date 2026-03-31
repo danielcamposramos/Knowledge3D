@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from benchmarks.arc_agi_3 import ACTION_LABELS, ACTION_NAMES, ARC3_ROUTE_GALAXIES, K3DARC3Agent
+from benchmarks.arc_agi_3 import (
+    ACTION_LABELS,
+    ACTION_NAMES,
+    ARC3_ROUTE_GALAXIES,
+    K3DARC3Agent,
+    _select_mechanic_target,
+)
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -267,6 +273,34 @@ def test_arc3_agent_targets_switch_from_avatar_cluster_after_level_completion():
     assert "primary action move left" in query_text
 
 
+def test_arc3_agent_prefers_topmost_door_room_over_nearest_reference_box():
+    frame = [[4] * 64 for _ in range(64)]
+    for row in range(55):
+        for col in range(64):
+            if row >= 8 and col >= 14:
+                frame[row][col] = 3
+
+    for row in range(9, 16):
+        for col in range(33, 40):
+            frame[row][col] = 5
+    for row, col in [(11, 35), (11, 36), (11, 37), (12, 37), (13, 35), (13, 37)]:
+        frame[row][col] = 9
+
+    for row in range(45, 50):
+        for col in range(29, 34):
+            frame[row][col] = 9
+    for row in range(45, 47):
+        for col in range(29, 34):
+            frame[row][col] = 12
+
+    target, label = _select_mechanic_target(frame, (32.0, 20.0))
+
+    assert label == "door"
+    assert target is not None
+    assert target[0] < 20.0
+    assert target[1] > 30.0
+
+
 def test_arc3_agent_derives_action_from_output_grid():
     kv = _FakeKnowledgeverse(
         {
@@ -411,11 +445,11 @@ def test_arc3_agent_uses_spatial_frame_pathfinder_before_query_text_fallback():
     frame[6][1] = 0
     frame[6][3] = 0
     frame[7][2] = 1
-    frame[5][8] = 15
-    frame[6][7] = 15
-    frame[6][8] = 15
-    frame[6][9] = 15
-    frame[7][8] = 15
+    frame[5][8] = 11
+    frame[6][7] = 11
+    frame[6][8] = 11
+    frame[6][9] = 11
+    frame[7][8] = 11
 
     action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
 
