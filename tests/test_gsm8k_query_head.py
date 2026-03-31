@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from scripts.populate_reasoning_strategies import populate_reasoning_strategies
 
 
 GSM8K_0_QUESTION = (
@@ -71,7 +74,7 @@ GSM8K_OUTBOUND_RETURN_QUESTION = (
 
 
 def test_gsm8k_route_expands_into_grammar_number_and_word(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_route")
+    kv = Knowledgeverse.__new__(Knowledgeverse)
 
     targets = kv._resolve_gpu_target_galaxies(
         route={"specialist": "math", "galaxy_names": ["Math"]},
@@ -82,7 +85,15 @@ def test_gsm8k_route_expands_into_grammar_number_and_word(tmp_path) -> None:
         },
     )
 
-    assert targets == ["Math", "Grammar", "Number", "Word"]
+    assert targets == [
+        "Math",
+        "reasoning_strategies",
+        "Grammar",
+        "Tool",
+        "Reality",
+        "Number",
+        "Word",
+    ]
 
 
 def test_gsm8k_reasoning_paths_register_word_problem_fission(tmp_path) -> None:
@@ -239,6 +250,48 @@ def test_gsm8k_context_uses_navigator_quantity_order(tmp_path) -> None:
     top_metadata = context["pattern_rows"][0].get("metadata") if isinstance(context["pattern_rows"][0].get("metadata"), dict) else {}
     assert top_metadata.get("rpn_template")
     assert top_metadata.get("role_slots")
+
+
+def test_gsm8k_strategy_catalog_filter_accepts_house_reasoning_rows(tmp_path) -> None:
+    root = tmp_path / "kv_gsm8k_reasoning_house"
+    populate_reasoning_strategies(house_dir=root / "house")
+    entries = []
+    for name in ("reasoning_strategies.jsonl", "Grammar.jsonl", "Tool.jsonl", "Reality.jsonl"):
+        entries.extend(
+            [
+                row
+                for row in (
+                    json.loads(line)
+                    for line in (root / "house" / name).read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                )
+            ]
+        )
+    for idx, entry in enumerate(entries):
+        entry["embedding16"] = [0.1 + (0.01 * idx), 0.2, 0.3, 0.4]
+
+    entries.append(
+        {
+            "id": "ordinary_word_entry",
+            "galaxy": "Word",
+            "domain": "language",
+            "category": "multilingual_word",
+            "embedding16": [0.1, 0.1, 0.1, 0.1],
+        }
+    )
+
+    kv = Knowledgeverse.__new__(Knowledgeverse)
+    rows = kv._gsm8k_reasoning_strategy_rows(
+        catalog=entries,
+        target_galaxies=["reasoning_strategies", "Grammar", "Tool", "Reality", "Math", "Number", "Word"],
+    )
+    row_ids = {str(row.get("id", "")).strip() for row in rows}
+
+    assert "word_problem_multi_step_reasoning" in row_ids
+    assert "grammar_backward_goal_tracing" in row_ids
+    assert "meta_four_way_reading_strategy" in row_ids
+    assert "reality_dependency_dag" in row_ids
+    assert "ordinary_word_entry" not in row_ids
 
 
 def test_gsm8k_benchmark_shortcuts_are_suppressed_during_evaluation(tmp_path) -> None:

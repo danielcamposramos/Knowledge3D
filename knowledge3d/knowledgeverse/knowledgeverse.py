@@ -246,10 +246,17 @@ class Knowledgeverse:
     )
     GPU_MATH_TARGET_GALAXIES: tuple[str, ...] = (
         "Math",
+        "Grammar",
+        "reasoning_strategies",
+        "Tool",
+        "Reality",
     )
     GPU_GSM8K_TARGET_GALAXIES: tuple[str, ...] = (
-        "Math",
+        "reasoning_strategies",
         "Grammar",
+        "Tool",
+        "Reality",
+        "Math",
         "Number",
         "Word",
     )
@@ -2971,6 +2978,47 @@ class Knowledgeverse:
             str(payload.get("type", "")).upper() == "MATH_TASK"
             and cls._task_competition(payload) == "GSM8K"
         )
+
+    @staticmethod
+    def _is_reasoning_strategy_entry(entry: dict[str, Any] | None) -> bool:
+        payload = dict(entry or {})
+        galaxy_name = str(payload.get("galaxy", "")).strip()
+        category = str(payload.get("category", "")).strip().lower()
+        domain = str(payload.get("domain", "")).strip().lower()
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        bootstrap = str(metadata.get("bootstrap", "")).strip().lower()
+        if galaxy_name == "reasoning_strategies":
+            return True
+        if bootstrap.startswith("phase_e38_four_way_reading"):
+            return True
+        if domain != "reasoning":
+            return False
+        if galaxy_name not in {"Grammar", "Tool", "Reality"}:
+            return False
+        return category in {
+            "reasoning_strategy",
+            "reading_rule",
+            "goal_state",
+            "dependency_structure",
+            "execution_structure",
+            "validation",
+            "meta_rule",
+        }
+
+    def _gsm8k_reasoning_strategy_rows(
+        self,
+        *,
+        catalog: list[dict[str, Any]],
+        target_galaxies: list[str],
+    ) -> list[dict[str, Any]]:
+        allowed = {str(name).strip() for name in target_galaxies if str(name).strip()}
+        return [
+            dict(entry)
+            for entry in catalog
+            if (not allowed or str(entry.get("galaxy", "")).strip() in allowed)
+            and self._is_reasoning_strategy_entry(entry)
+            and list(entry.get("embedding16", []))
+        ]
 
     def _query_text(
         self,
@@ -8445,6 +8493,10 @@ class Knowledgeverse:
         )
         quantity_role_values = self._gsm8k_role_values_from_candidates(quantity_candidates)
         role_map_variants = self._gsm8k_role_map_variants(quantity_candidates)
+        strategy_rows = self._gsm8k_reasoning_strategy_rows(
+            catalog=catalog,
+            target_galaxies=target_galaxies,
+        )
         operation_rows: list[dict[str, Any]] = []
         for entry in catalog:
             if allowed and str(entry.get("galaxy", "")).strip() not in allowed:
@@ -8465,8 +8517,51 @@ class Knowledgeverse:
             and self._is_numeric_galaxy_entry(entry)
             and list(entry.get("embedding16", []))
         ]
-        if not operation_rows and not numeric_rows:
+        if not strategy_rows and not operation_rows and not numeric_rows:
             return {}
+
+        selected_strategy_rows: list[dict[str, Any]] = []
+        selected_strategy_ids: list[str] = []
+        strategy_embedding: list[float] = []
+        if strategy_rows:
+            strategy_similarities = self._embedding_similarities(
+                base_embedding,
+                [list(entry.get("embedding16", [])) for entry in strategy_rows],
+            )
+            ranked_strategies = sorted(
+                [
+                    (
+                        float(similarity)
+                        + (
+                            0.18
+                            if str(entry.get("galaxy", "")).strip() == "reasoning_strategies"
+                            else 0.12
+                            if str(entry.get("galaxy", "")).strip() == "Tool"
+                            else 0.08
+                            if str(entry.get("galaxy", "")).strip() == "Grammar"
+                            else 0.04
+                        ),
+                        float(similarity),
+                        entry,
+                    )
+                    for similarity, entry in zip(strategy_similarities, strategy_rows)
+                ],
+                key=lambda item: (item[0], item[1]),
+                reverse=True,
+            )
+            selected_strategy_rows = []
+            for _, raw_similarity, entry in ranked_strategies[:4]:
+                enriched = dict(entry)
+                enriched["gsm8k_strategy_similarity"] = float(raw_similarity)
+                selected_strategy_rows.append(enriched)
+            selected_strategy_ids = [
+                str(entry.get("id", "")).strip()
+                for entry in selected_strategy_rows
+                if str(entry.get("id", "")).strip()
+            ]
+            strategy_embedding = self._mean_embedding_rows(
+                [list(entry.get("embedding16", [])) for entry in selected_strategy_rows]
+            )
 
         selected_operation_rows: list[dict[str, Any]] = []
         selected_operation_ids: list[str] = []
@@ -8719,6 +8814,12 @@ class Knowledgeverse:
                 )
 
         navigation_embedding = list(base_embedding)
+        if strategy_embedding:
+            navigation_embedding = self._blend_reference_embedding(
+                navigation_embedding,
+                strategy_embedding,
+                alpha=0.62,
+            )
         if operation_embedding:
             navigation_embedding = self._blend_reference_embedding(
                 navigation_embedding,
@@ -8736,8 +8837,11 @@ class Knowledgeverse:
         fusion_parse = parse_bundle.get("fusion_parse") if isinstance(parse_bundle, dict) and isinstance(parse_bundle.get("fusion_parse"), dict) else {}
         return {
             "navigation_embedding": navigation_embedding,
+            "strategy_embedding": strategy_embedding,
             "operation_embedding": operation_embedding,
             "numeric_embedding": numeric_embedding,
+            "strategy_ids": selected_strategy_ids,
+            "strategy_rows": selected_strategy_rows,
             "operation_ids": selected_operation_ids,
             "pattern_rows": selected_operation_rows,
             "number_ids": selected_number_ids,
@@ -10286,6 +10390,9 @@ class Knowledgeverse:
             numeric_value = self._gsm8k_numeric_entry_value(record["match"])
             numeric_id = numeric_value[0] if numeric_value is not None else match_id
             exact_query_match = 1.0 if self._entry_query_matches(record["match"], task_query_text) else 0.0
+            record["reasoning_strategy_entry"] = (
+                1.0 if self._is_reasoning_strategy_entry(record["match"]) else 0.0
+            )
             record["parse_support"] = 1.0 if numeric_id in parse_numeric_ids else 0.0
             record["parse_quantity_values"] = list(parse_quantity_values)
             record["ternary_prior"] = self._candidate_ternary_prior(match_id or numeric_id)
@@ -10333,9 +10440,15 @@ class Knowledgeverse:
                 else 0.0
             )
         if gsm8k_mode:
+            strategy_embedding = list(gsm8k_context.get("strategy_embedding", []))
             operation_embedding = list(gsm8k_context.get("operation_embedding", []))
             numeric_embedding = list(gsm8k_context.get("numeric_embedding", []))
             gsm8k_task_id = str((task or {}).get("task_id", "")).strip()
+            strategy_ids = {
+                str(value).strip()
+                for value in gsm8k_context.get("strategy_ids", [])
+                if str(value).strip()
+            }
             operation_ids = {
                 str(value).strip()
                 for value in gsm8k_context.get("operation_ids", [])
@@ -10346,6 +10459,10 @@ class Knowledgeverse:
                 for value in gsm8k_context.get("number_ids", [])
                 if str(value).strip()
             }
+            if strategy_embedding:
+                strategy_similarities = self._embedding_similarities(strategy_embedding, embedding_rows)
+                for record, strategy_similarity in zip(base_records, strategy_similarities):
+                    record["reasoning_strategy_similarity"] = float(strategy_similarity)
             if operation_embedding:
                 operation_similarities = self._embedding_similarities(operation_embedding, embedding_rows)
                 for record, operation_similarity in zip(base_records, operation_similarities):
@@ -10361,12 +10478,17 @@ class Knowledgeverse:
                     if isinstance(record["match"].get("metadata"), dict)
                     else {}
                 )
+                reasoning_entry = self._is_reasoning_strategy_entry(record["match"])
                 operation_role_match = 0.0
                 if bool(match_metadata.get("operation_pattern")) and gsm8k_context:
                     operation_role_match = self._gsm8k_operation_role_match_score(
                         metadata=match_metadata,
                         context=gsm8k_context,
                     )
+                record["reasoning_strategy_focus"] = (
+                    (1.0 if match_id in strategy_ids else 0.0)
+                    + (0.35 if reasoning_entry and match_id not in strategy_ids else 0.0)
+                )
                 record["operation_pattern_focus"] = (
                     (1.0 if match_id in operation_ids else 0.0)
                     + (0.75 * float(operation_role_match))
@@ -14366,6 +14488,8 @@ class Knowledgeverse:
         galaxy_word = 1.0 if galaxy_name == "Word" else 0.0
         galaxy_character = 1.0 if galaxy_name == "Character" else 0.0
         galaxy_grammar = 1.0 if galaxy_name == "Grammar" else 0.0
+        galaxy_tool = 1.0 if galaxy_name == "Tool" else 0.0
+        galaxy_reasoning = 1.0 if galaxy_name == "reasoning_strategies" else 0.0
         book_formula_like = 1.0 if source_book and category in {"formula", "concept", "definition"} else 0.0
         swarm_weight = float(candidate.get("swarm_weight", 1.0))
         lod_saliency = float(candidate.get("lod_saliency", similarity))
@@ -14396,6 +14520,9 @@ class Knowledgeverse:
         mmlu_symbolic_mode = float(candidate.get("mmlu_symbolic_mode", 0.0))
         operation_similarity = float(candidate.get("operation_similarity", similarity))
         number_similarity = float(candidate.get("number_similarity", similarity))
+        reasoning_strategy_similarity = float(candidate.get("reasoning_strategy_similarity", similarity))
+        reasoning_strategy_entry = float(candidate.get("reasoning_strategy_entry", 0.0))
+        reasoning_strategy_focus = float(candidate.get("reasoning_strategy_focus", 0.0))
         operation_pattern_focus = float(candidate.get("operation_pattern_focus", 0.0))
         numeric_focus = float(candidate.get("numeric_focus", 0.0))
         gsm8k_template_focus = float(candidate.get("gsm8k_template_focus", 0.0))
@@ -14693,11 +14820,34 @@ class Knowledgeverse:
             )
         elif task_type == "MATH_TASK" and gsm8k_mode > 0.0:
             irrelevant_word = 1.0 if galaxy_word and numeric_focus <= 0.0 else 0.0
-            irrelevant_grammar = 1.0 if galaxy_grammar and operation_pattern_focus <= 0.0 else 0.0
+            irrelevant_grammar = 1.0 if galaxy_grammar and operation_pattern_focus <= 0.0 and reasoning_strategy_focus <= 0.0 else 0.0
+            irrelevant_tool = 1.0 if galaxy_tool and reasoning_strategy_focus <= 0.0 else 0.0
             tokens.extend(
                 [
                     self._gpu_scalar_literal(galaxy_math),
                     "0.08",
+                    "*",
+                    "+",
+                    self._gpu_scalar_literal(galaxy_reasoning),
+                    "0.18",
+                    "*",
+                    "+",
+                    self._gpu_scalar_literal(gsm8k_mode),
+                    self._gpu_scalar_literal(reasoning_strategy_similarity),
+                    "*",
+                    "0.14",
+                    "*",
+                    "+",
+                    self._gpu_scalar_literal(gsm8k_mode),
+                    self._gpu_scalar_literal(reasoning_strategy_entry),
+                    "*",
+                    "0.08",
+                    "*",
+                    "+",
+                    self._gpu_scalar_literal(gsm8k_mode),
+                    self._gpu_scalar_literal(reasoning_strategy_focus),
+                    "*",
+                    "0.22",
                     "*",
                     "+",
                     self._gpu_scalar_literal(gsm8k_mode),
@@ -14762,6 +14912,11 @@ class Knowledgeverse:
                     "+",
                     self._gpu_scalar_literal(irrelevant_grammar),
                     "0.16",
+                    "*",
+                    "neg",
+                    "+",
+                    self._gpu_scalar_literal(irrelevant_tool),
+                    "0.12",
                     "*",
                     "neg",
                     "+",
