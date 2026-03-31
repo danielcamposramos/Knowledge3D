@@ -60,6 +60,76 @@ NavigatorSpecialist (router)
 
 ---
 
+## 1b. Jarvis: Worker 8, the Meta-Specialist Coordinator (March 2026)
+
+**Jarvis** is Worker 8 in the Nine-Chain Swarm — the always-on meta-specialist coordinator. While Workers 0-7 are parallel reasoning channels (the "superdotados" cognitive channels), Worker 8 is the "secretary" that reads symlinks on meaning stars and dispatches specialists to workers.
+
+### 1b.1 The Symlink Execution Chain
+
+This is the core dispatch mechanism. Python NEVER decides "this is a math problem." The Galaxy's symlinks do:
+
+```
+TRM game tick → Galaxy search finds meaning stars →
+  JARVIS (Worker 8) reads symlinks on each star:
+    ├── grammar_refs: [math_operations, decomposition]  → need math specialist
+    ├── reality_refs: [physical_quantities]               → need reality specialist
+    ├── visual_refs: [grid_patterns]                      → need visual specialist
+    └── meta_refs: [forward_entity_extraction]            → reasoning strategy
+
+  JARVIS dispatches to Workers 0-7:
+    Worker 0: math specialist (LoRA adapter loaded from grammar_refs symlinks)
+    Worker 1: decomposition specialist (from meta_refs symlinks)
+    Workers 2-7: parallel hypothesis channels
+
+  Each worker:
+    1. Loads specialist LoRA adapter weights (~100KB-1MB)
+    2. Assembles RPN chain from symlinked programs
+    3. Executes RPN chain on GPU
+    4. Pushes result to convergence pile
+
+  Halting Gate:
+    Checks ternary convergence across all worker results
+    Accept / Refine / Reject
+```
+
+### 1b.2 Master-Worker Parallelism Pattern
+
+The dispatch follows a **master-worker-worker/worker** layered parallelism:
+
+- **TRM** (master): Finds the meaning stars, decides WHAT to reason about
+- **Jarvis** (coordinator): Reads symlinks, decides WHO does what work
+- **Workers 0-7** (workers): Execute specialist RPN chains in parallel
+- **Sub-workers** (worker/worker): Specialists can spawn sub-specialists recursively (matryoshka)
+
+This is NOT Python orchestrating if/else branches. This is a game-loop entity (TRM) with an internal secretary (Jarvis) that reads the knowledge graph's structure to dispatch work.
+
+### 1b.3 Example: "Janet had 16 ducks"
+
+```
+Query: "Janet had 16 ducks, lost 3, gave 4, bought 2x remaining. How many?"
+
+1. TRM embeds query → Galaxy search
+2. Finds meaning stars: "subtraction", "multiplication", "word_problem_decomposition"
+3. Each star has symlinks:
+   - subtraction.grammar_refs → [math_operations]
+   - multiplication.grammar_refs → [math_operations]
+   - word_problem_decomposition.meta_refs → [forward_entity_extraction, operation_chain]
+
+4. JARVIS reads all symlinks → dispatches:
+   - Worker 0: math specialist (handles arithmetic chain)
+   - Worker 1: decomposition specialist (breaks problem into steps)
+
+5. Worker 0 assembles RPN:  16 STORE 3 SUB 4 SUB 2 MUL → 18
+6. Worker 1 validates: entities=[janet, ducks=16], ops=[lose 3, give 4, buy 2x]
+
+7. Halting Gate: Worker 0 says 18, Worker 1 confirms decomposition → CONVERGE
+8. Answer: 18 ✓
+```
+
+**Validated**: This exact chain produced answer=18 via `gpu_math_symlink_execution_chain` (commit 2dedddcc, March 31, 2026).
+
+---
+
 ## 2. Architecture Components
 
 ### 2.1 Specialist Base Interface

@@ -1,9 +1,9 @@
 # Foundational Knowledge Specification — Always-Loaded Base Knowledge
 
-**Version**: 1.0
+**Version**: 1.1
 **Status**: Implementation Ready (Phase G/H, Post-Training Ingestion)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: December 2025
+**Date**: December 2025 (Updated March 31, 2026)
 
 ---
 
@@ -17,6 +17,37 @@ This specification defines the **Foundational Knowledge Architecture** that serv
 - Integration with **Math Symbol Galaxy** (~152 Unicode symbols), **Grammar Galaxy** (1,000+ RPN programs), and **Sleeptime Consolidation** for emergent cross-domain discovery.
 
 This architecture embodies the **Save Information Principle** from CLAUDE.md: store knowledge in Galaxy/House storage (3D RAM/procedural HD), weights store only logic. It enables **Dual Client Reality** where the same data serves both humans (visual glyphs) and AI (executable RPN).
+
+---
+
+## 0. Critical Naming Convention (March 2026)
+
+**RULE: No benchmark names in knowledge.** All stars, Galaxy entries, methods, symlinks, and knowledge artifacts MUST be named by their MEANING — never by the benchmark or dataset that motivated their creation.
+
+K3D is a universal brain. A math reasoning strategy works for GSM8K, IMO, SAT, and any future math benchmark. If named `gsm8k_operation_chain`, it becomes invisible to IMO. If named `operation_chain_construction`, it is discoverable by meaning.
+
+**Forbidden patterns:**
+
+| Pattern | Violation | Correct Name |
+|---------|-----------|-------------|
+| `gsm8k_*` | Benchmark name in knowledge | `math_*` or meaning-specific |
+| `arc_grid_*` | Benchmark name in knowledge | `spatial_grid_*` |
+| `mmlu_*` | Benchmark name in knowledge | Domain-specific name |
+| `lhe_*` | Benchmark name in knowledge | `multi_hop_*` or domain name |
+| `GPU_GSM8K_TARGET_GALAXIES` | Benchmark in config | `MATH_TARGET_GALAXIES` (or no target selection) |
+
+**Where benchmark names ARE allowed:**
+
+- I/O adapters in `benchmarks/*.py` (thin wrappers that format external I/O)
+- Test file names in `tests/` (test infrastructure, not knowledge)
+- TEMP/ codex phase specs (implementation directives, not knowledge)
+
+**This applies to all 4 layers:**
+
+- Layer 1 (Form): Character/glyph names are universal by design
+- Layer 2 (Meaning): Star names by concept, not by source dataset
+- Layer 3 (Rules): Grammar/transformation rules named by what they DO
+- Layer 4 (Meta-Rules): Strategy names by reasoning pattern, not by benchmark target
 
 ---
 

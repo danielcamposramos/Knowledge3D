@@ -1,9 +1,9 @@
 # Three-Brain System Specification
 
-**Version**: 1.1
+**Version**: 1.2
 **Status**: Production-Validated (Shadow Copy Learning, ARC-AGI 46.7%)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: November 28, 2025
+**Date**: November 28, 2025 (Updated March 31, 2026)
 
 ---
 
@@ -611,6 +611,102 @@ Galaxy (mark nodes as consolidated)
 - **Protocol**: SQLite query on `provenance.db`
 - **Latency**: ~0.5ms per lookup
 - **Use Case**: Retrieve source URL for answer provenance chain
+
+---
+
+## 6b. Cognitive OS Lifecycle (March 2026)
+
+The Three-Brain System operates as a **Cognitive OS** — not a program you invoke per-query, but a living system that boots, runs continuously, consolidates during idle time, and shuts down cleanly.
+
+### 6b.1 Boot Sequence
+
+```
+1. Check for checkpoint:
+   - If checkpoint exists → load from checkpoint (FAST boot, seconds)
+   - If no checkpoint → ingest House JSONL (SLOW first boot, minutes)
+     → mark JSONL as ingested
+
+2. Verify Galaxy integrity:
+   - All default galaxies present in VRAM
+   - Symlink references resolve
+   - Specialist weights loaded
+
+3. Start TRM game loop:
+   - Idle state: waiting for input
+   - The system IS alive now
+```
+
+**Bootstrap removal**: On first boot, House JSONL files are parsed and ingested. After successful consolidation + checkpoint save, a marker is created (`bootstrap_complete.marker`). On subsequent boots, the system loads from checkpoint directly — no re-parsing of 100k+ stars.
+
+### 6b.2 Run Sequence (Always-On)
+
+```
+4. Input arrives (any source: API, chat, benchmark, frame):
+   - I/O adapter normalizes → universal query
+   - kv.execute_task() → TRM game loop processes
+   - Result → I/O adapter formats for external consumer
+   - Brief recorded (answer trace + correct/incorrect signal)
+
+5. Idle detection (part of TRM game loop):
+   - No input for N seconds (default: 30s) AND pending briefs > 0
+   - OR brief count reaches threshold (e.g., every 10 briefs)
+   - → Automatic sleep consolidation (inline, same instance, ON GPU)
+```
+
+### 6b.3 Shutdown Sequence
+
+```
+6. Shutdown requested (external signal or explicit command):
+   - Consolidate ALL pending briefs (sleep cycle, ON GPU)
+   - Save checkpoint (Galaxy state + TRM weights + Jarvis state)
+   - Mark any new knowledge as ingested (won't re-parse on next boot)
+   - Exit cleanly
+```
+
+The system saves its state like a proper OS — not like a process that crashes. "We command the system to shut down properly, like a cognitive OS should do — sleeptime compute on purpose and cease operations, saving progress that will be reloaded and thus does not require bootstraps again." (Daniel, March 2026)
+
+### 6b.4 Universal Input Path
+
+ALL inputs — ARC frames, GSM8K word problems, IMO proofs, MMLU questions, user chat — flow through the SAME path:
+
+```
+Input (any format) → I/O adapter normalizes → kv.execute_task(query=...) →
+  TRM embeds → Galaxy search → Find meaning star(s) →
+  Jarvis reads symlinks → Dispatch specialist(s) →
+  Workers execute RPN chains → Halting Gate →
+  Answer
+```
+
+There are ZERO `if task_type ==` branches in the hot path. The ONLY place task type appears is in thin I/O adapters that convert external format → universal query and universal result → external format.
+
+---
+
+## 6c. Jarvis: Meta-Specialist Coordinator (Worker 8) (March 2026)
+
+**Jarvis** is Worker 8 in the Nine-Chain Swarm — the always-on meta-specialist coordinator. While Workers 0-7 are parallel reasoning channels, Worker 8 is the "secretary" that coordinates, delegates, and tracks all specialist dispatch.
+
+**Role**: Jarvis reads the symlinks on meaning stars found by TRM navigation and dispatches the appropriate specialist workers:
+
+```
+TRM game tick:
+  1. Perceive → Frustum cull what's in field-of-view
+  2. Navigate → LED-A* + Morton Octree to relevant Galaxy neighborhood
+  3. JARVIS reads symlinks on found meaning stars:
+     - grammar_refs → which transformation rules apply
+     - reality_refs → which domain specialists needed
+     - math_refs, visual_refs, audio_refs → specialist routing
+  4. JARVIS dispatches Workers 0-7 with specialist assignments:
+     - Worker 0: math specialist (symlink said math_operations)
+     - Worker 1: decomposition specialist (symlink said word_problem)
+     - Workers 2-7: parallel hypothesis exploration
+  5. Workers execute RPN chains → results pile up
+  6. Halting Gate checks convergence
+  7. TRM decides (accept/refine/reject)
+```
+
+**The key architectural point**: Python does NOT decide which specialist to invoke. Jarvis reads symlinks on meaning stars — the Galaxy's structure IS the routing logic. This is the **master-worker-worker/worker** parallelism pattern: TRM is the master, Jarvis coordinates, workers execute.
+
+**See also**: [AVATAR_EMBODIMENT_SPECIFICATION.md](AVATAR_EMBODIMENT_SPECIFICATION.md) §7.3 (Worker 8 definition), [TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md](TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md) (specialist hierarchy), [HYPER_PARALLEL_PROCESSING.md](HYPER_PARALLEL_PROCESSING.md) (nine-chain swarm).
 
 ---
 

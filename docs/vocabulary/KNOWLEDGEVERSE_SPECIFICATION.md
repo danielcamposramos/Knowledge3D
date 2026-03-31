@@ -396,7 +396,44 @@ class SovereigntyMetrics:
             )
 ```
 
-### 4.3 Ingestion Path (Flexible)
+### 4.3 Universal Input Path Invariant (March 2026)
+
+**CRITICAL**: The Knowledgeverse has ONE universal input path for ALL queries. There are ZERO `if task_type ==` branches in the hot path.
+
+```
+Input (any format) → I/O adapter normalizes → kv.execute_task(query=...) →
+  TRM embeds → Galaxy search → Find meaning star(s) →
+  Jarvis reads symlinks → Dispatch specialist(s) →
+  Workers execute RPN chains → Halting Gate →
+  Answer
+```
+
+Same path for ARC frames, GSM8K word problems, IMO proofs, MMLU questions, user chat. The ONLY thing that differs is the I/O adapter that normalizes the external format into a universal query.
+
+**What `task_type` branching violates**:
+
+- **Galaxy navigation**: The Galaxy's symlinks and meta-rules handle routing internally. When the TRM finds a meaning star, its symlinks say "this involves math" or "this involves spatial reasoning" — Jarvis dispatches accordingly.
+- **Scoring**: Different scoring weights per task type (e.g., alpha=0.58 for MMLU, 0.46 for others) should be meta-rule stars in the Galaxy (Layer 4), not Python constants.
+- **Target galaxies**: ALL galaxies are always available. The TRM navigates to relevant ones via frustum culling + LOD. No `if task_type: target_galaxies = X`.
+- **Halting gate**: Halting Gate checks ternary convergence regardless of input type.
+
+**Where task type IS allowed**:
+
+```python
+# benchmarks/gsm8k.py — I/O adapter (OUTSIDE knowledgeverse)
+def run_question(question_text):
+    result = kv.execute_task(task={"query": question_text})
+    return extract_numeric_answer(result)  # I/O: format output
+
+# benchmarks/arc_agi_3.py — I/O adapter (OUTSIDE knowledgeverse)
+def choose_action(frame):
+    result = kv.execute_task(task={"query": frame_to_input(frame)})
+    return translate_to_arc_action(result)  # I/O: format output
+```
+
+I/O adapters convert external format → universal query, and universal result → external format. That is ALL.
+
+### 4.4 Ingestion Path (Flexible)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -423,6 +460,35 @@ class SovereigntyMetrics:
 ---
 
 ## 5. Deterministic Boot Contract
+
+### 5.0 Cognitive OS Boot Paradigm (March 2026)
+
+The Knowledgeverse is a **Cognitive OS**, not a script you run per-query. Boot follows a checkpoint-first strategy:
+
+1. **Check for checkpoint** (`bootstrap_complete.marker`):
+   - If checkpoint exists → **FAST boot** (load Galaxy state + TRM weights + Jarvis state from checkpoint, seconds)
+   - If no checkpoint → **SLOW first boot** (ingest House JSONL files, minutes) → consolidate → save checkpoint → mark as ingested
+
+2. **Verify Galaxy integrity**: All default galaxies present in VRAM, symlink references resolve, specialist weights loaded.
+
+3. **Start TRM game loop**: System is alive. Idle state, waiting for input.
+
+**Bootstrap removal**: On first boot, House JSONL files are parsed and ingested. After successful consolidation + checkpoint save:
+
+```python
+# After successful first-boot ingest + checkpoint save:
+(checkpoint_dir / "bootstrap_complete.marker").write_text(
+    json.dumps({"ingested_at": time.time(), "star_count": total_stars})
+)
+
+# On subsequent boots:
+if (checkpoint_dir / "bootstrap_complete.marker").exists():
+    self._load_from_checkpoint()  # Skip JSONL parsing
+else:
+    self._ingest_from_house()     # First boot: ingest from House JSONL
+```
+
+This eliminates the "slow boot" problem — 100k+ stars are not re-parsed when they are already in the checkpoint.
 
 ### 5.1 Boot Sequence (Strict and Transactional)
 

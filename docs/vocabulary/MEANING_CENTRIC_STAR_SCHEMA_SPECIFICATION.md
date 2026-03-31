@@ -1,7 +1,7 @@
 # Meaning-Centric Star Schema Specification — Semantic Gravity & Ternary Force
 
-**Version**: 1.0
-**Status**: Architecture Specification
+**Version**: 1.1
+**Status**: Architecture Specification (Updated March 31, 2026)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
 **Date**: March 2026
 
@@ -161,7 +161,61 @@ Each language entry points to existing Word Galaxy and Character Galaxy stars. A
 **`house_position` (Intentional, physically organized)**:
 Position in the House is DELIBERATE — the TRM (or construction rules) PLACES knowledge where it belongs, like a librarian shelving a book. The House is a literal 3D virtual space with rooms, shelves, and objects. Semantic gravity (§3) operates in the GALAXY (working memory), not in the House. The House has physical, ontological, intentional organization.
 
-### 2.3 Meaning Classes
+### 2.3 Symlinks as Dispatch Mechanism (March 2026)
+
+**Critical architectural principle**: Symlinks on meaning stars are NOT just cross-references for knowledge retrieval. They are the **dispatch mechanism** that Jarvis (Worker 8, the meta-specialist coordinator) uses to determine WHICH specialist to activate and WHAT RPN chains to concatenate.
+
+**The Symlink Execution Chain:**
+
+```
+1. TRM finds meaning star via Galaxy navigation
+2. Jarvis (Worker 8) reads the star's symlinks:
+   - grammar_refs → which transformation rules apply
+   - reality_refs → which domain specialists to invoke
+   - math_refs → whether math specialist is needed
+   - visual_refs → whether visual specialist is needed
+3. Based on symlinks, Jarvis dispatches the appropriate specialist(s)
+4. Specialist assembles an RPN chain from the symlinked programs
+5. RPN chain executes on GPU → result
+```
+
+**Example — "Janet had 16 ducks, lost 3, gave 4, bought 2x remaining":**
+
+```
+TRM embeds query → Galaxy search finds meaning stars:
+  ├── "subtraction" star (grammar_refs → [math_operations])
+  ├── "multiplication" star (grammar_refs → [math_operations])
+  └── "word_problem" star (grammar_refs → [math_operations, decomposition])
+
+Jarvis reads symlinks → all point to math_operations
+  → Dispatches math specialist
+  → Math specialist assembles RPN chain:
+     16 STORE_total  3 SUB  4 SUB  2 MUL  → answer=18
+```
+
+**The key insight**: Python NEVER decides "this is a math problem, route to math." The meaning stars' symlinks SAY it involves math. Jarvis follows symlinks. The Galaxy's structure IS the routing logic.
+
+This is why **no `if task_type ==` branching** should exist in the hot path. The Galaxy and its symlinks handle all routing internally.
+
+**See also**: [TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md](TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md) §2 for Jarvis (Worker 8) coordinator role, [AVATAR_EMBODIMENT_SPECIFICATION.md](AVATAR_EMBODIMENT_SPECIFICATION.md) §7.3 line 507 for Worker 8 definition.
+
+### 2.4 Naming Conventions (March 2026)
+
+**CRITICAL RULE: No benchmark names in knowledge.** Stars, symlinks, methods, and Galaxy entries MUST be named by their MEANING, never by the benchmark or dataset that motivated their creation.
+
+| WRONG (benchmark-named) | RIGHT (meaning-named) |
+|--------------------------|----------------------|
+| `gsm8k_word_problem_star` | `math_word_problem_decomposition` |
+| `arc_grid_transform` | `spatial_grid_transformation` |
+| `mmlu_multiple_choice` | `multiple_choice_reasoning` |
+| `gsm8k_operation_chain` | `operation_chain_construction` |
+| `GPU_GSM8K_TARGET_GALAXIES` | `MATH_TARGET_GALAXIES` (or better: no target selection at all) |
+
+**Why**: K3D is a universal brain, not a benchmark solver. A math strategy developed for GSM8K must also work for IMO, SAT, and any other math problem. If you name it `gsm8k_*`, the next developer building IMO support won't find it. If you name it `math_*`, it's discoverable and reusable by meaning.
+
+**Rule**: If a star or method name contains a benchmark identifier (gsm8k, arc, mmlu, lhe, imo, sat), it is WRONG. Replace with the meaning-domain name (math, spatial, reasoning, knowledge, logic).
+
+### 2.5 Meaning Classes
 
 | Class | Description | Example |
 |-------|-------------|---------|
@@ -170,6 +224,7 @@ Position in the House is DELIBERATE — the TRM (or construction rules) PLACES k
 | `action` | A process or transformation | "run", "oxidize", "divide" |
 | `property` | An attribute of concepts | "red", "heavy", "soluble" |
 | `meta` | A rule about rules | "prefer specific over general", "check conservation" |
+| `strategy` | A reasoning approach | "forward_entity_extraction", "backward_goal_tracing" |
 
 ---
 

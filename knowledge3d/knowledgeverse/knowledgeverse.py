@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import atexit
 import ctypes
 from dataclasses import dataclass
 import heapq
@@ -12,6 +13,7 @@ from pathlib import Path
 import pickle
 import re
 import shutil
+import threading
 import time
 from typing import Any
 import zlib
@@ -328,6 +330,10 @@ class Knowledgeverse:
     GPU_SOURCE_CLASS_RUNTIME_LANGUAGE = 2.0
     HOUSE_STATE_VERSION = 1
     JARVIS_STATE_VERSION = 1
+    IDLE_SLEEP_THRESHOLD_SECONDS = 30.0
+    IDLE_SLEEP_POLL_SECONDS = 1.0
+    IDLE_SLEEP_BRIEF_BATCH = 10
+    SLEEP_SAMPLE_SIZE = 256
     BOOK_GALAXY_ALIASES: dict[str, str] = {
         "Book/MathematicsPrimer": "Book/MathematicsPrimer",
         "Book_MathematicsPrimer": "Book/MathematicsPrimer",
@@ -369,10 +375,34 @@ class Knowledgeverse:
         self.include_runtime_artifacts = bool(include_runtime_artifacts)
         self.include_runtime_language_enrichment = bool(include_runtime_language_enrichment)
         self.house_state_path = self.storage_root / "house" / "galaxy_state.bin"
+        self.bootstrap_marker_path = self.storage_root / "checkpoints" / "bootstrap_complete.marker"
         self._house_state_summary: dict[str, Any] = {}
         self.jarvis_state_path = self.storage_root / "checkpoints" / "jarvis_state.json"
         self.adaptive_swarm_checkpoint_dir = self.storage_root / "checkpoints" / "adaptive_swarm"
         self._jarvis_recent_briefs: list[dict[str, Any]] = []
+        self._last_sleep_summary: dict[str, Any] = {}
+        self._pending_sleep_embedding_updates = 0
+        self._idle_sleep_threshold_seconds = float(
+            os.environ.get("K3D_IDLE_SLEEP_SECONDS", str(self.IDLE_SLEEP_THRESHOLD_SECONDS))
+        )
+        self._idle_sleep_poll_seconds = float(
+            os.environ.get("K3D_IDLE_SLEEP_POLL_SECONDS", str(self.IDLE_SLEEP_POLL_SECONDS))
+        )
+        self._idle_sleep_brief_batch = int(
+            os.environ.get("K3D_IDLE_SLEEP_BRIEF_BATCH", str(self.IDLE_SLEEP_BRIEF_BATCH))
+        )
+        self._active_query_count = 0
+        self._last_activity_at = time.time()
+        self._idle_monitor_stop = threading.Event()
+        self._idle_monitor_thread: threading.Thread | None = None
+        self._sleep_lock = threading.Lock()
+        self._runtime_state_lock = threading.Lock()
+        self._shutdown_started = False
+        self._sleep_cluster_refiner: Any | None | bool = None
+        self._sleep_glyph_consolidator: Any | None | bool = None
+        self._sleep_memory_updater: Any | None | bool = None
+        self._sleep_time_micro: Any | None | bool = None
+        self._sleep_lora_trainer: Any | None | bool = None
         self._jarvis_state: dict[str, Any] = {
             "version": int(self.JARVIS_STATE_VERSION),
             "brief_count": 0,
@@ -499,6 +529,8 @@ class Knowledgeverse:
         self._load_trm_galaxy_decoder()
         if eager_load_default_galaxies:
             self._pin_all_default_gpu_binding(force=True)
+        self._start_idle_monitor()
+        atexit.register(self._atexit_shutdown)
 
     def _initialize_adaptive_swarm(self) -> AdaptiveSwarmTRM:
         swarm = AdaptiveSwarmTRM(
@@ -638,6 +670,120 @@ class Knowledgeverse:
             "latest": str(latest),
             "saved": True,
         }
+
+    def _write_bootstrap_marker(self, summary: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = {
+            "ingested_at": time.time(),
+            "manifest_version": str(self.manifest_version),
+            "galaxy_count": int((summary or {}).get("galaxy_count") or self._house_state_summary.get("galaxy_count") or 0),
+            "total_persisted_entries": int(
+                (summary or {}).get("total_persisted_entries")
+                or self._house_state_summary.get("total_persisted_entries")
+                or 0
+            ),
+            "checkpoint": str(((summary or {}).get("galaxy_consolidated") or {}).get("path", "")),
+        }
+        self.bootstrap_marker_path.parent.mkdir(parents=True, exist_ok=True)
+        self.bootstrap_marker_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+        return payload
+
+    def _mark_runtime_activity(self) -> None:
+        with self._runtime_state_lock:
+            self._last_activity_at = time.time()
+
+    def _enter_query_activity(self) -> None:
+        with self._runtime_state_lock:
+            self._active_query_count += 1
+            self._last_activity_at = time.time()
+
+    def _leave_query_activity(self) -> None:
+        with self._runtime_state_lock:
+            self._active_query_count = max(0, int(self._active_query_count) - 1)
+            self._last_activity_at = time.time()
+
+    def _should_auto_sleep(self) -> tuple[bool, dict[str, Any]]:
+        with self._runtime_state_lock:
+            idle_seconds = max(0.0, time.time() - float(self._last_activity_at))
+            active_queries = int(self._active_query_count)
+        pending_briefs = len(list(self._jarvis_recent_briefs))
+        reasons: list[str] = []
+        if active_queries > 0:
+            return False, {
+                "idle_seconds": idle_seconds,
+                "active_queries": active_queries,
+                "pending_briefs": pending_briefs,
+                "reasons": ["query_active"],
+            }
+        if pending_briefs <= 0:
+            return False, {
+                "idle_seconds": idle_seconds,
+                "active_queries": active_queries,
+                "pending_briefs": pending_briefs,
+                "reasons": ["no_pending_briefs"],
+            }
+        if pending_briefs >= int(self._idle_sleep_brief_batch):
+            reasons.append("brief_batch")
+        if idle_seconds >= float(self._idle_sleep_threshold_seconds):
+            reasons.append("idle_threshold")
+        return bool(reasons), {
+            "idle_seconds": idle_seconds,
+            "active_queries": active_queries,
+            "pending_briefs": pending_briefs,
+            "reasons": reasons,
+        }
+
+    def _maybe_trigger_auto_sleep(self) -> dict[str, Any] | None:
+        should_sleep, diagnostic = self._should_auto_sleep()
+        if not should_sleep:
+            return None
+        if not self._sleep_lock.acquire(blocking=False):
+            return None
+        try:
+            summary = self.jarvis_sleep_consolidation(
+                persist=True,
+                trigger="auto_idle",
+                diagnostic=diagnostic,
+            )
+            self._last_sleep_summary = dict(summary)
+            with self._runtime_state_lock:
+                self._last_activity_at = time.time()
+            return dict(summary)
+        finally:
+            self._sleep_lock.release()
+
+    def _idle_monitor_loop(self) -> None:
+        poll_seconds = max(0.25, float(self._idle_sleep_poll_seconds))
+        while not self._idle_monitor_stop.wait(poll_seconds):
+            try:
+                self._maybe_trigger_auto_sleep()
+            except Exception:
+                continue
+
+    def _start_idle_monitor(self) -> None:
+        if self._idle_monitor_thread is not None and self._idle_monitor_thread.is_alive():
+            return
+        self._idle_monitor_stop.clear()
+        self._idle_monitor_thread = threading.Thread(
+            target=self._idle_monitor_loop,
+            name="knowledgeverse-idle-sleep",
+            daemon=True,
+        )
+        self._idle_monitor_thread.start()
+
+    def _stop_idle_monitor(self) -> None:
+        self._idle_monitor_stop.set()
+        thread = self._idle_monitor_thread
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=2.0)
+
+    def _atexit_shutdown(self) -> None:
+        try:
+            self.shutdown()
+        except Exception:
+            pass
 
     def _merge_house_state_galaxies(self, galaxies: Any) -> dict[str, list[dict[str, Any]]]:
         if not isinstance(galaxies, dict):
@@ -1190,6 +1336,7 @@ class Knowledgeverse:
             "shadow_patterns": shadow_summary,
             "jarvis_state_snapshot": jarvis_summary,
         }
+        summary["bootstrap_marker"] = self._write_bootstrap_marker(summary)
         self._house_state_summary = dict(summary)
         return dict(summary)
 
@@ -2783,17 +2930,110 @@ class Knowledgeverse:
         return self._normalize_embedding(dims)
 
     @staticmethod
-    def _task_specialist_name(task: dict[str, Any] | None) -> str:
+    def _looks_like_math_query(query_text: str) -> bool:
+        lowered = str(query_text or "").strip().lower()
+        has_digit = any(char.isdigit() for char in lowered)
+        math_markers = (
+            "solve",
+            "equation",
+            "sum",
+            "difference",
+            "total",
+            "times",
+            "multiply",
+            "divided",
+            "fraction",
+            "remainder",
+            "factorial",
+            "binomial",
+            "derivative",
+            "integral",
+            "area",
+            "perimeter",
+        )
+        return has_digit and any(marker in lowered for marker in math_markers)
+
+    @staticmethod
+    def _looks_like_arc_payload(task: dict[str, Any] | None) -> bool:
         payload = dict(task or {})
-        task_type = str(payload.get("type", "")).strip().upper()
-        if task_type == "ARC_TASK":
+        return any(
+            payload.get(key) is not None
+            for key in (
+                "input_grid",
+                "output_grid",
+                "training_examples",
+                "frame",
+                "available_actions",
+                "action_names",
+                "pixel_grid",
+            )
+        )
+
+    @staticmethod
+    def _looks_like_choice_payload(
+        task: dict[str, Any] | None,
+        options: list[str] | None = None,
+    ) -> bool:
+        payload = dict(task or {})
+        choice_list = options
+        if choice_list is None and isinstance(payload.get("options"), list):
+            choice_list = [str(option) for option in payload.get("options", [])]
+        return bool(choice_list)
+
+    def _infer_query_mode(
+        self,
+        *,
+        task: dict[str, Any] | None,
+        route: dict[str, Any] | None,
+        query_text: str,
+        options: list[str] | None = None,
+    ) -> str:
+        payload = dict(task or {})
+        declared_mode = str(payload.get("type", "")).strip().upper()
+        route_specialist = str((route or {}).get("specialist") or "").strip().lower()
+        lowered = str(query_text or "").strip().lower()
+        if self._looks_like_arc_payload(payload):
+            return "ARC_TASK"
+        if self._is_gsm8k_math_task(payload) or self._looks_like_math_query(lowered):
+            return "MATH_TASK"
+        if self._looks_like_choice_payload(payload, options):
+            benchmark_hint = " ".join(
+                str(payload.get(key, "")).strip().lower()
+                for key in ("competition", "benchmark", "dataset", "subject", "domain_hint")
+            )
+            if "lhe" in benchmark_hint or "logic" in benchmark_hint or "deduce" in lowered or "eliminate" in lowered:
+                return "LHE_TASK"
+            return "MMLU_TASK"
+        if isinstance(payload.get("messages"), list) or route_specialist in {"chat", "grammar", "any"}:
+            if route_specialist == "grammar":
+                return "GRAMMAR_TASK"
+            return "CHAT_TASK"
+        if declared_mode in {
+            "ARC_TASK",
+            "MATH_TASK",
+            "LHE_TASK",
+            "MMLU_TASK",
+            "CHAT_TASK",
+            "GENERAL_TASK",
+            "GRAMMAR_TASK",
+        }:
+            return declared_mode
+        return "GENERAL_TASK"
+
+    def _task_specialist_name(self, task: dict[str, Any] | None) -> str:
+        payload = dict(task or {})
+        query_text = " ".join(
+            str(payload.get(key, "")).strip()
+            for key in ("query", "question", "prompt")
+            if str(payload.get(key, "")).strip()
+        )
+        mode = self._infer_query_mode(task=payload, route=None, query_text=query_text, options=None)
+        if mode == "ARC_TASK":
             return "visual"
-        if task_type == "LHE_TASK":
-            return "grammar"
-        if task_type == "MMLU_TASK":
-            return "chat"
-        if task_type == "MATH_TASK":
+        if mode == "MATH_TASK":
             return "math"
+        if mode == "LHE_TASK":
+            return "grammar"
         return "chat"
 
     def _apply_specialist_embedding_adapter(
@@ -2974,10 +3214,12 @@ class Knowledgeverse:
     @classmethod
     def _is_gsm8k_math_task(cls, task: dict[str, Any] | None) -> bool:
         payload = dict(task or {})
-        return (
-            str(payload.get("type", "")).upper() == "MATH_TASK"
-            and cls._task_competition(payload) == "GSM8K"
+        competition = cls._task_competition(payload)
+        dataset_hint = " ".join(
+            str(payload.get(key, "")).strip().upper()
+            for key in ("dataset", "benchmark", "subject")
         )
+        return competition == "GSM8K" or "GSM8K" in dataset_hint
 
     @staticmethod
     def _is_reasoning_strategy_entry(entry: dict[str, Any] | None) -> bool:
@@ -3028,35 +3270,17 @@ class Knowledgeverse:
         options: list[str] | None = None,
     ) -> str:
         payload = dict(task or {})
-        task_type = str(payload.get("type", "")).upper()
-        if task_type == "ARC_TASK":
-            fragments: list[str] = ["visual transformation task"]
-            training_examples = payload.get("training_examples")
-            visual_features = self._arc_visual_feature_text(payload)
-            if visual_features:
-                fragments.append(visual_features)
-            if isinstance(training_examples, list) and training_examples:
-                fragments.append(f"examples {len(training_examples)}")
-            input_grid = payload.get("input_grid")
-            if isinstance(input_grid, list):
-                rows = len(input_grid)
-                cols = len(input_grid[0]) if rows and isinstance(input_grid[0], list) else 0
-                fragments.append(f"grid {rows}x{cols}")
-            if str(prompt or "").strip():
-                fragments.append(str(prompt).strip())
-            return " ".join(fragment for fragment in fragments if fragment).strip()
         fragments: list[str] = []
-        if task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}:
-            messages = payload.get("messages")
-            if isinstance(messages, list):
-                for message in messages:
-                    if not isinstance(message, dict):
-                        continue
-                    if str(message.get("role", "")).strip().lower() not in {"user", "system"}:
-                        continue
-                    content = str(message.get("content", "")).strip()
-                    if content:
-                        fragments.append(content)
+        messages = payload.get("messages")
+        if isinstance(messages, list):
+            for message in messages:
+                if not isinstance(message, dict):
+                    continue
+                if str(message.get("role", "")).strip().lower() not in {"user", "system"}:
+                    continue
+                content = str(message.get("content", "")).strip()
+                if content:
+                    fragments.append(content)
         if str(prompt or "").strip():
             fragments.append(str(prompt).strip())
         for key in ("prompt", "query", "question"):
@@ -3070,7 +3294,20 @@ class Knowledgeverse:
             combined_options = [str(option) for option in payload.get("options", [])]
         if combined_options:
             fragments.extend(str(option).strip() for option in combined_options if str(option).strip())
-        if task_type == "MATH_TASK" and not self._is_gsm8k_math_task(payload):
+        if self._looks_like_arc_payload(payload):
+            fragments.insert(0, "visual transformation task")
+            training_examples = payload.get("training_examples")
+            visual_features = self._arc_visual_feature_text(payload)
+            if visual_features:
+                fragments.append(visual_features)
+            if isinstance(training_examples, list) and training_examples:
+                fragments.append(f"examples {len(training_examples)}")
+            input_grid = payload.get("input_grid")
+            if isinstance(input_grid, list):
+                rows = len(input_grid)
+                cols = len(input_grid[0]) if rows and isinstance(input_grid[0], list) else 0
+                fragments.append(f"grid {rows}x{cols}")
+        if self._looks_like_math_query(" ".join(fragments)) and not self._is_gsm8k_math_task(payload):
             lowered = " ".join(fragment.lower() for fragment in fragments if fragment)
             if "solve" in lowered and "x" in lowered and "=" in lowered:
                 fragments.append("linear equation solve ax + b = c isolate x")
@@ -3090,59 +3327,14 @@ class Knowledgeverse:
         route: dict[str, Any] | None = None,
         task: dict[str, Any] | None = None,
     ) -> list[str]:
-        task_payload = dict(task or {})
-        task_type = str(task_payload.get("type", "")).upper()
-        route_specialist = str((route or {}).get("specialist", "")).strip().lower()
-        query_text = str(
-            task_payload.get("query")
-            or task_payload.get("question")
-            or task_payload.get("prompt")
-            or ""
-        ).strip()
-        gsm8k_mode = self._is_gsm8k_math_task(task_payload)
-        factual_chat = (
-            task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"}
-            and self._query_looks_reality_fact(query_text)
-        )
-        allowed = (
-            self.GPU_ARC_TARGET_GALAXIES
-            if task_type == "ARC_TASK"
-            else self.GPU_WORD_PROBLEM_TARGET_GALAXIES
-            if gsm8k_mode
-            else self.GPU_MATH_TARGET_GALAXIES
-            if task_type == "MATH_TASK"
-            else self.GPU_MMLU_TARGET_GALAXIES
-            if task_type == "MMLU_TASK"
-            else self.GPU_LHE_TARGET_GALAXIES
-            if task_type == "LHE_TASK"
-            else self.GPU_FACTUAL_CHAT_TARGET_GALAXIES
-            if factual_chat
-            else self.GPU_CHAT_TARGET_GALAXIES
-            if task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}
-            or route_specialist in {"chat", "grammar", "any"}
-            else self.GPU_FACTUAL_TARGET_GALAXIES
-        )
+        live_names = self._resolve_live_galaxy_names()
+        prioritized: list[str] = []
         if isinstance(route, dict) and isinstance(route.get("galaxy_names"), list):
-            selected = [
-                str(name).strip()
-                for name in route["galaxy_names"]
-                if str(name).strip() in allowed
-            ]
-            if selected:
-                if gsm8k_mode:
-                    return list(dict.fromkeys(selected + list(self.GPU_WORD_PROBLEM_TARGET_GALAXIES)))
-                if factual_chat:
-                    return list(
-                        dict.fromkeys(
-                            selected + list(self.GPU_FACTUAL_CHAT_TARGET_GALAXIES)
-                        )
-                    )
-                if task_type == "LHE_TASK":
-                    return list(dict.fromkeys(selected + list(self.GPU_FACTUAL_TARGET_GALAXIES)))
-                if task_type == "MMLU_TASK":
-                    return selected
-                return selected
-        return list(allowed)
+            for name in route["galaxy_names"]:
+                canonical = self._canonical_galaxy_name(name)
+                if canonical and canonical in live_names and canonical not in prioritized:
+                    prioritized.append(canonical)
+        return list(dict.fromkeys(prioritized + live_names))
 
     def _grammar_rule_metadata(self, rule_id: str) -> dict[str, Any]:
         target = str(rule_id).strip()
@@ -7882,13 +8074,13 @@ class Knowledgeverse:
         query_text: str,
         options: list[str] | None = None,
     ) -> tuple[list[str], str]:
-        task_type = str((task or {}).get("type", "")).upper()
+        query_mode = self._infer_query_mode(task=task, route=route, query_text=query_text, options=options)
         route_specialist = str((route or {}).get("specialist") or specialist or "").strip().lower()
-        if task_type == "ARC_TASK":
+        if query_mode == "ARC_TASK":
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_ARC_REASONING_PROGRAM_ID
-        if task_type == "MATH_TASK":
+        if query_mode == "MATH_TASK":
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_MATH_REASONING_PROGRAM_ID
-        if task_type == "LHE_TASK":
+        if query_mode == "LHE_TASK":
             choice_list = options
             if choice_list is None and isinstance((task or {}).get("options"), list):
                 choice_list = [str(option) for option in (task or {}).get("options", [])]
@@ -7896,7 +8088,7 @@ class Knowledgeverse:
                 choice_list = self._inline_choice_options(query_text)
             program_id = "reasoning_elimination_top1" if choice_list else self.GPU_FACTUAL_REASONING_PROGRAM_ID
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), program_id
-        if task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"} or route_specialist in {"chat", "grammar", "any"}:
+        if query_mode in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"} or route_specialist in {"chat", "grammar", "any"}:
             lowered = str(query_text).strip().lower()
             program_id = self.GPU_CHAT_REASONING_PROGRAM_ID
             choice_list = options
@@ -15618,105 +15810,107 @@ class Knowledgeverse:
         options: list[str] | None = None,
     ) -> dict[str, Any]:
         """Unified GPU-first query entrypoint for factual Knowledgeverse retrieval."""
-        query_started = time.perf_counter()
-        task_type = str((task or {}).get("type", "")).upper()
-        query_text = self._query_text(prompt, task=task, options=options)
-        if not query_text:
-            return {
-                "status": "error",
-                "error": "empty_query",
-                "gpu_execution": True,
-            }
-        lhe_timing_active = task_type == "LHE_TASK"
-        if lhe_timing_active:
-            self._active_lhe_timing = {}
-        targets_started = time.perf_counter()
-        python_target_galaxies, reasoning_program_id = self._select_gpu_profile(
-            task=task,
-            route=route,
-            specialist=specialist,
-            query_text=query_text,
-            options=options,
-        )
-        if lhe_timing_active:
-            self._record_active_lhe_timing("targets", time.perf_counter() - targets_started)
-        resolved_domain_hint = domain_hint or str((task or {}).get("subject", "")).strip() or None
-        route_specialist = str((route or {}).get("specialist") or specialist or "auto").strip() or "auto"
-        embed_started = time.perf_counter()
-        query_embedding = self._embed_query_gpu(query_text, task=task)
-        if lhe_timing_active:
-            self._record_active_lhe_timing("embed", time.perf_counter() - embed_started)
-        trm_tick = None
-        if self._trm_ready:
-            trm_tick = self._run_single_trm_tick(query_embedding)
-        trm_shadow = None
-        if self._trm_ready:
-            trm_shadow = self._trm_shadow_probe(
-                query_embedding,
-                target_galaxies=python_target_galaxies,
-                reasoning_program_id=reasoning_program_id,
-                trm_tick=trm_tick,
-            )
-        target_galaxies = list(python_target_galaxies)
-        trm_galaxy_weights: dict[str, float] = {}
-        trm_navigation = None
-        if self._trm_ready:
-            trm_galaxy_weights, reasoning_program_id, trm_navigation = self._trm_select_galaxies(
-                query_embedding,
-                task_type=task_type,
-                fallback_galaxies=python_target_galaxies,
-                reasoning_program_id=reasoning_program_id,
-                trm_tick=trm_tick,
-            )
-        bind_started = time.perf_counter()
-        binding = dict(self._gpu_galaxy_binding or self._pin_all_default_gpu_binding())
-        if lhe_timing_active:
-            self._record_active_lhe_timing("bind", time.perf_counter() - bind_started)
-        parse_started = time.perf_counter()
-        parse_bundle = self._collect_parse_bundle(
-            query_text,
-            specialist=route_specialist,
-            galaxy_names=target_galaxies,
-            domain_hint=resolved_domain_hint,
-            task=task,
-        )
-        if lhe_timing_active:
-            self._record_active_lhe_timing("parse", time.perf_counter() - parse_started)
-        reasoning_program = self._select_gpu_reasoning_program(reasoning_program_id)
-        primary_reasoning_program = dict(reasoning_program)
-        build_paths_started = time.perf_counter()
-        paths = self._build_gpu_reasoning_paths(
-            task=task,
-            task_type=task_type,
-            primary_program_id=reasoning_program_id,
-            query_text=query_text,
-            options=options,
-            parse_bundle=parse_bundle,
-        )
-        if lhe_timing_active:
-            self._record_active_lhe_timing("build_paths", time.perf_counter() - build_paths_started)
-        selection_steps: list[str] = []
-        selection_started = time.perf_counter()
+        self._enter_query_activity()
         try:
-            best_candidate = self._select_composed_head_candidate_device(
+            query_started = time.perf_counter()
+            query_text = self._query_text(prompt, task=task, options=options)
+            if not query_text:
+                return {
+                    "status": "error",
+                    "error": "empty_query",
+                    "gpu_execution": True,
+                }
+            query_mode = self._infer_query_mode(task=task, route=route, query_text=query_text, options=options)
+            lhe_timing_active = query_mode == "LHE_TASK"
+            if lhe_timing_active:
+                self._active_lhe_timing = {}
+            targets_started = time.perf_counter()
+            python_target_galaxies, reasoning_program_id = self._select_gpu_profile(
                 task=task,
-                binding=binding,
-                paths=paths,
-                target_galaxies=target_galaxies,
-                galaxy_weights=trm_galaxy_weights,
-                reasoning_program_id=reasoning_program_id,
-                query_embedding=query_embedding,
-                task_type=task_type,
+                route=route,
+                specialist=specialist,
+                query_text=query_text,
                 options=options,
+            )
+            if lhe_timing_active:
+                self._record_active_lhe_timing("targets", time.perf_counter() - targets_started)
+            resolved_domain_hint = domain_hint or str((task or {}).get("subject", "")).strip() or None
+            route_specialist = str((route or {}).get("specialist") or specialist or "auto").strip() or "auto"
+            embed_started = time.perf_counter()
+            query_embedding = self._embed_query_gpu(query_text, task=task)
+            if lhe_timing_active:
+                self._record_active_lhe_timing("embed", time.perf_counter() - embed_started)
+            trm_tick = None
+            if self._trm_ready:
+                trm_tick = self._run_single_trm_tick(query_embedding)
+            trm_shadow = None
+            if self._trm_ready:
+                trm_shadow = self._trm_shadow_probe(
+                    query_embedding,
+                    target_galaxies=python_target_galaxies,
+                    reasoning_program_id=reasoning_program_id,
+                    trm_tick=trm_tick,
+                )
+            target_galaxies = list(python_target_galaxies)
+            trm_galaxy_weights: dict[str, float] = {}
+            trm_navigation = None
+            if self._trm_ready:
+                trm_galaxy_weights, reasoning_program_id, trm_navigation = self._trm_select_galaxies(
+                    query_embedding,
+                    task_type=query_mode,
+                    fallback_galaxies=python_target_galaxies,
+                    reasoning_program_id=reasoning_program_id,
+                    trm_tick=trm_tick,
+                )
+            bind_started = time.perf_counter()
+            binding = dict(self._gpu_galaxy_binding or self._pin_all_default_gpu_binding())
+            if lhe_timing_active:
+                self._record_active_lhe_timing("bind", time.perf_counter() - bind_started)
+            parse_started = time.perf_counter()
+            parse_bundle = self._collect_parse_bundle(
+                query_text,
+                specialist=route_specialist,
+                galaxy_names=target_galaxies,
                 domain_hint=resolved_domain_hint,
-                selection_steps=selection_steps,
+                task=task,
+            )
+            if lhe_timing_active:
+                self._record_active_lhe_timing("parse", time.perf_counter() - parse_started)
+            reasoning_program = self._select_gpu_reasoning_program(reasoning_program_id)
+            primary_reasoning_program = dict(reasoning_program)
+            build_paths_started = time.perf_counter()
+            paths = self._build_gpu_reasoning_paths(
+                task=task,
+                task_type=query_mode,
+                primary_program_id=reasoning_program_id,
+                query_text=query_text,
+                options=options,
                 parse_bundle=parse_bundle,
             )
-        finally:
             if lhe_timing_active:
-                self._record_active_lhe_timing("selection", time.perf_counter() - selection_started)
+                self._record_active_lhe_timing("build_paths", time.perf_counter() - build_paths_started)
+            selection_steps: list[str] = []
+            selection_started = time.perf_counter()
+            try:
+                best_candidate = self._select_composed_head_candidate_device(
+                    task=task,
+                    binding=binding,
+                    paths=paths,
+                    target_galaxies=target_galaxies,
+                    galaxy_weights=trm_galaxy_weights,
+                    reasoning_program_id=reasoning_program_id,
+                    query_embedding=query_embedding,
+                    task_type=query_mode,
+                    options=options,
+                    domain_hint=resolved_domain_hint,
+                    selection_steps=selection_steps,
+                    parse_bundle=parse_bundle,
+                )
+            finally:
+                if lhe_timing_active:
+                    self._record_active_lhe_timing("selection", time.perf_counter() - selection_started)
         arc_exact_candidate: dict[str, Any] | None = None
-        if task_type == "ARC_TASK":
+        if query_mode == "ARC_TASK":
             exact_candidates = self._arc_exact_task_navigation_candidates(
                 task=task,
                 reference_embedding=query_embedding,
@@ -15781,7 +15975,7 @@ class Knowledgeverse:
                 **({"trm_shadow": trm_shadow} if trm_shadow is not None else {}),
                 **({"trm_navigation": trm_navigation} if trm_navigation is not None else {}),
             }
-        if task_type == "ARC_TASK" and arc_exact_candidate is not None:
+        if query_mode == "ARC_TASK" and arc_exact_candidate is not None:
             best_candidate = dict(arc_exact_candidate)
             selection_steps.append("ARC curriculum override: exact task_id anchor selected")
             selection_steps.append("Halting gate: halt (arc curriculum override)")
@@ -15814,7 +16008,7 @@ class Knowledgeverse:
             trm_shadow["teacher_route_source"] = "dormant_composed_head"
         if winning_program_id and winning_program_id != reasoning_program_id:
             selection_steps.append(f"Winning path: {winning_program_id}")
-        if task_type == "MATH_TASK":
+        if query_mode == "MATH_TASK":
             match, similarity = self._promote_math_template_match(
                 task=task,
                 binding=binding,
@@ -15823,9 +16017,9 @@ class Knowledgeverse:
                 query_text=query_text,
                 query_embedding=query_embedding,
                 selection_steps=selection_steps,
-            )
+        )
         engine = self.get_gpu_reasoning_engine()
-        if task_type == "ARC_TASK":
+        if query_mode == "ARC_TASK":
             result = self._answer_arc_query(
                 task=dict(task or {}),
                 binding=binding,
@@ -15853,7 +16047,7 @@ class Knowledgeverse:
                 result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
-        if task_type == "MATH_TASK":
+        if query_mode == "MATH_TASK":
             result = self._answer_math_query(
                 task=dict(task or {}),
                 binding=binding,
@@ -15882,7 +16076,7 @@ class Knowledgeverse:
                 result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
-        if task_type == "MMLU_TASK":
+        if query_mode == "MMLU_TASK":
             result = self._answer_mmlu_query(
                 task=dict(task or {}),
                 binding=binding,
@@ -15910,7 +16104,7 @@ class Knowledgeverse:
                 result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
-        if task_type == "LHE_TASK":
+        if query_mode == "LHE_TASK":
             answer_started = time.perf_counter()
             result = self._answer_lhe_query(
                 task=dict(task or {}),
@@ -15946,7 +16140,7 @@ class Knowledgeverse:
                 result["trm_navigation"] = trm_navigation
             self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
             return result
-        if task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"} or reasoning_program_id == self.GPU_CHAT_REASONING_PROGRAM_ID:
+        if query_mode in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"} or reasoning_program_id == self.GPU_CHAT_REASONING_PROGRAM_ID:
             result = self._answer_chat_query(
                 binding=binding,
                 reasoning_program=primary_reasoning_program,
@@ -16014,6 +16208,8 @@ class Knowledgeverse:
         }
         self._record_query_feedback(task=task, result=result, specialist=specialist, domain_hint=domain_hint)
         return result
+        finally:
+            self._leave_query_activity()
 
     def _execute_task_direct(
         self,

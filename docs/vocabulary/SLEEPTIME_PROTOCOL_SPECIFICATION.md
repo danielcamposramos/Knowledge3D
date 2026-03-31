@@ -1,15 +1,56 @@
 # SleepTime Protocol Specification
 
-**Version**: 1.0
-**Status**: Production (Phase G Complete)
+**Version**: 2.0
+**Status**: Production (Phase G Complete, Updated March 2026)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)
-**Date**: November 2025
+**Date**: November 2025 (Updated March 31, 2026)
 
 ---
 
 ## Abstract
 
 The **SleepTime Protocol** is K3D's biologically-inspired memory consolidation mechanism that transfers knowledge from volatile active memory (Galaxy) to persistent storage (House). It implements a formal state machine that ensures atomic, verifiable transitions while maintaining system availability. SleepTime mirrors the neuroscience principle of hippocampal replay during sleep, where transient memories are consolidated into long-term cortical storage.
+
+---
+
+## 0. Critical Architectural Corrections (March 2026)
+
+### 0.1 GPU-Native Consolidation (NOT CPU-Bound Python)
+
+**Consolidation MUST execute on GPU via PTX kernels.** The Python entry point (`jarvis_sleep_consolidation()`) LAUNCHES GPU kernels — it does NOT do the work in Python. Three dedicated sleep PTX kernels exist and MUST be invoked:
+
+| PTX Kernel | Bridge Class | Purpose |
+|-----------|-------------|---------|
+| `sleep_cluster_refiner.ptx` | `sleep_cluster_kernels.py` | Refine Galaxy clusters based on co-activation patterns |
+| `sleep_glyph_consolidator.ptx` | `sleep/glyph_consolidator.py` | Consolidate glyph patterns |
+| `sleep_time_micro.ptx` | `ptx_runtime/sleep_time_compute.py` | Micro-consolidation passes |
+
+Additional GPU operations during consolidation:
+- `galaxy_memory_updater.cu` — Galaxy entry score updates (strengthen correct paths, weaken incorrect)
+- `lora_gpu.cu` — Specialist weight updates via contrastive learning (shadow copy comparison)
+
+**GPU utilization during sleep MUST be visible (>0% SM occupancy).** If consolidation runs entirely on CPU with idle GPU, it is a sovereignty violation.
+
+### 0.2 Automatic Idle-Triggered Consolidation (NOT Manual Command)
+
+Consolidation triggers **automatically** as part of the TRM game loop — it is NOT invoked manually by external scripts or benchmark runners. The system is a living, always-on cognitive OS. When no queries arrive for N seconds, it consolidates like an NPC resting when no stimuli are present.
+
+**Trigger conditions (updated):**
+- **Idle timeout**: No input for N seconds (configurable, default: 30s) AND pending briefs > 0
+- **Brief batch threshold**: Pending brief count reaches threshold (e.g., every 10 briefs)
+- **Memory pressure**: VRAM usage >80% (existing)
+- **Shutdown requested**: Consolidate ALL pending briefs before saving checkpoint and exiting
+
+The old manual/on-demand trigger remains for testing only. In production, the TRM game loop handles all scheduling.
+
+### 0.3 Inline Execution (While Stars Are Loaded)
+
+Consolidation runs on the **same KV instance** that processed the queries — while stars, briefs, and specialist weights are still loaded in VRAM. It does NOT:
+- Spawn a separate process
+- Unload the system and reload for consolidation
+- Require a restart between query phase and sleep phase
+
+**Why**: Briefs are accumulated in-memory during query processing. If the system unloads between query and sleep phases, briefs evaporate (`briefs_consolidated=0`). Consolidation must happen inline, on the living instance.
 
 ---
 
@@ -63,11 +104,12 @@ Human memory consolidation occurs during sleep through:
 │     │                     [ROLLBACK]──────────────────────────┘
 │     │
 │
-│  Trigger Conditions:
-│  • Time-based: Every T hours (default: 6 hours)
-│  • Event-based: Every N ingestions (default: 1000 nodes)
-│  • On-demand: Manual invocation via API
+│  Trigger Conditions (Updated March 2026):
+│  • Idle-based: No input for N seconds (default: 30s) + pending briefs > 0
+│  • Brief-batch: Every N briefs accumulated (default: 10 briefs)
 │  • Memory pressure: VRAM usage >80%
+│  • Shutdown: Consolidate ALL before checkpoint save + exit
+│  • On-demand: Manual invocation (testing only, NOT production)
 │
 │  States:
 │  • ACTIVE: Normal operation (read/write)
@@ -486,23 +528,41 @@ class Galaxy:
 
 ## 4. Trigger Conditions
 
-### 4.1 Time-Based Trigger
+### 4.1 Idle-Based Trigger (Primary — March 2026)
 
-**Default**: Every 6 hours (mimics human sleep cycles)
+**Default**: 30 seconds of no incoming queries, with pending briefs > 0.
+
+This is the **primary trigger** in the always-on cognitive OS paradigm. The system is a living entity: queries arrive, get answered, briefs accumulate. When idle, the system consolidates automatically — like an NPC resting when no stimuli arrive. This is part of the TRM game loop.
 
 ```python
-class SleepTimeScheduler:
-    def __init__(self, interval_hours: float = 6.0):
-        self.interval_seconds = interval_hours * 3600
-        self.last_consolidation = time.time()
+# In the TRM game loop (conceptual — actual execution is GPU-native):
+IDLE_THRESHOLD_SECONDS = 30
+BRIEF_BATCH_THRESHOLD = 10
 
-    def should_trigger_time(self) -> bool:
-        """Check if consolidation due based on time."""
-        elapsed = time.time() - self.last_consolidation
-        return elapsed >= self.interval_seconds
+last_query_time = time.time()
+
+while running:
+    if has_pending_input():
+        process_input()
+        last_query_time = time.time()
+    else:
+        idle_duration = time.time() - last_query_time
+        pending_briefs = len(kv._jarvis_recent_briefs)
+
+        if idle_duration > IDLE_THRESHOLD_SECONDS and pending_briefs > 0:
+            kv.jarvis_sleep_consolidation(persist=True)
+            last_query_time = time.time()  # Reset timer
+
+        elif pending_briefs >= BRIEF_BATCH_THRESHOLD:
+            kv.jarvis_sleep_consolidation(persist=True)
+            last_query_time = time.time()
 ```
 
-**Rationale**: Balances consolidation overhead (~8ms) with memory consistency needs.
+**Rationale**: The system is always-on. Consolidation is not a batch operation triggered by external scripts — it is an internal metabolic process of the living AI.
+
+### 4.1b Legacy Time-Based Trigger (Deprecated)
+
+The original 6-hour interval trigger is superseded by idle-based triggering. In a live system receiving continuous queries, idle detection is more responsive than fixed intervals.
 
 ---
 
@@ -548,19 +608,28 @@ class SleepTimeScheduler:
 
 ---
 
-### 4.4 Manual On-Demand Trigger
+### 4.4 Shutdown Trigger (March 2026)
+
+When shutdown is requested (external signal or explicit command):
+1. Consolidate ALL pending briefs (sleep cycle) — on the same live instance
+2. Save checkpoint (Galaxy state + TRM weights + Jarvis state)
+3. Mark bootstrap files as ingested (won't re-parse on next boot)
+4. Exit cleanly
+
+This is the "cognitive OS shutdown" — the system saves its state like a proper OS, not like a process that crashes.
+
+### 4.5 Manual On-Demand Trigger (Testing Only)
 
 **API**:
 ```python
 def trigger_sleeptime_manual():
-    """Manually trigger consolidation (for testing or explicit control)."""
+    """Manually trigger consolidation (TESTING ONLY, not production)."""
     sleeptime_protocol()
 ```
 
 **Use Cases**:
-- Before shutting down system (ensure latest state persisted)
-- After major knowledge ingestion (e.g., importing entire PDF corpus)
 - Testing/debugging consolidation behavior
+- NOT for production use — production uses idle-based triggers (§4.1)
 
 ---
 
@@ -704,35 +773,73 @@ This is the self-improving loop: the system discovers its own defeaters from run
 
 ---
 
-## 8. Future Enhancements
+## 8. GPU-Native Consolidation Architecture (March 2026)
 
-### 8.1 Incremental Consolidation (Q1 2026)
+### 8.1 Contrastive Learning on GPU
+
+The core consolidation operation is **contrastive learning**: strengthen paths that led to correct answers, weaken paths that led to incorrect answers. This MUST happen on GPU:
+
+```
+jarvis_sleep_consolidation() entry point (Python):
+  │
+  ├── 1. Shadow copy comparison ON GPU
+  │     Compare shadow_copy predictions vs ground truth
+  │     Produces: positive_paths (correct), negative_paths (incorrect)
+  │
+  ├── 2. Sleep cluster refinement ON GPU
+  │     Uses: sleep_cluster_refiner.ptx
+  │     Strengthens Galaxy clusters around correct answer paths
+  │     Weakens clusters around incorrect paths
+  │
+  ├── 3. Specialist weight update ON GPU
+  │     Uses: lora_gpu.cu
+  │     Update TRM specialist weights based on contrastive signal
+  │
+  ├── 4. Galaxy entry score update ON GPU
+  │     Uses: galaxy_memory_updater.cu
+  │     Entries on correct paths get score boost
+  │     Entries on incorrect paths get score penalty
+  │
+  ├── 5. Glyph pattern consolidation ON GPU
+  │     Uses: sleep_glyph_consolidator.ptx
+  │     Consolidate frequently co-activated glyph patterns
+  │
+  └── 6. Micro-consolidation passes ON GPU
+        Uses: sleep_time_micro.ptx
+        Fine-grained passes over recently active regions
+```
+
+**The Python method is a LAUNCHER, not a WORKER.** It collects briefs, prepares kernel arguments, launches GPU kernels, and collects results. All heavy computation is PTX.
+
+### 8.2 Kernel Wiring Table
+
+| Kernel | Bridge | Purpose in Sleep |
+|--------|--------|-----------------|
+| `sleep_cluster_refiner.cu` | `sleep_cluster_kernels.py` | Cluster co-activation refinement |
+| `sleep_glyph_consolidator.cu` | `sleep/glyph_consolidator.py` | Glyph pattern consolidation |
+| `galaxy_memory_updater.cu` | `ptx_runtime/galaxy_memory_updater.py` | Galaxy entry score updates |
+| `lora_gpu.cu` | `sovereign/lora_gpu_trainer.py` | Specialist weight updates |
+| `sleep_time_micro.ptx` | `ptx_runtime/sleep_time_compute.py` | Micro-consolidation passes |
+
+These kernels EXIST, have bridge classes, and MUST be called during `jarvis_sleep_consolidation()`.
+
+### 8.3 Future: Incremental Consolidation
 
 **Problem**: Currently serializes ALL nodes (even unchanged ones).
 
 **Solution**: Track dirty nodes, only serialize modifications.
 
-**Expected Speedup**: 5-10× for sparse updates (<1% nodes changed).
-
----
-
-### 8.2 Distributed SleepTime (Q2 2026)
+### 8.4 Future: Distributed SleepTime
 
 **Problem**: Single-machine consolidation limits scale.
 
 **Solution**: Shard Galaxy across multiple GPUs/machines, consolidate in parallel.
 
-**Expected Scale**: 10M+ nodes (current: 51K).
+### 8.5 Future: Adaptive Triggers
 
----
+**Problem**: Fixed thresholds suboptimal for varying workloads.
 
-### 8.3 Adaptive Triggers (Q3 2026)
-
-**Problem**: Fixed triggers (6 hours, 1000 ingestions) suboptimal for varying workloads.
-
-**Solution**: Reinforcement learning to predict optimal consolidation timing.
-
-**Expected Benefit**: 20-30% reduction in consolidation overhead.
+**Solution**: TRM learns optimal consolidation timing from query patterns.
 
 ---
 
