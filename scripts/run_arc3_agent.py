@@ -249,6 +249,8 @@ def run_live_arc3(
                 "flash_semantics": str(action.get("flash_semantics", "")),
                 "target_label": str(action.get("target_label", "")),
                 "attempt_actions": int(action.get("attempt_actions", 0)),
+                "frame_unchanged": bool(action.get("frame_unchanged", False)),
+                "blocked_actions": list(action.get("blocked_actions") or []),
                 "program_type": str(action.get("task_result", {}).get("program_type", "")),
                 "program_id": str(action.get("task_result", {}).get("program_id", "")),
                 "result_answer_index": action.get("task_result", {}).get("answer_index"),

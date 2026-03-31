@@ -24,6 +24,52 @@ class _FakeKnowledgeverse:
         return dict(self.result)
 
 
+class _FakeSpatialPathfinder:
+    def navigate_csr(
+        self,
+        row_offsets,
+        col_indices,
+        packed_costs,
+        *,
+        start,
+        goal,
+        **kwargs,
+    ):
+        from collections import deque
+
+        rows = [int(value) for value in row_offsets]
+        cols = [int(value) for value in col_indices]
+        queue = deque([int(start)])
+        parents = {int(start): None}
+        while queue:
+            node = queue.popleft()
+            if node == int(goal):
+                break
+            for edge_index in range(rows[node], rows[node + 1]):
+                neighbor = int(cols[edge_index])
+                if neighbor in parents:
+                    continue
+                parents[neighbor] = node
+                queue.append(neighbor)
+        if int(goal) not in parents:
+            raise RuntimeError("no path")
+        path: list[int] = []
+        current = int(goal)
+        while current is not None:
+            path.append(current)
+            current = parents[current]
+        return list(reversed(path))
+
+
+class _FakeSpatialKnowledgeverse(_FakeKnowledgeverse):
+    def __init__(self) -> None:
+        super().__init__({})
+        self.pathfinder = _FakeSpatialPathfinder()
+
+    def get_led_pathfinder(self):
+        return self.pathfinder
+
+
 class _AnswerIndexHarness:
     def _build_gpu_thinking_trace(self, **kwargs):
         return ["gpu answer_index path"]
@@ -332,21 +378,10 @@ def test_arc3_agent_probes_secondary_click_target_when_focus_stalls():
     assert third["click_reason"].startswith("tracked_focus_probe_")
 
 
-def test_arc3_agent_applies_verified_ls20_transitional_live_script():
-    kv = _FakeKnowledgeverse({"gpu_execution": True, "error": "gpu_arc_no_output_grid"})
-    agent = K3DARC3Agent(knowledgeverse=kv)
+def test_arc3_agent_no_longer_contains_verified_ls20_live_script():
+    source = Path("benchmarks/arc_agi_3.py").read_text(encoding="utf-8")
 
-    actions = [
-        agent.choose_action(
-            [[0, 1], [0, 0]],
-            available_actions=[1, 2, 3, 4],
-            game_id="ls20-9607627b",
-            levels_completed=0,
-        )["action"]
-        for _ in range(4)
-    ]
-
-    assert actions == ["ACTION3", "ACTION3", "ACTION3", "ACTION1"]
+    assert "LIVE_TRANSITIONAL_ACTION_SCRIPTS" not in source
 
 
 def test_arc3_agent_preserves_local_zero_based_actions_when_no_live_script_matches():
@@ -362,6 +397,70 @@ def test_arc3_agent_preserves_local_zero_based_actions_when_no_live_script_match
 
     assert action["action"] == "ACTION1"
     assert action["click_reason"] == ""
+
+
+def test_arc3_agent_uses_spatial_frame_pathfinder_before_query_text_fallback():
+    kv = _FakeSpatialKnowledgeverse()
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    frame = [[4] * 16 for _ in range(16)]
+    for col_index in range(1, 10):
+        frame[6][col_index] = 3
+    frame[6][2] = 0
+    frame[5][2] = 1
+    frame[6][1] = 0
+    frame[6][3] = 0
+    frame[7][2] = 1
+    frame[5][8] = 15
+    frame[6][7] = 15
+    frame[6][8] = 15
+    frame[6][9] = 15
+    frame[7][8] = 15
+
+    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    assert action["action"] == "ACTION4"
+    assert action["task_result"]["program_type"] == "spatial_frame_pathfinder"
+    assert action["click_reason"] == "spatial_path:switch"
+    assert kv.calls == []
+
+
+def test_arc3_agent_forbids_reset_after_level_progress():
+    kv = _FakeKnowledgeverse({"action_name": "RESET", "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    frame = [[4] * 8 for _ in range(8)]
+    frame[3][3] = 0
+    frame[4][2] = 1
+    frame[4][3] = 0
+    frame[4][4] = 0
+    frame[5][3] = 1
+
+    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    assert action["action"] != "RESET"
+    assert action["click_reason"] == "preserve_progress_no_reset"
+    assert action["action_index"] in {0, 1, 2, 3}
+
+
+def test_arc3_agent_explores_after_blocked_repeat_direction():
+    kv = _FakeKnowledgeverse({"answer_index": 2, "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    frame = [[4] * 8 for _ in range(8)]
+    frame[3][3] = 0
+    frame[4][2] = 1
+    frame[4][3] = 0
+    frame[4][4] = 0
+    frame[5][3] = 1
+
+    first = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+    second = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
+
+    assert first["action"] == "ACTION3"
+    assert second["action"] != "ACTION3"
+    assert second["frame_unchanged"] is True
+    assert second["click_reason"] == "blocked_direction_explore"
 
 
 def test_answer_arc_query_returns_answer_index_from_metadata():
@@ -491,6 +590,20 @@ def test_learn_from_outcome_tracks_completion_and_stall(tmp_path):
     assert stalled == -1
     assert agent.action_history[0]["levels_completed"] == 1
     assert Path(tmp_path / "arc3_agent.jsonl").exists()
+
+
+def test_learn_from_outcome_ignores_status_only_changes_for_stall_detection():
+    kv = _FakeKnowledgeverse({"answer_index": 0})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+    frame = [[4] * 64 for _ in range(64)]
+    frame[30][30] = 1
+    agent.choose_action(frame)
+
+    status_only = [list(row) for row in frame]
+    status_only[-1][0] = 3
+    stalled = agent.learn_from_outcome(levels_completed=0, frame=status_only)
+
+    assert stalled == -1
 
 
 def test_no_private_gpu_stack_in_arc3():
