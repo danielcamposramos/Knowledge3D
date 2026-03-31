@@ -56,9 +56,16 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "screen_flash_color_semantics" in ids
     assert "reference_box_current_state" in ids
     assert "level_count_indicator" in ids
+    assert "walkable_surface" in ids
+    assert "door_goal_room" in ids
+    assert "avatar_identity" in ids
+    assert "resource_aware_movement" in ids
     assert rows[0]["meaning_rpn"]
     assert rows[0]["behavior_rpn"]
     assert rows[0]["meta_refs"]
+    walkable_row = next(row for row in rows if row["id"] == "walkable_surface")
+    assert "grammar_pathfind_to_target" in walkable_row["grammar_refs"]
+    assert "meta_safety_first_strategy" in walkable_row["meta_refs"]
     categories = {
         str((row.get("metadata") or {}).get("properties", {}).get("knowledge_category", "seed"))
         for row in rows
@@ -90,6 +97,14 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "grammar_trigger_strategic_reset" in grammar_ids
     assert "grammar_classify_failure_flash" in grammar_ids
     assert "grammar_compare_reference_box_to_target" in grammar_ids
+    assert "grammar_identify_avatar" in grammar_ids
+    assert "grammar_pathfind_to_target" in grammar_ids
+    assert "grammar_choose_goal_room_target" in grammar_ids
+    assert "grammar_resource_aware_movement" in grammar_ids
+    grammar_pathfind = next(row for row in grammar_rows if row["id"] == "grammar_pathfind_to_target")
+    assert "avatar_identity" in grammar_pathfind["meaning_refs"]
+    assert "walkable_surface" in grammar_pathfind["meaning_refs"]
+    assert "door_goal_room" in grammar_pathfind["meaning_refs"]
 
     tool_rows = [
         json.loads(line)
@@ -106,6 +121,11 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     assert "meta_compare_budget_to_route_before_commit" in tool_ids
     assert "meta_reset_before_budget_depletion" in tool_ids
     assert "meta_reperceive_after_failure_flash" in tool_ids
+    assert "meta_exploration_vs_exploitation" in tool_ids
+    assert "meta_safety_first_strategy" in tool_ids
+    assert "meta_budget_management_meta" in tool_ids
+    meta_budget = next(row for row in tool_rows if row["id"] == "meta_budget_management_meta")
+    assert "resource_aware_movement" in meta_budget["meaning_refs"]
 
 
 def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
@@ -133,6 +153,9 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "shape_transform_block" in entry_ids
     assert "movement_teleporter_pair" in entry_ids
     assert "level_design_rising_difficulty" in entry_ids
+    assert "walkable_surface" in entry_ids
+    assert "door_goal_room" in entry_ids
+    assert "resource_aware_movement" in entry_ids
 
     grammar_entries = manager._read_entries_from_disk("Grammar")
     grammar_ids = {entry["id"] for entry in grammar_entries}
@@ -140,12 +163,17 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "grammar_complete_level_after_goal_cross" in grammar_ids
     assert "grammar_apply_swim_motion" in grammar_ids
     assert "grammar_decode_visual_signal" in grammar_ids
+    assert "grammar_identify_avatar" in grammar_ids
+    assert "grammar_pathfind_to_target" in grammar_ids
+    assert "grammar_choose_goal_room_target" in grammar_ids
 
     tool_entries = manager._read_entries_from_disk("Tool")
     tool_ids = {entry["id"] for entry in tool_entries}
     assert "meta_match_key_before_door" in tool_ids
     assert "meta_learn_from_visual_transition" in tool_ids
     assert "meta_backtrack_when_dependency_unsatisfied" in tool_ids
+    assert "meta_budget_management_meta" in tool_ids
+    assert "meta_safety_first_strategy" in tool_ids
 
     reality_entries = manager._read_entries_from_disk("Reality")
     reality_ids = {entry["id"] for entry in reality_entries}
@@ -162,6 +190,8 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "reality_reference_box_state" in reality_ids
     assert "reality_level_count_progress" in reality_ids
     assert "reality_strategic_reset_affordance" in reality_ids
+    assert "reality_avatar_identity" in reality_ids
+    assert "reality_goal_room_state" in reality_ids
 
 
 def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
@@ -192,17 +222,26 @@ def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:
     assert "screen_flash_failure" in star_ids
     assert "reference_box_current_state" in star_ids
     assert "level_count_indicator" in star_ids
+    assert "walkable_surface" in star_ids
+    assert "door_goal_room" in star_ids
+    assert "resource_aware_movement" in star_ids
     assert "reality_level_topology" in star_ids
     assert "reality_transition_screen_state" in star_ids
+    assert "reality_avatar_identity" in star_ids
+    assert "reality_goal_room_state" in star_ids
     assert "reality_movement_budget_visual_bar" in star_ids
     assert "reality_lives_counter" in star_ids
     assert "reality_failure_flash_state" in star_ids
     assert "grammar_transition_game_state" in star_ids
     assert "grammar_detect_transition_screen" in star_ids
+    assert "grammar_identify_avatar" in star_ids
+    assert "grammar_pathfind_to_target" in star_ids
     assert "grammar_decode_movement_budget_bar" in star_ids
     assert "grammar_trigger_strategic_reset" in star_ids
     assert "meta_start_from_title_state" in star_ids
     assert "meta_dismiss_transition_before_navigation" in star_ids
+    assert "meta_budget_management_meta" in star_ids
+    assert "meta_safety_first_strategy" in star_ids
     assert "meta_reset_before_budget_depletion" in star_ids
     assert len(build_game_mechanics_entries()) >= 100
     assert len(build_game_reality_entries()) >= 20

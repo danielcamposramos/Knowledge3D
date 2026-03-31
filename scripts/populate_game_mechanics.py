@@ -447,6 +447,71 @@ GAME_MECHANICS.extend(
     ]
 )
 
+GAME_MECHANICS.extend(
+    [
+        _meaning_entry(
+            "walkable_surface",
+            "Walkable Surface",
+            "A traversable floor surface that the avatar can occupy and route across safely.",
+            surface_forms=["walkable surface", "floor tile", "traversable ground"],
+            meaning_rpn="SURFACE WALKABLE TRUE ROUTE_ELIGIBLE",
+            visual_rpn="DRAW_WALKABLE_SURFACE DRAW_ROUTE_OVERLAY COMPOSE",
+            behavior_rpn="CELL WALKABLE_CHECK IF_TRAVERSE",
+            component_refs=["spatial_navigation_grid"],
+            grammar_refs=["grammar_detect_walkable_terrain", "grammar_pathfind_to_target"],
+            reality_refs=["reality_walkable_terrain"],
+            meta_refs=["meta_prefer_shortest_walkable_route", "meta_safety_first_strategy"],
+            house_position=[4.0, 0.0, 0.0],
+            tags=["game", "terrain", "walkable"],
+        ),
+        _meaning_entry(
+            "door_goal_room",
+            "Door Goal Room",
+            "A bordered goal room contains the true exit door, distinct from reference or lock displays elsewhere in the level.",
+            surface_forms=["goal room", "door room", "target room"],
+            meaning_rpn="GOAL_ROOM BORDERED_SPACE EXIT_PATTERN TARGET_BIND",
+            visual_rpn="DRAW_GOAL_ROOM DRAW_BORDER DRAW_EXIT_PATTERN COMPOSE",
+            behavior_rpn="GOAL_ROOM_DETECTED EXIT_TARGET_SET",
+            component_refs=["lock_key_pattern_match", "reference_box_current_state"],
+            grammar_refs=["grammar_compare_reference_box_to_target", "grammar_choose_goal_room_target"],
+            reality_refs=["reality_goal_room_state", "reality_door_lock_state"],
+            meta_refs=["meta_match_key_before_door", "meta_safety_first_strategy"],
+            house_position=[5.0, 0.0, 0.0],
+            tags=["game", "goal", "door", "room"],
+        ),
+        _meaning_entry(
+            "avatar_identity",
+            "Avatar Identity",
+            "The controlled entity must be isolated from terrain and UI so planning is anchored to the true avatar position.",
+            surface_forms=["avatar", "player character", "controlled entity"],
+            meaning_rpn="ENTITY PLAYER_CONTROLLED POSITION_ANCHOR BIND",
+            visual_rpn="DRAW_AVATAR_HIGHLIGHT DRAW_POSITION_ANCHOR COMPOSE",
+            behavior_rpn="FRAME_PARSE AVATAR_COMPONENT IDENTIFY STORE_POSITION",
+            component_refs=["spatial_navigation_grid", "visual_state_encoding"],
+            grammar_refs=["grammar_identify_avatar", "grammar_pathfind_to_target"],
+            reality_refs=["reality_avatar_identity", "reality_grid_path_progress"],
+            meta_refs=["meta_safety_first_strategy"],
+            house_position=[6.0, 0.0, 0.0],
+            tags=["game", "avatar", "identity"],
+        ),
+        _meaning_entry(
+            "resource_aware_movement",
+            "Resource Aware Movement",
+            "Movement planning must account for finite resources such as move budget, recharge access, and remaining lives.",
+            surface_forms=["resource aware movement", "budget aware movement", "constrained pathing"],
+            meaning_rpn="PATH_COST RESOURCE_STATE SAFETY_MARGIN PLAN_COMPARE",
+            visual_rpn="DRAW_ROUTE DRAW_BUDGET DRAW_RECHARGE_HINT COMPOSE",
+            behavior_rpn="TARGET_ROUTE RESOURCE_CHECK SAFE_MOVE_OR_REPLAN",
+            component_refs=["movement_budget_conservation", "movement_recharge_block", "lives_system"],
+            grammar_refs=["grammar_resource_aware_movement", "grammar_compare_budget_to_route"],
+            reality_refs=["reality_movement_budget", "reality_lives_counter", "reality_strategic_reset_affordance"],
+            meta_refs=["meta_budget_management_meta", "meta_safety_first_strategy"],
+            house_position=[7.0, 0.0, 0.0],
+            tags=["game", "movement", "resource", "planning"],
+        ),
+    ]
+)
+
 
 def _catalog_meaning_entry(
     *,
@@ -745,6 +810,16 @@ def _reality_entry(
 
 GAME_REALITY_ENTRIES: list[dict[str, Any]] = [
     _reality_entry(
+        "reality_avatar_identity",
+        "Avatar Identity",
+        "The player-controlled entity occupies a distinct component that anchors navigation and action decisions.",
+        meaning_rpn="PLAYER_ENTITY POSITION_ANCHOR",
+        visual_rpn="DRAW_AVATAR_FOCUS",
+        behavior_rpn="FRAME_PARSE AVATAR_COMPONENT STORE",
+        component_refs=["avatar_identity"],
+        tags=["game", "avatar", "identity"],
+    ),
+    _reality_entry(
         "reality_walkable_terrain",
         "Walkable Terrain",
         "Terrain cells that can be traversed by the entity during pathfinding.",
@@ -867,6 +942,7 @@ def _extend_reality_catalog(specs: list[dict[str, Any]]) -> list[dict[str, Any]]
 GAME_REALITY_ENTRIES.extend(
     _extend_reality_catalog(
         [
+            {"id": "reality_goal_room_state", "name": "Goal Room State", "description": "A bordered room contains the true goal door and should be prioritized over auxiliary reference displays.", "tags": ["goal", "room"]},
             {"id": "reality_gravity_field", "name": "Gravity Field", "description": "A persistent downward acceleration field affecting avatars and movable bodies.", "tags": ["movement", "gravity"]},
             {"id": "reality_jump_arc", "name": "Jump Arc", "description": "A jump follows an arc shaped by upward impulse, gravity, and collision.", "tags": ["movement", "jump"]},
             {"id": "reality_teleporter_link", "name": "Teleporter Link", "description": "A portal pair binds entry and exit positions into one traversable route.", "tags": ["movement", "teleport"]},
@@ -966,6 +1042,51 @@ GAME_GRAMMAR_RULES: list[dict[str, Any]] = [
         reality_refs=["reality_walkable_terrain", "reality_grid_path_progress"],
         rule_strength=1,
         tags=["game", "pathfinding", "navigation"],
+    ),
+    _grammar_rule(
+        "grammar_identify_avatar",
+        "Identify Avatar",
+        "isolate the controlled avatar component from terrain, UI, and mechanic displays",
+        "FRAME_PARSE PLAYER_COMPONENT FILTER POSITION_ANCHOR STORE",
+        word_refs=["avatar", "player", "entity"],
+        component_refs=["avatar_identity"],
+        reality_refs=["reality_avatar_identity"],
+        rule_strength=1,
+        tags=["game", "perception", "avatar"],
+    ),
+    _grammar_rule(
+        "grammar_pathfind_to_target",
+        "Pathfind To Target",
+        "compute a route from avatar to selected gameplay target through walkable cells",
+        "AVATAR_POS TARGET_POS WALKABLE_MASK LED_ASTAR FIRST_STEP_SELECT",
+        word_refs=["pathfind", "target", "route"],
+        component_refs=["avatar_identity", "walkable_surface", "door_goal_room"],
+        reality_refs=["reality_avatar_identity", "reality_walkable_terrain", "reality_goal_room_state"],
+        rule_strength=1,
+        superior_to=["grammar_route_agent_on_walkable_grid"],
+        tags=["game", "pathfinding", "targeting"],
+    ),
+    _grammar_rule(
+        "grammar_choose_goal_room_target",
+        "Choose Goal Room Target",
+        "prefer the true bordered goal room over auxiliary reference or lock displays",
+        "GOAL_ROOM_DETECTED REFERENCE_BOX_DETECTED DIFFERENTIATE TARGET_GOAL_ROOM",
+        word_refs=["goal room", "reference box", "door"],
+        component_refs=["door_goal_room", "reference_box_current_state"],
+        reality_refs=["reality_goal_room_state", "reality_reference_box_state"],
+        rule_strength=1,
+        tags=["game", "targeting", "goal"],
+    ),
+    _grammar_rule(
+        "grammar_resource_aware_movement",
+        "Resource Aware Movement",
+        "bind budget, recharge access, and life preservation into movement choice before committing to a route",
+        "TARGET_ROUTE MOVE_BUDGET_REMAINING RECHARGE_ACCESS LIVES_COMPARE SAFE_PLAN_SELECT",
+        word_refs=["resource", "budget", "movement"],
+        component_refs=["resource_aware_movement", "movement_budget_conservation"],
+        reality_refs=["reality_movement_budget", "reality_lives_counter", "reality_strategic_reset_affordance"],
+        rule_strength=1,
+        tags=["game", "budget", "planning"],
     ),
     _grammar_rule(
         "grammar_toggle_switch_link",
@@ -1260,6 +1381,9 @@ def _extend_meta_catalog(specs: list[dict[str, Any]]) -> list[dict[str, Any]]:
 GAME_META_RULES.extend(
     _extend_meta_catalog(
         [
+            {"id": "meta_exploration_vs_exploitation", "name": "Exploration Versus Exploitation", "category": "game_strategy", "condition": "NOVEL_LAYOUT TRUE OR REPEATED_FAILURE TRUE", "action": "UNKNOWN_MECHANIC ? PROBE_NEW_ROUTE : FOLLOW_CONFIRMED_ROUTE", "rule_refs": ["grammar_infer_rule_from_state_delta", "grammar_pathfind_to_target"], "component_refs": ["no_instruction_discovery", "resource_aware_movement"], "priority": 0.93, "tags": ["strategy", "exploration"]},
+            {"id": "meta_safety_first_strategy", "name": "Safety First Strategy", "category": "game_strategy", "condition": "HAZARD_VISIBLE OR GOAL_AMBIGUOUS", "action": "PREFER_SAFE_WALKABLE_ROUTE VERIFY_TARGET_BEFORE_COMMIT", "rule_refs": ["grammar_detect_walkable_terrain", "grammar_choose_goal_room_target"], "component_refs": ["walkable_surface", "door_goal_room", "avatar_identity"], "priority": 0.99, "tags": ["strategy", "safety"]},
+            {"id": "meta_budget_management_meta", "name": "Budget Management Meta", "category": "game_strategy", "condition": "FINITE_RESOURCE_ROUTE TRUE", "action": "COMPARE_COST_RECHARGE_RESET BEFORE_ACTION", "rule_refs": ["grammar_compare_budget_to_route", "grammar_resource_aware_movement", "grammar_trigger_strategic_reset"], "component_refs": ["resource_aware_movement", "movement_budget_conservation", "strategic_reset"], "priority": 0.98, "tags": ["strategy", "budget"]},
             {"id": "meta_jump_over_gap", "name": "Jump Over Gap", "category": "game_strategy", "condition": "GAP_AHEAD JUMP_CLEAR_PATH AND", "action": "grammar_apply_jump_impulse APPLY_RULE", "rule_refs": ["grammar_apply_jump_impulse"], "priority": 0.9, "tags": ["movement", "jump"]},
             {"id": "meta_use_teleporter_when_route_breaks", "name": "Use Teleporter When Route Breaks", "category": "game_strategy", "condition": "DIRECT_ROUTE_BLOCKED PORTAL_VISIBLE AND", "action": "grammar_trigger_teleporter APPLY_RULE", "rule_refs": ["grammar_trigger_teleporter"], "priority": 0.89, "tags": ["movement", "teleport"]},
             {"id": "meta_follow_conveyor_flow", "name": "Follow Conveyor Flow", "category": "game_strategy", "condition": "ON_CONVEYOR TRUE", "action": "grammar_apply_conveyor_motion APPLY_RULE", "rule_refs": ["grammar_apply_conveyor_motion"], "priority": 0.84, "tags": ["movement", "forced_motion"]},
@@ -1279,29 +1403,99 @@ GAME_META_RULES.extend(
 )
 
 
+def _dedupe_refs(values: list[str] | None) -> list[str]:
+    deduped: list[str] = []
+    for value in list(values or []):
+        token = str(value).strip()
+        if token and token not in deduped:
+            deduped.append(token)
+    return deduped
+
+
+def _meaning_id_set() -> set[str]:
+    return {str(row.get("id", "")).strip() for row in GAME_MECHANICS if str(row.get("id", "")).strip()}
+
+
+def _hydrate_bidirectional_links(
+    meaning_rows: list[dict[str, Any]],
+    reality_rows: list[dict[str, Any]],
+    grammar_rows: list[dict[str, Any]],
+    meta_rows: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    meaning_ids = _meaning_id_set()
+    meaning_map = {str(row.get("id", "")).strip(): dict(row) for row in meaning_rows}
+    linked_reality = [dict(row) for row in reality_rows]
+    linked_grammar = [dict(row) for row in grammar_rows]
+    linked_meta = [dict(row) for row in meta_rows]
+
+    def _attach_meaning_refs(
+        row: dict[str, Any],
+        *,
+        reverse_field: str,
+    ) -> dict[str, Any]:
+        component_refs = _dedupe_refs(row.get("component_refs"))
+        meaning_refs = _dedupe_refs(list(row.get("meaning_refs") or []) + [ref for ref in component_refs if ref in meaning_ids])
+        row["component_refs"] = component_refs
+        row["meaning_refs"] = meaning_refs
+        metadata = dict(row.get("metadata") or {})
+        metadata["meaning_refs"] = list(meaning_refs)
+        metadata["component_refs"] = list(component_refs)
+        row["metadata"] = metadata
+        for meaning_id in meaning_refs:
+            meaning_row = meaning_map.get(meaning_id)
+            if meaning_row is None:
+                continue
+            meaning_row[reverse_field] = _dedupe_refs(list(meaning_row.get(reverse_field) or []) + [str(row.get("id", "")).strip()])
+            meaning_meta = dict(meaning_row.get("metadata") or {})
+            meaning_meta[reverse_field] = list(meaning_row[reverse_field])
+            meaning_row["metadata"] = meaning_meta
+        return row
+
+    linked_reality = [_attach_meaning_refs(row, reverse_field="reality_refs") for row in linked_reality]
+    linked_grammar = [_attach_meaning_refs(row, reverse_field="grammar_refs") for row in linked_grammar]
+    linked_meta = [_attach_meaning_refs(row, reverse_field="meta_refs") for row in linked_meta]
+
+    linked_meanings = [meaning_map[str(row.get("id", "")).strip()] for row in meaning_rows if str(row.get("id", "")).strip() in meaning_map]
+    for row in linked_meanings:
+        metadata = dict(row.get("metadata") or {})
+        for field in ("component_refs", "visual_refs", "grammar_refs", "reality_refs", "math_refs", "meta_refs"):
+            row[field] = _dedupe_refs(row.get(field))
+            metadata[field] = list(row[field])
+        row["metadata"] = metadata
+    return linked_meanings, linked_reality, linked_grammar, linked_meta
+
+
+def _build_linked_game_knowledge() -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    meaning_rows = [dict(row) for row in GAME_MECHANICS]
+    reality_rows = [dict(row) for row in GAME_REALITY_ENTRIES]
+    grammar_rows = [dict(row) for row in GAME_GRAMMAR_RULES]
+    meta_rows = [dict(row) for row in GAME_META_RULES]
+    return _hydrate_bidirectional_links(meaning_rows, reality_rows, grammar_rows, meta_rows)
+
+
 def build_game_mechanics_entries() -> list[dict[str, Any]]:
-    rows = [dict(row) for row in GAME_MECHANICS]
+    rows, _, _, _ = _build_linked_game_knowledge()
     if len(rows) < 100:
         raise RuntimeError(f"Expected at least 100 game mechanic entries, generated {len(rows)}")
     return rows
 
 
 def build_game_reality_entries() -> list[dict[str, Any]]:
-    rows = [dict(row) for row in GAME_REALITY_ENTRIES]
+    _, rows, _, _ = _build_linked_game_knowledge()
     if len(rows) < 20:
         raise RuntimeError(f"Expected at least 20 game reality entries, generated {len(rows)}")
     return rows
 
 
 def build_game_grammar_rules() -> list[dict[str, Any]]:
-    rows = [dict(row) for row in GAME_GRAMMAR_RULES]
+    _, _, rows, _ = _build_linked_game_knowledge()
     if len(rows) < 20:
         raise RuntimeError(f"Expected at least 20 game grammar rules, generated {len(rows)}")
     return rows
 
 
 def build_game_meta_rules() -> list[dict[str, Any]]:
-    rows = [dict(row) for row in GAME_META_RULES]
+    _, _, _, rows = _build_linked_game_knowledge()
     if len(rows) < 15:
         raise RuntimeError(f"Expected at least 15 game meta-rules, generated {len(rows)}")
     return rows

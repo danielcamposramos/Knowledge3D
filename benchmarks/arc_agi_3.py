@@ -14,7 +14,7 @@ ACTION_NAMES = ["ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6"
 ACTION_LABELS = ["Move Up", "Move Down", "Move Left", "Move Right", "Perform", "Click", "Undo"]
 RESET_ACTION_NAME = "RESET"
 RESET_ACTION_LABEL = "Reset"
-ARC3_ROUTE_GALAXIES = ["Drawing", "Grammar", "Tool", "Reality", "Word"]
+ARC3_ROUTE_GALAXIES = ["Drawing", "game_mechanics", "Grammar", "Tool", "Reality", "Word"]
 SPATIAL_WALKABLE_COLORS = {0, 1, 3}
 
 
@@ -710,6 +710,7 @@ def _frame_to_query_text(
     reference_box_visible: bool = False,
     flash_semantics: str = "",
     force_reset: bool = False,
+    spatial_plan: dict[str, Any] | None = None,
 ) -> str:
     normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
     rows = len(frame)
@@ -780,10 +781,28 @@ def _frame_to_query_text(
         )
     if reference_box_visible:
         state_tokens.append("reference box current state visible")
+    if current_centroid is not None and frame_state != "transition":
+        state_tokens.extend(["avatar identity", "walkable surface", "pathfind to target"])
     if derived_target_label:
         state_tokens.append(f"{derived_target_label} target visible")
         if derived_target_label == "door":
-            state_tokens.append("target room visible")
+            state_tokens.extend(["target room visible", "door goal room"])
+        if derived_target_label == "switch":
+            state_tokens.append("switch actuator")
+        if derived_target_label == "recharge":
+            state_tokens.append("movement recharge block")
+    if budget_snapshot:
+        state_tokens.append("resource aware movement")
+    if spatial_plan:
+        hint_target = str(spatial_plan.get("target_label", "")).strip()
+        if hint_target:
+            state_tokens.append(f"spatial plan target {hint_target}")
+        path_length = int(spatial_plan.get("path_length", 0))
+        if path_length > 0:
+            state_tokens.append(f"spatial path length {path_length}")
+        hinted_action = int(spatial_plan.get("action_index", -1))
+        if 0 <= hinted_action < len(ACTION_LABELS):
+            guidance_tokens.append(f"spatial hint {ACTION_LABELS[hinted_action].lower()}")
     if current_centroid is not None and rows > 0 and cols > 0:
         avg_row, avg_col = current_centroid
         center_row = (rows - 1) / 2.0
@@ -893,6 +912,21 @@ def _frame_to_query_text(
         f"available actions {actions_text} "
         "levels navigation visual"
     ).strip()
+
+
+def _result_has_direct_action(result: dict[str, Any] | None) -> bool:
+    if not isinstance(result, dict):
+        return False
+    raw_action_name = str(result.get("action_name", "")).strip().upper()
+    if raw_action_name in {RESET_ACTION_NAME, *ACTION_NAMES}:
+        return True
+    if isinstance(result.get("answer_index"), (int, float)):
+        return True
+    if isinstance(result.get("x"), (int, float)) and isinstance(result.get("y"), (int, float)):
+        return True
+    predicted = _normalize_grid(result.get("output_grid"))
+    return predicted != [[]]
+
 
 def _derive_action_from_result(
     frame: list[list[int]],
@@ -1240,6 +1274,7 @@ class K3DARC3Agent:
                 reference_box_visible=reference_box_visible,
                 flash_semantics=flash_semantics,
                 force_reset=force_reset,
+                spatial_plan=spatial_plan,
             ),
             "input_grid": normalized_frame,
             "expected_output": normalized_goal if normalized_goal != [[]] else [],
@@ -1249,27 +1284,43 @@ class K3DARC3Agent:
             "options": list(ACTION_NAMES),
         }
         if spatial_plan is not None:
-            result = {
-                "answer_index": int(spatial_plan["action_index"]),
-                "confidence": float(spatial_plan["confidence"]),
-                "convergence_signal": 1,
-                "iterations_used": int(spatial_plan["path_length"]),
-                "gpu_execution": True,
-                "solver": str(spatial_plan["solver"]),
-                "program_type": str(spatial_plan["program_type"]),
-                "target_label": str(spatial_plan["target_label"]),
-            }
-        else:
-            result = self.kv.execute_task(
-                task=gpu_task,
-                route={
-                    "specialist": "visual",
-                    "domain_hint": "arc3_interactive",
-                    "galaxy_names": list(ARC3_ROUTE_GALAXIES),
-                },
-                specialist="visual",
-                domain_hint="arc3_interactive",
+            gpu_task["spatial_plan_hint"] = dict(spatial_plan)
+            gpu_task["spatial_plan_target"] = str(spatial_plan.get("target_label", ""))
+            gpu_task["spatial_plan_action_index"] = int(spatial_plan.get("action_index", 0))
+            gpu_task["spatial_plan_path_length"] = int(spatial_plan.get("path_length", 0))
+        result = self.kv.execute_task(
+            task=gpu_task,
+            route={
+                "specialist": "visual",
+                "domain_hint": "arc3_interactive",
+                "galaxy_names": list(ARC3_ROUTE_GALAXIES),
+            },
+            specialist="visual",
+            domain_hint="arc3_interactive",
+        )
+        if spatial_plan is not None and not _result_has_direct_action(result):
+            fallback_result = dict(result or {})
+            fallback_result["answer_index"] = int(spatial_plan["action_index"])
+            fallback_result["confidence"] = max(
+                float(fallback_result.get("confidence", 0.0) or 0.0),
+                float(spatial_plan["confidence"]),
             )
+            fallback_result["convergence_signal"] = int(fallback_result.get("convergence_signal", 1) or 1)
+            fallback_result["iterations_used"] = max(
+                int(fallback_result.get("iterations_used", 0) or 0),
+                int(spatial_plan["path_length"]),
+            )
+            fallback_result["gpu_execution"] = bool(fallback_result.get("gpu_execution", True))
+            fallback_result.setdefault("solver", str(spatial_plan["solver"]))
+            fallback_result.setdefault("program_type", "spatial_plan_hint_fallback")
+            fallback_result["spatial_plan_hint"] = dict(spatial_plan)
+            fallback_result["spatial_plan_fallback"] = True
+            fallback_result["target_label"] = str(spatial_plan["target_label"])
+            result = fallback_result
+        elif spatial_plan is not None:
+            result = dict(result or {})
+            result["spatial_plan_hint"] = dict(spatial_plan)
+            result["spatial_plan_fallback"] = False
         click_reason = ""
         action_choice, payload = _derive_action_from_result(
             normalized_frame,
@@ -1344,7 +1395,14 @@ class K3DARC3Agent:
             self._click_focus_streak = 0
             self._click_probe_index = 1
         if not click_reason and spatial_plan is not None:
-            click_reason = f"spatial_path:{spatial_plan['target_label']}"
+            suffix = ":fallback" if bool((result or {}).get("spatial_plan_fallback")) else ""
+            click_reason = f"spatial_path:{spatial_plan['target_label']}{suffix}"
+        match = (result or {}).get("match") if isinstance((result or {}).get("match"), dict) else {}
+        jarvis_brief = (
+            (result or {}).get("jarvis_brief")
+            if isinstance((result or {}).get("jarvis_brief"), dict)
+            else {}
+        )
         record = {
             "action": action_name,
             "action_index": action_index,
@@ -1370,6 +1428,16 @@ class K3DARC3Agent:
             "attempt_actions": int(self._attempt_actions),
             "frame_unchanged": bool(previous_frame_blocked),
             "blocked_actions": sorted(int(index) for index in blocked_actions),
+            "matched_star_id": str(match.get("id", "")),
+            "matched_star_galaxy": str(match.get("galaxy", "")),
+            "teacher_route_galaxies": list((result or {}).get("teacher_route_galaxies") or []),
+            "winning_program_id": str((result or {}).get("winning_program_id", "")),
+            "galaxy_contribution": dict((result or {}).get("galaxy_contribution") or {}),
+            "jarvis_worker_count": int(jarvis_brief.get("worker_count", 0) or 0),
+            "jarvis_planned_swarm_groups": int(jarvis_brief.get("planned_swarm_groups", 0) or 0),
+            "spatial_plan_target": str((spatial_plan or {}).get("target_label", "")),
+            "spatial_plan_path_length": int((spatial_plan or {}).get("path_length", 0) or 0),
+            "spatial_plan_fallback": bool((result or {}).get("spatial_plan_fallback", False)),
             **payload,
         }
         self.action_history.append(record)

@@ -117,6 +117,7 @@ def test_arc3_agent_routes_through_execute_task():
     assert call["task"]["options"] == ACTION_NAMES
     assert call["route"]["specialist"] == "visual"
     assert call["route"]["galaxy_names"] == ARC3_ROUTE_GALAXIES
+    assert "game_mechanics" in call["route"]["galaxy_names"]
     assert "Language" not in call["route"]["galaxy_names"]
     assert action["action_index"] == 2
     assert action["label"] == ACTION_LABELS[2]
@@ -454,9 +455,13 @@ def test_arc3_agent_uses_spatial_frame_pathfinder_before_query_text_fallback():
     action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
 
     assert action["action"] == "ACTION4"
-    assert action["task_result"]["program_type"] == "spatial_frame_pathfinder"
-    assert action["click_reason"] == "spatial_path:switch"
-    assert kv.calls == []
+    assert len(kv.calls) == 1
+    assert kv.calls[0]["route"]["galaxy_names"] == ARC3_ROUTE_GALAXIES
+    assert kv.calls[0]["task"]["spatial_plan_hint"]["target_label"] == "switch"
+    assert "spatial plan target switch" in kv.calls[0]["task"]["query"]
+    assert action["task_result"]["spatial_plan_hint"]["target_label"] == "switch"
+    assert action["spatial_plan_target"] == "switch"
+    assert action["click_reason"].startswith("spatial_path:switch")
 
 
 def test_arc3_agent_forbids_reset_after_level_progress():

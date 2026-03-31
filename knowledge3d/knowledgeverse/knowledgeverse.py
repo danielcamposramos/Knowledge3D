@@ -12228,6 +12228,24 @@ class Knowledgeverse:
         self._jarvis_state["brief_count"] = int(self._jarvis_state.get("brief_count") or 0) + 1
         self._jarvis_state["last_brief"] = dict(brief)
 
+    def jarvis_sleep_diagnostic(self) -> dict[str, Any]:
+        last_brief = dict(self._jarvis_state.get("last_brief") or {})
+        recent = list(self._jarvis_recent_briefs)
+        checkpoint_dir = self.storage_root / "checkpoints"
+        ternary_state = getattr(self.ternary_quality_memory, "_state", {})
+        return {
+            "pending_recent_briefs": len(recent),
+            "brief_count_total": int(self._jarvis_state.get("brief_count") or 0),
+            "brief_recording_active": bool(recent or int(self._jarvis_state.get("brief_count") or 0) > 0),
+            "last_brief_task_type": str(last_brief.get("task_type", "")),
+            "last_brief_worker_count": int(last_brief.get("worker_count") or 0),
+            "last_brief_planned_swarm_groups": int(last_brief.get("planned_swarm_groups") or 0),
+            "jarvis_state_path_exists": bool(self.jarvis_state_path.exists()),
+            "shadow_patterns_checkpoint_exists": bool((checkpoint_dir / "shadow_patterns_latest.json").exists()),
+            "ternary_quality_pattern_count": len(ternary_state) if isinstance(ternary_state, dict) else 0,
+            "contrastive_learning_active": bool(isinstance(ternary_state, dict) and len(ternary_state) > 0),
+        }
+
     def jarvis_sleep_consolidation(self, *, persist: bool = True) -> dict[str, Any]:
         recent = list(self._jarvis_recent_briefs)
         if not recent:
@@ -12236,6 +12254,7 @@ class Knowledgeverse:
                 "updated": False,
                 "briefs_consolidated": 0,
                 "task_types": dict(self._jarvis_state.get("task_type_stats") or {}),
+                "diagnostic": self.jarvis_sleep_diagnostic(),
             }
             if persist:
                 try:
@@ -12277,9 +12296,11 @@ class Knowledgeverse:
             "top_worker_pairs": top_worker_pairs,
             "top_cross_connections": top_cross_connections,
             "last_brief_worker_count": int((recent[-1] or {}).get("worker_count") or 0),
+            "pending_briefs_before": len(recent),
         }
         self._jarvis_recent_briefs = []
         self._save_jarvis_state()
+        summary["diagnostic"] = self.jarvis_sleep_diagnostic()
         if persist:
             try:
                 summary["checkpoint"] = self.save_consolidated_state()

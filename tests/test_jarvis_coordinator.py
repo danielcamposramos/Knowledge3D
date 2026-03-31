@@ -123,8 +123,55 @@ def test_jarvis_sleep_consolidation_summarizes_patterns(tmp_path):
 
     assert summary["updated"] is True
     assert summary["briefs_consolidated"] == 1
+    assert summary["pending_briefs_before"] == 1
     assert summary["recommended_groups_by_task"]["MATH_TASK"] >= 1
     assert summary["top_worker_pairs"][0]["pair"] == "g1.w1|g1.w2"
     assert summary["top_cross_connections"][0]["pattern"] == "combine hypothesis and validation traces"
+    assert summary["diagnostic"]["pending_recent_briefs"] == 0
+    assert summary["diagnostic"]["brief_recording_active"] is True
     assert summary["checkpoint"]["galaxy_consolidated"]["saved"] is True
     assert (tmp_path / "checkpoints" / "galaxy_consolidated_latest.json").exists()
+
+
+def test_jarvis_sleep_diagnostic_reports_pending_briefs_and_quality_memory(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path, eager_load_default_galaxies=False)
+    brief = kv._jarvis_compile_brief(
+        task_type="ARC_TASK",
+        paths=[{"program_id": "p1"}],
+        options=None,
+        path_best_records=[
+            {
+                "option_text": "route_a",
+                "path_role": "hypothesis",
+                "path_score": 0.7,
+                "candidate": {"path_score": 0.7, "match": {"id": "arc_a", "galaxy": "Drawing"}},
+            }
+        ],
+        selected_records=[
+            {
+                "option_text": "route_a",
+                "path_score": 0.7,
+                "candidate": {"path_score": 0.7, "match": {"id": "arc_a", "galaxy": "Drawing"}},
+            }
+        ],
+        scored_candidates=[{"gpu_score": 0.7}],
+    )
+    kv._jarvis_record_brief(brief)
+    kv.ternary_quality_memory.update(
+        pattern_id="grammar_pathfind_to_target",
+        outcome=1,
+        confidence=0.9,
+        knowledgeverse=kv,
+        specialist="visual",
+        galaxy="Grammar",
+        source="test",
+    )
+
+    diagnostic = kv.jarvis_sleep_diagnostic()
+
+    assert diagnostic["pending_recent_briefs"] == 1
+    assert diagnostic["brief_recording_active"] is True
+    assert diagnostic["last_brief_task_type"] == "ARC_TASK"
+    assert diagnostic["last_brief_worker_count"] >= 1
+    assert diagnostic["ternary_quality_pattern_count"] >= 1
+    assert diagnostic["contrastive_learning_active"] is True
