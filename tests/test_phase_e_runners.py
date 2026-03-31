@@ -31,6 +31,7 @@ def test_run_full_benchmark_writes_phase_e_logs(tmp_path, monkeypatch):
 
     payload = run_full_benchmark.run_full_benchmark(
         mmlu_count=4,
+        imo_count=3,
         gsm8k_count=2,
         lhe_count=2,
         arc2_count=2,
@@ -47,11 +48,13 @@ def test_run_full_benchmark_writes_phase_e_logs(tmp_path, monkeypatch):
 
     decoded = json.loads((log_dir / "summary.json").read_text(encoding="utf-8"))
     assert decoded["suites"]["mmlu"]["correct"] == 4
+    assert decoded["suites"]["imo"]["correct"] == 3
     assert decoded["suites"]["gsm8k"]["correct"] == 2
     assert decoded["suites"]["lhe"]["correct"] == 2
     assert decoded["suites"]["arc2"]["correct"] == 2
     assert decoded["suites"]["arc3_local"]["correct"] == 5
-    assert set(decoded["suites"]) == {"mmlu", "gsm8k", "lhe", "arc2", "arc3_local"}
+    assert set(decoded["suites"]) == {"mmlu", "imo", "gsm8k", "lhe", "arc2", "arc3_local"}
+    assert decoded["hardware_profile"]["logical_cores"] >= 1
     assert len(set(_fake_native_suite.seen_kv_ids)) == 1
 
 

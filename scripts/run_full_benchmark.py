@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 from datetime import datetime
+import os
 from pathlib import Path
+import platform
 import sys
 import time
 from typing import Any
@@ -18,6 +20,7 @@ LOG_ROOT = Path("/K3D/Knowledge3D.local/logs")
 Knowledgeverse = None
 MMLUBenchmark = None
 GSM8KBenchmark = None
+IMOBenchmark = None
 LastHumanityExamBenchmark = None
 ARCAGI2Benchmark = None
 run_local_arc3 = None
@@ -27,6 +30,7 @@ def _ensure_full_benchmark_runtime() -> None:
     global Knowledgeverse
     global MMLUBenchmark
     global GSM8KBenchmark
+    global IMOBenchmark
     global LastHumanityExamBenchmark
     global ARCAGI2Benchmark
     global run_local_arc3
@@ -43,6 +47,10 @@ def _ensure_full_benchmark_runtime() -> None:
         from benchmarks.gsm8k import GSM8KBenchmark as _GSM8KBenchmark
 
         GSM8KBenchmark = _GSM8KBenchmark
+    if IMOBenchmark is None:
+        from benchmarks.imo_bench import IMOBenchmark as _IMOBenchmark
+
+        IMOBenchmark = _IMOBenchmark
     if LastHumanityExamBenchmark is None:
         from benchmarks.last_humanity_exam import LastHumanityExamBenchmark as _LastHumanityExamBenchmark
 
@@ -59,6 +67,49 @@ def _ensure_full_benchmark_runtime() -> None:
 
 def _ts() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+
+def _detect_hardware_profile(storage_root: str | Path) -> dict[str, Any]:
+    root = Path(storage_root)
+    path = root / "hardware_profile.json"
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    logical_cores = int(os.cpu_count() or 1)
+    physical_cores = logical_cores
+    try:
+        core_rows = os.popen("lscpu -p=Core,Socket 2>/dev/null").read().splitlines()
+        core_pairs = {
+            tuple(line.split(","))
+            for line in core_rows
+            if line and not line.startswith("#") and "," in line
+        }
+        if core_pairs:
+            physical_cores = len(core_pairs)
+    except Exception:
+        physical_cores = logical_cores
+
+    total_memory_bytes = None
+    try:
+        total_memory_bytes = int(os.sysconf("SC_PAGE_SIZE")) * int(os.sysconf("SC_PHYS_PAGES"))
+    except Exception:
+        total_memory_bytes = None
+
+    profile = {
+        "generated_at": datetime.now().isoformat(),
+        "hostname": platform.node(),
+        "platform": platform.platform(),
+        "python": platform.python_version(),
+        "logical_cores": logical_cores,
+        "physical_cores": physical_cores,
+        "total_memory_bytes": total_memory_bytes,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(profile, indent=2, ensure_ascii=False), encoding="utf-8")
+    return profile
 
 
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
@@ -142,6 +193,8 @@ def _run_native_suite(
 
     if suite_name == "mmlu":
         benchmark = MMLUBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
+    elif suite_name == "imo":
+        benchmark = IMOBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
     elif suite_name == "gsm8k":
         benchmark = GSM8KBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
     elif suite_name == "lhe":
@@ -175,6 +228,7 @@ def _run_native_suite(
 def run_full_benchmark(
     *,
     mmlu_count: int = 50,
+    imo_count: int = 20,
     arc3_count: int = 20,
     gsm8k_count: int = 10,
     lhe_count: int = 10,
@@ -189,6 +243,7 @@ def run_full_benchmark(
     log_dir.mkdir(parents=True, exist_ok=True)
 
     start = time.time()
+    hardware_profile = _detect_hardware_profile(storage_root)
     print(f"[E25] Initializing Knowledgeverse storage_root={storage_root}", flush=True)
     kv = Knowledgeverse(storage_root=storage_root)
     print("[E25] Knowledgeverse init complete", flush=True)
@@ -196,6 +251,7 @@ def run_full_benchmark(
     all_results: dict[str, dict[str, object]] = {}
     suite_order = [
         ("mmlu", mmlu_count),
+        ("imo", imo_count),
         ("gsm8k", gsm8k_count),
         ("lhe", lhe_count),
         ("arc2", arc2_count),
@@ -218,6 +274,7 @@ def run_full_benchmark(
             "timestamp": timestamp,
             "elapsed_seconds": round(time.time() - start, 2),
             "log_dir": str(log_dir),
+            "hardware_profile": hardware_profile,
             "completed_suites": list(all_results.keys()),
             "suites": {
                 name: {key: value for key, value in suite_result.items() if key != "results"}
@@ -234,6 +291,7 @@ def run_full_benchmark(
         "timestamp": timestamp,
         "elapsed_seconds": elapsed,
         "log_dir": str(log_dir),
+        "hardware_profile": hardware_profile,
         "suites": {
             name: {key: value for key, value in result.items() if key != "results"}
             for name, result in all_results.items()
@@ -250,6 +308,7 @@ def run_full_benchmark(
 def main() -> int:
     parser = argparse.ArgumentParser(description="K3D Phase E full benchmark")
     parser.add_argument("--mmlu-count", type=int, default=50)
+    parser.add_argument("--imo-count", type=int, default=20)
     parser.add_argument("--gsm8k-count", type=int, default=10)
     parser.add_argument("--lhe-count", type=int, default=10)
     parser.add_argument("--arc2-count", type=int, default=10)
@@ -260,6 +319,7 @@ def main() -> int:
 
     payload = run_full_benchmark(
         mmlu_count=args.mmlu_count,
+        imo_count=args.imo_count,
         gsm8k_count=args.gsm8k_count,
         lhe_count=args.lhe_count,
         arc2_count=args.arc2_count,
@@ -277,6 +337,10 @@ def main() -> int:
         f"({suites['mmlu']['accuracy']:.1%})"
     )
     print(
+        f"  IMO Bench:  {suites['imo']['correct']}/{suites['imo']['total']} "
+        f"({suites['imo']['accuracy']:.1%})"
+    )
+    print(
         f"  GSM8K:      {suites['gsm8k']['correct']}/{suites['gsm8k']['total']} "
         f"({suites['gsm8k']['accuracy']:.1%})"
     )
@@ -292,6 +356,10 @@ def main() -> int:
         f"  ARC3 Local: {suites['arc3_local']['correct']}/{suites['arc3_local']['total']} "
         f"({suites['arc3_local']['accuracy']:.1%}) "
         f"first_move={suites['arc3_local'].get('correct_first_moves', 0)}/{suites['arc3_local']['total']}"
+    )
+    print(
+        f"  Hardware:   {summary['hardware_profile']['physical_cores']}p/"
+        f"{summary['hardware_profile']['logical_cores']}t"
     )
     print(f"  Elapsed:    {summary['elapsed_seconds']:.1f}s")
     print(f"  Logs:       {summary['log_dir']}")
