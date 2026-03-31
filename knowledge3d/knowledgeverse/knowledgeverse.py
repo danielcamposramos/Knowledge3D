@@ -5313,6 +5313,283 @@ class Knowledgeverse:
             tokens.add(token)
         return tokens
 
+    @staticmethod
+    def _entry_layer(entry: dict[str, Any] | None) -> int:
+        payload = dict(entry or {})
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        for raw_value in (payload.get("layer"), metadata.get("layer")):
+            try:
+                return int(raw_value)
+            except Exception:
+                continue
+        return 0
+
+    @staticmethod
+    def _entry_ref_ids(entry: dict[str, Any] | None) -> list[str]:
+        payload = dict(entry or {})
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        refs: list[str] = []
+        for field in (
+            "symlinks",
+            "grammar_refs",
+            "meta_refs",
+            "reality_refs",
+            "meaning_refs",
+            "component_refs",
+            "math_refs",
+            "visual_refs",
+            "taxonomy_refs",
+        ):
+            values = payload.get(field)
+            if not isinstance(values, list):
+                values = metadata.get(field) if isinstance(metadata.get(field), list) else []
+            for value in values:
+                token = str(value).strip()
+                if token:
+                    refs.append(token)
+        return list(dict.fromkeys(refs))
+
+    @staticmethod
+    def _gsm8k_ref_layer_hint(ref_id: str) -> int:
+        token = str(ref_id).strip().lower()
+        if not token:
+            return 0
+        if token.startswith("meta_"):
+            return 4
+        if token.startswith("grammar_"):
+            return 3
+        if token.startswith("reality_"):
+            return 2
+        return 0
+
+    def _gsm8k_execution_context(
+        self,
+        *,
+        strategy_rows: list[dict[str, Any]] | None = None,
+        seed_entry: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        execution_rows: list[dict[str, Any]] = []
+        execution_ids: list[str] = []
+        layers: dict[str, int] = {}
+        seen_ids: set[str] = set()
+        queue: list[tuple[str, int]] = []
+
+        def _queue_refs(row: dict[str, Any] | None, depth: int) -> None:
+            if row is None or depth > 1:
+                return
+            for ref_id in self._entry_ref_ids(row):
+                queue.append((ref_id, depth + 1))
+
+        for row in list(strategy_rows or []):
+            _queue_refs(row if isinstance(row, dict) else None, 0)
+        if isinstance(seed_entry, dict):
+            _queue_refs(seed_entry, 0)
+
+        while queue:
+            ref_id, depth = queue.pop(0)
+            token = str(ref_id).strip()
+            if not token or token in seen_ids:
+                continue
+            seen_ids.add(token)
+            linked = self._catalog_entry_by_id(token)
+            inferred_layer = self._gsm8k_ref_layer_hint(token)
+            if not isinstance(linked, dict):
+                if inferred_layer >= 3:
+                    layers[token] = inferred_layer
+                    execution_ids.append(token)
+                continue
+            layer = max(inferred_layer, self._entry_layer(linked))
+            layers[token] = layer
+            if layer >= 3:
+                execution_rows.append(dict(linked))
+                execution_ids.append(token)
+            if depth < 1:
+                _queue_refs(linked, depth)
+
+        dispatch_specialist = ""
+        if execution_ids or list(strategy_rows or []) or isinstance(seed_entry, dict):
+            dispatch_specialist = "math"
+
+        strategy_ids = {
+            str((row or {}).get("id", "")).strip()
+            for row in list(strategy_rows or [])
+            if isinstance(row, dict) and str((row or {}).get("id", "")).strip()
+        }
+        chain_required = any(
+            token in {
+                "grammar_operation_chain_construction",
+                "grammar_recursive_subtask_decomposition",
+                "meta_decompose_multi_step_word_problem",
+                "word_problem_multi_step_reasoning",
+            }
+            for token in [*execution_ids, *strategy_ids]
+        )
+        backward_required = any(
+            token in {
+                "grammar_backward_goal_tracing",
+                "meta_apply_backward_trace_before_emit",
+                "backward_goal_tracing",
+            }
+            for token in [*execution_ids, *strategy_ids]
+        )
+        validation_required = any(
+            token in {
+                "grammar_result_normalization",
+                "grammar_validate_units_and_magnitude",
+                "meta_validate_units_before_answer",
+                "result_normalization_validation",
+            }
+            for token in [*execution_ids, *strategy_ids]
+        )
+        return {
+            "execution_rows": execution_rows,
+            "execution_star_ids": list(dict.fromkeys(execution_ids)),
+            "execution_layers": dict(layers),
+            "dispatch_specialist": dispatch_specialist,
+            "chain_required": bool(chain_required),
+            "backward_required": bool(backward_required),
+            "validation_required": bool(validation_required),
+        }
+
+    @staticmethod
+    def _gsm8k_execution_trace(context: dict[str, Any] | None) -> list[str]:
+        payload = dict(context or {})
+        dispatch_specialist = str(payload.get("dispatch_specialist", "")).strip()
+        execution_ids = [
+            str(value).strip()
+            for value in payload.get("execution_star_ids", [])
+            if str(value).strip()
+        ]
+        if not dispatch_specialist and not execution_ids:
+            return []
+        trace: list[str] = []
+        if dispatch_specialist:
+            trace.append(f"Jarvis dispatch: {dispatch_specialist} specialist")
+        if execution_ids:
+            trace.append("Jarvis execution stars: " + ", ".join(execution_ids))
+        if bool(payload.get("chain_required", False)):
+            trace.append("Jarvis execution mode: multi-step chain")
+        if bool(payload.get("backward_required", False)):
+            trace.append("Jarvis execution signal: backward goal trace")
+        if bool(payload.get("validation_required", False)):
+            trace.append("Jarvis execution signal: normalization gate")
+        return trace
+
+    def _gsm8k_execution_priority(
+        self,
+        *,
+        candidate: dict[str, Any] | None,
+        record: dict[str, Any] | None = None,
+    ) -> float:
+        payload = dict(candidate or {})
+        context = payload.get("gsm8k_context") if isinstance(payload.get("gsm8k_context"), dict) else {}
+        preview_strategy = str(payload.get("gsm8k_preview_strategy", "")).strip().lower()
+        preview_program = str(payload.get("gsm8k_preview_program", "")).strip()
+        execution_ids = [
+            str(value).strip()
+            for value in context.get("execution_star_ids", [])
+            if str(value).strip()
+        ]
+        operation_chain = [
+            str(value).strip().lower()
+            for value in context.get("operation_chain", [])
+            if str(value).strip()
+        ]
+        top_operations = [
+            str(value).strip().lower()
+            for value in context.get("top_operations", [])
+            if str(value).strip()
+        ]
+        goal_operation = str(context.get("goal_operation", "")).strip().lower()
+        weighted_support = float(payload.get("gsm8k_consensus_weight", (record or {}).get("weighted_support", 0.0)) or 0.0)
+        support_count = int(payload.get("gsm8k_consensus_support", (record or {}).get("support_count", 0)) or 0)
+        operator_tokens = [token for token in preview_program.split() if token in {"+", "-", "*", "/"}]
+        operator_count = len(operator_tokens)
+        expected_ops = max(
+            len(operation_chain),
+            len([value for value in top_operations[:3] if value]),
+            1 if goal_operation else 0,
+        )
+        strategy_bonus = {
+            "goal_adjusted_chain": 1.20,
+            "fusion_chain": 0.95,
+            "forward_chain": 0.55,
+            "backward_chain": 0.60,
+            "clause_chain": 0.50,
+            "top2_chain": 0.45,
+        }.get(preview_strategy, 0.0)
+        if operator_count >= max(2, expected_ops):
+            strategy_bonus += 0.75
+        elif operator_count >= 1 and expected_ops <= 1:
+            strategy_bonus += 0.25
+        elif expected_ops >= 2:
+            strategy_bonus -= 0.60
+        if goal_operation in {"mul", "div"} and goal_operation not in operation_chain:
+            if goal_operation == "mul" and "*" in operator_tokens:
+                strategy_bonus += 0.40
+            elif goal_operation == "div" and "/" in operator_tokens:
+                strategy_bonus += 0.40
+            else:
+                strategy_bonus -= 0.35
+        if bool(context.get("chain_required", False)):
+            strategy_bonus += 0.55
+        if bool(context.get("backward_required", False)):
+            strategy_bonus += 0.25
+        if bool(context.get("validation_required", False)):
+            strategy_bonus += 0.20
+        if str(context.get("dispatch_specialist", "")).strip():
+            strategy_bonus += 0.35
+        if execution_ids:
+            strategy_bonus += min(0.50, 0.06 * float(len(execution_ids)))
+        strategy_bonus += min(0.20, 0.03 * float(support_count))
+        strategy_bonus += min(0.20, 0.02 * float(weighted_support))
+        return float(strategy_bonus)
+
+    def _gsm8k_execution_pattern_score(
+        self,
+        *,
+        metadata: dict[str, Any],
+        context: dict[str, Any] | None,
+    ) -> float:
+        payload = dict(context or {})
+        execution_ids = {
+            str(value).strip()
+            for value in payload.get("execution_star_ids", [])
+            if str(value).strip()
+        }
+        if not execution_ids:
+            return 0.0
+        operation_chain = [
+            str(value).strip().lower()
+            for value in (metadata.get("operation_chain") if isinstance(metadata.get("operation_chain"), list) else [])
+            if str(value).strip()
+        ]
+        required_roles = {
+            str(value).strip().lower()
+            for value in (
+                list(metadata.get("required_roles") if isinstance(metadata.get("required_roles"), list) else [])
+                + list(metadata.get("role_slots") if isinstance(metadata.get("role_slots"), list) else [])
+            )
+            if str(value).strip()
+        }
+        goal_type = str(payload.get("goal_type", "")).strip().lower()
+        score = 0.0
+        if bool(payload.get("chain_required", False)) and len(operation_chain) >= 2:
+            score += 0.55
+        if "grammar_operation_chain_construction" in execution_ids and len(operation_chain) >= 2:
+            score += 0.35
+        if "grammar_recursive_subtask_decomposition" in execution_ids and len(operation_chain) >= 2:
+            score += 0.18
+        if (
+            bool(payload.get("backward_required", False))
+            and goal_type in {"total_earnings", "total_cost", "time_to_completion", "distance_remaining"}
+            and {"rate", "rate_1", "rate_2"}.intersection(required_roles)
+        ):
+            score += 0.30
+        if bool(payload.get("validation_required", False)) and required_roles:
+            score += 0.08
+        return float(score)
+
     def _gsm8k_quantity_role_candidates(
         self,
         *,
@@ -5924,9 +6201,37 @@ class Knowledgeverse:
                 bonus += 0.90
             if _has_any("each of her chickens", "final meal", "flock", "feed", "chickens"):
                 bonus += 0.80
+        elif binding_mode == "remainder_scale":
+            if (_has_role("initial") or _has_role("total")) and _has_role("part", 2) and (
+                _has_role("rate") or _has_role("rate_1") or _has_role("rate_2")
+            ):
+                bonus += 1.25
+            if _has_any(
+                "remainder",
+                "remaining",
+                "left",
+                "sell",
+                "sells",
+                "per egg",
+                "per item",
+                "each",
+                "price",
+                "make",
+                "makes",
+                "earn",
+                "earns",
+                "dollars",
+            ):
+                bonus += 1.10
+            if _has_any("times as many", "twice as many", "combined", "altogether"):
+                bonus -= 0.75
         elif binding_mode == "total_minus_parts":
             if _has_any("final meal", "morning", "afternoon") and _has_role("count") and _has_role("rate"):
                 bonus -= 0.40
+            if _has_any("sell", "sells", "price", "make", "makes", "earn", "earns", "dollars") and (
+                _has_role("rate") or _has_role("rate_1") or _has_role("rate_2")
+            ):
+                bonus -= 0.95
         elif binding_mode == "base_plus_excess":
             if _has_any("overtime", "regular rate", "hourly", "worked", "wage"):
                 bonus += 0.85
@@ -5942,6 +6247,8 @@ class Knowledgeverse:
         elif binding_mode in {"multiply_chain_sum", "count_rate_product"}:
             if _has_any("turns around", "standstill traffic", "get home"):
                 bonus -= 0.75
+            if _has_any("remainder", "remaining", "left", "sell", "sells", "price", "earn", "earns", "dollars"):
+                bonus -= 1.10
         return float(bonus)
 
     def _gsm8k_template_slot_bindings(
@@ -6523,23 +6830,14 @@ class Knowledgeverse:
             if str(value).strip()
         ]
         goal_operation = str(context.get("goal_operation", "")).strip().lower()
+        execution_trace = self._gsm8k_execution_trace(context)
         if str(strategy or "").strip() in {"forward_chain", "backward_chain", "fusion_chain", "clause_chain", "goal_adjusted_chain"}:
+            best_template: tuple[str, str, float] | None = None
             for row in pattern_rows:
                 metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
                 program = self._gsm8k_template_program(context=context, metadata=metadata)
                 if not program:
                     continue
-                try:
-                    value = engine.evaluate(program)
-                except Exception:
-                    continue
-                try:
-                    numeric_value = float(value)
-                except Exception:
-                    continue
-                if not math.isfinite(numeric_value):
-                    continue
-                label = str(strategy or "fusion_chain").strip() or "fusion_chain"
                 structural_score = self._gsm8k_pattern_structural_score(
                     metadata=metadata,
                     quantity_candidates=quantity_candidates,
@@ -6548,7 +6846,29 @@ class Knowledgeverse:
                     top_operations=top_operations,
                     goal_operation=goal_operation,
                 )
-                return self._format_math_answer(numeric_value), program, label, float(structural_score)
+                execution_boost = self._gsm8k_execution_pattern_score(
+                    metadata=metadata,
+                    context=context,
+                )
+                combined_score = float(
+                    row.get("gsm8k_combined_signal", 0.0)
+                ) + float(structural_score) + float(execution_boost)
+                if best_template is None or combined_score > best_template[2]:
+                    best_template = (program, str(strategy or "fusion_chain").strip() or "fusion_chain", combined_score)
+            if best_template is not None:
+                program, label, template_score = best_template
+                try:
+                    value = engine.evaluate(program)
+                except Exception:
+                    value = None
+                try:
+                    numeric_value = float(value)
+                except Exception:
+                    numeric_value = float("nan")
+                if math.isfinite(numeric_value):
+                    if execution_trace:
+                        context["_last_gsm8k_execution_trace"] = list(execution_trace)
+                    return self._format_math_answer(numeric_value), program, label, float(template_score)
 
         fusion_values = [float(value) for value in context.get("number_values", [])[:6]]
         forward_values = [float(value) for value in context.get("forward_number_values", [])[:6]] or fusion_values
@@ -6670,6 +6990,8 @@ class Knowledgeverse:
             return None
         if not math.isfinite(numeric_value):
             return None
+        if execution_trace:
+            context["_last_gsm8k_execution_trace"] = list(execution_trace)
         best_structural = 0.0
         for row in pattern_rows:
             metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
@@ -6708,6 +7030,7 @@ class Knowledgeverse:
         if preview_answer and preview_program:
             binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
             return preview_answer, [
+                *self._gsm8k_execution_trace(context),
                 "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
                 f"GSM8K candidate program: {preview_label or 'fusion_chain'}",
                 *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
@@ -6725,6 +7048,7 @@ class Knowledgeverse:
         answer, program, label, _ = preview
         binding_summary = str(context.get("_last_gsm8k_slot_binding", "")).strip()
         return answer, [
+            *self._gsm8k_execution_trace(context),
             "GSM8K atomic fission: operation/number context bound from navigator fusion parse",
             f"GSM8K candidate program: {label}",
             *([f"GSM8K slot binding: {binding_summary}"] if binding_summary else []),
@@ -6754,6 +7078,13 @@ class Knowledgeverse:
         rpn_program = str(match.get("rpn_program", "")).strip()
         can_direct_eval = self._math_match_allows_direct_eval(match)
         resolved = False
+        program_type = "gpu_math_template_match_lookup"
+        best_candidate_payload = best_candidate if isinstance(best_candidate, dict) else {}
+        gsm8k_context_payload = (
+            dict(best_candidate_payload.get("gsm8k_context", {}))
+            if isinstance(best_candidate_payload.get("gsm8k_context"), dict)
+            else {}
+        )
         if self._is_gsm8k_math_task(task):
             decomposition_result = self._gsm8k_decomposition_result(
                 engine=engine,
@@ -6763,6 +7094,8 @@ class Knowledgeverse:
                 answer, decomposition_steps = decomposition_result
                 extra_steps.extend(decomposition_steps)
                 resolved = True
+                if str(gsm8k_context_payload.get("dispatch_specialist", "")).strip():
+                    program_type = "gpu_math_symlink_execution_chain"
         if not resolved and rpn_program and can_direct_eval:
             try:
                 gpu_value = engine.evaluate(rpn_program)
@@ -6794,7 +7127,6 @@ class Knowledgeverse:
         if not resolved:
             answer = ""
             extra_steps.append("GPU math unresolved: no executable answer path")
-        best_candidate_payload = best_candidate if isinstance(best_candidate, dict) else {}
         thinking_trace = self._build_gpu_thinking_trace(
             binding=binding,
             program_id=str(reasoning_program.get("id", "")),
@@ -6815,7 +7147,7 @@ class Knowledgeverse:
             "gpu_execution": True,
             "runtime": "knowledgeverse_gpu_query",
             "program_id": str(reasoning_program.get("id", "")),
-            "program_type": "gpu_math_template_match_lookup",
+            "program_type": program_type,
             "solver": "knowledgeverse_gpu_query",
             "query_text": query_text,
             "top_match_similarity": similarity,
@@ -6832,13 +7164,14 @@ class Knowledgeverse:
             "gsm8k_preview_strategy": str(best_candidate_payload.get("gsm8k_preview_strategy", "")).strip(),
             "gsm8k_preview_program": str(best_candidate_payload.get("gsm8k_preview_program", "")).strip(),
             "gsm8k_consensus_support": int(best_candidate_payload.get("gsm8k_consensus_support", 0) or 0),
+            "gsm8k_execution_priority": float(best_candidate_payload.get("gsm8k_execution_priority", 0.0) or 0.0),
             "gsm8k_operation_ids": list(
-                (
-                    best_candidate_payload.get("gsm8k_context")
-                    if isinstance(best_candidate_payload.get("gsm8k_context"), dict)
-                    else {}
-                ).get("operation_ids", [])
+                gsm8k_context_payload.get("operation_ids", [])
             ),
+            "gsm8k_strategy_ids": list(gsm8k_context_payload.get("strategy_ids", [])),
+            "gsm8k_execution_star_ids": list(gsm8k_context_payload.get("execution_star_ids", [])),
+            "gsm8k_execution_layers": dict(gsm8k_context_payload.get("execution_layers", {})),
+            "gsm8k_dispatch_specialist": str(gsm8k_context_payload.get("dispatch_specialist", "")).strip(),
         }
 
     def _answer_mmlu_query(
@@ -8523,6 +8856,7 @@ class Knowledgeverse:
         selected_strategy_rows: list[dict[str, Any]] = []
         selected_strategy_ids: list[str] = []
         strategy_embedding: list[float] = []
+        execution_context: dict[str, Any] = {}
         if strategy_rows:
             strategy_similarities = self._embedding_similarities(
                 base_embedding,
@@ -8554,11 +8888,38 @@ class Knowledgeverse:
                 enriched = dict(entry)
                 enriched["gsm8k_strategy_similarity"] = float(raw_similarity)
                 selected_strategy_rows.append(enriched)
+            canonical_strategy_ids = [
+                "forward_entity_extraction",
+                "backward_goal_tracing",
+                "operation_chain_construction",
+                "result_normalization_validation",
+                "word_problem_multi_step_reasoning",
+            ]
+            selected_strategy_id_set = {
+                str(entry.get("id", "")).strip()
+                for entry in selected_strategy_rows
+                if str(entry.get("id", "")).strip()
+            }
+            for strategy_id in canonical_strategy_ids:
+                if strategy_id in selected_strategy_id_set:
+                    continue
+                canonical_row = self._catalog_entry_by_id(strategy_id)
+                if not isinstance(canonical_row, dict):
+                    continue
+                if allowed and str(canonical_row.get("galaxy", "")).strip() not in allowed:
+                    continue
+                enriched = dict(canonical_row)
+                enriched.setdefault("gsm8k_strategy_similarity", 0.0)
+                selected_strategy_rows.append(enriched)
+                selected_strategy_id_set.add(strategy_id)
             selected_strategy_ids = [
                 str(entry.get("id", "")).strip()
                 for entry in selected_strategy_rows
                 if str(entry.get("id", "")).strip()
             ]
+            execution_context = self._gsm8k_execution_context(
+                strategy_rows=selected_strategy_rows,
+            )
             strategy_embedding = self._mean_embedding_rows(
                 [list(entry.get("embedding16", [])) for entry in selected_strategy_rows]
             )
@@ -8667,6 +9028,13 @@ class Knowledgeverse:
                                 goal_operation=goal_operation,
                             )
                         ),
+                        self._gsm8k_execution_pattern_score(
+                            metadata=(entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}),
+                            context={
+                                **dict(execution_context),
+                                "goal_type": str(parse_role_diagnostics.get("goal_type", "")).strip(),
+                            },
+                        ),
                         float(signal),
                         float(similarity),
                         self._gsm8k_pattern_structural_score(
@@ -8690,25 +9058,112 @@ class Knowledgeverse:
                     for signal, similarity, entry in zip(operation_signal, operation_similarities, operation_rows)
                 ],
                 key=lambda item: (
-                    item[0] + (0.72 * item[4]) + item[5],
+                    item[0] + item[1] + (0.72 * item[5]) + item[6],
                     item[5],
+                    item[6],
                     item[4],
-                    item[3],
-                    item[1],
                     item[2],
+                    item[3],
                 ),
                 reverse=True,
             )
             selected_operation_rows = []
-            for combined_score, raw_signal, raw_similarity, structural_score, role_match_score, disambiguation_bonus, entry in ranked_operations[:4]:
+            for combined_score, execution_boost, raw_signal, raw_similarity, structural_score, role_match_score, disambiguation_bonus, entry in ranked_operations[:4]:
                 enriched = dict(entry)
-                enriched["gsm8k_combined_signal"] = float(combined_score + (0.72 * role_match_score) + disambiguation_bonus)
+                enriched["gsm8k_combined_signal"] = float(combined_score + execution_boost + (0.72 * role_match_score) + disambiguation_bonus)
+                enriched["gsm8k_execution_boost"] = float(execution_boost)
                 enriched["gsm8k_structural_score"] = float(structural_score)
                 enriched["gsm8k_role_match_score"] = float(role_match_score)
                 enriched["gsm8k_disambiguation_bonus"] = float(disambiguation_bonus)
                 enriched["gsm8k_embedding_signal"] = float(raw_signal)
                 enriched["gsm8k_similarity"] = float(raw_similarity)
                 selected_operation_rows.append(enriched)
+            goal_type_hint = str(parse_role_diagnostics.get("goal_type", "")).strip().lower()
+            part_values = list(quantity_role_values.get("part", [])) if isinstance(quantity_role_values, dict) else []
+            has_rate_signal = any(
+                list(quantity_role_values.get(name, []))
+                for name in ("rate", "rate_1", "rate_2")
+                if isinstance(quantity_role_values, dict)
+            )
+            has_initial_signal = any(
+                list(quantity_role_values.get(name, []))
+                for name in ("initial", "total")
+                if isinstance(quantity_role_values, dict)
+            )
+            selected_operation_id_set = {
+                str(entry.get("id", "")).strip()
+                for entry in selected_operation_rows
+                if str(entry.get("id", "")).strip()
+            }
+            if (
+                goal_type_hint in {"total_earnings", "total_cost"}
+                and has_rate_signal
+                and has_initial_signal
+                and len(part_values) >= 2
+                and "operation_pattern_remainder_scale" not in selected_operation_id_set
+            ):
+                canonical_operation = self._catalog_entry_by_id("operation_pattern_remainder_scale")
+                if isinstance(canonical_operation, dict):
+                    canonical_metadata = (
+                        canonical_operation.get("metadata")
+                        if isinstance(canonical_operation.get("metadata"), dict)
+                        else {}
+                    )
+                    canonical_structural = self._gsm8k_pattern_structural_score(
+                        metadata=canonical_metadata,
+                        quantity_candidates=quantity_candidates,
+                        quantity_count=quantity_count,
+                        clause_operations=clause_operations,
+                        top_operations=top_operations,
+                        goal_operation=goal_operation,
+                    )
+                    canonical_role_match = self._gsm8k_operation_role_match_score(
+                        metadata=canonical_metadata,
+                        context=semantic_context,
+                    )
+                    canonical_disambiguation = self._gsm8k_operation_disambiguation_bonus(
+                        metadata=canonical_metadata,
+                        context=semantic_context,
+                    )
+                    canonical_execution_boost = self._gsm8k_execution_pattern_score(
+                        metadata=canonical_metadata,
+                        context={
+                            **dict(execution_context),
+                            "goal_type": str(parse_role_diagnostics.get("goal_type", "")).strip(),
+                        },
+                    )
+                    canonical_similarity = self._embedding_similarity(
+                        base_embedding,
+                        list(canonical_operation.get("embedding16", [])),
+                    )
+                    enriched = dict(canonical_operation)
+                    enriched["gsm8k_combined_signal"] = float(
+                        (0.62 * float(canonical_similarity))
+                        + (1.10 * float(canonical_structural))
+                        + float(canonical_execution_boost)
+                        + (0.72 * float(canonical_role_match))
+                        + float(canonical_disambiguation)
+                        + 0.75
+                    )
+                    enriched["gsm8k_execution_boost"] = float(canonical_execution_boost)
+                    enriched["gsm8k_structural_score"] = float(canonical_structural)
+                    enriched["gsm8k_role_match_score"] = float(canonical_role_match)
+                    enriched["gsm8k_disambiguation_bonus"] = float(canonical_disambiguation)
+                    enriched["gsm8k_embedding_signal"] = float(canonical_similarity)
+                    enriched["gsm8k_similarity"] = float(canonical_similarity)
+                    selected_operation_rows.append(enriched)
+                    selected_operation_rows.sort(
+                        key=lambda row: (
+                            float(row.get("gsm8k_combined_signal", 0.0)),
+                            float(row.get("gsm8k_execution_boost", 0.0)),
+                            float(row.get("gsm8k_role_match_score", 0.0)),
+                            float(row.get("gsm8k_disambiguation_bonus", 0.0)),
+                            float(row.get("gsm8k_structural_score", 0.0)),
+                            float(row.get("gsm8k_embedding_signal", 0.0)),
+                        ),
+                        reverse=True,
+                    )
+                    selected_operation_rows = selected_operation_rows[:4]
             selected_operation_ids = [
                 str(entry.get("id", "")).strip()
                 for entry in selected_operation_rows
@@ -8842,6 +9297,13 @@ class Knowledgeverse:
             "numeric_embedding": numeric_embedding,
             "strategy_ids": selected_strategy_ids,
             "strategy_rows": selected_strategy_rows,
+            "execution_rows": list(execution_context.get("execution_rows", [])),
+            "execution_star_ids": list(execution_context.get("execution_star_ids", [])),
+            "execution_layers": dict(execution_context.get("execution_layers", {})),
+            "dispatch_specialist": str(execution_context.get("dispatch_specialist", "")).strip(),
+            "chain_required": bool(execution_context.get("chain_required", False)),
+            "backward_required": bool(execution_context.get("backward_required", False)),
+            "validation_required": bool(execution_context.get("validation_required", False)),
             "operation_ids": selected_operation_ids,
             "pattern_rows": selected_operation_rows,
             "number_ids": selected_number_ids,
@@ -12479,11 +12941,21 @@ class Knowledgeverse:
             aggregate_score = float(aggregate_scores[score_index])
             weighted_support = float(aggregate_scores[score_index + 1])
             score_index += 2
+            execution_priority = self._gsm8k_execution_priority(
+                candidate=candidate if isinstance(candidate, dict) else {},
+                record={
+                    "weighted_support": float(weighted_support),
+                    "support_count": int(support_count),
+                    "best_structural_score": float(best_structural_score),
+                    "path_score": float(aggregate_score),
+                },
+            )
             if isinstance(candidate, dict):
                 candidate["path_score"] = float(aggregate_score)
                 candidate["gsm8k_consensus_support"] = int(support_count)
                 candidate["gsm8k_consensus_weight"] = float(weighted_support)
                 candidate["gsm8k_best_structural_score"] = float(best_structural_score)
+                candidate["gsm8k_execution_priority"] = float(execution_priority)
             aggregated_records.append(
                 {
                     "candidate": candidate,
@@ -12492,17 +12964,19 @@ class Knowledgeverse:
                     "support_count": int(support_count),
                     "weighted_support": float(weighted_support),
                     "best_structural_score": float(best_structural_score),
+                    "execution_priority": float(execution_priority),
                 }
             )
             selection_steps.append(
                 "GSM8K answer consensus: "
-                f"{answer_key} (struct={best_structural_score:.2f}, workers={support_count}, weight={weighted_support:.2f}, mean={aggregate_score:.2f})"
+                f"{answer_key} (exec={execution_priority:.2f}, struct={best_structural_score:.2f}, workers={support_count}, weight={weighted_support:.2f}, mean={aggregate_score:.2f})"
             )
         # Phase B+ ceiling: structural verification only checks frame/slot fit, so semantically
         # wrong GSM8K programs can still rank alongside correct ones. Phase D compositional RPN
         # execution is needed to separate valid structure from valid computation.
         aggregated_records.sort(
             key=lambda record: (
+                float(record.get("execution_priority", 0.0)),
                 float(record.get("best_structural_score", 0.0)),
                 float(record.get("weighted_support", 0.0)),
                 int(record.get("support_count", 0)),
@@ -12547,6 +13021,7 @@ class Knowledgeverse:
         return max(
             viable,
             key=lambda record: (
+                float(((record.get("candidate") or {}).get("gsm8k_execution_priority", record.get("execution_priority", 0.0)))),
                 float(((record.get("candidate") or {}).get("gsm8k_consensus_weight", record.get("weighted_support", 0.0)))),
                 int(((record.get("candidate") or {}).get("gsm8k_consensus_support", record.get("support_count", 0)))),
                 float(((record.get("candidate") or {}).get("path_score", record.get("path_score", float("-inf"))))),
@@ -12566,11 +13041,19 @@ class Knowledgeverse:
         compositional = max(0.0, float(candidate.get("compositional_consistency", 0.0) or 0.0))
         dimensional = max(0.0, float(candidate.get("compositional_dimensional_consistency", 0.0) or 0.0))
         path_score = float(candidate.get("path_score", record.get("path_score", float("-inf"))) or float("-inf"))
+        execution_priority = float(
+            candidate.get(
+                "gsm8k_execution_priority",
+                record.get("execution_priority", 0.0),
+            )
+            or 0.0
+        )
         return float(
             (self.GSM8K_STRUCTURAL_OVERRIDE_PATH_WEIGHT * path_score)
             + (self.GSM8K_STRUCTURAL_OVERRIDE_STRUCT_WEIGHT * structural)
             + (self.GSM8K_STRUCTURAL_OVERRIDE_COMPOSITIONAL_WEIGHT * compositional)
             + (self.GSM8K_STRUCTURAL_OVERRIDE_DIMENSIONAL_WEIGHT * dimensional)
+            + (0.35 * execution_priority)
         )
 
     def _gsm8k_structural_override_record(self, records: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -12910,6 +13393,20 @@ class Knowledgeverse:
                 )
             else:
                 selection_steps.append("GSM8K number neighborhood: miss (0 entries)")
+            execution_ids = [
+                str(value).strip()
+                for value in gsm8k_context.get("execution_star_ids", [])
+                if str(value).strip()
+            ]
+            dispatch_specialist = str(gsm8k_context.get("dispatch_specialist", "")).strip()
+            if execution_ids:
+                selection_steps.append(
+                    "GSM8K execution stars: " + ", ".join(execution_ids)
+                )
+            else:
+                selection_steps.append("GSM8K execution stars: miss (0 entries)")
+            if dispatch_specialist:
+                selection_steps.append(f"Jarvis dispatch seed: {dispatch_specialist}")
         if task_type == "LHE_TASK":
             self._record_active_lhe_timing("nav_embed", time.perf_counter() - nav_embed_started)
         morton_started = time.perf_counter()

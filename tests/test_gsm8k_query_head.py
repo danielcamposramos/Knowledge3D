@@ -520,6 +520,27 @@ def test_gsm8k_decomposition_fallback_can_execute_chain_program(tmp_path) -> Non
     assert any("GSM8K fusion eval:" in step for step in trace)
 
 
+def test_gsm8k_execution_context_follows_reasoning_refs(tmp_path) -> None:
+    root = tmp_path / "kv_gsm8k_execution_refs"
+    populate_reasoning_strategies(house_dir=root / "house")
+    kv = Knowledgeverse(storage_root=root)
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["reasoning_strategies", "Grammar", "Tool", "Reality"])
+
+    context = kv._gsm8k_execution_context(
+        strategy_rows=[
+            kv._catalog_entry_by_id("word_problem_multi_step_reasoning"),
+            kv._catalog_entry_by_id("operation_chain_construction"),
+        ],
+    )
+
+    execution_ids = set(context["execution_star_ids"])
+    assert "grammar_operation_chain_construction" in execution_ids
+    assert "grammar_recursive_subtask_decomposition" in execution_ids
+    assert "meta_decompose_multi_step_word_problem" in execution_ids
+    assert context["dispatch_specialist"] == "math"
+    assert context["chain_required"] is True
+
+
 def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
@@ -571,6 +592,72 @@ def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
     assert program == "16 3 - 4 - 2 *"
     assert label == "fusion_chain"
     assert structural >= 0.0
+
+
+def test_gsm8k_template_preview_prefers_symlink_execution_chain(tmp_path) -> None:
+    class _StubEngine:
+        @staticmethod
+        def evaluate(program: str) -> float:
+            stack: list[float] = []
+            for token in program.split():
+                if token == "+":
+                    right = stack.pop()
+                    left = stack.pop()
+                    stack.append(left + right)
+                elif token == "-":
+                    right = stack.pop()
+                    left = stack.pop()
+                    stack.append(left - right)
+                elif token == "*":
+                    right = stack.pop()
+                    left = stack.pop()
+                    stack.append(left * right)
+                elif token == "/":
+                    right = stack.pop()
+                    left = stack.pop()
+                    stack.append(left / right)
+                else:
+                    stack.append(float(token))
+            return stack[-1]
+
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_execution_preview")
+    kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
+    wrong_pattern = kv._catalog_entry_by_id("operation_pattern_total_minus_parts")
+    right_pattern = kv._catalog_entry_by_id("operation_pattern_remainder_scale")
+    assert wrong_pattern is not None
+    assert right_pattern is not None
+
+    preview = kv._gsm8k_decomposition_preview(
+        engine=_StubEngine(),
+        context={
+            "pattern_rows": [wrong_pattern, right_pattern],
+            "quantity_role_values": {
+                "total": [16.0],
+                "initial": [16.0],
+                "part": [3.0, 4.0],
+                "rate": [2.0],
+            },
+            "number_values": [16.0, 3.0, 4.0, 2.0],
+            "goal_type": "total_earnings",
+            "execution_star_ids": [
+                "grammar_operation_chain_construction",
+                "grammar_recursive_subtask_decomposition",
+                "meta_decompose_multi_step_word_problem",
+                "grammar_backward_goal_tracing",
+            ],
+            "dispatch_specialist": "math",
+            "chain_required": True,
+            "backward_required": True,
+            "validation_required": True,
+        },
+        strategy="fusion_chain",
+    )
+
+    assert preview is not None
+    answer, program, label, _ = preview
+    assert answer == "18"
+    assert program == "16 3 - 4 - 2 *"
+    assert label == "fusion_chain"
 
 
 def test_gsm8k_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None:
@@ -639,6 +726,51 @@ def test_gsm8k_benchmark_direct_preview_uses_match_answer(tmp_path) -> None:
     answer, trace = result
     assert answer == "18"
     assert any("benchmark_direct" in step for step in trace)
+
+
+def test_gsm8k_answer_math_query_surfaces_dispatch_metadata(tmp_path) -> None:
+    class _StubEngine:
+        @staticmethod
+        def evaluate(program: str) -> float:
+            del program
+            return 0.0
+
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_answer_dispatch")
+    result = kv._answer_math_query(
+        task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_0_QUESTION},
+        binding={"galaxies": ["Math", "reasoning_strategies", "Grammar", "Tool", "Reality", "Number", "Word"], "entry_count": 0},
+        reasoning_program={"id": "reasoning_word_problem_fission"},
+        route_galaxies=["Math", "reasoning_strategies", "Grammar", "Tool", "Reality", "Number", "Word"],
+        match={"id": "synset_00233925_a", "name": "en_two-way", "metadata": {}},
+        similarity=0.87,
+        engine=_StubEngine(),
+        specialist="math",
+        domain_hint="math",
+        query_text=GSM8K_0_QUESTION,
+        use_enriched=True,
+        query_type="MATH_TASK",
+        selection_steps=[],
+        best_candidate={
+            "gsm8k_preview_answer": "18",
+            "gsm8k_preview_program": "16 3 - 4 - 2 *",
+            "gsm8k_preview_strategy": "fusion_chain",
+            "gsm8k_context": {
+                "operation_ids": ["operation_pattern_remainder_scale"],
+                "execution_star_ids": [
+                    "grammar_operation_chain_construction",
+                    "grammar_recursive_subtask_decomposition",
+                    "meta_decompose_multi_step_word_problem",
+                ],
+                "dispatch_specialist": "math",
+                "chain_required": True,
+            },
+        },
+    )
+
+    assert result["answer"] == "18"
+    assert result["program_type"] == "gpu_math_symlink_execution_chain"
+    assert result["gsm8k_dispatch_specialist"] == "math"
+    assert "grammar_operation_chain_construction" in result["gsm8k_execution_star_ids"]
 
 
 def test_gsm8k_answer_consensus_prefers_supported_preview(tmp_path) -> None:
