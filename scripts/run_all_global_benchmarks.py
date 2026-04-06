@@ -466,7 +466,7 @@ def _extract_number(value: Any) -> float | None:
         return None
 
 
-def _run_gsm8k_proxy(
+def _run_math_proxy(
     *,
     kv: Knowledgeverse,
     dataset_root: Path,
@@ -1028,8 +1028,8 @@ def main() -> None:
     if args.run_proxy:
         # Reuse the same enriched world for proxy tasks to preserve single-universe continuity.
         proxy_results["gsm8k_proxy"], gsm8k_proxy_metrics = _run_with_metrics(
-            "global_gsm8k_proxy",
-            lambda: _run_gsm8k_proxy(
+            "global_math_proxy",
+            lambda: _run_math_proxy(
                 kv=enriched_kv,
                 dataset_root=args.dataset_root,
                 max_questions=args.max_proxy_questions,

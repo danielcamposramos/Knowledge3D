@@ -513,7 +513,7 @@ def train_trm_weights_from_traces(
     arc_mask = np.asarray(
         [
             str(trace.get("benchmark") or "").strip().upper() == "ARC"
-            or str(trace.get("task_type") or "").strip().upper() == "ARC_TASK"
+            or str(trace.get("task_type") or "").strip().upper() == "SPATIAL_TASK"
             for trace in usable
         ],
         dtype=bool,

@@ -217,7 +217,7 @@ def main():
         print()
 
     # Save detailed results
-    output_path = Path("/tmp/pdf_type_analysis.txt")
+    output_path = Path("/K3D/Knowledge3D.local/logs/pdf_type_analysis.txt")
     with output_path.open("w") as f:
         f.write("SCANNED PDFs WITH OCR (BEST FOR TRAINING)\n")
         f.write("=" * 80 + "\n")

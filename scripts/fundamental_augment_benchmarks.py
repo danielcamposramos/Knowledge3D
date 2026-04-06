@@ -15,7 +15,8 @@ NOT FOR:
   - Runtime daemon specialist solving.
 
 ARCHITECTURE:
-  - Ollama is central in augmentation pipeline (mandatory by default).
+  - Ollama remains the canonical transport.
+  - Text/math/question sources now flow through the canonical knowledge proceduralizer.
   - Outputs JSONL payload rows consumed by `scripts/fundamental_ingest_payloads.py`.
   - Ingestion phase applies symlink compression (form->meaning refs).
 """
@@ -33,6 +34,10 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from knowledge3d.ingestion.ollama_manager import OllamaModelManager
+from knowledge3d.tools.knowledge_proceduralizer import (
+    PROCEDURALIZER_MODEL_PROFILES,
+    proceduralize_entry_to_payload_rows,
+)
 
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9_\-']{1,31}")
 
@@ -428,27 +433,63 @@ def _build_math_entries(row: dict[str, Any], include_ollama_hint: str | None) ->
         meta["ollama_hint"] = include_ollama_hint
 
     token = _sha(pid + family)
+    math_route = _meaning_route_fields(
+        route_family="MATH",
+        executor_refs=[
+            "math_quantity_binding_executor",
+            "math_goal_trace_executor",
+            "math_operation_chain_executor",
+        ],
+        validator_refs=[
+            "math_normalization_validator",
+            "math_unit_magnitude_validator",
+            "math_answer_validator",
+        ],
+        anti_pattern_refs=[
+            "anti_pattern_unchecked_unit_transfer",
+            "anti_pattern_missing_validator_traversal",
+        ],
+        branch_topk=3,
+    )
+    grammar_route = _meaning_route_fields(
+        route_family="GRAMMAR",
+        executor_refs=[
+            "grammar_slot_binding_executor",
+            "grammar_sequence_executor",
+        ],
+        validator_refs=[
+            "grammar_normalization_validator",
+            "grammar_answer_validator",
+        ],
+        anti_pattern_refs=[
+            "anti_pattern_symbol_meaning_drift",
+            "anti_pattern_missing_validator_traversal",
+        ],
+        branch_topk=2,
+    )
     return [
         {
             "galaxy": "Math",
             "entry": {
-                "id": f"math_tpl_{pid}_{token}",
-                "name": f"{family} template {pid}",
+                "id": f"math_reasoning_template_{family}_{token}",
+                "name": f"{family} procedural template",
                 "domain": "math",
                 "category": "benchmark_template",
                 "rpn_program": rpn,
-                "metadata": {**meta, "symlink": "grammar_galaxy"},
+                **math_route,
+                "metadata": {**meta, "symlink": "grammar_galaxy", **math_route},
             },
         },
         {
             "galaxy": "Grammar",
             "entry": {
-                "id": f"math_rule_{pid}_{token}",
-                "name": f"Math reasoning rule {pid}",
+                "id": f"math_reasoning_rule_{family}_{token}",
+                "name": f"Math reasoning rule {family}",
                 "domain": "grammar",
                 "category": "math_reasoning_rule",
                 "rpn_program": "QUERY PARSE_TEMPLATE APPLY_SOLVER",
-                "metadata": {**meta, "symlink": "math_galaxy"},
+                **grammar_route,
+                "metadata": {**meta, "symlink": "math_galaxy", **grammar_route},
             },
         },
     ]
@@ -546,6 +587,41 @@ def _subject_to_domain(subject: str) -> str:
     return "word"
 
 
+def _meaning_id(prefix: str, *parts: str) -> str:
+    payload = " | ".join(str(part or "").strip() for part in parts if str(part or "").strip())
+    return f"{prefix}_{_sha(payload or prefix)}"
+
+
+def _meaning_route_fields(
+    *,
+    route_family: str,
+    selection_role: str = "executor",
+    layer_id: int = 3,
+    answer_eligible: bool = False,
+    executor_refs: list[str] | None = None,
+    validator_refs: list[str] | None = None,
+    anti_pattern_refs: list[str] | None = None,
+    branch_topk: int = 2,
+) -> dict[str, Any]:
+    refs = {
+        "executor_refs": list(executor_refs or []),
+        "validator_refs": list(validator_refs or []),
+        "anti_pattern_refs": list(anti_pattern_refs or []),
+    }
+    return {
+        "route_family": str(route_family).strip().upper(),
+        "selection_role": str(selection_role).strip().lower(),
+        "layer_id": int(layer_id),
+        "answer_eligible": bool(answer_eligible),
+        "route_policy": {
+            "requires_validator": True,
+            "answer_gate": True,
+            "branch_topk": int(branch_topk),
+        },
+        **refs,
+    }
+
+
 def _build_question_entries(
     row: dict[str, Any],
     *,
@@ -557,16 +633,26 @@ def _build_question_entries(
     subject = str(row.get("subject") or row.get("domain") or "multi")
     answer = str(row.get("correct_answer") or row.get("answer") or "").strip()
     domain = _subject_to_domain(subject)
-
-    grammar_id = f"{source_name}_rule_{qid}_{_sha(text)}"
+    question_id = _meaning_id("question_reasoning_anchor", subject, text)
+    question_route = _meaning_route_fields(
+        route_family="QUESTION",
+        executor_refs=["question_option_elimination_executor"],
+        validator_refs=["question_evidence_validator", "question_answer_validator"],
+        anti_pattern_refs=[
+            "anti_pattern_option_emission_without_comparison",
+            "anti_pattern_missing_evidence_consistency",
+        ],
+        branch_topk=2,
+    )
     grammar_entry = {
         "galaxy": "Grammar",
         "entry": {
-            "id": grammar_id,
-            "name": f"{source_name.upper()} reasoning {qid}",
+            "id": question_id,
+            "name": "Question Reasoning Anchor",
             "domain": "grammar",
-            "category": f"{source_name}_reasoning_rule",
+            "category": "question_reasoning_anchor",
             "rpn_program": "QUESTION PARSE CONTEXT_ALIGN OPTION_SELECT",
+            **question_route,
             "metadata": {
                 "source": f"benchmark_augmentation_{source_name}",
                 "question_id": qid,
@@ -575,6 +661,7 @@ def _build_question_entries(
                 "cross_modal": ["word", "grammar", "math", "reality"],
                 "confidence": 0.82,
                 "supervision_answer": answer or None,
+                **question_route,
                 **({"ollama_hint": include_ollama_hint} if include_ollama_hint else {}),
             },
         },
@@ -582,41 +669,73 @@ def _build_question_entries(
 
     entries = [grammar_entry]
     if domain == "math":
+        math_route = _meaning_route_fields(
+            route_family="MATH",
+            executor_refs=[
+                "math_quantity_binding_executor",
+                "math_goal_trace_executor",
+                "math_operation_chain_executor",
+            ],
+            validator_refs=[
+                "math_normalization_validator",
+                "math_unit_magnitude_validator",
+                "math_answer_validator",
+            ],
+            anti_pattern_refs=[
+                "anti_pattern_unchecked_unit_transfer",
+                "anti_pattern_missing_validator_traversal",
+            ],
+            branch_topk=3,
+        )
         entries.append(
             {
                 "galaxy": "Math",
                 "entry": {
-                    "id": f"{source_name}_math_{qid}_{_sha(subject)}",
-                    "name": f"{source_name.upper()} math bridge {qid}",
+                    "id": _meaning_id("math_reasoning_bridge", subject, text, answer),
+                    "name": "Math Reasoning Bridge",
                     "domain": "math",
-                    "category": f"{source_name}_math_bridge",
+                    "category": "math_reasoning_bridge",
                     "rpn_program": _rpn_from_keywords(text, MATH_KEYWORDS, "A B EQ"),
+                    **math_route,
                     "metadata": {
                         "source": f"benchmark_augmentation_{source_name}",
                         "question_id": qid,
                         "subject": subject,
                         "symlink": "grammar_galaxy",
                         "confidence": 0.8,
+                        **math_route,
                     },
                 },
             }
         )
     elif domain == "reality":
+        general_route = _meaning_route_fields(
+            route_family="GENERAL",
+            executor_refs=["general_compare_executor", "general_evidence_executor"],
+            validator_refs=["general_consistency_validator", "general_answer_validator"],
+            anti_pattern_refs=[
+                "anti_pattern_missing_evidence_consistency",
+                "anti_pattern_generic_language_factual_winner",
+            ],
+            branch_topk=2,
+        )
         entries.append(
             {
                 "galaxy": "Reality",
                 "entry": {
-                    "id": f"{source_name}_reality_{qid}_{_sha(subject)}",
-                    "name": f"{source_name.upper()} reality bridge {qid}",
+                    "id": _meaning_id("general_reasoning_bridge", subject, text, answer),
+                    "name": "General Reasoning Bridge",
                     "domain": "reality",
-                    "category": f"{source_name}_reality_bridge",
+                    "category": "general_reasoning_bridge",
                     "rpn_program": _rpn_from_keywords(text, REALITY_KEYWORDS, "STATE TRANSITION APPLY"),
+                    **general_route,
                     "metadata": {
                         "source": f"benchmark_augmentation_{source_name}",
                         "question_id": qid,
                         "subject": subject,
                         "symlink": "grammar_galaxy",
                         "confidence": 0.8,
+                        **general_route,
                     },
                 },
             }
@@ -766,6 +885,10 @@ def main() -> int:
         action="store_true",
         help="EMERGENCY ONLY: skip Ollama enrichment (breaks standard augmentation pipeline).",
     )
+    parser.add_argument("--provider", default="ollama", help="Canonical transport provider; ollama is default.")
+    parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
+    parser.add_argument("--model", default=None, help="Optional explicit proceduralizer model override.")
+    parser.add_argument("--capture-dir", type=Path, default=None, help="Optional capture directory for request/response receipts.")
     parser.add_argument("--ollama-model", default="llama3.2")
     parser.add_argument("--ollama-timeout", type=float, default=45.0)
     parser.add_argument("--ollama-stride", type=int, default=50, help="Call Ollama once every N records (1 = every record)")
@@ -791,6 +914,11 @@ def main() -> int:
         )
     ollama_state = {"budget": int(max(0, args.max_ollama_calls)), "seen": 0}
     manager_ctx = OllamaModelManager(default_timeout=float(args.ollama_timeout)) if ollama_enabled else None
+    resolved_proceduralizer_model = str(args.model or "").strip() or None
+    if resolved_proceduralizer_model is None and str(args.ollama_model or "").strip() and str(args.ollama_model).strip() != "llama3.2":
+        resolved_proceduralizer_model = str(args.ollama_model).strip()
+    stop_due_to_plan_limit = False
+    retry_after_utc = ""
 
     if manager_ctx is None:
         manager_cm = None
@@ -821,84 +949,153 @@ def main() -> int:
                     if isinstance(ex, dict):
                         token_counter.update(_tokenize(json.dumps(ex, ensure_ascii=False)))
 
-        if args.max_math_problems > 0:
+        if args.max_math_problems > 0 and not stop_due_to_plan_limit:
             math_rows = _iter_math_records(args.dataset_root, args.max_math_problems)
             for row in math_rows:
                 text = str(row.get("problem_text", ""))
-                hint = _maybe_ollama_hint(
-                    manager,
-                    enabled=ollama_enabled,
-                    model=args.ollama_model,
-                    prompt=_compose_prompt("math", {"text": text, "answer": row.get("answer", "")}),
-                    timeout=args.ollama_timeout,
-                    state=ollama_state,
-                    stride=max(1, int(args.ollama_stride)),
-                )
-                new_rows = _build_math_entries(row, hint)
+                receipt = None
+                if ollama_enabled:
+                    entry = {
+                        "entry_id": str(row.get("id") or "math_problem"),
+                        "content": (
+                            "Subject: Competition Mathematics\n"
+                            f"Problem: {text}\n"
+                            f"Gold answer: {str(row.get('answer', '')).strip()}\n"
+                            "Extract the canonical procedural math knowledge and references."
+                        ),
+                        "subject": str(row.get("competition") or "mathematics"),
+                        "domain_hint": "Mathematics",
+                        "source": "benchmark_math",
+                        "question": text,
+                        "correct_answer": str(row.get("answer") or "").strip(),
+                    }
+                    new_rows, receipt = proceduralize_entry_to_payload_rows(
+                        # one entry per request keeps context isolated between sources;
+                        # long content is chunked with overlap inside the proceduralizer
+                        entry,
+                        model=resolved_proceduralizer_model,
+                        timeout=float(args.ollama_timeout),
+                        capture_dir=args.capture_dir,
+                        provider=str(args.provider).strip().lower(),
+                        model_profile=str(args.model_profile).strip().lower(),
+                        ollama=manager,
+                        source_kind="benchmark",
+                    )
+                else:
+                    new_rows = _build_math_entries(row, None)
                 _append_rows(rows, new_rows, seen_ids, stats_by_galaxy, stats_by_source)
                 math_stats.processed += 1
                 math_stats.entries += len(new_rows)
                 token_counter.update(_tokenize(text))
+                if receipt is not None and str(receipt.failure_code or "").strip() == "plan_limit_consumed":
+                    stop_due_to_plan_limit = True
+                    retry_after_utc = str(receipt.retry_after_utc or "").strip()
+                    break
 
-        if args.max_lhe_questions > 0:
+        if args.max_lhe_questions > 0 and not stop_due_to_plan_limit:
             lhe_rows = _iter_lhe_rows(args.dataset_root, args.max_lhe_questions)
             for row in lhe_rows:
                 text = str(row.get("question_text", ""))
-                hint = _maybe_ollama_hint(
-                    manager,
-                    enabled=ollama_enabled,
-                    model=args.ollama_model,
-                    prompt=_compose_prompt(
-                        "qa",
-                        {
-                            "text": text,
-                            "answer": row.get("correct_answer", ""),
-                            "options": row.get("options", []),
-                        },
-                    ),
-                    timeout=args.ollama_timeout,
-                    state=ollama_state,
-                    stride=max(1, int(args.ollama_stride)),
-                )
-                new_rows = _build_question_entries(row, source_name="lhe", include_ollama_hint=hint)
+                receipt = None
+                if ollama_enabled:
+                    options = row.get("options", []) if isinstance(row.get("options"), list) else []
+                    content = (
+                        f"Subject: {str(row.get('domain') or 'general').strip()}\n"
+                        f"Question: {text}\n"
+                    )
+                    if options:
+                        content += "Options:\n" + "\n".join(f"- {str(option).strip()}" for option in options if str(option).strip()) + "\n"
+                    answer = str(row.get("correct_answer") or "").strip()
+                    if answer:
+                        content += f"Gold answer: {answer}\n"
+                    content += "Extract canonical question/general knowledge packets and references."
+                    entry = {
+                        "entry_id": str(row.get("id") or "lhe_question"),
+                        "content": content,
+                        "subject": str(row.get("domain") or "general"),
+                        "domain_hint": "General",
+                        "source": "benchmark_lhe",
+                        "question": text,
+                        "correct_answer": answer,
+                        "options": options,
+                    }
+                    new_rows, receipt = proceduralize_entry_to_payload_rows(
+                        entry,
+                        model=resolved_proceduralizer_model,
+                        timeout=float(args.ollama_timeout),
+                        capture_dir=args.capture_dir,
+                        provider=str(args.provider).strip().lower(),
+                        model_profile=str(args.model_profile).strip().lower(),
+                        ollama=manager,
+                        source_kind="benchmark",
+                    )
+                else:
+                    new_rows = _build_question_entries(row, source_name="lhe", include_ollama_hint=None)
                 _append_rows(rows, new_rows, seen_ids, stats_by_galaxy, stats_by_source)
                 lhe_stats.processed += 1
                 lhe_stats.entries += len(new_rows)
                 token_counter.update(_tokenize(text))
                 for opt in row.get("options", []):
                     token_counter.update(_tokenize(str(opt)))
+                if receipt is not None and str(receipt.failure_code or "").strip() == "plan_limit_consumed":
+                    stop_due_to_plan_limit = True
+                    retry_after_utc = str(receipt.retry_after_utc or "").strip()
+                    break
 
-        if args.max_mmlu_questions > 0:
+        if args.max_mmlu_questions > 0 and not stop_due_to_plan_limit:
             mmlu_rows = _iter_mmlu_rows(args.dataset_root, args.max_mmlu_questions)
             for row in mmlu_rows:
                 text = str(row.get("question_text", ""))
-                hint = _maybe_ollama_hint(
-                    manager,
-                    enabled=ollama_enabled,
-                    model=args.ollama_model,
-                    prompt=_compose_prompt(
-                        "qa",
-                        {
-                            "text": text,
-                            "answer": row.get("correct_answer", ""),
-                            "options": row.get("options", []),
-                        },
-                    ),
-                    timeout=args.ollama_timeout,
-                    state=ollama_state,
-                    stride=max(1, int(args.ollama_stride)),
-                )
-                new_rows = _build_question_entries(row, source_name="mmlu", include_ollama_hint=hint)
+                receipt = None
+                if ollama_enabled:
+                    options = row.get("options", []) if isinstance(row.get("options"), list) else []
+                    answer = str(row.get("correct_answer") or "").strip()
+                    content = (
+                        f"Subject: {str(row.get('subject') or 'general').strip()}\n"
+                        f"Question: {text}\n"
+                    )
+                    if options:
+                        content += "Options:\n" + "\n".join(f"- {str(option).strip()}" for option in options if str(option).strip()) + "\n"
+                    if answer:
+                        content += f"Gold answer: {answer}\n"
+                    content += "Extract canonical question/general knowledge packets and references."
+                    entry = {
+                        "entry_id": str(row.get("id") or "mmlu_question"),
+                        "content": content,
+                        "subject": str(row.get("subject") or "general"),
+                        "domain_hint": "General",
+                        "source": "benchmark_mmlu",
+                        "question": text,
+                        "correct_answer": answer,
+                        "options": options,
+                    }
+                    new_rows, receipt = proceduralize_entry_to_payload_rows(
+                        entry,
+                        model=resolved_proceduralizer_model,
+                        timeout=float(args.ollama_timeout),
+                        capture_dir=args.capture_dir,
+                        provider=str(args.provider).strip().lower(),
+                        model_profile=str(args.model_profile).strip().lower(),
+                        ollama=manager,
+                        source_kind="benchmark",
+                    )
+                else:
+                    new_rows = _build_question_entries(row, source_name="mmlu", include_ollama_hint=None)
                 _append_rows(rows, new_rows, seen_ids, stats_by_galaxy, stats_by_source)
                 mmlu_stats.processed += 1
                 mmlu_stats.entries += len(new_rows)
                 token_counter.update(_tokenize(text))
                 for opt in row.get("options", []):
                     token_counter.update(_tokenize(str(opt)))
+                if receipt is not None and str(receipt.failure_code or "").strip() == "plan_limit_consumed":
+                    stop_due_to_plan_limit = True
+                    retry_after_utc = str(receipt.retry_after_utc or "").strip()
+                    break
 
         # Add compact benchmark lexicon rows for Character->Word symlink flows.
-        word_rows = _build_word_entries(token_counter, max_word_entries=max(0, int(args.max_word_entries)))
-        _append_rows(rows, word_rows, seen_ids, stats_by_galaxy, stats_by_source)
+        if not stop_due_to_plan_limit:
+            word_rows = _build_word_entries(token_counter, max_word_entries=max(0, int(args.max_word_entries)))
+            _append_rows(rows, word_rows, seen_ids, stats_by_galaxy, stats_by_source)
 
     finally:
         if manager_cm is not None:
@@ -919,6 +1116,11 @@ def main() -> int:
             "calls_budget": int(args.max_ollama_calls),
             "calls_used": int(max(0, args.max_ollama_calls - ollama_state.get("budget", 0))),
             "stride": int(max(1, args.ollama_stride)),
+            "provider": args.provider,
+            "model_profile": args.model_profile,
+            "proceduralizer_model": resolved_proceduralizer_model,
+            "stopped_due_to_plan_limit": bool(stop_due_to_plan_limit),
+            "retry_after_utc": retry_after_utc,
         },
         "augmented": {
             "arc": {"processed": arc_stats.processed, "entries": arc_stats.entries},
@@ -939,7 +1141,7 @@ def main() -> int:
     for galaxy, count in sorted(stats_by_galaxy.items()):
         print(f"[augment] {galaxy}: {count}")
 
-    return 0
+    return 75 if stop_due_to_plan_limit else 0
 
 
 if __name__ == "__main__":

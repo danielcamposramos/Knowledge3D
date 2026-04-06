@@ -175,3 +175,81 @@ def test_jarvis_sleep_diagnostic_reports_pending_briefs_and_quality_memory(tmp_p
     assert diagnostic["last_brief_worker_count"] >= 1
     assert diagnostic["ternary_quality_pattern_count"] >= 1
     assert diagnostic["contrastive_learning_active"] is True
+
+
+def test_jarvis_benchmark_sleep_writes_compact_delta(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path, eager_load_default_galaxies=False)
+    brief = kv._jarvis_compile_brief(
+        task_type="MATH_TASK",
+        paths=[{"program_id": "p1"}],
+        options=["5"],
+        path_best_records=[
+            {
+                "option_text": "5",
+                "path_role": "hypothesis",
+                "path_score": 0.8,
+                "candidate": {"path_score": 0.8, "match": {"id": "math_answer", "galaxy": "Math"}},
+            }
+        ],
+        selected_records=[
+            {
+                "option_text": "5",
+                "path_score": 0.8,
+                "candidate": {"path_score": 0.8, "match": {"id": "math_answer", "galaxy": "Math"}},
+            }
+        ],
+        scored_candidates=[{"gpu_score": 0.8}],
+    )
+    kv._jarvis_record_brief(brief)
+
+    summary = kv.jarvis_sleep_consolidation(persist=False, trigger="shutdown", profile="benchmark")
+
+    assert summary["profile"] == "benchmark"
+    assert summary["delta"]["saved"] is True
+    assert summary["sovereign_sleep"]["gravity"]["skipped"] is True
+    assert (tmp_path / "checkpoints" / "sovereign_sleep_delta.bin").exists()
+    assert (tmp_path / "checkpoints" / "sovereign_sleep_delta.json").exists()
+    assert summary["diagnostic"]["pending_recent_briefs"] == 0
+
+
+def test_jarvis_sleep_delta_loads_on_boot(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path, eager_load_default_galaxies=False)
+    brief = kv._jarvis_compile_brief(
+        task_type="QUESTION_TASK",
+        paths=[{"program_id": "p1"}],
+        options=["Paris"],
+        path_best_records=[
+            {
+                "option_text": "Paris",
+                "path_role": "hypothesis",
+                "path_score": 0.7,
+                "candidate": {"path_score": 0.7, "match": {"id": "capital_answer", "galaxy": "Reality"}},
+            }
+        ],
+        selected_records=[
+            {
+                "option_text": "Paris",
+                "path_score": 0.7,
+                "candidate": {"path_score": 0.7, "match": {"id": "capital_answer", "galaxy": "Reality"}},
+            }
+        ],
+        scored_candidates=[{"gpu_score": 0.7}],
+    )
+    kv._jarvis_record_brief(brief)
+    kv.jarvis_sleep_consolidation(persist=False, trigger="shutdown", profile="benchmark")
+
+    restored = Knowledgeverse(storage_root=tmp_path, eager_load_default_galaxies=False)
+
+    assert int(restored._jarvis_state.get("brief_count") or 0) >= 1
+    assert "QUESTION_TASK" in dict(restored._jarvis_state.get("task_type_stats") or {})
+    assert dict(restored._jarvis_state.get("last_brief") or {}).get("task_type") == "QUESTION_TASK"
+
+
+def test_shutdown_is_idempotent_after_explicit_benchmark_shutdown(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path, eager_load_default_galaxies=False, start_live_loops=False)
+
+    first = kv.shutdown(persist=False, profile="benchmark")
+    second = kv.shutdown(persist=False, profile="service")
+
+    assert first["status"] == "fast_exit"
+    assert second["status"] == "idempotent_noop"

@@ -4,12 +4,13 @@ import pytest
 
 from knowledge3d.knowledgeverse.galaxy_vram_table import (
     GalaxyVRAMTable,
-    build_foundational_galaxy_table,
     compose_star_embedding,
 )
 from knowledge3d.knowledgeverse.gpu_task_dispatch import GPUTaskDispatch, cpu_reference_dispatch
 from knowledge3d.knowledgeverse.persistent_brain import PersistentBrainState
 from knowledge3d.knowledgeverse.vram_task_buffer import VRAMTaskBuffer
+
+from tests.foundational_test_utils import build_resolved_foundational_stars
 
 
 def _dispatch_tasks(count: int = 10):
@@ -170,10 +171,10 @@ def test_gpu_task_dispatch_arc3_persistent_brain_tracks_state():
 
 
 def test_gpu_task_dispatch_arc3_galaxy_table_matches_composed_reference():
-    galaxy_stars = build_foundational_galaxy_table()
+    galaxy_stars = build_resolved_foundational_stars()
     composed_query = compose_star_embedding(galaxy_stars, 4)
     task = {
-        "type": "ARC3_TASK",
+        "type": "GAME_2D",
         "query_embedding": composed_query,
         "option_embeddings": [[1.0 if i == j else 0.0 for i in range(32)] for j in range(7)],
         "subject": "arc3_subject",
@@ -192,8 +193,7 @@ def test_gpu_task_dispatch_arc3_galaxy_table_matches_composed_reference():
         dispatcher.launch(
             task_buffer,
             1,
-            galaxy_ptr=galaxy_table.gpu_ptr,
-            galaxy_star_count=galaxy_table.star_count,
+            star_table=galaxy_table,
         )
         result_galaxy = task_buffer.read_results(1)[0]
 
@@ -213,10 +213,10 @@ def test_gpu_task_dispatch_arc3_galaxy_table_matches_composed_reference():
 
 
 def test_gpu_task_dispatch_non_arc3_galaxy_navigation_changes_result_shape():
-    galaxy_stars = build_foundational_galaxy_table()
+    galaxy_stars = build_resolved_foundational_stars()
     composed_query = compose_star_embedding(galaxy_stars, 12)
     task = {
-        "type": "MMLU_TASK",
+        "type": "QUESTION",
         "query_embedding": composed_query,
         "option_embeddings": [[1.0 if i == j else 0.0 for i in range(32)] for j in range(4)],
         "subject": "mmlu_subject",
@@ -235,8 +235,7 @@ def test_gpu_task_dispatch_non_arc3_galaxy_navigation_changes_result_shape():
         dispatcher.launch(
             task_buffer,
             1,
-            galaxy_ptr=galaxy_table.gpu_ptr,
-            galaxy_star_count=galaxy_table.star_count,
+            star_table=galaxy_table,
         )
         result_galaxy = task_buffer.read_results(1)[0]
     finally:

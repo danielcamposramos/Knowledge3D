@@ -9,32 +9,40 @@ from knowledge3d.cranium.actions import ActionType
 class _FakeDaemon:
     def handle_command(self, payload: dict[str, object]) -> dict[str, object]:
         task = dict(payload.get("task") or {})
-        task_type = str(task.get("type", ""))
-        if task_type == "ARC_TASK":
+        task_type = str(task.get("surface_kind") or task.get("type", ""))
+        if task_type == "GAME_2D":
             return {
                 "status": "ok",
                 "route": {"specialist": "visual", "galaxy_names": ["Drawing", "Tool"], "domain": "visual"},
                 "task_result": {
                     "status": "ok",
+                    "answer_kind": "grid",
+                    "answer_materialized": True,
                     "output_grid": task.get("expected_output"),
                 },
             }
-        if task_type == "MATH_TASK":
+        if task_type == "MATH":
             return {
                 "status": "ok",
                 "route": {"specialist": "math", "galaxy_names": ["Math", "Grammar"], "domain": "math"},
                 "task_result": {
-                    "status": "success",
-                    "result": task.get("expected_answer"),
+                    "status": "ok",
+                    "answer_kind": "numeric",
+                    "answer_text": str(task.get("expected_answer") or ""),
+                    "numeric_answer": 4.0,
+                    "answer_materialized": True,
                 },
             }
-        if task_type == "LHE_TASK":
+        if task_type == "QUESTION":
             return {
                 "status": "ok",
                 "route": {"specialist": "chat", "galaxy_names": ["Grammar", "Reality"], "domain": task.get("domain_hint", "multi")},
                 "task_result": {
-                    "status": "success",
-                    "response": task.get("expected_answer") or "unknown",
+                    "status": "ok",
+                    "answer_kind": "choice",
+                    "answer_choice": str(task.get("expected_answer") or "unknown"),
+                    "answer_text": str(task.get("expected_answer") or "unknown"),
+                    "answer_materialized": True,
                 },
             }
         return {"status": "error", "error": "unsupported_task"}
@@ -51,7 +59,7 @@ def test_tablet_ingest_arc_builds_standard_route_payload_and_action_buffer():
     payload = envelope.to_route_payload(use_enriched=True)
     assert payload["command"] == "ROUTE"
     assert payload["specialist"] == "visual"
-    assert payload["task"]["type"] == "ARC_TASK"
+    assert payload["task"]["surface_kind"] == "GAME_2D"
 
     buf = envelope.to_action_buffer()
     mutation_type, mutation_payload = buf.extract_tablet_mutation()
@@ -73,12 +81,13 @@ def test_headless_tablet_mpc_routes_math_through_standard_contract(tmp_path: Pat
 
     assert result["response"]["status"] == "ok"
     assert result["emitted"]["status"] == "success"
-    assert result["emitted"]["predicted_answer"] == "4"
+    assert result["emitted"]["numeric_answer"] == 4.0
+    assert result["emitted"]["answer_text"] == "4"
     assert result["emitted"]["correct"] is True
     assert result["tablet_contract"]["action_type"] == "UPDATE_TABLET"
 
 
-def test_tablet_emit_lhe_extracts_option_answer_from_chat_response():
+def test_tablet_emit_lhe_uses_typed_option_answer_from_task_result():
     envelope = TabletIngest.lhe_question(
         task_id="lhe_demo",
         question="Choose the correct answer.",
@@ -89,13 +98,80 @@ def test_tablet_emit_lhe_extracts_option_answer_from_chat_response():
     response = {
         "status": "ok",
         "route": {"specialist": "chat", "domain": "logic", "galaxy_names": ["Grammar"]},
-        "task_result": {"status": "success", "response": "The best option is B because it matches the constraint."},
+        "task_result": {
+            "status": "ok",
+            "answer_kind": "choice",
+            "answer_choice": "B",
+            "answer_text": "B",
+            "answer_materialized": True,
+        },
     }
 
     emitted = TabletEmit.lhe_result(envelope, response)
     assert emitted["status"] == "success"
     assert emitted["predicted_answer"] == "B"
     assert emitted["correct"] is True
+
+
+def test_tablet_emit_flattens_nested_route_response_and_blocks_internal_answer_labels():
+    envelope = TabletIngest.lhe_question(
+        task_id="lhe_nested_demo",
+        question="Choose the correct answer.",
+        options=["A", "B", "C"],
+        domain="logic",
+        expected_answer="B",
+    )
+    response = {
+        "status": "ok",
+        "route": {"specialist": "chat", "domain": "logic", "galaxy_names": ["Grammar"]},
+        "task_result": {
+            "status": "ok",
+            "route": {"specialist": "chat", "domain": "logic", "galaxy_names": ["Reality"]},
+            "task_result": {
+                "status": "ok",
+                "answer_kind": "choice",
+                "answer_index": 1,
+                "answer": "grammar_answer_validator",
+                "response": "grammar_answer_validator",
+                "winner_star_id": "grammar_answer_validator",
+                "route_depth": 2,
+            },
+        },
+    }
+
+    emitted = TabletEmit.lhe_result(envelope, response)
+
+    assert emitted["status"] == "success"
+    assert emitted["predicted_answer"] == "B"
+    assert emitted["answer_materialized"] is True
+    assert emitted["route"]["galaxy_names"] == ["Reality"]
+
+
+def test_tablet_emit_blocks_humanized_internal_labels_from_answer_text():
+    envelope = TabletIngest.lhe_question(
+        task_id="lhe_internal_label_demo",
+        question="Explain the best answer.",
+        options=[],
+        domain="logic",
+        expected_answer="grounded explanation",
+    )
+    response = {
+        "status": "ok",
+        "route": {"specialist": "chat", "domain": "logic", "galaxy_names": ["Grammar"]},
+        "task_result": {
+            "status": "ok",
+            "answer_kind": "text",
+            "answer_text": "Anti Pattern Missing Validator Traversal",
+            "answer_materialized": True,
+            "winner_star_id": "anti_pattern_missing_validator_traversal",
+        },
+    }
+
+    emitted = TabletEmit.lhe_result(envelope, response)
+
+    assert emitted["answer_text"] == ""
+    assert emitted["predicted_answer"] == ""
+    assert emitted["answer_materialized"] is False
 
 
 def test_tablet_emit_prefers_task_specific_route_when_present():
@@ -110,8 +186,10 @@ def test_tablet_emit_prefers_task_specific_route_when_present():
         "status": "ok",
         "route": {"specialist": "grammar", "domain": "cybersecurity", "galaxy_names": ["Grammar", "Tool"]},
         "task_result": {
-            "status": "success",
-            "response": "least privilege",
+            "status": "ok",
+            "answer_kind": "text",
+            "answer_text": "least privilege",
+            "answer_materialized": True,
             "route": {
                 "specialist": "grammar",
                 "domain": "cybersecurity",

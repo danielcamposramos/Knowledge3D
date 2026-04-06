@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.local_paths import default_storage_root
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
 from knowledge3d.cranium.bridges.procedural_geometry_bridge import ProceduralGeometryBridge
@@ -93,6 +94,25 @@ def _configure_cuda_include_paths() -> dict[str, Any]:
     return configured
 
 
+def _mean_embedding_rows(rows: list[list[float]]) -> list[float]:
+    if not rows:
+        return []
+    width = len(rows[0])
+    if width <= 0:
+        return []
+    totals = [0.0] * width
+    count = 0
+    for row in rows:
+        if len(row) != width:
+            continue
+        for index, value in enumerate(row):
+            totals[index] += float(value)
+        count += 1
+    if count <= 0:
+        return []
+    return [value / float(count) for value in totals]
+
+
 @dataclass
 class DaemonConfig:
     storage_root: Path
@@ -160,7 +180,7 @@ class K3DDaemon:
         self.trm = self.kv.trm_navigator
         self._default_counts = self.kv.ensure_default_galaxies_loaded()
         if self.config.warm_gpu_runtime_on_boot:
-            self._write_boot_status(stage="gpu_runtime_bind", progress=0.62, state="warming")
+            self._write_boot_status(stage="sovereign_runtime_load", progress=0.62, state="warming")
             self._boot_binding = self._warmup_gpu_runtime_binding()
         self._write_boot_status(
             stage="knowledgeverse_ready",
@@ -338,13 +358,9 @@ class K3DDaemon:
 
     def _warmup_gpu_runtime_binding(self) -> dict[str, Any]:
         try:
-            binding = self.kv.bind_gpu_galaxy_runtime(galaxy_names=self.kv._discover_live_galaxy_names())
-            return {
-                "status": "ok",
-                "entry_count": int(binding.get("entry_count", 0)),
-                "buffer_bytes": int(binding.get("buffer_bytes", 0)),
-                "galaxies": list(binding.get("galaxies", [])),
-            }
+            runtime = self.kv._get_sovereign_hot_path()
+            binding = runtime.ensure_loaded()
+            return {"status": "ok", **dict(binding)}
         except Exception as exc:
             return {
                 "status": "error",
@@ -353,16 +369,16 @@ class K3DDaemon:
             }
 
     def _binding_report(self) -> dict[str, Any]:
-        binding = getattr(self.kv, "_gpu_galaxy_binding", None)
-        if not isinstance(binding, dict):
-            return {"status": "unbound"}
-        return {
-            "status": "ready",
-            "entry_count": int(binding.get("entry_count", 0)),
-            "buffer_bytes": int(binding.get("buffer_bytes", 0)),
-            "galaxies": list(binding.get("galaxies", [])),
-            "runtime_artifact_entries": int(binding.get("runtime_artifact_entries", 0)),
-        }
+        runtime = getattr(self.kv, "_sovereign_hot_path", None)
+        if runtime is not None and getattr(runtime.star_table, "star_count", 0) > 0:
+            return {
+                "status": "ready",
+                "mode": "sovereign",
+                "star_count": int(runtime.star_table.star_count),
+                "manifest": dict(runtime.current_runtime_manifest()) if hasattr(runtime, "current_runtime_manifest") else {},
+                "load_summary": dict(getattr(runtime, "_last_load_summary", {}) or {}),
+            }
+        return {"status": "unbound", "mode": "sovereign"}
 
     def _semantic_graph_report(self) -> dict[str, Any]:
         graph = getattr(self.kv, "_semantic_csr_graph", None)
@@ -565,10 +581,10 @@ class K3DDaemon:
         )
         if len(sample_rows) < 2:
             return {"status": "skipped", "reason": "insufficient_embeddings", "rows": len(sample_rows)}
-        import numpy as np
-
-        matrix = np.asarray([embedding for _, _, embedding in sample_rows], dtype=np.float32)
-        teacher = np.mean(matrix, axis=0, keepdims=False).astype(np.float32)
+        matrix = [[float(value) for value in embedding] for _, _, embedding in sample_rows]
+        teacher = _mean_embedding_rows(matrix)
+        if not teacher:
+            return {"status": "skipped", "reason": "invalid_embedding_rows", "rows": len(sample_rows)}
         updated_rows: list[list[float]] = []
         for row in matrix:
             blended = updater.blend(row, teacher, blend_factor=0.06)
@@ -589,7 +605,6 @@ class K3DDaemon:
         catalog = self.kv.get_gpu_galaxy_catalog()
         if graph is None or not catalog:
             return {"status": "skipped", "reason": "semantic_graph_unavailable"}
-        import numpy as np
 
         max_rows = min(int(self.config.sleep_sample_size), min(256, len(catalog)))
         sample_indexes = list(range(max_rows))
@@ -606,9 +621,7 @@ class K3DDaemon:
                 if int(graph.col_indices[edge_idx]) < len(catalog)
             ]
             if neighbors:
-                neighbor_rows.append(
-                    np.mean(np.asarray(neighbors, dtype=np.float32), axis=0).astype(np.float32).tolist()
-                )
+                neighbor_rows.append(_mean_embedding_rows(neighbors))
             else:
                 neighbor_rows.append(list(node_rows[-1]))
         crystallized = crystallizer.crystallize_list(node_rows, neighbor_rows, ema_rate=0.985)
@@ -757,7 +770,7 @@ class K3DDaemon:
                         break
         return bundle
 
-    def _dispatch_lhe_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
+    def _dispatch_question_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         response = self.kv.execute_task(
             task=task,
             route=route,
@@ -771,15 +784,22 @@ class K3DDaemon:
 
     def _dispatch_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         specialist = str(route.get("specialist", "grammar")).lower()
-        task_type = str(task.get("type", "")).upper()
+        task_type = (
+            self.kv._normalize_semantic_task_type(str(task.get("surface_kind") or task.get("type", "")).upper())
+            if hasattr(self.kv, "_normalize_semantic_task_type")
+            else str(task.get("surface_kind") or task.get("type", "")).upper()
+        )
+        question_mode = task_type == "QUESTION"
+        spatial_mode = task_type == "GAME_2D"
+        math_mode = task_type == "MATH"
         all_galaxies = self._all_default_galaxies()
 
-        if task_type == "LHE_TASK":
-            return self._dispatch_lhe_task(route=route, task=task, use_enriched=use_enriched)
+        if question_mode:
+            return self._dispatch_question_task(route=route, task=task, use_enriched=use_enriched)
 
         if specialist == "visual":
-            if task_type != "ARC_TASK":
-                return {"status": "not_implemented", "reason": "visual_specialist_expected_arc_task"}
+            if not spatial_mode:
+                return {"status": "not_implemented", "reason": "visual_specialist_expected_game2d_task"}
             if not hasattr(self.kv, "execute_task"):
                 return {"status": "error", "error": "knowledgeverse_missing_execute_task"}
             arc_route = {
@@ -794,30 +814,51 @@ class K3DDaemon:
                 domain_hint="visual",
                 use_enriched=use_enriched,
             )
-            output_grid = solved.get("output_grid")
-            response = {
-                "status": "ok" if str(solved.get("status", "")).lower() == "ok" and output_grid is not None else "error",
-                "task_type": "ARC_TASK",
-                "task_id": task.get("task_id"),
-                "program_type": str(solved.get("program_type") or "knowledgeverse_gpu_query"),
-                "output_grid": output_grid,
-                "reasoning_trace": list(solved.get("reasoning_trace", solved.get("thinking_trace", []))),
-                "thinking_trace": list(solved.get("thinking_trace", [])),
-                "thinking_xml": solved.get("thinking_xml"),
-                "solver": solved.get("solver", "knowledgeverse_gpu_query"),
-                "patterns_used": int(solved.get("patterns_used", 1 if output_grid is not None else 0)),
-                "generated_pattern_count": int(solved.get("generated_pattern_count", 0)),
-                "score": float(solved.get("score", 1.0 if output_grid is not None else 0.0)),
-                "fuzzy_score": float(solved.get("fuzzy_score", 1.0 if output_grid is not None else 0.0)),
-                "exact_match": bool(output_grid == task.get("expected_output")) if task.get("expected_output") is not None else False,
-                "gpu_execution": bool(solved.get("gpu_execution", False)),
-                "runtime": solved.get("runtime", "knowledgeverse_gpu_query"),
-                "program_id": solved.get("program_id"),
-                "route": solved.get("route", arc_route),
-            }
+            task_result = dict(solved.get("task_result") or {}) if isinstance(solved, dict) else {}
+            packet = task_result if task_result else (dict(solved) if isinstance(solved, dict) else {})
+            output_grid = packet.get("output_grid")
+            action_index = packet.get("action_index")
+            action_name = str(packet.get("action_name") or "").strip()
+            answer_materialized = bool(
+                packet.get("answer_materialized")
+                or output_grid is not None
+                or action_index is not None
+                or action_name
+            )
+            response = dict(solved or {})
+            response.update(
+                {
+                    "status": "ok"
+                    if str((solved or {}).get("status", "")).lower() == "ok" and answer_materialized
+                    else "error",
+                    "task_type": "GAME_2D",
+                    "task_id": task.get("task_id"),
+                    "program_type": str(packet.get("program_type") or (solved or {}).get("program_type") or "knowledgeverse_gpu_query"),
+                    "output_grid": output_grid,
+                    "action_index": action_index,
+                    "action_name": action_name,
+                    "answer_materialized": answer_materialized,
+                    "failure_code": str(packet.get("failure_code") or ""),
+                    "reasoning_trace": list(packet.get("reasoning_trace", packet.get("thinking_trace", (solved or {}).get("reasoning_trace", (solved or {}).get("thinking_trace", []))))),
+                    "thinking_trace": list(packet.get("thinking_trace", (solved or {}).get("thinking_trace", []))),
+                    "thinking_xml": packet.get("thinking_xml", (solved or {}).get("thinking_xml")),
+                    "solver": packet.get("solver", (solved or {}).get("solver", "knowledgeverse_gpu_query")),
+                    "patterns_used": int(packet.get("patterns_used", 1 if answer_materialized else 0)),
+                    "generated_pattern_count": int(packet.get("generated_pattern_count", 0)),
+                    "score": float(packet.get("score", 1.0 if answer_materialized else 0.0)),
+                    "fuzzy_score": float(packet.get("fuzzy_score", 1.0 if answer_materialized else 0.0)),
+                    "exact_match": bool(output_grid == task.get("expected_output")) if task.get("expected_output") is not None else False,
+                    "gpu_execution": bool(packet.get("gpu_execution", (solved or {}).get("gpu_execution", False))),
+                    "runtime": packet.get("runtime", (solved or {}).get("runtime", "knowledgeverse_gpu_query")),
+                    "program_id": packet.get("program_id", (solved or {}).get("program_id")),
+                    "route": packet.get("route", (solved or {}).get("route", arc_route)),
+                }
+            )
+            if task_result:
+                response["task_result"] = task_result
             return response
 
-        if specialist == "math":
+        if specialist == "math" or math_mode:
             question = str(task.get("question", "") or task.get("query", "")).strip()
             if not question:
                 return {"status": "error", "error": "math_task_missing_question"}
@@ -829,7 +870,7 @@ class K3DDaemon:
             solved = self.kv.execute_task(
                 task={
                     **dict(task),
-                    "type": task_type or "MATH_TASK",
+                    "surface_kind": "MATH",
                     "query": question,
                     "question": question,
                 },
@@ -840,13 +881,13 @@ class K3DDaemon:
             )
             response = {
                 **solved,
-                "task_type": task_type or "MATH_TASK",
+                "task_type": "MATH",
                 "task_id": task.get("task_id"),
             }
             response["status"] = "success" if str(solved.get("status", "")).lower() == "ok" else "error"
             return response
 
-        if specialist in {"chat", "grammar", "any"} or task_type == "MMLU_TASK":
+        if specialist in {"chat", "grammar", "any"}:
             messages = task.get("messages")
             if not isinstance(messages, list):
                 prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
@@ -865,7 +906,7 @@ class K3DDaemon:
                         break
             if not chat_prompt:
                 return {"status": "error", "error": "chat_task_missing_prompt"}
-            if task_type != "MMLU_TASK" and self._looks_like_math_prompt(chat_prompt):
+            if not question_mode and self._looks_like_math_prompt(chat_prompt):
                 math_route = {
                     "specialist": "math",
                     "domain_hint": "math",
@@ -874,7 +915,7 @@ class K3DDaemon:
                 solved = self.kv.execute_task(
                     task={
                         **dict(task),
-                        "type": "MATH_TASK",
+                        "surface_kind": "MATH",
                         "query": chat_prompt,
                         "question": chat_prompt,
                     },
@@ -885,7 +926,7 @@ class K3DDaemon:
                 )
                 return {
                     **solved,
-                    "task_type": "MATH_TASK",
+                    "task_type": "MATH",
                     "task_id": task.get("task_id"),
                 }
             chat_route = {
@@ -896,11 +937,11 @@ class K3DDaemon:
             solved = self.kv.execute_task(
                 task={
                     **dict(task),
-                "type": task_type or "CHAT_TASK",
-                "prompt": chat_prompt,
-                "query": chat_prompt,
-                "messages": list(messages),
-            },
+                    "surface_kind": task_type or "CHAT",
+                    "prompt": chat_prompt,
+                    "query": chat_prompt,
+                    "messages": list(messages),
+                },
                 route=chat_route,
                 specialist="chat",
                 domain_hint=str(route.get("domain") or route.get("domain_hint") or "general"),
@@ -908,7 +949,7 @@ class K3DDaemon:
             )
             return {
                 **solved,
-                "task_type": task_type or "CHAT_TASK",
+                "task_type": task_type or "CHAT",
                 "task_id": task.get("task_id"),
             }
 
@@ -945,40 +986,52 @@ class K3DDaemon:
             if task is not None and not isinstance(task, dict):
                 return {"status": "error", "error": "task_must_be_object"}
             task_obj = task if isinstance(task, dict) else None
-            task_type = str((task_obj or {}).get("type", "")).upper()
+            task_type = (
+                self.kv._normalize_semantic_task_type(
+                    str(
+                        (task_obj or {}).get("surface_kind")
+                        or (task_obj or {}).get("type", "")
+                    ).upper()
+                )
+                if hasattr(self.kv, "_normalize_semantic_task_type")
+                else str((task_obj or {}).get("surface_kind") or (task_obj or {}).get("type", "")).upper()
+            )
+            question_mode = task_type == "QUESTION"
+            spatial_mode = task_type == "GAME_2D"
+            math_mode = task_type == "MATH"
             query = str(
                 payload.get("query", "")
                 or (task_obj or {}).get("query", "")
                 or (task_obj or {}).get("question", "")
                 or (task_obj or {}).get("prompt", "")
-                or (task_obj or {}).get("type", "")
+                or task_type
             ).strip()
             if not query:
                 return {"status": "error", "error": "missing_query_or_task"}
             use_enriched = bool(payload.get("use_enriched", True))
             all_galaxies = self._all_default_galaxies()
-            if task_type == "ARC_TASK":
+            if spatial_mode:
                 route = {
                     "specialist": "visual",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "visual"),
                     "reason": "knowledgeverse_gpu_query",
                     "galaxy_names": list(all_galaxies),
                 }
-            elif task_type == "LHE_TASK":
+            elif question_mode:
                 route = {
                     "specialist": str(payload.get("specialist", "auto") or "auto"),
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or ""),
                     "reason": "knowledgeverse_gpu_query",
                     "galaxy_names": list(all_galaxies),
                 }
-            elif task_type == "MATH_TASK":
+            elif math_mode:
                 route = {
                     "specialist": "math",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "math"),
                     "reason": "knowledgeverse_gpu_query",
                     "galaxy_names": list(all_galaxies),
                 }
-            elif task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}:
+            elif task_type in {"CHAT", "GENERAL", "GRAMMAR"}:
                 specialist = "math" if self._looks_like_math_prompt(query) else "chat"
                 domain = "math" if specialist == "math" else str(
                     payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"
@@ -986,13 +1039,6 @@ class K3DDaemon:
                 route = {
                     "specialist": specialist,
                     "domain": domain,
-                    "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(all_galaxies),
-                }
-            elif task_type == "MMLU_TASK":
-                route = {
-                    "specialist": "chat",
-                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"),
                     "reason": "knowledgeverse_gpu_query",
                     "galaxy_names": list(all_galaxies),
                 }
@@ -1005,11 +1051,20 @@ class K3DDaemon:
                 )
             response: dict[str, Any] = {"status": "ok", "route": route}
             if task_obj is not None:
-                response["task_result"] = self._dispatch_task(
-                    route=route,
-                    task=task_obj,
-                    use_enriched=use_enriched,
+                dispatched = dict(
+                    self._dispatch_task(
+                        route=route,
+                        task=task_obj,
+                        use_enriched=use_enriched,
+                    )
+                    or {}
                 )
+                dispatched_route = dispatched.get("route")
+                if isinstance(dispatched_route, dict) and dispatched_route:
+                    response["route"] = dict(dispatched_route)
+                dispatched_status = str(dispatched.get("status") or "ok").strip().lower()
+                response["status"] = "ok" if dispatched_status in {"", "ok", "success"} else dispatched_status
+                response["task_result"] = dispatched
             return response
 
         if cmd == "QUERY":
@@ -1037,7 +1092,7 @@ class K3DDaemon:
             use_enriched = bool(payload.get("use_enriched", True))
             solved = self.kv.execute_task(
                 task={
-                    "type": "MATH_TASK",
+                    "surface_kind": "MATH",
                     "query": question,
                     "question": question,
                 },
@@ -1086,7 +1141,7 @@ class K3DDaemon:
             if self._looks_like_math_prompt(prompt):
                 solved = self.kv.execute_task(
                     task={
-                        "type": "MATH_TASK",
+                        "surface_kind": "MATH",
                         "question": prompt,
                         "query": prompt,
                     },
@@ -1111,7 +1166,7 @@ class K3DDaemon:
                 }
             solved = self.kv.execute_task(
                 task={
-                    "type": "CHAT_TASK",
+                    "surface_kind": "CHAT",
                     "prompt": prompt,
                     "query": prompt,
                     "messages": list(messages),
@@ -1234,7 +1289,7 @@ class K3DDaemon:
 
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run persistent K3D daemon command loop.")
-    parser.add_argument("--storage-root", default="../Knowledge3D.local", help="Knowledgeverse storage root.")
+    parser.add_argument("--storage-root", default=str(default_storage_root()), help="Knowledgeverse storage root.")
     parser.add_argument(
         "--mode",
         choices=("stdio", "tcp"),

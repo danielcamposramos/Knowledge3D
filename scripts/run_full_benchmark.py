@@ -18,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
 LOG_ROOT = Path("/K3D/Knowledge3D.local/logs")
 
 Knowledgeverse = None
+HeadlessTabletMPC = None
 MMLUBenchmark = None
 GSM8KBenchmark = None
 IMOBenchmark = None
@@ -28,6 +29,7 @@ run_local_arc3 = None
 
 def _ensure_full_benchmark_runtime() -> None:
     global Knowledgeverse
+    global HeadlessTabletMPC
     global MMLUBenchmark
     global GSM8KBenchmark
     global IMOBenchmark
@@ -39,6 +41,10 @@ def _ensure_full_benchmark_runtime() -> None:
         from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse as _Knowledgeverse
 
         Knowledgeverse = _Knowledgeverse
+    if HeadlessTabletMPC is None:
+        from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC as _HeadlessTabletMPC
+
+        HeadlessTabletMPC = _HeadlessTabletMPC
     if MMLUBenchmark is None:
         from benchmarks.mmlu import MMLUBenchmark as _MMLUBenchmark
 
@@ -162,6 +168,7 @@ def _run_native_suite(
     suite_name: str,
     count: int,
     knowledgeverse: Any,
+    tablet_boundary: Any | None = None,
     row_log_path: Path | None = None,
     progress_log_path: Path | None = None,
 ) -> dict[str, Any]:
@@ -192,15 +199,35 @@ def _run_native_suite(
         )
 
     if suite_name == "mmlu":
-        benchmark = MMLUBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
+        benchmark = MMLUBenchmark(
+            knowledgeverse=knowledgeverse,
+            max_questions=max(1, int(count)),
+            tablet_boundary=tablet_boundary,
+        )
     elif suite_name == "imo":
-        benchmark = IMOBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
+        benchmark = IMOBenchmark(
+            knowledgeverse=knowledgeverse,
+            max_questions=max(1, int(count)),
+            tablet_boundary=tablet_boundary,
+        )
     elif suite_name == "gsm8k":
-        benchmark = GSM8KBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
+        benchmark = GSM8KBenchmark(
+            knowledgeverse=knowledgeverse,
+            max_questions=max(1, int(count)),
+            tablet_boundary=tablet_boundary,
+        )
     elif suite_name == "lhe":
-        benchmark = LastHumanityExamBenchmark(knowledgeverse=knowledgeverse, max_questions=max(1, int(count)))
+        benchmark = LastHumanityExamBenchmark(
+            knowledgeverse=knowledgeverse,
+            max_questions=max(1, int(count)),
+            tablet_boundary=tablet_boundary,
+        )
     elif suite_name == "arc2":
-        benchmark = ARCAGI2Benchmark(knowledgeverse=knowledgeverse, max_tasks=max(1, int(count)))
+        benchmark = ARCAGI2Benchmark(
+            knowledgeverse=knowledgeverse,
+            max_tasks=max(1, int(count)),
+            tablet_boundary=tablet_boundary,
+        )
     elif suite_name == "arc3_local":
         return _normalize_native_result(
             suite_name,
@@ -246,6 +273,7 @@ def run_full_benchmark(
     hardware_profile = _detect_hardware_profile(storage_root)
     print(f"[E25] Initializing Knowledgeverse storage_root={storage_root}", flush=True)
     kv = Knowledgeverse(storage_root=storage_root)
+    tablet = HeadlessTabletMPC(knowledgeverse=kv, storage_root=storage_root)
     print("[E25] Knowledgeverse init complete", flush=True)
     sleep_summary: dict[str, object] = {}
 
@@ -266,6 +294,7 @@ def run_full_benchmark(
                 suite_name=suite_name,
                 count=suite_count,
                 knowledgeverse=kv,
+                tablet_boundary=tablet,
                 row_log_path=log_dir / f"{suite_name}.jsonl",
                 progress_log_path=log_dir / f"{suite_name}_progress.jsonl",
             )
@@ -288,9 +317,10 @@ def run_full_benchmark(
                 encoding="utf-8",
             )
     finally:
-        if hasattr(kv, "jarvis_sleep_consolidation"):
+        if hasattr(kv, "shutdown"):
             try:
-                sleep_summary = dict(kv.jarvis_sleep_consolidation(persist=True) or {})
+                shutdown_summary = dict(kv.shutdown() or {})
+                sleep_summary = dict(shutdown_summary.get("sleep") or shutdown_summary.get("checkpoint") or shutdown_summary)
             except Exception as exc:
                 sleep_summary = {"error": str(exc)}
             (log_dir / "sleep_consolidation.json").write_text(

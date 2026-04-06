@@ -277,9 +277,10 @@ def run_live_arc3(
             if state in {"WIN", "GAME_OVER"}:
                 break
     finally:
-        if hasattr(kv, "jarvis_sleep_consolidation"):
+        if hasattr(kv, "shutdown"):
             try:
-                sleep_summary = dict(kv.jarvis_sleep_consolidation(persist=True) or {})
+                shutdown_summary = dict(kv.shutdown() or {})
+                sleep_summary = dict(shutdown_summary.get("sleep") or shutdown_summary.get("checkpoint") or shutdown_summary)
             except Exception as exc:
                 sleep_summary = {"error": str(exc)}
         agent.close()

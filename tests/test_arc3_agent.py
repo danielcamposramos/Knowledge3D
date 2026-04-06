@@ -87,7 +87,8 @@ class _AnswerIndexHarness:
 def test_arc3_agent_routes_through_execute_task():
     kv = _FakeKnowledgeverse(
         {
-            "answer_index": 2,
+            "action_index": 2,
+            "action_name": "ACTION3",
             "confidence": 0.8,
             "convergence_signal": 1,
             "iterations_used": 6,
@@ -107,7 +108,7 @@ def test_arc3_agent_routes_through_execute_task():
 
     assert len(kv.calls) == 1
     call = kv.calls[0]
-    assert call["task"]["type"] == "ARC_TASK"
+    assert call["task"]["surface_kind"] == "GAME_2D"
     assert call["task"]["input_grid"] == frame
     assert call["task"]["expected_output"] == goal
     assert call["task"]["training_examples"] == train
@@ -116,9 +117,8 @@ def test_arc3_agent_routes_through_execute_task():
     assert "arc3 interactive game frame" in call["task"]["query"]
     assert call["task"]["options"] == ACTION_NAMES
     assert call["route"]["specialist"] == "visual"
-    assert call["route"]["galaxy_names"] == ARC3_ROUTE_GALAXIES
-    assert "game_mechanics" in call["route"]["galaxy_names"]
-    assert "Language" not in call["route"]["galaxy_names"]
+    assert call["route"]["domain_hint"] == "game_2d"
+    assert "galaxy_names" not in call["route"]
     assert action["action_index"] == 2
     assert action["label"] == ACTION_LABELS[2]
 
@@ -302,16 +302,18 @@ def test_arc3_agent_prefers_topmost_door_room_over_nearest_reference_box():
     assert target[1] > 30.0
 
 
-def test_arc3_agent_derives_action_from_output_grid():
+def test_arc3_agent_uses_typed_action_index_from_nested_task_result():
     kv = _FakeKnowledgeverse(
         {
-            "output_grid": [
-                [0, 4, 0],
-                [0, 0, 0],
-                [0, 0, 0],
-            ],
-            "similarity": 0.42,
-            "gpu_execution": True,
+            "status": "ok",
+            "task_result": {
+                "status": "ok",
+                "action_kind": "action",
+                "action_index": 0,
+                "action_name": "ACTION1",
+                "confidence": 0.42,
+                "gpu_execution": True,
+            },
         }
     )
     agent = K3DARC3Agent(knowledgeverse=kv)
@@ -456,7 +458,8 @@ def test_arc3_agent_uses_spatial_frame_pathfinder_before_query_text_fallback():
 
     assert action["action"] == "ACTION4"
     assert len(kv.calls) == 1
-    assert kv.calls[0]["route"]["galaxy_names"] == ARC3_ROUTE_GALAXIES
+    assert kv.calls[0]["route"]["specialist"] == "visual"
+    assert kv.calls[0]["route"]["domain_hint"] == "game_2d"
     assert kv.calls[0]["task"]["spatial_plan_hint"]["target_label"] == "switch"
     assert "spatial plan target switch" in kv.calls[0]["task"]["query"]
     assert action["task_result"]["spatial_plan_hint"]["target_label"] == "switch"
@@ -483,7 +486,7 @@ def test_arc3_agent_forbids_reset_after_level_progress():
 
 
 def test_arc3_agent_explores_after_blocked_repeat_direction():
-    kv = _FakeKnowledgeverse({"answer_index": 2, "gpu_execution": True})
+    kv = _FakeKnowledgeverse({"action_index": 2, "action_name": "ACTION3", "gpu_execution": True})
     agent = K3DARC3Agent(knowledgeverse=kv)
 
     frame = [[4] * 8 for _ in range(8)]

@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 from benchmarks.math_competitions import UnifiedMathBenchmark
 from benchmarks.sampling import stratified_sample
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -22,6 +23,7 @@ class IMOBenchmark:
         max_questions: int | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ) -> None:
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
@@ -39,10 +41,11 @@ class IMOBenchmark:
             knowledgeverse=self.kv,
             dataset_mode="synthetic",
             max_problems=0,
-            max_gsm8k_questions=0,
+            max_math_questions=0,
             source_filter=["math"],
             query_scope_galaxies=query_scope_galaxies,
             runtime_seed_knowledge=runtime_seed_knowledge,
+            tablet_boundary=tablet_boundary,
         )
         self._bench.problems = [
             {

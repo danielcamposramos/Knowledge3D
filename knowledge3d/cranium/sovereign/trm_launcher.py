@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import ctypes
 import os
+import shutil
 import struct
+import subprocess
 import warnings
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Tuple
@@ -214,7 +216,7 @@ class TRMLauncher:
         self.kernel_recursive_fused = None
         self.d_workspace = None
         if self.use_fused:
-            fused_ptx = Path(__file__).parent.parent / "ptx" / "trm_recursive_fused.ptx"
+            fused_ptx = self._ensure_fused_ptx("trm_recursive_fused")
             if not fused_ptx.exists():
                 raise FileNotFoundError(f"Recursive fused TRM PTX not found: {fused_ptx}")
             self.kernel_recursive_fused = load_ptx_file(str(fused_ptx), "trm_recursive_fused")
@@ -224,6 +226,39 @@ class TRMLauncher:
 
         backend = "FUSED" if self.use_fused else ("RPN" if self.use_rpn else "PTX")
         print(f"✅ TRM Launcher initialized (backend: {backend})")
+
+    @staticmethod
+    def _ensure_fused_ptx(stem: str) -> Path:
+        ptx_dir = Path(__file__).parent.parent / "ptx"
+        cuda_dir = Path(__file__).parent.parent / "cuda"
+        source = ptx_dir / f"{stem}.cu"
+        target = ptx_dir / f"{stem}.ptx"
+        helper = cuda_dir / "trm_recursive_core.cuh"
+        if target.exists():
+            target_mtime = target.stat().st_mtime
+            newest_source = max(
+                source.stat().st_mtime if source.exists() else 0.0,
+                helper.stat().st_mtime if helper.exists() else 0.0,
+            )
+            if target_mtime >= newest_source:
+                return target
+        nvcc = shutil.which("nvcc")
+        if not nvcc:
+            return target
+        subprocess.run(
+            [
+                nvcc,
+                "-ptx",
+                "-arch=sm_86",
+                "--compiler-bindir",
+                "/usr/bin/gcc-13",
+                "-o",
+                str(target),
+                str(source),
+            ],
+            check=True,
+        )
+        return target
 
     # ------------------------------------------------------------------ #
     # Public API

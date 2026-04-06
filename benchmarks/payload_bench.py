@@ -141,7 +141,7 @@ def main():
             out_dir = Path("docs/benchmarks").resolve()
             out_dir.mkdir(parents=True, exist_ok=True)
         except Exception:
-            out_dir = Path("/tmp/k3d_benchmarks").resolve()
+            out_dir = Path("/K3D/Knowledge3D.local/logs/k3d_benchmarks").resolve()
             out_dir.mkdir(parents=True, exist_ok=True)
     tmp = out_dir / "payload"
     tmp.mkdir(parents=True, exist_ok=True)

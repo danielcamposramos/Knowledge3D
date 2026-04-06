@@ -150,7 +150,7 @@ def main() -> None:
     parser.add_argument(
         "--input",
         type=str,
-        default="/tmp/ollama_router_training_data.json",
+        default="/K3D/Knowledge3D.local/logs/ollama_router_training_data.json",
         help="Input JSON produced by generate_router_training_data_ollama.py",
     )
     parser.add_argument("--router-dims", type=int, default=256, help="Router input dimension.")

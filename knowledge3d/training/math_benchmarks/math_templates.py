@@ -14,7 +14,7 @@ from typing import List
 from knowledge3d.training.arc_agi.grammar_galaxy import GrammarRule
 
 
-def get_gsm8k_templates() -> List[GrammarRule]:
+def get_math_templates() -> List[GrammarRule]:
     """Base GSM8K-focused templates (concise set)."""
     return [
         # === HALF / DOUBLE PATTERNS ===
@@ -435,7 +435,7 @@ def get_expanded_templates() -> List[GrammarRule]:
 def get_all_templates() -> List[GrammarRule]:
     """Get all curated templates sorted by specificity (longer, more captures first)."""
     templates: List[GrammarRule] = []
-    templates.extend(get_gsm8k_templates())
+    templates.extend(get_math_templates())
     templates.extend(get_expanded_templates())
     templates.sort(key=lambda r: (len(r.pattern), r.pattern.count("("), r.rule_id), reverse=True)
     return templates
@@ -443,6 +443,6 @@ def get_all_templates() -> List[GrammarRule]:
 
 __all__ = [
     "get_all_templates",
-    "get_gsm8k_templates",
+    "get_math_templates",
     "get_expanded_templates",
 ]

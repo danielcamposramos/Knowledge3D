@@ -765,7 +765,7 @@ def test_phase_b7_cognitive_executive_blends_swarm_trust_weights(tmp_path, monke
     assert any("GRE cognitive executive:" in step for step in selection_steps)
 
 
-def test_phase_a3_atomic_fission_threads_compositional_consistency_into_gsm8k_candidates(tmp_path, monkeypatch):
+def test_phase_a3_atomic_fission_threads_compositional_consistency_into_math_candidates(tmp_path, monkeypatch):
     kv = Knowledgeverse(storage_root=tmp_path / "kv_atomic_fission")
 
     class _FakeAtomicFissionFusion:
@@ -937,8 +937,8 @@ def test_track_a_dimensional_consistency_boosts_existing_compositional_signal(tm
     assert candidate["compositional_dimensional_consistency"] == pytest.approx(1.0)
 
 
-def test_gsm8k_structural_override_promotes_numeric_answer_over_non_numeric_consensus(tmp_path):
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_structural_override_non_numeric")
+def test_math_structural_override_promotes_numeric_answer_over_non_numeric_consensus(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_structural_override_non_numeric")
 
     records = [
         {
@@ -985,14 +985,14 @@ def test_gsm8k_structural_override_promotes_numeric_answer_over_non_numeric_cons
         },
     ]
 
-    override = kv._gsm8k_structural_override_record(records)
+    override = kv._math_structural_override_record(records)
 
     assert override is not None
     assert override["option_text"] == "3"
 
 
-def test_gsm8k_structural_override_promotes_better_numeric_answer_over_noisy_consensus(tmp_path):
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_structural_override_numeric")
+def test_math_structural_override_promotes_better_numeric_answer_over_noisy_consensus(tmp_path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_structural_override_numeric")
 
     records = [
         {
@@ -1027,14 +1027,14 @@ def test_gsm8k_structural_override_promotes_better_numeric_answer_over_noisy_con
         },
     ]
 
-    override = kv._gsm8k_structural_override_record(records)
+    override = kv._math_structural_override_record(records)
 
     assert override is not None
     assert override["option_text"] == "260"
 
 
-def test_gsm8k_halting_structural_override_halts_single_worker_numeric_answer(tmp_path, monkeypatch):
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_halting_override")
+def test_math_halting_structural_override_halts_single_worker_numeric_answer(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_halting_override")
 
     class _FakeHaltingGate:
         def analyze_scores(self, ordered_scores, candidate_hashes, **kwargs):
@@ -1709,7 +1709,7 @@ def test_phase_track1_defeasible_compatibility_mode_preserves_raw_scores(tmp_pat
     assert any("compatibility mode" in step for step in selection_steps)
 
 
-def test_direction_b_gsm8k_rule_pack_includes_failure_specific_patterns():
+def test_direction_b_math_rule_pack_includes_failure_specific_patterns():
     galaxy = GrammarGalaxy()
     required_ids = {
         "gsm_fractional_total_materials",
@@ -1730,7 +1730,7 @@ def test_direction_b_gsm8k_rule_pack_includes_failure_specific_patterns():
     assert robe_rule.examples
 
 
-def test_direction_b_bootstrap_includes_targeted_gsm8k_patterns_and_algebra_reality_facts():
+def test_direction_b_bootstrap_includes_targeted_math_patterns_and_algebra_reality_facts():
     grammar_entry_ids: set[str] = set()
     for rows in foundational_reasoning_entries().values():
         grammar_entry_ids.update(str(entry.get("id", "")).strip() for entry in rows)

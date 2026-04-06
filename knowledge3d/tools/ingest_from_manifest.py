@@ -10,8 +10,8 @@ from typing import Any
 
 from knowledge3d.knowledgeverse.galaxy_manager import GalaxyManager
 
-from .augmentation_providers import AugmentationProvider, AugmentationResult, create_provider
-from .content_to_stars import result_to_star, write_stars_jsonl
+from .content_to_stars import write_stars_jsonl
+from .knowledge_proceduralizer import packet_to_star, proceduralize_text_content
 
 
 def _entry_hash(value: str) -> str:
@@ -62,9 +62,12 @@ def load_entry_content(entry: dict[str, Any]) -> str:
 
 def ingest_entry(
     entry: dict[str, Any],
-    provider: AugmentationProvider,
-    output_dir: str | Path,
     *,
+    provider_name: str,
+    model: str | None,
+    model_profile: str,
+    capture_dir: str | Path | None,
+    output_dir: str | Path,
     galaxy_manager: GalaxyManager | None = None,
 ) -> dict[str, Any]:
     """Ingest a single manifest entry."""
@@ -85,25 +88,35 @@ def ingest_entry(
         }
 
     content = load_entry_content(entry)
-    context = dict(entry)
-    result: AugmentationResult = provider.augment(content, context)
-    star = result_to_star(
-        result,
-        star_id=_star_id_for_entry(entry),
-        meta_refs=[f"source:{file_path}"],
+    receipt, request = proceduralize_text_content(
+        content=content,
+        source_id=str(entry.get("id") or _star_id_for_entry(entry)),
+        domain_hint=str(entry.get("domain_hint") or "General"),
+        source_path=str(file_path),
+        context_chunks=[f"name:{entry.get('name', '')}", f"content_type:{content_type}"],
+        model=model,
+        provider=provider_name,
+        model_profile=model_profile,
+        capture_dir=capture_dir,
+        source_kind="manifest",
     )
-    metadata = {
-        "augmentation": {
-            "summary": result.summary,
-            "entities": list(result.entities),
-            "relationships": list(result.relationships),
-            "provider": result.provider,
-            "confidence": float(result.confidence),
-            "source_path": str(file_path),
+    if receipt.parsed_bundle.ingest_action != "augment" or not receipt.parsed_bundle.knowledge_packets:
+        failure_code = str(receipt.failure_code or "").strip()
+        retry_after_utc = str(receipt.retry_after_utc or "").strip()
+        return {
+            "path": str(file_path),
+            "status": "stopped_plan_limit" if failure_code == "plan_limit_consumed" else "skipped",
+            "reason": receipt.parsed_bundle.ingest_action,
+            "provider": receipt.provider,
+            "failure_code": failure_code,
+            "retry_after_utc": retry_after_utc,
+            "receipt": receipt.to_dict(),
         }
-    }
+    primary_packet = receipt.parsed_bundle.knowledge_packets[0]
+    star = packet_to_star(primary_packet, request)
+    metadata = {"proceduralizer": receipt.to_dict()}
     galaxy_status = "not_persisted"
-    galaxy_name = result.domain
+    galaxy_name = primary_packet.domain
     if galaxy_manager is not None:
         galaxy_status = galaxy_manager.store_meaning_star(
             galaxy_name,
@@ -114,19 +127,23 @@ def ingest_entry(
         "path": str(file_path),
         "status": "ingested",
         "star_id": star.star_id,
-        "domain": result.domain,
+        "domain": primary_packet.domain,
         "house_room": star.house_room,
-        "provider": result.provider,
+        "provider": receipt.provider,
         "galaxy": galaxy_name,
         "galaxy_status": galaxy_status,
         "star": star,
+        "receipt": receipt.to_dict(),
     }
 
 
 def ingest_manifest(
     manifest_path: str | Path,
     *,
-    provider: AugmentationProvider,
+    provider_name: str,
+    model: str | None,
+    model_profile: str,
+    capture_dir: str | Path | None,
     output_dir: str | Path,
     galaxy_manager: GalaxyManager | None = None,
 ) -> dict[str, Any]:
@@ -136,19 +153,38 @@ def ingest_manifest(
     output_dir.mkdir(parents=True, exist_ok=True)
     report_rows: list[dict[str, Any]] = []
     stars = []
+    stopped_due_to_plan_limit = False
+    retry_after_utc = ""
     for entry in list(manifest.get("entries", []) or []):
-        row = ingest_entry(entry, provider, output_dir, galaxy_manager=galaxy_manager)
+        row = ingest_entry(
+            entry,
+            provider_name=provider_name,
+            model=model,
+            model_profile=model_profile,
+            capture_dir=capture_dir,
+            output_dir=output_dir,
+            galaxy_manager=galaxy_manager,
+        )
         star = row.pop("star", None)
         if star is not None:
             stars.append(star)
         report_rows.append(row)
+        receipt = row.get("receipt")
+        if isinstance(receipt, dict) and str(receipt.get("failure_code") or "").strip() == "plan_limit_consumed":
+            stopped_due_to_plan_limit = True
+            retry_after_utc = str(receipt.get("retry_after_utc") or "").strip()
+            break
     stars_path = write_stars_jsonl(stars, output_dir / "stars.jsonl")
     report = {
         "manifest": str(Path(manifest_path)),
-        "provider": provider.provider_name,
+        "provider": provider_name,
+        "model_profile": model_profile,
+        "model": model,
         "total_entries": len(report_rows),
         "ingested": sum(1 for row in report_rows if row.get("status") == "ingested"),
         "skipped": sum(1 for row in report_rows if row.get("status") == "skipped"),
+        "stopped_due_to_plan_limit": bool(stopped_due_to_plan_limit),
+        "retry_after_utc": retry_after_utc,
         "stars_path": str(stars_path),
         "entries": report_rows,
     }
@@ -160,8 +196,10 @@ def ingest_manifest(
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True, help="Manifest JSON produced by scan_content.")
-    parser.add_argument("--provider", default="auto", help="ollama, claude, gpt, or auto.")
+    parser.add_argument("--provider", default="ollama", help="Default transport provider; ollama is canonical.")
+    parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
     parser.add_argument("--model", default=None, help="Override provider model name.")
+    parser.add_argument("--capture-dir", type=Path, default=None, help="Optional directory for request/response captures.")
     parser.add_argument("--output-dir", type=Path, required=True, help="Directory for stars/report output.")
     parser.add_argument(
         "--storage-root",
@@ -175,18 +213,18 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
-    provider = create_provider(args.provider, model=args.model) if args.model else create_provider(args.provider)
-    if not provider.is_available() and str(args.provider).strip().lower() != "auto":
-        raise RuntimeError(f"Provider '{args.provider}' is not available.")
     galaxy_manager = None if args.no_persist else GalaxyManager(storage_root=args.storage_root)
     report = ingest_manifest(
         args.manifest,
-        provider=provider,
+        provider_name=str(args.provider).strip().lower(),
+        model=str(args.model).strip() or None,
+        model_profile=str(args.model_profile).strip().lower(),
+        capture_dir=args.capture_dir,
         output_dir=args.output_dir,
         galaxy_manager=galaxy_manager,
     )
     print(json.dumps(report, indent=2, ensure_ascii=False))
-    return 0
+    return 75 if bool(report.get("stopped_due_to_plan_limit")) else 0
 
 
 if __name__ == "__main__":  # pragma: no cover

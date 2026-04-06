@@ -13,6 +13,7 @@ from typing import Any, Callable
 from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.tablet.wine.math_wine import math_dataset_envelope
 
 
 SAFE_MATH_NAMES = {
@@ -241,7 +242,7 @@ class UnifiedMathBenchmark:
         gsm8k_dataset_path: str | Path | None = None,
         dataset_mode: str | None = None,
         max_problems: int | None = None,
-        max_gsm8k_questions: int | None = None,
+        max_math_questions: int | None = None,
         source_filter: str | list[str] | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
@@ -259,18 +260,26 @@ class UnifiedMathBenchmark:
             if self.dataset_mode == "present"
             else Path("")
         )
-        self.gsm8k_dataset_path = self._resolve_gsm8k_dataset_path(gsm8k_dataset_path)
+        self.gsm8k_dataset_path = self._resolve_math_dataset_path(gsm8k_dataset_path)
         self.max_problems = max_problems
-        self.max_gsm8k_questions = max_gsm8k_questions
+        self.max_math_questions = max_math_questions
         self.source_filter = self._normalize_source_filter(source_filter)
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.tablet_boundary = tablet_boundary
         self.dataset_sources: list[str] = []
         self.used_synthetic_math_fallback = False
-        self.used_synthetic_gsm8k_fallback = False
+        self.used_synthetic_word_math_fallback = False
         self.problems = self._load_problems()
         self.results: list[dict[str, Any]] = []
+
+    def _ensure_tablet_boundary(self) -> HeadlessTabletMPC:
+        if self.tablet_boundary is None:
+            self.tablet_boundary = HeadlessTabletMPC(
+                knowledgeverse=self.kv,
+                storage_root=getattr(self.kv, "storage_root", None),
+            )
+        return self.tablet_boundary
 
     def _resolve_dataset_path(self, dataset_path: str | Path | None) -> Path:
         if dataset_path is not None:
@@ -288,7 +297,7 @@ class UnifiedMathBenchmark:
                 return candidate
         return Path("")
 
-    def _resolve_gsm8k_dataset_path(self, dataset_path: str | Path | None) -> Path:
+    def _resolve_math_dataset_path(self, dataset_path: str | Path | None) -> Path:
         if dataset_path is not None:
             return Path(dataset_path)
         candidates = [
@@ -327,12 +336,124 @@ class UnifiedMathBenchmark:
     def _load_problems(self) -> list[dict[str, Any]]:
         problems: list[dict[str, Any]] = []
         if "math" in self.source_filter:
-            problems.extend(self._load_math_problems())
+            problems.extend(self._load_competition_math_problems())
         if "gsm8k" in self.source_filter:
-            problems.extend(self._load_gsm8k_problems())
+            problems.extend(self._load_word_math_problems())
+        if "amc_aime" in self.source_filter:
+            problems.extend(self._load_amc_aime_dataset())
+        if "omni_math" in self.source_filter:
+            problems.extend(self._load_omni_math_dataset())
         return problems
 
-    def _load_math_problems(self) -> list[dict[str, Any]]:
+    def _load_amc_aime_dataset(self) -> list[dict[str, Any]]:
+        root = self.dataset_path if self.dataset_path and self.dataset_path.exists() else self._resolve_dataset_path(None)
+        candidates = [
+            root / "AMC-AIME" / "data",
+            root / "AMC-AIME",
+            Path("/K3D/K3D_llama_cpp/datasets/AMC-AIME/data"),
+            Path("../K3D_llama_cpp/datasets/AMC-AIME/data"),
+        ]
+        out: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        for candidate_root in candidates:
+            if not candidate_root.exists():
+                continue
+            jsonl_files = (
+                sorted(candidate_root.glob("*.jsonl"))
+                if candidate_root.is_dir()
+                else [candidate_root] if candidate_root.suffix.lower() == ".jsonl" else []
+            )
+            for jsonl_file in jsonl_files:
+                try:
+                    with jsonl_file.open("r", encoding="utf-8") as handle:
+                        for idx, line in enumerate(handle):
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                payload = json.loads(line)
+                            except json.JSONDecodeError:
+                                continue
+                            if not isinstance(payload, dict):
+                                continue
+                            text = str(payload.get("problem") or payload.get("Problem") or payload.get("question") or "").strip()
+                            answer = payload.get("answer")
+                            if answer in (None, ""):
+                                answer = self._extract_symbolic_math_answer(payload.get("solution"))
+                            if not text or answer in (None, ""):
+                                continue
+                            record_id = str(payload.get("id") or payload.get("problem_id") or f"amc_aime_{jsonl_file.stem}_{idx}")
+                            if record_id in seen_ids:
+                                continue
+                            seen_ids.add(record_id)
+                            competition = str(payload.get("competition") or payload.get("source") or "").strip().upper()
+                            if competition not in {"AMC", "AIME"}:
+                                competition = "AIME" if "aime" in jsonl_file.stem.lower() else "AMC"
+                            out.append(
+                                {
+                                    "id": record_id,
+                                    "suite": "math",
+                                    "source_key": "amc_aime",
+                                    "competition": competition,
+                                    "problem_text": text,
+                                    "answer": answer,
+                                }
+                            )
+                except Exception:
+                    continue
+            if out:
+                self.dataset_sources.append(str(candidate_root))
+                return stratified_sample(out, self.max_problems)
+        return []
+
+    def _load_omni_math_dataset(self) -> list[dict[str, Any]]:
+        root = self.dataset_path if self.dataset_path and self.dataset_path.exists() else self._resolve_dataset_path(None)
+        candidates = [
+            root / "Omni-MATH" / "Omni-Math.jsonl",
+            root / "Omni-MATH" / "Omni-MATH.jsonl",
+            Path("/K3D/K3D_llama_cpp/datasets/Omni-MATH/Omni-Math.jsonl"),
+            Path("../K3D_llama_cpp/datasets/Omni-MATH/Omni-Math.jsonl"),
+        ]
+        out: list[dict[str, Any]] = []
+        for path in candidates:
+            if not path.exists():
+                continue
+            try:
+                with path.open("r", encoding="utf-8") as handle:
+                    for idx, line in enumerate(handle):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            payload = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if not isinstance(payload, dict):
+                            continue
+                        text = str(payload.get("problem") or payload.get("question") or "").strip()
+                        answer = payload.get("answer")
+                        if answer in (None, ""):
+                            answer = self._extract_symbolic_math_answer(payload.get("solution"))
+                        if not text or answer in (None, ""):
+                            continue
+                        out.append(
+                            {
+                                "id": str(payload.get("id") or f"omni_math_{idx}"),
+                                "suite": "math",
+                                "source_key": "omni_math",
+                                "competition": str(payload.get("source") or "Omni-MATH"),
+                                "problem_text": text,
+                                "answer": answer,
+                            }
+                        )
+            except Exception:
+                continue
+            if out:
+                self.dataset_sources.append(str(path))
+                return stratified_sample(out, self.max_problems)
+        return []
+
+    def _load_competition_math_problems(self) -> list[dict[str, Any]]:
         if self.dataset_mode == "synthetic":
             present_root = self._resolve_dataset_path(None)
             if self._has_present_dataset(present_root):
@@ -353,8 +474,8 @@ class UnifiedMathBenchmark:
         synthetic = self._synthetic_problems()
         return stratified_sample(synthetic, self.max_problems)
 
-    def _load_gsm8k_problems(self) -> list[dict[str, Any]]:
-        limit = self.max_gsm8k_questions
+    def _load_word_math_problems(self) -> list[dict[str, Any]]:
+        limit = self.max_math_questions
         if self.gsm8k_dataset_path and self.gsm8k_dataset_path.exists():
             out: list[dict[str, Any]] = []
             with self.gsm8k_dataset_path.open("r", encoding="utf-8") as handle:
@@ -367,7 +488,7 @@ class UnifiedMathBenchmark:
                     except json.JSONDecodeError:
                         continue
                     question = str(payload.get("question") or "").strip()
-                    answer = self._extract_gsm8k_answer(payload.get("answer"))
+                    answer = self._extract_word_math_answer(payload.get("answer"))
                     if not question or answer is None:
                         continue
                     out.append(
@@ -383,8 +504,8 @@ class UnifiedMathBenchmark:
             if out:
                 self.dataset_sources.append(str(self.gsm8k_dataset_path))
                 return stratified_sample(out, limit)
-        self.used_synthetic_gsm8k_fallback = True
-        synthetic = self._synthetic_gsm8k_questions()
+        self.used_synthetic_word_math_fallback = True
+        synthetic = self._synthetic_word_math_questions()
         return stratified_sample(synthetic, limit)
 
     def _load_from_present_datasets(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
@@ -475,7 +596,7 @@ class UnifiedMathBenchmark:
                     except json.JSONDecodeError:
                         continue
                     text = str(payload.get("problem") or "").strip()
-                    answer = self._extract_math_answer(payload.get("solution"))
+                    answer = self._extract_symbolic_math_answer(payload.get("solution"))
                     if not text or answer is None:
                         continue
                     math_type = str(payload.get("type") or "MATH").strip() or "MATH"
@@ -748,7 +869,7 @@ class UnifiedMathBenchmark:
     def _synthetic_guard_problems(self) -> list[dict[str, Any]]:
         return list(self._synthetic_problems())
 
-    def _synthetic_gsm8k_questions(self) -> list[dict[str, Any]]:
+    def _synthetic_word_math_questions(self) -> list[dict[str, Any]]:
         return self._with_source_defaults(
             [
                 {
@@ -885,65 +1006,8 @@ class UnifiedMathBenchmark:
         problem: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        if self.tablet_boundary is not None:
-            return self._solve_problem_via_tablet(problem=problem, use_enriched=use_enriched)
-        if use_enriched and self.runtime_seed_knowledge:
-            self._seed_math_knowledge(problem)
-        route = self._apply_query_scope(
-            {
-                "specialist": "math",
-                "domain": "math",
-                "galaxy_names": list(Knowledgeverse.GPU_MATH_TARGET_GALAXIES),
-            }
-        )
-        task_result = self.kv.execute_task(
-            task={
-                "type": "MATH_TASK",
-                "task_id": str(problem["id"]),
-                "query": str(problem["problem_text"]),
-                "question": str(problem["problem_text"]),
-                "competition": str(problem.get("competition") or ""),
-                "expected_answer": problem.get("answer"),
-            },
-            route=route,
-            specialist="math",
-            domain_hint="math",
-            use_enriched=use_enriched,
-        )
-        predicted = task_result.get("predicted_answer", task_result.get("result"))
-        reasoning_trace = list(task_result.get("reasoning_trace", []))
-        expected = problem["answer"]
-        correct = self._answers_match(predicted, expected)
-        self.kv.log_event(
-            "math_problem_solved" if correct else "math_problem_failed",
-            {
-                "specialist": route["specialist"],
-                "confidence": 0.9 if correct else 0.35,
-                "competition": problem["competition"],
-            },
-        )
-        return {
-            "problem_id": problem["id"],
-            "suite": str(problem.get("suite") or "math"),
-            "source_key": str(problem.get("source_key") or "math"),
-            "competition": problem["competition"],
-            "correct": int(correct),
-            "predicted_answer": predicted,
-            "expected_answer": expected,
-            "failure_reason": "" if correct else self._extract_failure_reason(reasoning_trace),
-            "failure_signal": None,
-            "symbols_used": int(task_result.get("patterns_used", 1)),
-            "reasoning_trace": reasoning_trace,
-            "route": route,
-            "meta_specialist": str(route.get("specialist", "math")),
-            "method": "knowledgeverse_gpu_query",
-            "generated_id": None,
-            "solver": str(task_result.get("solver", "")),
-            "runtime": str(task_result.get("runtime", "")),
-            "gpu_execution": bool(task_result.get("gpu_execution", False)),
-            "program_id": str(task_result.get("program_id", "")),
-            "task_result": task_result,
-        }
+        self._ensure_tablet_boundary()
+        return self._solve_problem_via_tablet(problem=problem, use_enriched=use_enriched)
 
     def _solve_problem_via_tablet(
         self,
@@ -951,7 +1015,7 @@ class UnifiedMathBenchmark:
         problem: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        envelope = TabletIngest.math_problem(
+        envelope = math_dataset_envelope(
             task_id=str(problem["id"]),
             question=str(problem["problem_text"]),
             competition=str(problem.get("competition") or ""),
@@ -960,7 +1024,9 @@ class UnifiedMathBenchmark:
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
         emitted = dict(tablet_result["emitted"])
         route = emitted.get("route", {})
-        predicted = emitted.get("predicted_answer")
+        predicted = emitted.get("numeric_answer")
+        if predicted is None:
+            predicted = emitted.get("answer_text")
         expected = problem["answer"]
         correct = bool(emitted.get("correct", False))
         self.kv.log_event(
@@ -1065,7 +1131,7 @@ class UnifiedMathBenchmark:
     def _normalize_text_answer(self, value: Any) -> str:
         return normalize_text_answer(value)
 
-    def _extract_gsm8k_answer(self, raw_answer: Any) -> str | None:
+    def _extract_word_math_answer(self, raw_answer: Any) -> str | None:
         text = str(raw_answer or "").strip()
         if not text:
             return None
@@ -1074,7 +1140,7 @@ class UnifiedMathBenchmark:
             return match.group(1).strip().replace(",", "")
         return text.splitlines()[-1].strip() or None
 
-    def _extract_math_answer(self, solution: Any) -> str | None:
+    def _extract_symbolic_math_answer(self, solution: Any) -> str | None:
         text = str(solution or "").strip()
         if not text:
             return None
@@ -1166,7 +1232,7 @@ class MathCompetitionBenchmark(UnifiedMathBenchmark):
             dataset_path=dataset_path,
             dataset_mode=dataset_mode,
             max_problems=max_problems,
-            max_gsm8k_questions=0,
+            max_math_questions=0,
             source_filter=["math"],
             query_scope_galaxies=query_scope_galaxies,
             runtime_seed_knowledge=runtime_seed_knowledge,

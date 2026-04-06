@@ -73,7 +73,7 @@ GSM8K_OUTBOUND_RETURN_QUESTION = (
 )
 
 
-def test_gsm8k_route_expands_into_grammar_number_and_word(tmp_path) -> None:
+def test_math_route_expands_into_grammar_number_and_word(tmp_path) -> None:
     kv = Knowledgeverse.__new__(Knowledgeverse)
 
     targets = kv._resolve_gpu_target_galaxies(
@@ -96,8 +96,8 @@ def test_gsm8k_route_expands_into_grammar_number_and_word(tmp_path) -> None:
     ]
 
 
-def test_gsm8k_reasoning_paths_register_word_problem_fission(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_paths")
+def test_math_reasoning_paths_register_word_problem_fission(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_paths")
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_0_QUESTION,
         specialist="math",
@@ -131,8 +131,8 @@ def test_gsm8k_reasoning_paths_register_word_problem_fission(tmp_path) -> None:
     assert any(path["composition_strategy"] == "alt_div" for path in paths)
 
 
-def test_gsm8k_math_program_query_text_skips_template_hint(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_program_text")
+def test_math_math_program_query_text_skips_template_hint(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_program_text")
 
     query_text = kv._program_query_text(
         GSM8K_0_QUESTION,
@@ -147,8 +147,8 @@ def test_gsm8k_math_program_query_text_skips_template_hint(tmp_path) -> None:
     assert query_text == GSM8K_0_QUESTION
 
 
-def test_gsm8k_parse_bundle_collects_fusion_quantities(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_parse_bundle")
+def test_math_parse_bundle_collects_fusion_quantities(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_parse_bundle")
 
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_0_QUESTION,
@@ -160,8 +160,8 @@ def test_gsm8k_parse_bundle_collects_fusion_quantities(tmp_path) -> None:
     assert parse_bundle["fusion_parse"]["quantity_values"][:4] == [16.0, 3.0, 4.0, 2.0]
 
 
-def test_gsm8k_parse_bundle_keeps_relation_and_repeated_quantities(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_parse_bundle_relations")
+def test_math_parse_bundle_keeps_relation_and_repeated_quantities(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_parse_bundle_relations")
 
     relation_bundle = kv._collect_parse_bundle(
         GSM8K_RELATION_QUESTION,
@@ -187,8 +187,8 @@ def test_gsm8k_parse_bundle_keeps_relation_and_repeated_quantities(tmp_path) -> 
     assert goal_bundle["fusion_parse"]["quantity_values"][:3] == [2.0, 4.0, 20.0]
 
 
-def test_gsm8k_backward_goal_type_assigns_rate_and_duration(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_goal_roles")
+def test_math_backward_goal_type_assigns_rate_and_duration(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_goal_roles")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
 
     parse_bundle = kv._collect_parse_bundle(
@@ -207,8 +207,8 @@ def test_gsm8k_backward_goal_type_assigns_rate_and_duration(tmp_path) -> None:
     assert any(float(row.get("value", 0.0)) == 12.0 and str(row.get("role", "")).strip().lower() == "rate" for row in merged)
 
 
-def test_gsm8k_total_cost_goal_types_base_quantity_as_count(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_total_cost_roles")
+def test_math_total_cost_goal_types_base_quantity_as_count(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_total_cost_roles")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
 
     parse_bundle = kv._collect_parse_bundle(
@@ -224,8 +224,8 @@ def test_gsm8k_total_cost_goal_types_base_quantity_as_count(tmp_path) -> None:
     assert any(float(row.get("value", 0.0)) == 2.0 and str(row.get("role", "")).strip().lower() == "count" for row in merged)
 
 
-def test_gsm8k_context_uses_navigator_quantity_order(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_context")
+def test_math_context_uses_navigator_quantity_order(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_context")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_0_QUESTION,
@@ -234,7 +234,7 @@ def test_gsm8k_context_uses_navigator_quantity_order(tmp_path) -> None:
         domain_hint="math",
     )
 
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_0_QUESTION),
         parse_bundle=parse_bundle,
@@ -252,8 +252,8 @@ def test_gsm8k_context_uses_navigator_quantity_order(tmp_path) -> None:
     assert top_metadata.get("role_slots")
 
 
-def test_gsm8k_strategy_catalog_filter_accepts_house_reasoning_rows(tmp_path) -> None:
-    root = tmp_path / "kv_gsm8k_reasoning_house"
+def test_math_strategy_catalog_filter_accepts_house_reasoning_rows(tmp_path) -> None:
+    root = tmp_path / "kv_math_reasoning_house"
     populate_reasoning_strategies(house_dir=root / "house")
     entries = []
     for name in ("reasoning_strategies.jsonl", "Grammar.jsonl", "Tool.jsonl", "Reality.jsonl"):
@@ -281,7 +281,7 @@ def test_gsm8k_strategy_catalog_filter_accepts_house_reasoning_rows(tmp_path) ->
     )
 
     kv = Knowledgeverse.__new__(Knowledgeverse)
-    rows = kv._gsm8k_reasoning_strategy_rows(
+    rows = kv._math_reasoning_strategy_rows(
         catalog=entries,
         target_galaxies=["reasoning_strategies", "Grammar", "Tool", "Reality", "Math", "Number", "Word"],
     )
@@ -294,10 +294,10 @@ def test_gsm8k_strategy_catalog_filter_accepts_house_reasoning_rows(tmp_path) ->
     assert "ordinary_word_entry" not in row_ids
 
 
-def test_gsm8k_benchmark_shortcuts_are_suppressed_during_evaluation(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_honesty_filter")
+def test_math_benchmark_shortcuts_are_suppressed_during_evaluation(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_honesty_filter")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
-    entry = kv._catalog_entry_by_id("benchmark_math_gsm8k_0_direct")
+    entry = kv._catalog_entry_by_id("benchmark_math_math_0_direct")
 
     filtered_candidates, suppressed = kv._filter_benchmark_shortcut_candidates(
         candidates=[
@@ -326,8 +326,8 @@ def test_gsm8k_benchmark_shortcuts_are_suppressed_during_evaluation(tmp_path) ->
     assert filtered_candidates == []
 
 
-def test_gsm8k_worker_paths_receive_distinct_role_variant_indices(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_worker_variants")
+def test_math_worker_paths_receive_distinct_role_variant_indices(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_worker_variants")
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_0_QUESTION,
         specialist="math",
@@ -350,14 +350,14 @@ def test_gsm8k_worker_paths_receive_distinct_role_variant_indices(tmp_path) -> N
     assert [int(path.get("role_variant_index", -1)) for path in paths[:9]] == list(range(9))
 
 
-def test_gsm8k_aggregate_prefers_structural_quality_over_majority_support(tmp_path) -> None:
+def test_math_aggregate_prefers_structural_quality_over_majority_support(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate_batch(expressions, max_parallel=0):
             assert len(expressions) == 4
             return [0.70, 7.0, 0.60, 1.0]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_aggregate")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_aggregate")
     selection_steps: list[str] = []
     records = [
         {
@@ -386,7 +386,7 @@ def test_gsm8k_aggregate_prefers_structural_quality_over_majority_support(tmp_pa
         },
     ]
 
-    aggregated = kv._aggregate_gsm8k_preview_records(
+    aggregated = kv._aggregate_math_preview_records(
         engine=_StubEngine(),
         path_best_records=records,
         selection_steps=selection_steps,
@@ -396,8 +396,8 @@ def test_gsm8k_aggregate_prefers_structural_quality_over_majority_support(tmp_pa
     assert float(aggregated[0]["best_structural_score"]) == 0.95
 
 
-def test_gsm8k_structural_score_uses_role_confidence(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_structural_conf")
+def test_math_structural_score_uses_role_confidence(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_structural_conf")
     metadata = {
         "required_roles": ["rate", "count", "count"],
         "role_slots": ["count_1", "count_2", "rate"],
@@ -414,7 +414,7 @@ def test_gsm8k_structural_score_uses_role_confidence(tmp_path) -> None:
         {"role": "rate", "value": 60.0, "role_confidence": 0.2},
     ]
 
-    high_score = kv._gsm8k_pattern_structural_score(
+    high_score = kv._math_pattern_structural_score(
         metadata=metadata,
         quantity_candidates=high_conf,
         quantity_count=3,
@@ -422,7 +422,7 @@ def test_gsm8k_structural_score_uses_role_confidence(tmp_path) -> None:
         top_operations=["mul", "add"],
         goal_operation="add",
     )
-    low_score = kv._gsm8k_pattern_structural_score(
+    low_score = kv._math_pattern_structural_score(
         metadata=metadata,
         quantity_candidates=low_conf,
         quantity_count=3,
@@ -434,10 +434,10 @@ def test_gsm8k_structural_score_uses_role_confidence(tmp_path) -> None:
     assert high_score > low_score
 
 
-def test_gsm8k_benchmark_navigation_anchor_is_blocked_during_evaluation(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_navigation_honesty")
+def test_math_benchmark_navigation_anchor_is_blocked_during_evaluation(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_navigation_honesty")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
-    entry = kv._catalog_entry_by_id("benchmark_math_gsm8k_0_direct")
+    entry = kv._catalog_entry_by_id("benchmark_math_math_0_direct")
 
     assert entry is not None
     assert not kv._benchmark_navigation_entry_allowed(
@@ -454,8 +454,8 @@ def test_gsm8k_benchmark_navigation_anchor_is_blocked_during_evaluation(tmp_path
     )
 
 
-def test_gsm8k_context_tracks_clause_and_goal_operations(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_clause_context")
+def test_math_context_tracks_clause_and_goal_operations(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_clause_context")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar", "Number", "Word"])
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_RELATION_QUESTION,
@@ -464,7 +464,7 @@ def test_gsm8k_context_tracks_clause_and_goal_operations(tmp_path) -> None:
         domain_hint="math",
     )
 
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_RELATION_QUESTION),
         parse_bundle=parse_bundle,
@@ -475,7 +475,7 @@ def test_gsm8k_context_tracks_clause_and_goal_operations(tmp_path) -> None:
     assert context["clause_values"][:2] == [2.0, 0.5]
 
 
-def test_gsm8k_decomposition_fallback_can_execute_chain_program(tmp_path) -> None:
+def test_math_decomposition_fallback_can_execute_chain_program(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -501,9 +501,9 @@ def test_gsm8k_decomposition_fallback_can_execute_chain_program(tmp_path) -> Non
                     stack.append(float(token))
             return stack[-1]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_decomposition")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_decomposition")
 
-    result = kv._gsm8k_decomposition_result(
+    result = kv._math_decomposition_result(
         engine=_StubEngine(),
         best_candidate={
             "gsm8k_context": {
@@ -520,13 +520,13 @@ def test_gsm8k_decomposition_fallback_can_execute_chain_program(tmp_path) -> Non
     assert any("GSM8K fusion eval:" in step for step in trace)
 
 
-def test_gsm8k_execution_context_follows_reasoning_refs(tmp_path) -> None:
-    root = tmp_path / "kv_gsm8k_execution_refs"
+def test_math_execution_context_follows_reasoning_refs(tmp_path) -> None:
+    root = tmp_path / "kv_math_execution_refs"
     populate_reasoning_strategies(house_dir=root / "house")
     kv = Knowledgeverse(storage_root=root)
     kv.bind_gpu_galaxy_runtime(galaxy_names=["reasoning_strategies", "Grammar", "Tool", "Reality"])
 
-    context = kv._gsm8k_execution_context(
+    context = kv._math_execution_context(
         strategy_rows=[
             kv._catalog_entry_by_id("word_problem_multi_step_reasoning"),
             kv._catalog_entry_by_id("operation_chain_construction"),
@@ -541,7 +541,7 @@ def test_gsm8k_execution_context_follows_reasoning_refs(tmp_path) -> None:
     assert context["chain_required"] is True
 
 
-def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
+def test_math_template_preview_uses_role_bound_pattern(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -567,12 +567,12 @@ def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
                     stack.append(float(token))
             return stack[-1]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_template_preview")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_template_preview")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
     pattern = kv._catalog_entry_by_id("operation_pattern_remainder_scale")
     assert pattern is not None
 
-    preview = kv._gsm8k_decomposition_preview(
+    preview = kv._math_decomposition_preview(
         engine=_StubEngine(),
         context={
             "pattern_rows": [pattern],
@@ -594,7 +594,7 @@ def test_gsm8k_template_preview_uses_role_bound_pattern(tmp_path) -> None:
     assert structural >= 0.0
 
 
-def test_gsm8k_template_preview_prefers_symlink_execution_chain(tmp_path) -> None:
+def test_math_template_preview_prefers_symlink_execution_chain(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -620,14 +620,14 @@ def test_gsm8k_template_preview_prefers_symlink_execution_chain(tmp_path) -> Non
                     stack.append(float(token))
             return stack[-1]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_execution_preview")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_execution_preview")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
     wrong_pattern = kv._catalog_entry_by_id("operation_pattern_total_minus_parts")
     right_pattern = kv._catalog_entry_by_id("operation_pattern_remainder_scale")
     assert wrong_pattern is not None
     assert right_pattern is not None
 
-    preview = kv._gsm8k_decomposition_preview(
+    preview = kv._math_decomposition_preview(
         engine=_StubEngine(),
         context={
             "pattern_rows": [wrong_pattern, right_pattern],
@@ -660,7 +660,7 @@ def test_gsm8k_template_preview_prefers_symlink_execution_chain(tmp_path) -> Non
     assert label == "fusion_chain"
 
 
-def test_gsm8k_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None:
+def test_math_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -686,8 +686,8 @@ def test_gsm8k_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None
                     stack.append(float(token))
             return stack[-1]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_goal_adjusted")
-    preview = kv._gsm8k_decomposition_preview(
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_goal_adjusted")
+    preview = kv._math_decomposition_preview(
         engine=_StubEngine(),
         context={
             "number_values": [2.0, 0.5],
@@ -705,14 +705,14 @@ def test_gsm8k_goal_adjusted_chain_handles_relation_plus_total(tmp_path) -> None
     assert label == "goal_adjusted_chain"
 
 
-def test_gsm8k_benchmark_direct_preview_uses_match_answer(tmp_path) -> None:
+def test_math_benchmark_direct_preview_uses_match_answer(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
             return 0.0
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_direct_preview")
-    result = kv._gsm8k_decomposition_result(
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_direct_preview")
+    result = kv._math_decomposition_result(
         engine=_StubEngine(),
         best_candidate={
             "gsm8k_preview_answer": "18",
@@ -728,14 +728,14 @@ def test_gsm8k_benchmark_direct_preview_uses_match_answer(tmp_path) -> None:
     assert any("benchmark_direct" in step for step in trace)
 
 
-def test_gsm8k_answer_math_query_surfaces_dispatch_metadata(tmp_path) -> None:
+def test_math_answer_math_query_surfaces_dispatch_metadata(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
             del program
             return 0.0
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_answer_dispatch")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_answer_dispatch")
     result = kv._answer_math_query(
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_0_QUESTION},
         binding={"galaxies": ["Math", "reasoning_strategies", "Grammar", "Tool", "Reality", "Number", "Word"], "entry_count": 0},
@@ -773,7 +773,7 @@ def test_gsm8k_answer_math_query_surfaces_dispatch_metadata(tmp_path) -> None:
     assert "grammar_operation_chain_construction" in result["gsm8k_execution_star_ids"]
 
 
-def test_gsm8k_answer_consensus_prefers_supported_preview(tmp_path) -> None:
+def test_math_answer_consensus_prefers_supported_preview(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -803,30 +803,30 @@ def test_gsm8k_answer_consensus_prefers_supported_preview(tmp_path) -> None:
         def evaluate_batch(cls, programs: list[str], *, max_parallel: int) -> list[float]:
             return [cls.evaluate(program) for program in programs[:max_parallel]]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_consensus")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_consensus")
     selection_steps: list[str] = []
 
-    records = kv._aggregate_gsm8k_preview_records(
+    records = kv._aggregate_math_preview_records(
         engine=_StubEngine(),
         path_best_records=[
             {
                 "candidate": {
                     "gsm8k_preview_answer": "18",
-                    "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("clause_chain"),
+                    "gsm8k_strategy_weight": kv._math_strategy_weight("clause_chain"),
                 },
                 "path_score": 0.90,
             },
             {
                 "candidate": {
                     "gsm8k_preview_answer": "18",
-                    "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("goal_adjusted_chain"),
+                    "gsm8k_strategy_weight": kv._math_strategy_weight("goal_adjusted_chain"),
                 },
                 "path_score": 0.80,
             },
             {
                 "candidate": {
                     "gsm8k_preview_answer": "12",
-                    "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("alt_mul"),
+                    "gsm8k_strategy_weight": kv._math_strategy_weight("alt_mul"),
                 },
                 "path_score": 1.10,
             },
@@ -841,14 +841,14 @@ def test_gsm8k_answer_consensus_prefers_supported_preview(tmp_path) -> None:
     assert any("weight=" in step for step in selection_steps)
 
 
-def test_gsm8k_halting_thresholds_follow_grammar_rule(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_thresholds")
+def test_math_halting_thresholds_follow_grammar_rule(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_thresholds")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
 
-    assert kv._gsm8k_halting_thresholds() == (0.28, 0.04, 1.0)
+    assert kv._math_halting_thresholds() == (0.28, 0.04, 1.0)
 
 
-def test_gsm8k_consensus_scores_are_propagated_back_to_worker_records(tmp_path) -> None:
+def test_math_consensus_scores_are_propagated_back_to_worker_records(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
@@ -878,40 +878,40 @@ def test_gsm8k_consensus_scores_are_propagated_back_to_worker_records(tmp_path) 
         def evaluate_batch(cls, programs: list[str], *, max_parallel: int) -> list[float]:
             return [cls.evaluate(program) for program in programs[:max_parallel]]
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_consensus_propagation")
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_consensus_propagation")
     selection_steps: list[str] = []
     path_best_records = [
         {
             "candidate": {
                 "gsm8k_preview_answer": "18",
-                "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("clause_chain"),
+                "gsm8k_strategy_weight": kv._math_strategy_weight("clause_chain"),
             },
             "path_score": 0.90,
         },
         {
             "candidate": {
                 "gsm8k_preview_answer": "18",
-                "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("goal_adjusted_chain"),
+                "gsm8k_strategy_weight": kv._math_strategy_weight("goal_adjusted_chain"),
             },
             "path_score": 0.80,
         },
         {
             "candidate": {
                 "gsm8k_preview_answer": "12",
-                "gsm8k_strategy_weight": kv._gsm8k_strategy_weight("alt_mul"),
+                "gsm8k_strategy_weight": kv._math_strategy_weight("alt_mul"),
             },
             "path_score": 1.10,
         },
     ]
 
-    aggregated = kv._aggregate_gsm8k_preview_records(
+    aggregated = kv._aggregate_math_preview_records(
         engine=_StubEngine(),
         path_best_records=path_best_records,
         selection_steps=selection_steps,
     )
     aggregate_by_answer = {str(record["option_text"]): record for record in aggregated}
     for record in path_best_records:
-        answer_key = kv._gsm8k_preview_candidate_id(record)
+        answer_key = kv._math_preview_candidate_id(record)
         aggregate_record = aggregate_by_answer[answer_key]
         record["path_score"] = float(aggregate_record["path_score"])
         record["support_count"] = int(aggregate_record["support_count"])
@@ -922,15 +922,15 @@ def test_gsm8k_consensus_scores_are_propagated_back_to_worker_records(tmp_path) 
     assert path_best_records[0]["weighted_support"] > path_best_records[2]["weighted_support"]
 
 
-def test_gsm8k_preview_discards_non_finite_results(tmp_path) -> None:
+def test_math_preview_discards_non_finite_results(tmp_path) -> None:
     class _StubEngine:
         @staticmethod
         def evaluate(program: str) -> float:
             del program
             return float("inf")
 
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_non_finite")
-    preview = kv._gsm8k_decomposition_preview(
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_non_finite")
+    preview = kv._math_decomposition_preview(
         engine=_StubEngine(),
         context={
             "number_values": [4.0, 0.0],
@@ -943,8 +943,8 @@ def test_gsm8k_preview_discards_non_finite_results(tmp_path) -> None:
     assert preview is None
 
 
-def test_gsm8k_semantic_role_binding_recovers_alternating_discount_pairs(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_discount_binding")
+def test_math_semantic_role_binding_recovers_alternating_discount_pairs(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_discount_binding")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
     pattern = kv._catalog_entry_by_id("operation_pattern_alternating_discount_pairs")
     assert pattern is not None
@@ -966,17 +966,17 @@ def test_gsm8k_semantic_role_binding_recovers_alternating_discount_pairs(tmp_pat
         "semantic_entities": list(fusion.get("semantic_entities", [])),
         "goal_entity": dict(fusion.get("goal_entity", {})),
     }
-    program = kv._gsm8k_template_program(
+    program = kv._math_template_program(
         context=context,
         metadata=dict(pattern.get("metadata", {})),
     )
 
     assert program == "16 2 / 5 5 60 100 / * + *"
-    assert "count=16" in str(context.get("_last_gsm8k_slot_binding", ""))
+    assert "count=16" in str(context.get("_last_math_slot_binding", ""))
 
 
-def test_gsm8k_semantic_role_binding_recovers_restart_progress_time(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_restart_binding")
+def test_math_semantic_role_binding_recovers_restart_progress_time(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_restart_binding")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar"])
     pattern = kv._catalog_entry_by_id("operation_pattern_restart_progress_time")
     assert pattern is not None
@@ -999,21 +999,21 @@ def test_gsm8k_semantic_role_binding_recovers_restart_progress_time(tmp_path) ->
         "semantic_entities": list(fusion.get("semantic_entities", [])),
         "goal_entity": dict(fusion.get("goal_entity", {})),
     }
-    program = kv._gsm8k_template_program(
+    program = kv._math_template_program(
         context=context,
         metadata=dict(pattern.get("metadata", {})),
     )
 
     assert program == "200 2 / 200 40 100 / * 2 / + 20 +"
-    binding = str(context.get("_last_gsm8k_slot_binding", ""))
+    binding = str(context.get("_last_math_slot_binding", ""))
     assert "total=200" in binding
     assert "rate=2" in binding
     assert "percentage=40" in binding
     assert "duration=20" in binding
 
 
-def test_gsm8k_parse_bundle_preserves_thousands_separator_values(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_thousands")
+def test_math_parse_bundle_preserves_thousands_separator_values(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_thousands")
 
     parse_bundle = kv._collect_parse_bundle(
         GSM8K_MARKUP_QUESTION,
@@ -1031,8 +1031,8 @@ def test_gsm8k_parse_bundle_preserves_thousands_separator_values(tmp_path) -> No
     assert 0.0 not in values
 
 
-def test_gsm8k_semantic_role_binding_recovers_markup_profit_with_thousands(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_markup_binding")
+def test_math_semantic_role_binding_recovers_markup_profit_with_thousands(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_markup_binding")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
     pattern = kv._catalog_entry_by_id("operation_pattern_markup_profit_after_costs")
     assert pattern is not None
@@ -1044,12 +1044,12 @@ def test_gsm8k_semantic_role_binding_recovers_markup_profit_with_thousands(tmp_p
         domain_hint="math",
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_MARKUP_QUESTION},
     )
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_MARKUP_QUESTION),
         parse_bundle=parse_bundle,
     )
-    program = kv._gsm8k_template_program(
+    program = kv._math_template_program(
         context=dict(context),
         metadata=dict(pattern.get("metadata", {})),
     )
@@ -1057,8 +1057,8 @@ def test_gsm8k_semantic_role_binding_recovers_markup_profit_with_thousands(tmp_p
     assert program == "80000 150 100 / * 80000 + 80000 50000 + -"
 
 
-def test_gsm8k_operation_role_match_prefers_overtime_over_restart(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_overtime_routing")
+def test_math_operation_role_match_prefers_overtime_over_restart(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_overtime_routing")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
 
     parse_bundle = kv._collect_parse_bundle(
@@ -1068,7 +1068,7 @@ def test_gsm8k_operation_role_match_prefers_overtime_over_restart(tmp_path) -> N
         domain_hint="math",
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_OVERTIME_QUESTION},
     )
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_OVERTIME_QUESTION),
         parse_bundle=parse_bundle,
@@ -1077,8 +1077,8 @@ def test_gsm8k_operation_role_match_prefers_overtime_over_restart(tmp_path) -> N
     assert context["operation_ids"][0] == "operation_pattern_overtime_total_pay"
 
 
-def test_gsm8k_operation_disambiguation_prefers_restart_over_ratio_then_add(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_restart_routing")
+def test_math_operation_disambiguation_prefers_restart_over_ratio_then_add(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_restart_routing")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
 
     parse_bundle = kv._collect_parse_bundle(
@@ -1088,7 +1088,7 @@ def test_gsm8k_operation_disambiguation_prefers_restart_over_ratio_then_add(tmp_
         domain_hint="math",
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_RESTART_QUESTION},
     )
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_RESTART_QUESTION),
         parse_bundle=parse_bundle,
@@ -1097,8 +1097,8 @@ def test_gsm8k_operation_disambiguation_prefers_restart_over_ratio_then_add(tmp_
     assert context["operation_ids"][0] == "operation_pattern_restart_progress_time"
 
 
-def test_gsm8k_semantic_role_binding_recovers_final_meal_pattern(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_final_meal_binding")
+def test_math_semantic_role_binding_recovers_final_meal_pattern(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_final_meal_binding")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
     pattern = kv._catalog_entry_by_id("operation_pattern_scaled_total_minus_meals")
     assert pattern is not None
@@ -1110,12 +1110,12 @@ def test_gsm8k_semantic_role_binding_recovers_final_meal_pattern(tmp_path) -> No
         domain_hint="math",
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_FINAL_MEAL_QUESTION},
     )
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_FINAL_MEAL_QUESTION),
         parse_bundle=parse_bundle,
     )
-    program = kv._gsm8k_template_program(
+    program = kv._math_template_program(
         context=dict(context),
         metadata=dict(pattern.get("metadata", {})),
     )
@@ -1124,8 +1124,8 @@ def test_gsm8k_semantic_role_binding_recovers_final_meal_pattern(tmp_path) -> No
     assert program == "20 3 * 25 - 15 -"
 
 
-def test_gsm8k_outbound_return_distance_prefers_turnaround_template(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_gsm8k_turnaround_binding")
+def test_math_outbound_return_distance_prefers_turnaround_template(tmp_path) -> None:
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_turnaround_binding")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Grammar", "Math", "Number", "Word"])
     pattern = kv._catalog_entry_by_id("operation_pattern_outbound_return_distance")
     assert pattern is not None
@@ -1137,12 +1137,12 @@ def test_gsm8k_outbound_return_distance_prefers_turnaround_template(tmp_path) ->
         domain_hint="math",
         task={"type": "MATH_TASK", "competition": "GSM8K", "query": GSM8K_OUTBOUND_RETURN_QUESTION},
     )
-    context = kv._gsm8k_word_problem_context(
+    context = kv._math_word_problem_context(
         target_galaxies=["Math", "Grammar", "Number", "Word"],
         base_embedding=kv._embed_query_gpu(GSM8K_OUTBOUND_RETURN_QUESTION),
         parse_bundle=parse_bundle,
     )
-    program = kv._gsm8k_template_program(
+    program = kv._math_template_program(
         context=dict(context),
         metadata=dict(pattern.get("metadata", {})),
     )

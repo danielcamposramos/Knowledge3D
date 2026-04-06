@@ -4,19 +4,27 @@
 #include <stdint.h>
 
 #define GPU_TASK_EMBED_DIMS 32
+#define GPU_TASK_TRM_DIMS 512
+#define GPU_TASK_TRM_HIDDEN_DIMS 1024
+#define GPU_TASK_TRM_WORKSPACE_FLOATS 4096
 #define GPU_TASK_NUM_CHAINS 9
 #define GPU_TASK_MAX_OPTIONS 7
-#define GPU_TASK_INPUT_SLOT_BYTES 1280
-#define GPU_TASK_OUTPUT_SLOT_BYTES 512
+#define GPU_TASK_INPUT_SLOT_BYTES 1536
+#define GPU_TASK_OUTPUT_SLOT_BYTES 640
 #define GPU_TASK_QUERY_EMBEDDING_OFFSET 0
 #define GPU_TASK_TYPE_OFFSET 128
 #define GPU_TASK_OPTION_COUNT_OFFSET 132
 #define GPU_TASK_OPTION_EMBEDDINGS_OFFSET 136
-#define GPU_TASK_THINKING_BUDGET_OFFSET 1040
-#define GPU_TASK_ACTION_HISTORY_OFFSET 1044
-#define GPU_TASK_ACTION_HISTORY_LEN_OFFSET 1051
-#define GPU_TASK_TERNARY_SIGNAL_OFFSET 1052
-#define GPU_TASK_GOAL_EMBEDDING_OFFSET 1056
+#define GPU_TASK_OPTION_HASHES_OFFSET 1032
+#define GPU_TASK_SUBJECT_ID_OFFSET 1088
+#define GPU_TASK_DOMAIN_HINT_ID_OFFSET 1092
+#define GPU_TASK_THINKING_BUDGET_OFFSET 1096
+#define GPU_TASK_ACTION_HISTORY_OFFSET 1100
+#define GPU_TASK_ACTION_HISTORY_LEN_OFFSET 1107
+#define GPU_TASK_TERNARY_SIGNAL_OFFSET 1108
+#define GPU_TASK_GOAL_EMBEDDING_OFFSET 1112
+#define GPU_TASK_EXPECTED_HASH_OFFSET 1240
+#define GPU_TASK_EXPECTED_INDEX_OFFSET 1248
 #define GPU_TASK_DEFAULT_THINKING_BUDGET 10
 #define GPU_TASK_MIN_THINKING_BUDGET 5
 #define GPU_TASK_MAX_THINKING_BUDGET 20
@@ -26,17 +34,98 @@
 #define GPU_TASK_ITERATIONS_OUTPUT_OFFSET 12
 #define GPU_TASK_ANSWER_HASH_OUTPUT_OFFSET 16
 #define GPU_TASK_GOAL_PROGRESS_OUTPUT_OFFSET 24
+#define GPU_TASK_WINNER_STAR_INDEX_OUTPUT_OFFSET 28
+#define GPU_TASK_WINNER_ROLE_ID_OUTPUT_OFFSET 32
+#define GPU_TASK_ROUTE_DEPTH_OUTPUT_OFFSET 36
+#define GPU_TASK_ANTI_PATTERN_SIGNAL_OUTPUT_OFFSET 40
+#define GPU_TASK_ROUTER_STAR_INDEX_OUTPUT_OFFSET 44
+#define GPU_TASK_EXECUTOR_STAR_INDEX_OUTPUT_OFFSET 48
+#define GPU_TASK_VALIDATOR_STAR_INDEX_OUTPUT_OFFSET 52
+#define GPU_TASK_ROUTE_BUDGET_USED_OUTPUT_OFFSET 56
+#define GPU_TASK_ROUTE_BUDGET_MIN_OUTPUT_OFFSET 60
+#define GPU_TASK_RECURSION_DEPTH_USED_OUTPUT_OFFSET 64
+#define GPU_TASK_ROUTE_TRACE_STAR_INDICES_OUTPUT_OFFSET 68
+#define GPU_TASK_ROUTE_TRACE_ROLE_IDS_OUTPUT_OFFSET 100
 
-#define GALAXY_STAR_RECORD_BYTES 160
+#define GPU_FAMILY_GAME_2D 1u
+#define GPU_FAMILY_MATH 2u
+#define GPU_FAMILY_QUESTION 3u
+#define GPU_FAMILY_CHAT 4u
+#define GPU_FAMILY_GENERAL 5u
+#define GPU_FAMILY_GRAMMAR 6u
+#define GPU_FAMILY_INTERACTION 7u
+
+#define GALAXY_STAR_RECORD_BYTES 256
 #define GALAXY_STAR_EMBEDDING_OFFSET 0
 #define GALAXY_STAR_GALAXY_ID_OFFSET 128
 #define GALAXY_STAR_TYPE_OFFSET 132
-#define GALAXY_STAR_N_REFS_OFFSET 136
-#define GALAXY_STAR_REFS_OFFSET 140
-#define GALAXY_STAR_FLAGS_OFFSET 156
+#define GALAXY_STAR_SELECTION_ROLE_OFFSET 136
+#define GALAXY_STAR_LAYER_ID_OFFSET 140
+#define GALAXY_STAR_FLAGS_OFFSET 144
+#define GALAXY_STAR_ANSWER_ELIGIBLE_OFFSET 148
+#define GALAXY_STAR_SEMANTIC_POLARITY_OFFSET 152
+#define GALAXY_STAR_SEMANTIC_FOCUS_OFFSET 156
+#define GALAXY_STAR_SEMANTIC_MASS_OFFSET 160
+#define GALAXY_STAR_ATTRACTIVE_PRIOR_OFFSET 164
+#define GALAXY_STAR_REPULSIVE_PRIOR_OFFSET 168
+#define GALAXY_STAR_ROUTE_POLICY_OFFSET 172
+#define GALAXY_STAR_HASH_OFFSET 176
+#define GALAXY_STAR_ROUTER_REF_COUNT_OFFSET 184
+#define GALAXY_STAR_ROUTER_REFS_OFFSET 188
+#define GALAXY_STAR_EXECUTOR_REF_COUNT_OFFSET 196
+#define GALAXY_STAR_EXECUTOR_REFS_OFFSET 200
+#define GALAXY_STAR_VALIDATOR_REF_COUNT_OFFSET 208
+#define GALAXY_STAR_VALIDATOR_REFS_OFFSET 212
+#define GALAXY_STAR_ANTI_PATTERN_REF_COUNT_OFFSET 220
+#define GALAXY_STAR_ANTI_PATTERN_REFS_OFFSET 224
+#define GALAXY_STAR_POSITION_OFFSET 232
+#define GALAXY_STAR_VELOCITY_OFFSET 244
 #define GALAXY_STAR_FLAG_ACTIVE 0x01
 #define GALAXY_STAR_FLAG_LEARNABLE 0x02
+#define GALAXY_STAR_ROUTE_FAMILY_SHIFT 8u
+#define GALAXY_STAR_ROUTE_FAMILY_MASK (0xFFu << GALAXY_STAR_ROUTE_FAMILY_SHIFT)
 #define GALAXY_NULL_REF 0xFFFFFFFFu
+
+#define GALAXY_ROLE_UNKNOWN 0u
+#define GALAXY_ROLE_ROUTER 1u
+#define GALAXY_ROLE_EXECUTOR 2u
+#define GALAXY_ROLE_VALIDATOR 3u
+#define GALAXY_ROLE_ANSWER 4u
+#define GALAXY_ROLE_ANTI_PATTERN 5u
+
+#define GALAXY_ROLE_REF_LIMIT 2u
+
+#define ROUTE_POLICY_DECOMPOSE_ON_FAIL 0x01u
+#define ROUTE_POLICY_REQUIRES_EXECUTOR 0x02u
+#define ROUTE_POLICY_REQUIRES_VALIDATOR 0x04u
+#define ROUTE_POLICY_ANSWER_GATE 0x08u
+
+#define GPU_ROUTE_MAX_DEPTH 8u
+#define GPU_ROUTE_FRONTIER_WIDTH 32u
+#define GPU_ROUTE_BRANCH_FANOUT 4u
+#define GPU_ROUTE_TRACE_LIMIT 8u
+#define GPU_ROUTE_VISITED_LIMIT 64u
+
+#define LESSON_RECORD_BYTES 64
+#define LESSON_FAMILY_ID_OFFSET 0
+#define LESSON_ROUTER_INDEX_OFFSET 4
+#define LESSON_EXECUTOR_INDEX_OFFSET 8
+#define LESSON_VALIDATOR_INDEX_OFFSET 12
+#define LESSON_WINNER_INDEX_OFFSET 16
+#define LESSON_WINNER_ROLE_OFFSET 20
+#define LESSON_EXPECTED_HASH_OFFSET 24
+#define LESSON_PREDICTED_HASH_OFFSET 32
+#define LESSON_REWARD_OFFSET 40
+#define LESSON_ANTI_PATTERN_OFFSET 44
+#define LESSON_ROUTE_DEPTH_OFFSET 48
+#define LESSON_ROUTE_TRACE_HASH_OFFSET 56
+
+#define LESSON_STATS_POSITIVE_STEPS_OFFSET 0
+#define LESSON_STATS_NEGATIVE_STEPS_OFFSET 4
+#define LESSON_STATS_ANTI_PATTERN_HITS_OFFSET 8
+#define LESSON_STATS_LAST_POSITIVE_LOSS_OFFSET 12
+#define LESSON_STATS_LAST_NEGATIVE_LOSS_OFFSET 16
+#define LESSON_STATS_BYTES 32
 
 #define BRAIN_REASONING_OFFSET 0
 #define BRAIN_CHAINS_OFFSET 128
@@ -46,7 +135,22 @@
 #define BRAIN_TERNARY_OFFSET 1416
 #define BRAIN_FRAME_COUNT_OFFSET 1420
 #define BRAIN_SPECIALIST_TRACE_OFFSET 1424
-#define BRAIN_TOTAL_BYTES 1460
+#define BRAIN_TRM_Q_OFFSET 1460
+#define BRAIN_TRM_Y_OFFSET 3508
+#define BRAIN_TRM_Z_OFFSET 5556
+#define BRAIN_TOTAL_BYTES 7604
+
+struct GalaxyRoleAdjacencyDeviceView {
+    const unsigned int* router_offsets;
+    const unsigned int* router_counts;
+    const unsigned int* executor_offsets;
+    const unsigned int* executor_counts;
+    const unsigned int* validator_offsets;
+    const unsigned int* validator_counts;
+    const unsigned int* anti_pattern_offsets;
+    const unsigned int* anti_pattern_counts;
+    const unsigned int* ref_indices;
+};
 
 __device__ __forceinline__ float device_absf(float value) {
     return value < 0.0f ? -value : value;
@@ -68,6 +172,32 @@ __device__ __forceinline__ float device_maxf(float a, float b) {
 
 __device__ __forceinline__ float device_minf(float a, float b) {
     return a < b ? a : b;
+}
+
+__device__ __forceinline__ bool device_isfinitef(float value) {
+    return isfinite(value);
+}
+
+__device__ __forceinline__ float device_finite_or_default(float value, float default_value) {
+    return device_isfinitef(value) ? value : default_value;
+}
+
+__device__ __forceinline__ float device_clamp_min(float value, float minimum) {
+    return value < minimum ? minimum : value;
+}
+
+__device__ __forceinline__ float device_clamp_range(float value, float minimum, float maximum) {
+    return device_minf(device_maxf(value, minimum), maximum);
+}
+
+__device__ __forceinline__ unsigned int device_clamp_u32(unsigned int value, unsigned int minimum, unsigned int maximum) {
+    if (value < minimum) {
+        return minimum;
+    }
+    if (value > maximum) {
+        return maximum;
+    }
+    return value;
 }
 
 __device__ __forceinline__ float pseudo_random_device(int chain_id, int dim) {
@@ -102,6 +232,52 @@ __device__ __forceinline__ float cosine32_device(const float* a, const float* b,
     return dot32_device(a, b, dim) / denom;
 }
 
+__device__ __forceinline__ void duplicate_and_normalize_embedding16_device(
+    const float* embedding16,
+    float* embedding32
+) {
+    double norm_sq = 0.0;
+    #pragma unroll
+    for (int d = 0; d < 16; ++d) {
+        const float value = device_finite_or_default(embedding16[d], 0.0f);
+        embedding32[d] = value;
+        embedding32[d + 16] = value;
+    }
+    #pragma unroll
+    for (int d = 0; d < 32; ++d) {
+        norm_sq += static_cast<double>(embedding32[d]) * static_cast<double>(embedding32[d]);
+    }
+    const double norm = sqrt(norm_sq);
+    const float inv_norm = norm > 1.0e-6 ? static_cast<float>(1.0 / norm) : 0.0f;
+    #pragma unroll
+    for (int d = 0; d < 32; ++d) {
+        embedding32[d] *= inv_norm;
+    }
+}
+
+__device__ __forceinline__ unsigned int pack_route_policy_device(
+    bool decompose_on_fail,
+    bool requires_executor,
+    bool requires_validator,
+    bool answer_gate,
+    unsigned int branch_topk
+) {
+    unsigned int flags = 0u;
+    if (decompose_on_fail) {
+        flags |= ROUTE_POLICY_DECOMPOSE_ON_FAIL;
+    }
+    if (requires_executor) {
+        flags |= ROUTE_POLICY_REQUIRES_EXECUTOR;
+    }
+    if (requires_validator) {
+        flags |= ROUTE_POLICY_REQUIRES_VALIDATOR;
+    }
+    if (answer_gate) {
+        flags |= ROUTE_POLICY_ANSWER_GATE;
+    }
+    return flags | (device_clamp_u32(branch_topk, 0u, 255u) << 8);
+}
+
 __device__ __forceinline__ const float* galaxy_read_embedding(
     const unsigned char* galaxy_table,
     unsigned int star_index
@@ -111,22 +287,21 @@ __device__ __forceinline__ const float* galaxy_read_embedding(
     );
 }
 
-__device__ __forceinline__ unsigned int galaxy_read_n_refs(
+__device__ __forceinline__ unsigned int galaxy_read_selection_role(
     const unsigned char* galaxy_table,
     unsigned int star_index
 ) {
     return *reinterpret_cast<const unsigned int*>(
-        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_N_REFS_OFFSET
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_SELECTION_ROLE_OFFSET
     );
 }
 
-__device__ __forceinline__ unsigned int galaxy_read_ref(
+__device__ __forceinline__ unsigned int galaxy_read_answer_eligible(
     const unsigned char* galaxy_table,
-    unsigned int star_index,
-    unsigned int ref_index
+    unsigned int star_index
 ) {
     return *reinterpret_cast<const unsigned int*>(
-        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_REFS_OFFSET + (ref_index * 4u)
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_ANSWER_ELIGIBLE_OFFSET
     );
 }
 
@@ -139,9 +314,211 @@ __device__ __forceinline__ unsigned int galaxy_read_flags(
     );
 }
 
+__device__ __forceinline__ unsigned int galaxy_read_route_family_id(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return (galaxy_read_flags(galaxy_table, star_index) & GALAXY_STAR_ROUTE_FAMILY_MASK) >> GALAXY_STAR_ROUTE_FAMILY_SHIFT;
+}
+
+__device__ __forceinline__ int galaxy_read_polarity(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const int*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_SEMANTIC_POLARITY_OFFSET
+    );
+}
+
+__device__ __forceinline__ float galaxy_read_mass(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const float*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_SEMANTIC_MASS_OFFSET
+    );
+}
+
+__device__ __forceinline__ float galaxy_read_attractive_prior(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const float*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_ATTRACTIVE_PRIOR_OFFSET
+    );
+}
+
+__device__ __forceinline__ float galaxy_read_repulsive_prior(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const float*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_REPULSIVE_PRIOR_OFFSET
+    );
+}
+
+__device__ __forceinline__ unsigned long long galaxy_read_hash(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const unsigned long long*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_HASH_OFFSET
+    );
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_route_policy(
+    const unsigned char* galaxy_table,
+    unsigned int star_index
+) {
+    return *reinterpret_cast<const unsigned int*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + GALAXY_STAR_ROUTE_POLICY_OFFSET
+    );
+}
+
+__device__ __forceinline__ int galaxy_route_policy_flag(unsigned int route_policy_id, unsigned int mask) {
+    return (route_policy_id & mask) != 0u;
+}
+
+__device__ __forceinline__ unsigned int galaxy_route_policy_branch_topk(unsigned int route_policy_id) {
+    const unsigned int encoded = (route_policy_id >> 8) & 0xFFu;
+    return encoded > 0u ? encoded : GPU_ROUTE_BRANCH_FANOUT;
+}
+
+__device__ __forceinline__ unsigned int route_budget_from_trit_device(int ternary_signal) {
+    if (ternary_signal > 0) {
+        return 5u;
+    }
+    if (ternary_signal < 0) {
+        return 20u;
+    }
+    return 10u;
+}
+
+__device__ __forceinline__ unsigned int route_budget_min_from_trit_device(int ternary_signal) {
+    if (ternary_signal < 0) {
+        return 10u;
+    }
+    return 5u;
+}
+
+__device__ __forceinline__ const unsigned int* galaxy_role_offsets_ptr(
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
+    unsigned int role_kind
+) {
+    if (role_kind == GALAXY_ROLE_EXECUTOR) {
+        return adjacency.executor_offsets;
+    }
+    if (role_kind == GALAXY_ROLE_VALIDATOR) {
+        return adjacency.validator_offsets;
+    }
+    if (role_kind == GALAXY_ROLE_ANTI_PATTERN) {
+        return adjacency.anti_pattern_offsets;
+    }
+    return adjacency.router_offsets;
+}
+
+__device__ __forceinline__ const unsigned int* galaxy_role_counts_ptr(
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
+    unsigned int role_kind
+) {
+    if (role_kind == GALAXY_ROLE_EXECUTOR) {
+        return adjacency.executor_counts;
+    }
+    if (role_kind == GALAXY_ROLE_VALIDATOR) {
+        return adjacency.validator_counts;
+    }
+    if (role_kind == GALAXY_ROLE_ANTI_PATTERN) {
+        return adjacency.anti_pattern_counts;
+    }
+    return adjacency.router_counts;
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_role_ref_count_csr(
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
+    unsigned int star_index,
+    unsigned int role_kind
+) {
+    const unsigned int* counts = galaxy_role_counts_ptr(adjacency, role_kind);
+    return counts != nullptr ? counts[star_index] : 0u;
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_role_ref_offset_csr(
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
+    unsigned int star_index,
+    unsigned int role_kind
+) {
+    const unsigned int* offsets = galaxy_role_offsets_ptr(adjacency, role_kind);
+    return offsets != nullptr ? offsets[star_index] : 0u;
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_role_ref_csr(
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
+    unsigned int star_index,
+    unsigned int role_kind,
+    unsigned int ref_index
+) {
+    if (adjacency.ref_indices == nullptr) {
+        return GALAXY_NULL_REF;
+    }
+    const unsigned int count = galaxy_read_role_ref_count_csr(adjacency, star_index, role_kind);
+    if (ref_index >= count) {
+        return GALAXY_NULL_REF;
+    }
+    const unsigned int offset = galaxy_read_role_ref_offset_csr(adjacency, star_index, role_kind);
+    return adjacency.ref_indices[offset + ref_index];
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_role_ref_count(
+    const unsigned char* galaxy_table,
+    unsigned int star_index,
+    unsigned int role_kind
+) {
+    unsigned int offset = GALAXY_STAR_ROUTER_REF_COUNT_OFFSET;
+    if (role_kind == GALAXY_ROLE_EXECUTOR) {
+        offset = GALAXY_STAR_EXECUTOR_REF_COUNT_OFFSET;
+    } else if (role_kind == GALAXY_ROLE_VALIDATOR) {
+        offset = GALAXY_STAR_VALIDATOR_REF_COUNT_OFFSET;
+    } else if (role_kind == GALAXY_ROLE_ANTI_PATTERN) {
+        offset = GALAXY_STAR_ANTI_PATTERN_REF_COUNT_OFFSET;
+    }
+    return *reinterpret_cast<const unsigned int*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + offset
+    );
+}
+
+__device__ __forceinline__ unsigned int galaxy_read_role_ref(
+    const unsigned char* galaxy_table,
+    unsigned int star_index,
+    unsigned int role_kind,
+    unsigned int ref_index
+) {
+    unsigned int offset = GALAXY_STAR_ROUTER_REFS_OFFSET;
+    if (role_kind == GALAXY_ROLE_EXECUTOR) {
+        offset = GALAXY_STAR_EXECUTOR_REFS_OFFSET;
+    } else if (role_kind == GALAXY_ROLE_VALIDATOR) {
+        offset = GALAXY_STAR_VALIDATOR_REFS_OFFSET;
+    } else if (role_kind == GALAXY_ROLE_ANTI_PATTERN) {
+        offset = GALAXY_STAR_ANTI_PATTERN_REFS_OFFSET;
+    }
+    return *reinterpret_cast<const unsigned int*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + offset + (ref_index * 4u)
+    );
+}
+
+__device__ __forceinline__ float* galaxy_write_float_ptr(
+    unsigned char* galaxy_table,
+    unsigned int star_index,
+    unsigned int offset
+) {
+    return reinterpret_cast<float*>(
+        galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES) + offset
+    );
+}
+
 __device__ void galaxy_compose_embedding_device(
     float* output,
     const unsigned char* galaxy_table,
+    const GalaxyRoleAdjacencyDeviceView& adjacency,
     unsigned int star_index,
     int dim
 ) {
@@ -158,22 +535,39 @@ __device__ void galaxy_compose_embedding_device(
         output[index] = base[index];
     }
 
-    const unsigned int n_refs = galaxy_read_n_refs(galaxy_table, star_index);
-    if (n_refs == 0u) {
+    unsigned int refs[GPU_TASK_MAX_OPTIONS];
+    unsigned int ref_count = 0u;
+    for (unsigned int role_kind = GALAXY_ROLE_ROUTER; role_kind <= GALAXY_ROLE_ANTI_PATTERN; ++role_kind) {
+        const unsigned int n_refs = galaxy_read_role_ref_count_csr(adjacency, star_index, role_kind);
+        const unsigned int bounded_refs = n_refs > GPU_TASK_MAX_OPTIONS ? GPU_TASK_MAX_OPTIONS : n_refs;
+        for (unsigned int ref_slot = 0u; ref_slot < bounded_refs; ++ref_slot) {
+            const unsigned int ref_idx = galaxy_read_role_ref_csr(adjacency, star_index, role_kind, ref_slot);
+            if (ref_idx == GALAXY_NULL_REF || ref_count >= GPU_TASK_MAX_OPTIONS) {
+                continue;
+            }
+            bool duplicate = false;
+            for (unsigned int existing = 0u; existing < ref_count; ++existing) {
+                if (refs[existing] == ref_idx) {
+                    duplicate = true;
+                    break;
+                }
+            }
+            if (!duplicate) {
+                refs[ref_count++] = ref_idx;
+            }
+        }
+    }
+    if (ref_count == 0u) {
         return;
     }
 
-    const unsigned int bounded_refs = n_refs > 4u ? 4u : n_refs;
     const float base_weight = 0.60f;
-    const float ref_weight = 0.40f / static_cast<float>(bounded_refs);
+    const float ref_weight = 0.40f / static_cast<float>(ref_count);
     for (int index = 0; index < dim; ++index) {
         output[index] *= base_weight;
     }
-    for (unsigned int ref_slot = 0u; ref_slot < bounded_refs; ++ref_slot) {
-        const unsigned int ref_idx = galaxy_read_ref(galaxy_table, star_index, ref_slot);
-        if (ref_idx == GALAXY_NULL_REF) {
-            continue;
-        }
+    for (unsigned int ref_slot = 0u; ref_slot < ref_count; ++ref_slot) {
+        const unsigned int ref_idx = refs[ref_slot];
         const float* ref_embedding = galaxy_read_embedding(galaxy_table, ref_idx);
         for (int index = 0; index < dim; ++index) {
             output[index] += ref_weight * ref_embedding[index];
@@ -190,6 +584,18 @@ __device__ void galaxy_compose_embedding_device(
             output[index] *= scale;
         }
     }
+}
+
+__device__ __forceinline__ int family_is_question_like(unsigned int family_id) {
+    return family_id == GPU_FAMILY_QUESTION;
+}
+
+__device__ __forceinline__ int family_is_math_like(unsigned int family_id) {
+    return family_id == GPU_FAMILY_MATH;
+}
+
+__device__ __forceinline__ int family_is_game_like(unsigned int family_id) {
+    return family_id == GPU_FAMILY_GAME_2D;
 }
 
 __device__ __forceinline__ int8_t quantize_trit_device(float value) {

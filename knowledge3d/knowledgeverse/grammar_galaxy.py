@@ -352,7 +352,7 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
         """Load canonical benchmark-facing math and reasoning rules."""
         for rule in self._reasoning_skeleton_rules():
             self.add_rule(rule, persist=False)
-        for rule in self._selected_gsm8k_rules():
+        for rule in self._selected_math_rules():
             self.add_rule(rule, persist=False)
         for rule in self._selected_calculus_rules():
             self.add_rule(rule, persist=False)
@@ -484,7 +484,7 @@ class GrammarGalaxy(LegacyGrammarGalaxy):
             ),
         ]
 
-    def _selected_gsm8k_rules(self) -> list[GrammarRule]:
+    def _selected_math_rules(self) -> list[GrammarRule]:
         rules = [
             GrammarRule(
                 rule_id="gsm_consume_from_total",

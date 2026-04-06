@@ -13,6 +13,7 @@ from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
+from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope
 
 
 class ARCAGI2Benchmark:
@@ -285,7 +286,7 @@ class ARCAGI2Benchmark:
             route = {
                 "specialist": "visual",
                 "domain_hint": "visual",
-                "galaxy_names": list(Knowledgeverse.GPU_ARC_TARGET_GALAXIES),
+                "galaxy_names": list(Knowledgeverse.GPU_SPATIAL_TARGET_GALAXIES),
             }
             failure_trace = [f"arc_gpu_exception: {type(exc).__name__}: {exc}"]
             self.kv.log_event(
@@ -339,7 +340,7 @@ class ARCAGI2Benchmark:
         task: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        envelope = TabletIngest.arc_task(
+        envelope = arc2_game_envelope(
             task_id=str(task["id"]),
             training_examples=task["train"],
             input_grid=task["test"][0].get("input"),
@@ -364,8 +365,12 @@ class ARCAGI2Benchmark:
             "task_id": task["id"],
             "correct": correct,
             "exact_match": correct,
-            "predicted": emitted.get("predicted"),
-            "expected": emitted.get("expected"),
+            "predicted": (
+                dict(emitted.get("game_action") or {}).get("output_grid")
+                if isinstance(emitted.get("game_action"), dict)
+                else None
+            ),
+            "expected": emitted.get("expected_output"),
             "transform": None,
             "patterns_used": int(emitted.get("task_result", {}).get("patterns_used", 0)),
             "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),

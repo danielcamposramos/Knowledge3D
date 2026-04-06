@@ -190,6 +190,20 @@ class SleepTimeConsolidation:
     def _run_contrastive_training(self) -> dict[str, Any]:
         if self.kv is None:
             return {"skipped": True, "reason": "no_knowledgeverse"}
+        sovereign_runtime = getattr(self.kv, "_sovereign_hot_path", None)
+        if sovereign_runtime is not None and hasattr(sovereign_runtime, "current_learning_state"):
+            try:
+                learning_state = dict(sovereign_runtime.current_learning_state())
+            except Exception as exc:
+                return {
+                    "skipped": True,
+                    "reason": f"device_lesson_ring_error:{exc}",
+                }
+            return {
+                "skipped": True,
+                "reason": "device_lesson_ring_authoritative",
+                "device_learning": learning_state,
+            }
         swarm = getattr(self.kv, "adaptive_swarm", None)
         if swarm is None or not hasattr(swarm, "train_specialist_contrastive"):
             return {"skipped": True, "reason": "no_swarm"}

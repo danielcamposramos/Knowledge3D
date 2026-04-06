@@ -30,6 +30,9 @@ Quick start (Conda)
 
 - Run any K3D command (env stays active in tmux):
   env PYTHONPATH=. python -m knowledge3d.tools.ingest_coco --help
+- Canonical sovereign artifact rebuild:
+  `env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python scripts/rebuild_sovereign_artifact.py --refresh-feed-source --refresh-build-feed --force-rebuild --verbose`
+  See [MAINTENANCE.md](MAINTENANCE.md) for when rebuilds are mandatory and how retention works.
 
 Fallback (venv)
 - python3 -m venv .venv_k3dml

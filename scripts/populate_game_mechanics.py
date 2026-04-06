@@ -10,10 +10,22 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.galaxy_population_utils import upsert_entries  # noqa: E402
+from knowledge3d.knowledgeverse import route_contract  # noqa: E402
 
 
 BOOTSTRAP_TAG = "phase_e40_game_mechanics_v2"
 DEFAULT_HOUSE_DIR = Path("/K3D/Knowledge3D.local/house")
+
+GAME_META_VALIDATOR_REFS = [
+    "game2d_state_transition_validator",
+    "game2d_output_validator",
+]
+
+GAME_META_ANTI_PATTERN_REFS = [
+    "anti_pattern_wrong_family_grounding",
+    "anti_pattern_action_without_state_transition",
+    "anti_pattern_grid_without_transform_inference",
+]
 
 
 def _surface_forms(*forms: str) -> dict[str, Any]:
@@ -67,7 +79,8 @@ def _meaning_entry(
         "math_refs": list(math_refs or []),
         "meta_refs": list(meta_refs or []),
     }
-    return {
+    return route_contract.apply_route_exempt_anchor_contract(
+        {
         "id": entry_id,
         "star_id": entry_id,
         "name": name,
@@ -106,6 +119,7 @@ def _meaning_entry(
         },
         "tags": list(tags or []),
     }
+    )
 
 
 GAME_MECHANICS: list[dict[str, Any]] = [
@@ -784,7 +798,8 @@ def _reality_entry(
     component_refs: list[str] | None = None,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
-    return {
+    return route_contract.apply_route_exempt_anchor_contract(
+        {
         "id": entry_id,
         "name": name,
         "galaxy": "Reality",
@@ -806,6 +821,7 @@ def _reality_entry(
         },
         "tags": list(tags or []),
     }
+    )
 
 
 GAME_REALITY_ENTRIES: list[dict[str, Any]] = [
@@ -1239,6 +1255,14 @@ def _meta_rule(
     priority: float = 1.0,
     tags: list[str] | None = None,
 ) -> dict[str, Any]:
+    router_refs = list(component_refs or [])
+    executor_refs = list(rule_refs or [])
+    route_policy = {
+        "requires_executor": True,
+        "requires_validator": True,
+        "answer_gate": True,
+        "branch_topk": 4,
+    }
     return {
         "id": meta_id,
         "meta_id": meta_id,
@@ -1247,10 +1271,18 @@ def _meta_rule(
         "layer": 4,
         "domain": "interactive_game_strategy",
         "category": category,
+        "route_family": "GAME_2D",
+        "selection_role": "router",
+        "answer_eligible": False,
         "condition": condition,
         "action": action,
         "rule_refs": list(rule_refs or []),
         "component_refs": list(component_refs or []),
+        "router_refs": router_refs,
+        "executor_refs": executor_refs,
+        "validator_refs": list(GAME_META_VALIDATOR_REFS),
+        "anti_pattern_refs": list(GAME_META_ANTI_PATTERN_REFS),
+        "route_policy": dict(route_policy),
         "priority": float(priority),
         "content": condition,
         "summary": name,
@@ -1258,6 +1290,14 @@ def _meta_rule(
         "metadata": {
             "bootstrap": BOOTSTRAP_TAG,
             "priority": float(priority),
+            "route_family": "GAME_2D",
+            "selection_role": "router",
+            "answer_eligible": False,
+            "router_refs": router_refs,
+            "executor_refs": executor_refs,
+            "validator_refs": list(GAME_META_VALIDATOR_REFS),
+            "anti_pattern_refs": list(GAME_META_ANTI_PATTERN_REFS),
+            "route_policy": dict(route_policy),
         },
         "tags": list(tags or []),
     }

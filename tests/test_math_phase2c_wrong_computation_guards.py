@@ -2,9 +2,9 @@ from __future__ import annotations
 
 
 def test_gsm_a_times_b_times_c_requires_markers():
-    from knowledge3d.training.math_benchmarks.math_templates import get_gsm8k_templates
+    from knowledge3d.training.math_benchmarks.math_templates import get_math_templates
 
-    rules = {r.rule_id: r for r in get_gsm8k_templates()}
+    rules = {r.rule_id: r for r in get_math_templates()}
     rule = rules["gsm_a_times_b_times_c"]
     import re
 
@@ -15,10 +15,10 @@ def test_gsm_a_times_b_times_c_requires_markers():
 
 
 def test_gsm_total_of_two_requires_and():
-    from knowledge3d.training.math_benchmarks.math_templates import get_gsm8k_templates
+    from knowledge3d.training.math_benchmarks.math_templates import get_math_templates
     import re
 
-    rules = {r.rule_id: r for r in get_gsm8k_templates()}
+    rules = {r.rule_id: r for r in get_math_templates()}
     rule = rules["gsm_total_of_two"]
 
     assert re.search(rule.pattern, "3 and 5 total")
@@ -27,10 +27,10 @@ def test_gsm_total_of_two_requires_and():
 
 
 def test_gsm_plus_does_not_match_bare_and():
-    from knowledge3d.training.math_benchmarks.math_templates import get_gsm8k_templates
+    from knowledge3d.training.math_benchmarks.math_templates import get_math_templates
     import re
 
-    rules = {r.rule_id: r for r in get_gsm8k_templates()}
+    rules = {r.rule_id: r for r in get_math_templates()}
     rule = rules["gsm_plus"]
     assert re.search(rule.pattern, "3 plus 5") is not None
     assert re.search(rule.pattern, "3 + 5") is not None

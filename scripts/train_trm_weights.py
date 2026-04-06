@@ -103,15 +103,15 @@ def collect_shadow_traces(
     if getattr(kv, "_trm_matryoshka_host_weights", None) is not None:
         active_matryoshka = np.asarray(kv._trm_matryoshka_host_weights, dtype=np.float32).copy()
     benchmarks = [
-        ("ARC", "ARC_TASK", ARCAGI2Benchmark(knowledgeverse=kv, max_tasks=arc_tasks)),
+        ("ARC", "SPATIAL_TASK", ARCAGI2Benchmark(knowledgeverse=kv, max_tasks=arc_tasks)),
         (
             "MATH",
             "MATH_TASK",
             MathCompetitionBenchmark(knowledgeverse=kv, dataset_path=None, max_problems=math_problems),
         ),
-        ("GSM8K", "GSM8K_TASK", GSM8KBenchmark(knowledgeverse=kv, max_questions=gsm8k_questions)),
-        ("LHE", "LHE_TASK", LastHumanityExamBenchmark(knowledgeverse=kv, max_questions=lhe_questions)),
-        ("MMLU", "MMLU_TASK", MMLUBenchmark(knowledgeverse=kv, max_questions=mmlu_questions)),
+        ("GSM8K", "MATH_TASK", GSM8KBenchmark(knowledgeverse=kv, max_questions=gsm8k_questions)),
+        ("LHE", "QUESTION_TASK", LastHumanityExamBenchmark(knowledgeverse=kv, max_questions=lhe_questions)),
+        ("MMLU", "QUESTION_TASK", MMLUBenchmark(knowledgeverse=kv, max_questions=mmlu_questions)),
     ]
     traces: list[dict[str, Any]] = []
     for benchmark_name, task_type, benchmark in benchmarks:

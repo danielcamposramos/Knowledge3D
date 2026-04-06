@@ -23,6 +23,7 @@ BRAIN_TERNARY_SIGNAL_BYTES = 1
 BRAIN_ALIGN_PAD_BYTES = 3
 BRAIN_FRAME_COUNT_BYTES = 4
 BRAIN_SPECIALIST_TRACE_BYTES = 9 * 4
+BRAIN_TRM_VECTOR_BYTES = 512 * 4
 
 BRAIN_REASONING_OFFSET = 0
 BRAIN_CHAINS_OFFSET = BRAIN_REASONING_OFFSET + BRAIN_REASONING_STATE_BYTES
@@ -32,6 +33,9 @@ BRAIN_ACTION_RING_LEN_OFFSET = BRAIN_ACTION_RING_OFFSET + BRAIN_ACTION_RING_BYTE
 BRAIN_TERNARY_OFFSET = BRAIN_ACTION_RING_LEN_OFFSET + BRAIN_ACTION_RING_LEN_BYTES
 BRAIN_FRAME_COUNT_OFFSET = BRAIN_TERNARY_OFFSET + BRAIN_TERNARY_SIGNAL_BYTES + BRAIN_ALIGN_PAD_BYTES
 BRAIN_SPECIALIST_TRACE_OFFSET = BRAIN_FRAME_COUNT_OFFSET + BRAIN_FRAME_COUNT_BYTES
+BRAIN_TRM_Q_OFFSET = BRAIN_SPECIALIST_TRACE_OFFSET + BRAIN_SPECIALIST_TRACE_BYTES
+BRAIN_TRM_Y_OFFSET = BRAIN_TRM_Q_OFFSET + BRAIN_TRM_VECTOR_BYTES
+BRAIN_TRM_Z_OFFSET = BRAIN_TRM_Y_OFFSET + BRAIN_TRM_VECTOR_BYTES
 BRAIN_TOTAL_BYTES = (
     BRAIN_REASONING_STATE_BYTES
     + BRAIN_CHAIN_STATES_BYTES
@@ -42,6 +46,9 @@ BRAIN_TOTAL_BYTES = (
     + BRAIN_ALIGN_PAD_BYTES
     + BRAIN_FRAME_COUNT_BYTES
     + BRAIN_SPECIALIST_TRACE_BYTES
+    + BRAIN_TRM_VECTOR_BYTES
+    + BRAIN_TRM_VECTOR_BYTES
+    + BRAIN_TRM_VECTOR_BYTES
 )
 
 
@@ -97,6 +104,9 @@ class PersistentBrainState:
         ]
         prev_frame = list(struct.unpack_from("<32f", data, BRAIN_PREV_FRAME_OFFSET))
         specialist_trace = list(struct.unpack_from("<9f", data, BRAIN_SPECIALIST_TRACE_OFFSET))
+        trm_q = list(struct.unpack_from("<512f", data, BRAIN_TRM_Q_OFFSET))
+        trm_y = list(struct.unpack_from("<512f", data, BRAIN_TRM_Y_OFFSET))
+        trm_z = list(struct.unpack_from("<512f", data, BRAIN_TRM_Z_OFFSET))
         ring_len = min(int(data[BRAIN_ACTION_RING_LEN_OFFSET]), 7)
         action_ring = [
             int(data[BRAIN_ACTION_RING_OFFSET + index])
@@ -113,6 +123,9 @@ class PersistentBrainState:
             "ternary_signal": ternary_signal,
             "frame_count": frame_count,
             "specialist_trace": specialist_trace,
+            "trm_q_norm": sum(value * value for value in trm_q) ** 0.5,
+            "trm_y_norm": sum(value * value for value in trm_y) ** 0.5,
+            "trm_z_norm": sum(value * value for value in trm_z) ** 0.5,
         }
 
 
@@ -125,6 +138,9 @@ __all__ = [
     "BRAIN_REASONING_OFFSET",
     "BRAIN_SPECIALIST_TRACE_OFFSET",
     "BRAIN_TERNARY_OFFSET",
+    "BRAIN_TRM_Q_OFFSET",
+    "BRAIN_TRM_Y_OFFSET",
+    "BRAIN_TRM_Z_OFFSET",
     "BRAIN_TOTAL_BYTES",
     "PersistentBrainState",
 ]

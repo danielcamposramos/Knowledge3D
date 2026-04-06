@@ -125,7 +125,6 @@ def main() -> int:
             "specialist": "math",
             "use_enriched": use_enriched,
             "task": {
-                "type": "MATH_TASK",
                 "task_id": row["task_id"],
                 "query": row["question"],
                 "question": row["question"],

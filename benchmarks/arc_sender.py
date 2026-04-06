@@ -93,7 +93,6 @@ def main() -> int:
             "specialist": "visual",
             "use_enriched": use_enriched,
             "task": {
-                "type": "ARC_TASK",
                 "task_id": task["task_id"],
                 "query": "solve arc transformation task",
                 "training_examples": task["training_examples"],

@@ -134,7 +134,7 @@ def load_questions(suite: str, count: int | None = None) -> list[dict[str, Any]]
         if canonical == "gsm8k":
             bench = UnifiedMathBenchmark(
                 knowledgeverse=object(),
-                max_gsm8k_questions=limit,
+                max_math_questions=limit,
                 source_filter=["gsm8k"],
             )
             return [
@@ -276,7 +276,7 @@ def _run_suite_via_benchmark(
     if canonical == "gsm8k":
         bench = UnifiedMathBenchmark(
             knowledgeverse=knowledgeverse,
-            max_gsm8k_questions=count,
+            max_math_questions=count,
             source_filter=["gsm8k"],
         )
         def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:

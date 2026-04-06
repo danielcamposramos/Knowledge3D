@@ -18,7 +18,7 @@ class _FakeKnowledgeverse:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
 
-    def _execute_task_direct(self, *, task, route=None, specialist="auto", domain_hint=None, use_enriched=True):
+    def _dispatch_sovereign_task(self, *, task, route=None, specialist="auto", domain_hint=None, use_enriched=True):
         self.calls.append(
             {
                 "task": dict(task),
@@ -31,6 +31,14 @@ class _FakeKnowledgeverse:
         return {
             "status": "ok",
             "answer": str(task.get("query") or task.get("prompt") or task.get("question") or ""),
+            "trm_dispatch": {
+                "planned_swarm_groups": 4,
+                "recommended_swarm_groups": 0,
+                "worker_slots": list(range(36)),
+                "resonance_weights": [0.8999999761581421, 0.699999988079071, 0.5, 0.4],
+                "gpu_utilization": 0.0,
+                "vram_free_bytes": 8 * 1024 * 1024 * 1024,
+            },
         }
 
     def _jarvis_task_complexity(self, *, task_type: str, paths: list[dict[str, object]], options: list[str] | None) -> float:
@@ -93,7 +101,7 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
 
     called: list[dict[str, object]] = []
 
-    def _fake_execute(*, task, route=None, specialist="auto", domain_hint=None, use_enriched=True):
+    def _fake_dispatch(*, task, route=None, specialist="auto", domain_hint=None, use_enriched=True):
         called.append(
             {
                 "task": dict(task),
@@ -105,7 +113,7 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
         )
         return {"status": "ok", "answer": "loop-shell"}
 
-    monkeypatch.setattr(kv, "_execute_task_direct", _fake_execute)
+    monkeypatch.setattr(kv, "_dispatch_sovereign_task", _fake_dispatch)
 
     result = kv.execute_task(
         task={"type": "CHAT_TASK", "query": "hello"},
@@ -121,6 +129,22 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
     raw_packet = kv._trm_game_loop.read_output_packet(result["trm_io"]["request_id"])
     assert raw_packet is not None
     assert raw_packet["result"]["answer"] == "loop-shell"
+
+
+def test_knowledgeverse_eager_boot_is_sovereign_only(tmp_path: Path, monkeypatch):
+    calls: list[str] = []
+
+    def _fake_boot(self, *, force_reload=False, force_rebuild=False):
+        calls.append("sovereign_boot")
+        return {"status": "ready", "mode": "stub", "force_rebuild": bool(force_rebuild)}
+
+    monkeypatch.setattr(Knowledgeverse, "_boot_sovereign_runtime", _fake_boot)
+
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_eager_boot", eager_load_default_galaxies=True)
+
+    assert kv._default_galaxies_loaded is True
+    assert not hasattr(Knowledgeverse, "bind_gpu_galaxy_runtime")
+    assert calls == ["sovereign_boot"]
 
 
 def test_knowledgeverse_adaptive_swarm_adapters_expose_no_cpu_escape_hatch(tmp_path: Path):

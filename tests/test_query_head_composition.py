@@ -223,7 +223,7 @@ def test_goal_type_rows_are_isolated_by_family(tmp_path) -> None:
     )
 
 
-def test_regular_math_navigation_blocks_gsm8k_and_lhe_grammar_rows(tmp_path) -> None:
+def test_regular_math_navigation_blocks_math_and_lhe_grammar_rows(tmp_path) -> None:
     kv = Knowledgeverse(storage_root=tmp_path / "kv_math_navigation_filter")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Math", "Grammar"])
 
@@ -511,7 +511,7 @@ def test_lhe_route_preserves_reality_targets(tmp_path) -> None:
 def test_benchmark_math_anchor_rows_do_not_embed_answers(tmp_path) -> None:
     kv = Knowledgeverse(storage_root=tmp_path / "kv_benchmark_math_anchor_rows")
     kv.bind_gpu_galaxy_runtime(galaxy_names=["Reality", "Math", "Grammar", "Word", "Character"])
-    entry = kv._catalog_entry_by_id("benchmark_math_gsm8k_0_direct")
+    entry = kv._catalog_entry_by_id("benchmark_math_math_0_direct")
 
     assert entry is not None
     assert entry["name"] != "18"

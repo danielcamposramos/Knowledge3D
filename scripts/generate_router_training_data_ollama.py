@@ -437,7 +437,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default="/tmp/ollama_router_training_data.json",
+        default="/K3D/Knowledge3D.local/logs/ollama_router_training_data.json",
         help="Output JSON path for synthetic routing decisions.",
     )
     args = parser.parse_args()

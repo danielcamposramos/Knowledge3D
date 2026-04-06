@@ -552,10 +552,10 @@ $L__BB0_35:
 	or.pred  	%p80, %p9, %p79;
 	@%p80 bra 	$L__BB0_51;
 
-	mul.lo.s32 	%r57, %r16, 160;
+	shl.b32 	%r57, %r16, 8;
 	cvt.u64.u32 	%rd14, %r57;
 	add.s64 	%rd36, %rd1, %rd14;
-	ld.global.u8 	%rs1, [%rd36+156];
+	ld.global.u8 	%rs1, [%rd36+144];
 	and.b16  	%rs2, %rs1, 2;
 	setp.eq.s16 	%p81, %rs2, 0;
 	@%p81 bra 	$L__BB0_51;

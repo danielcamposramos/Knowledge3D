@@ -56,7 +56,7 @@ class MathProceduralizer:
         # Executable RPN extracted from solution when present (source-specific)
         solution_rpn_str = ""
         if source == "gsm8k" or ("<<" in str(solution) and ">>" in str(solution)):
-            solution_rpn_str = self._parse_gsm8k_solution(str(solution))
+            solution_rpn_str = self._parse_math_solution(str(solution))
         elif source in ("math", "omni_math") or "\\boxed" in str(solution):
             solution_rpn_str = self._parse_math_solution(str(solution))
 
@@ -147,7 +147,7 @@ class MathProceduralizer:
                 return numbers[-1]
         return None
 
-    def _parse_gsm8k_solution(self, solution: str) -> str:
+    def _parse_math_solution(self, solution: str) -> str:
         """
         Enhanced GSM8K parser with better multi-step coverage.
         """

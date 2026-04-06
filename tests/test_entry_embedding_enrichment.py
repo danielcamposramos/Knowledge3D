@@ -8,6 +8,7 @@ import importlib.util
 
 from knowledge3d.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse import knowledgeverse as kvmod
+from knowledge3d.knowledgeverse import route_contract
 
 _ENRICH_SPEC = importlib.util.spec_from_file_location(
     "enrich_embeddings_module",
@@ -264,6 +265,31 @@ def test_gpu_flat_cache_signature_changes_when_entries_change(tmp_path):
             "content": "sig meaning",
             "embedding16": [0.0, 1.0] + [0.0] * 14,
         },
+    )
+    signature_after = kv._gpu_flat_cache_signature([galaxy_name])
+
+    assert signature_before != signature_after
+
+
+def test_gpu_flat_cache_signature_changes_when_route_contract_version_changes(tmp_path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_contract_signature", eager_load_default_galaxies=False)
+    kv.include_runtime_artifacts = False
+    galaxy_name = "UnitTestContractSig"
+    kv.galaxy_manager.add_entry(
+        galaxy_name,
+        {
+            "id": "entry_sig_contract",
+            "name": "sig contract",
+            "content": "sig meaning",
+            "embedding16": [1.0] + [0.0] * 15,
+        },
+    )
+    signature_before = kv._gpu_flat_cache_signature([galaxy_name])
+
+    monkeypatch.setattr(
+        route_contract,
+        "ROUTE_CONTRACT_SCHEMA_VERSION",
+        int(route_contract.ROUTE_CONTRACT_SCHEMA_VERSION) + 1,
     )
     signature_after = kv._gpu_flat_cache_signature([galaxy_name])
 

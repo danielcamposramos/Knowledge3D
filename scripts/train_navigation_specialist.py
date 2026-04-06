@@ -92,7 +92,7 @@ def main() -> None:
     parser.add_argument(
         "--skill-galaxy-out",
         type=str,
-        default="/tmp/skill_galaxy_navigation.jsonl",
+        default="/K3D/Knowledge3D.local/logs/skill_galaxy_navigation.jsonl",
         help="Output path for Skill Galaxy JSONL.",
     )
     parser.add_argument(

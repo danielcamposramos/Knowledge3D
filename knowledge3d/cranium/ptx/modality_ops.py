@@ -72,7 +72,7 @@ class PTXModalityOps:
         self._check(err, "cuCtxSetCurrent")
 
         # Inter-process lock to avoid NVRTC races across concurrent runs
-        lock_path = Path(os.getenv("K3D_NVRTC_LOCK", "/tmp/k3d_nvrtc_modality.lock"))
+        lock_path = Path(os.getenv("K3D_NVRTC_LOCK", "/K3D/Knowledge3D.local/locks/k3d_nvrtc_modality.lock"))
         lock_path.parent.mkdir(parents=True, exist_ok=True)
         with open(lock_path, "w") as lfh:
             fcntl.flock(lfh.fileno(), fcntl.LOCK_EX)

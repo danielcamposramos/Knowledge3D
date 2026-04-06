@@ -8,7 +8,7 @@ from benchmarks.mmlu import MMLUBenchmark
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
-def test_gsm8k_benchmark_uses_gpu_math_path(tmp_path: Path) -> None:
+def test_math_benchmark_uses_gpu_math_path(tmp_path: Path) -> None:
     dataset_path = tmp_path / "GSM8K" / "grade_school_math" / "data"
     dataset_path.mkdir(parents=True, exist_ok=True)
     (dataset_path / "test.jsonl").write_text(

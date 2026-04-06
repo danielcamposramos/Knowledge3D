@@ -22,7 +22,11 @@ class _NeverEvalEngine:
 
 
 def test_answer_math_query_never_returns_name_fallback(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_math_zero")
+    kv = Knowledgeverse(
+        storage_root=tmp_path / "kv_math_zero",
+        eager_load_default_galaxies=False,
+        start_live_loops=False,
+    )
     result = kv._answer_math_query(
         task={"type": "MATH_TASK", "question": "Unseen hard problem", "query": "Unseen hard problem"},
         binding={"galaxies": ["Math"], "entry_count": 1},
@@ -77,7 +81,11 @@ def test_build_language_math_bridge_entry_keeps_language_and_math_refs() -> None
 
 
 def test_ingest_enriched_galaxy_keeps_math_meaning_in_language_and_math_bridge(tmp_path) -> None:
-    kv = Knowledgeverse(storage_root=tmp_path / "kv_meaning_ingest")
+    kv = Knowledgeverse(
+        storage_root=tmp_path / "kv_meaning_ingest",
+        eager_load_default_galaxies=False,
+        start_live_loops=False,
+    )
     star = MeaningCentricStar(
         star_id="synset_addition",
         meaning_class="concept",
@@ -107,9 +115,10 @@ def test_ingest_enriched_galaxy_keeps_math_meaning_in_language_and_math_bridge(t
     assert summary["meaning_stars_loaded"] == 1
     language_entries = list(kv.galaxy_manager.get_galaxy("Language").entries)
     math_entries = list(kv.galaxy_manager.get_galaxy("Math").entries)
-    language_entry = next(entry for entry in language_entries if entry["id"] == "synset_addition")
+    language_entry = next(entry for entry in language_entries if entry["id"] == "language_synset_addition")
     math_entry = next(entry for entry in math_entries if entry["id"] == "math_exec_synset_addition")
 
+    assert language_entry["metadata"]["meaning_star_id"] == "synset_addition"
     assert language_entry["metadata"]["math_galaxy_ref"] == "math_exec_synset_addition"
     assert math_entry["metadata"]["language_star_ref"] == "synset_addition"
     assert math_entry["symlink_to"] == "synset_addition"
@@ -258,7 +267,7 @@ def test_health_check_math_evaluator_accepts_latex_expected_answers() -> None:
     assert evaluate_answer("gsm8k", "18", "18") is True
 
 
-def test_unified_math_benchmark_loads_both_math_and_gsm8k_sources(tmp_path) -> None:
+def test_unified_math_benchmark_loads_both_math_and_math_sources(tmp_path) -> None:
     dataset_dir = tmp_path / "datasets"
     (dataset_dir / "data").mkdir(parents=True, exist_ok=True)
     (dataset_dir / "gsm8k").mkdir(parents=True, exist_ok=True)
@@ -290,7 +299,7 @@ def test_unified_math_benchmark_loads_both_math_and_gsm8k_sources(tmp_path) -> N
         dataset_path=dataset_dir,
         gsm8k_dataset_path=gsm_path,
         max_problems=1,
-        max_gsm8k_questions=1,
+        max_math_questions=1,
         source_filter=["math", "gsm8k"],
     )
 

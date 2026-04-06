@@ -1,5 +1,36 @@
 # Maintenance Log
 
+## Sovereign Artifact Rebuild
+
+Use the managed GPU environment and the canonical maintenance entrypoint:
+
+```bash
+env PYTHONPATH=. /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python \
+  scripts/rebuild_sovereign_artifact.py \
+  --refresh-feed-source --refresh-build-feed --force-rebuild --verbose
+```
+
+This rebuild is mandatory after:
+- foundational star schema changes
+- layer, role, or ref wiring changes
+- default knowledge signature changes
+
+Operational rules:
+- let the rebuild finish; do not interrupt it mid-write
+- the rebuild loads the full resident Knowledgeverse, not a selective galaxy subset
+- normal warm boot is not the artifact generation mechanism
+- after rebuild, normal boot should load in `artifact` or `resident` mode
+- `--refresh-feed-source` is the only maintenance step allowed to rehydrate source rows
+- the build feed is the authoritative production rebuild input; if it is stale or missing, rebuild fails fast instead of translating source rows on boot
+
+Storage policy:
+- `gpu_cache/` keeps one active `flat_<signature>.npy` plus one paired `catalog_<signature>.pkl`
+- heavy timestamped checkpoint families are rotated automatically:
+  - keep `2` `galaxy_consolidated_*`
+  - keep `2` `sovereign_runtime_bundle_*`
+  - keep `3` `trm_weights_*`
+  - keep `3` `shadow_patterns_*`
+
 ## Cleanup — Local Workspace Reset
 
 - Date (UTC): 2025-09-07T07:58:36Z

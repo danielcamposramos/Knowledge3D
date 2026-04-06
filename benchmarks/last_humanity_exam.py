@@ -12,6 +12,7 @@ from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
+from knowledge3d.tablet.wine.question_wine import lhe_question_envelope
 
 
 class LastHumanityExamBenchmark:
@@ -270,11 +271,10 @@ class LastHumanityExamBenchmark:
         expected = str(question["correct_answer"])
         domain_lower = domain.strip().lower()
         math_like_domain = domain_lower in {"math", "mathematics", "physics"}
-        task_type = "LHE_TASK"
         route = {
             "specialist": "math" if math_like_domain else "chat",
             "domain_hint": domain,
-            "galaxy_names": list(Knowledgeverse.GPU_LHE_TARGET_GALAXIES),
+            "galaxy_names": list(Knowledgeverse.GPU_QUESTION_TARGET_GALAXIES),
         }
         route = self._apply_query_scope(route)
         specialist = str(route.get("specialist", "chat"))
@@ -282,7 +282,6 @@ class LastHumanityExamBenchmark:
             self._seed_domain_knowledge(question, route=route)
         task_result = self.kv.execute_task(
             task={
-                "type": task_type,
                 "task_id": str(question["id"]),
                 "query": str(question["question_text"]),
                 "prompt": str(question["question_text"]),
@@ -343,7 +342,7 @@ class LastHumanityExamBenchmark:
         use_enriched: bool,
     ) -> dict[str, Any]:
         domain = str(question.get("domain", "multi"))
-        envelope = TabletIngest.lhe_question(
+        envelope = lhe_question_envelope(
             task_id=str(question["id"]),
             question=str(question["question_text"]),
             options=question.get("options") if isinstance(question.get("options"), list) else [],
@@ -366,7 +365,7 @@ class LastHumanityExamBenchmark:
             "question_id": question["id"],
             "domain": domain,
             "correct": int(correct),
-            "predicted_answer": emitted.get("predicted_answer"),
+            "predicted_answer": emitted.get("answer_choice") or emitted.get("answer_text"),
             "correct_answer": str(question["correct_answer"]),
             "knowledge_used": 0,
             "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),

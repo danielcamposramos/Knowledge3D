@@ -3,16 +3,17 @@ from __future__ import annotations
 from knowledge3d.knowledgeverse.galaxy_vram_table import (
     STAR_FLAG_LEARNABLE,
     GalaxyVRAMTable,
-    build_foundational_galaxy_table,
 )
 from knowledge3d.knowledgeverse.gpu_task_dispatch import GPUTaskDispatch
 from knowledge3d.knowledgeverse.persistent_brain import PersistentBrainState
 from knowledge3d.knowledgeverse.sleep_time_micro import SleepTimeMicro
 from knowledge3d.knowledgeverse.vram_task_buffer import VRAMTaskBuffer
 
+from tests.foundational_test_utils import build_resolved_foundational_stars
+
 
 def test_galaxy_vram_table_round_trip():
-    stars = build_foundational_galaxy_table()
+    stars = build_resolved_foundational_stars()
     table = GalaxyVRAMTable(max_stars=128)
     try:
         count = table.load_stars(stars)
@@ -31,7 +32,7 @@ def test_galaxy_vram_table_round_trip():
 
 
 def test_foundational_galaxy_action_links_to_math_and_spatial():
-    stars = build_foundational_galaxy_table()
+    stars = build_resolved_foundational_stars()
     id_to_index = {str(star["id"]): index for index, star in enumerate(stars)}
     move_up_refs = [stars[index]["id"] for index in stars[id_to_index["atom:action:move_up"]]["component_refs"]]
     transform_detect_refs = [stars[index]["id"] for index in stars[id_to_index["transform_detect"]]["component_refs"]]
@@ -44,16 +45,17 @@ def test_foundational_galaxy_action_links_to_math_and_spatial():
 
 
 def test_sleep_time_micro_updates_learnable_galaxy_star():
-    stars = build_foundational_galaxy_table()
+    stars = build_resolved_foundational_stars()
     table = GalaxyVRAMTable(max_stars=128)
     brain = PersistentBrainState()
     task_buffer = VRAMTaskBuffer(max_tasks=1)
     sleep = SleepTimeMicro()
     try:
         table.load_stars(stars)
+        table._host_stars = []
         before = table.read_stars(1)[0]["embedding"]
         task = {
-            "type": "ARC3_TASK",
+            "type": "GAME_2D",
             "query_embedding": [1.0] + ([0.0] * 31),
             "option_embeddings": [[1.0 if i == j else 0.0 for i in range(32)] for j in range(7)],
             "subject": "arc3_subject",
@@ -64,8 +66,7 @@ def test_sleep_time_micro_updates_learnable_galaxy_star():
             task_buffer,
             1,
             brain_ptr=brain.gpu_ptr,
-            galaxy_ptr=table.gpu_ptr,
-            galaxy_star_count=table.star_count,
+            star_table=table,
         )
         sleep.consolidate(
             brain.gpu_ptr,
@@ -73,6 +74,7 @@ def test_sleep_time_micro_updates_learnable_galaxy_star():
             galaxy_ptr=table.gpu_ptr,
             chosen_star_index=0,
         )
+        table._host_stars = []
         after = table.read_stars(1)[0]["embedding"]
     finally:
         task_buffer.close()

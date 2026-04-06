@@ -49,7 +49,7 @@ def _inter_game_consolidation(
     results: list[dict[str, Any]] = []
     for _ in range(3):
         if hasattr(knowledgeverse, "jarvis_sleep_consolidation"):
-            summary = dict(knowledgeverse.jarvis_sleep_consolidation() or {})
+            summary = dict(knowledgeverse.jarvis_sleep_consolidation(persist=True, trigger="inter_game") or {})
             summary.setdefault("session_outcome", outcome)
             results.append(summary)
         else:
@@ -264,6 +264,11 @@ def run_arc3_session(
         "games": results,
         "log_dir": str(resolved_log_dir),
     }
+    if hasattr(kv, "shutdown"):
+        try:
+            summary["shutdown"] = dict(kv.shutdown() or {})
+        except Exception as exc:
+            summary["shutdown"] = {"error": str(exc)}
     (resolved_log_dir / "session_summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2),
         encoding="utf-8",

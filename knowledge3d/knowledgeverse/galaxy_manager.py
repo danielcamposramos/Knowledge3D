@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Sequence
 
 from .meaning_star import MeaningCentricStar
+from .resident_route_metadata import normalize_resident_route_metadata
 from .resilience import SelfHealingWrapper
 
 
@@ -174,8 +175,8 @@ def normalize_disk_entry(
 ) -> dict[str, Any]:
     raw = dict(entry)
     if "star_id" in raw and "id" not in raw:
-        return normalize_meaning_layer_entry(raw, galaxy_name=galaxy_name)
-    return raw
+        raw = normalize_meaning_layer_entry(raw, galaxy_name=galaxy_name)
+    return dict(normalize_resident_route_metadata(raw, galaxy_name=galaxy_name).entry)
 
 
 @dataclass
@@ -494,8 +495,8 @@ class GalaxyManager:
 
     def _coerce_entry(self, galaxy_name: str, entry: dict[str, Any] | MeaningCentricStar) -> dict[str, Any]:
         if isinstance(entry, MeaningCentricStar):
-            return entry.to_galaxy_entry(galaxy_name=galaxy_name)
-        return dict(entry)
+            return normalize_disk_entry(galaxy_name, entry.to_galaxy_entry(galaxy_name=galaxy_name))
+        return normalize_disk_entry(galaxy_name, dict(entry))
 
     def store_meaning_star(
         self,

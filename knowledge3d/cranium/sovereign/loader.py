@@ -79,6 +79,40 @@ _cuMemcpyDtoD = _cuMemcpyDtoD_v2 or _cuMemcpyDtoD_v1
 _cuMemcpyHtoD = _cuMemcpyHtoD_v2 or _cuMemcpyHtoD_v1
 _cuMemcpyDtoH = _cuMemcpyDtoH_v2 or _cuMemcpyDtoH_v1
 
+try:
+    _cuMemcpyHtoDAsync_v2 = getattr(nvcuda, "cuMemcpyHtoDAsync_v2")
+except AttributeError:
+    _cuMemcpyHtoDAsync_v2 = getattr(nvcuda, "cuMemcpyHtoDAsync", None)
+
+try:
+    _cuMemcpyDtoHAsync_v2 = getattr(nvcuda, "cuMemcpyDtoHAsync_v2")
+except AttributeError:
+    _cuMemcpyDtoHAsync_v2 = getattr(nvcuda, "cuMemcpyDtoHAsync", None)
+
+_cuMemcpyHtoDAsync = _cuMemcpyHtoDAsync_v2
+_cuMemcpyDtoHAsync = _cuMemcpyDtoHAsync_v2
+
+try:
+    _cuMemAllocHost_v2 = getattr(nvcuda, "cuMemAllocHost_v2")
+except AttributeError:
+    _cuMemAllocHost_v2 = getattr(nvcuda, "cuMemAllocHost", None)
+
+try:
+    _cuMemFreeHost = getattr(nvcuda, "cuMemFreeHost")
+except AttributeError:
+    _cuMemFreeHost = None
+
+# ==========================================
+# CUDA Driver API Types
+# ==========================================
+CUresult = ctypes.c_int
+CUdeviceptr = ctypes.c_uint64
+CUmodule = ctypes.c_void_p
+CUfunction = ctypes.c_void_p
+CUstream = ctypes.c_void_p
+CUdevice = ctypes.c_int
+CUcontext = ctypes.c_void_p
+
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
     _cuMemGetInfo.argtypes = [
@@ -115,23 +149,54 @@ if _cuMemcpyDtoH_v1 is not None:
 if _cuMemcpyDtoH_v2 is not None:
     _cuMemcpyDtoH_v2.restype = ctypes.c_int
     _cuMemcpyDtoH_v2.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_size_t]
+if _cuMemcpyHtoDAsync is not None:
+    _cuMemcpyHtoDAsync.restype = ctypes.c_int
+    _cuMemcpyHtoDAsync.argtypes = [ctypes.c_uint64, ctypes.c_void_p, ctypes.c_size_t, CUstream]
+if _cuMemcpyDtoHAsync is not None:
+    _cuMemcpyDtoHAsync.restype = ctypes.c_int
+    _cuMemcpyDtoHAsync.argtypes = [ctypes.c_void_p, ctypes.c_uint64, ctypes.c_size_t, CUstream]
+if _cuMemAllocHost_v2 is not None:
+    _cuMemAllocHost_v2.restype = ctypes.c_int
+    _cuMemAllocHost_v2.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t]
+if _cuMemFreeHost is not None:
+    _cuMemFreeHost.restype = ctypes.c_int
+    _cuMemFreeHost.argtypes = [ctypes.c_void_p]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
 
-# ==========================================
-# CUDA Driver API Types
-# ==========================================
-CUresult = ctypes.c_int
-CUdeviceptr = ctypes.c_uint64
-CUmodule = ctypes.c_void_p
-CUfunction = ctypes.c_void_p
-CUstream = ctypes.c_void_p
-CUdevice = ctypes.c_int
-CUcontext = ctypes.c_void_p
-
 _cupy_allocations: List[Tuple[int, int, "Any"]] = []
 _cudart_allocations: List[Tuple[int, int]] = []
+
+
+class PinnedHostBuffer:
+    """Pinned host allocation for overlapped CUDA transfers."""
+
+    def __init__(self, size_bytes: int) -> None:
+        self.size_bytes = max(1, int(size_bytes))
+        self.pinned = True
+        try:
+            self.ptr = pinned_host_alloc(self.size_bytes)
+            self._array = (ctypes.c_ubyte * self.size_bytes).from_address(int(self.ptr.value))
+        except Exception:
+            self.pinned = False
+            self._array = (ctypes.c_ubyte * self.size_bytes)()
+            self.ptr = ctypes.c_void_p(ctypes.addressof(self._array))
+
+    def view(self) -> memoryview:
+        return memoryview(self._array)
+
+    def close(self) -> None:
+        if getattr(self, "ptr", None):
+            if getattr(self, "pinned", False):
+                pinned_host_free(self.ptr)
+            self.ptr = ctypes.c_void_p()
+
+    def __del__(self) -> None:  # pragma: no cover - defensive cleanup
+        try:
+            self.close()
+        except Exception:
+            pass
 
 def _find_cudart_allocation(address: int) -> Optional[Tuple[int, int]]:
     for start, size in _cudart_allocations:
@@ -513,6 +578,19 @@ def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: 
         print(f"[loader] cuMemcpyHtoD -> {res}")
     ck(res)
 
+
+def memcpy_htod_async(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: int, stream: Optional[CUstream] = None) -> None:
+    """Asynchronously copy from host to device on a CUDA stream."""
+    _ensure_current_context()
+    if _cuMemcpyHtoDAsync is None or stream is None:
+        memcpy_htod(dst_device, src_host, size_bytes)
+        return
+    host_ptr = _coerce_host_pointer(src_host)
+    res = _cuMemcpyHtoDAsync(dst_device.value, host_ptr, ctypes.c_size_t(size_bytes), stream)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemcpyHtoDAsync -> {res}")
+    ck(res)
+
 def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: int) -> None:
     """Copy from device to host.
 
@@ -563,6 +641,19 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
         print(f"[loader] cuMemcpyDtoH -> {res}")
     ck(res)
 
+
+def memcpy_dtoh_async(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: int, stream: Optional[CUstream] = None) -> None:
+    """Asynchronously copy from device to host on a CUDA stream."""
+    _ensure_current_context()
+    if _cuMemcpyDtoHAsync is None or stream is None:
+        memcpy_dtoh(dst_host, src_device, size_bytes)
+        return
+    host_ptr = _coerce_host_pointer(dst_host)
+    res = _cuMemcpyDtoHAsync(host_ptr, src_device.value, ctypes.c_size_t(size_bytes), stream)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemcpyDtoHAsync -> {res}")
+    ck(res)
+
 def memcpy_dtod(dst_device: CUdeviceptr, src_device: CUdeviceptr, size_bytes: int) -> None:
     """Copy from device to device."""
     _ensure_current_context()
@@ -580,6 +671,31 @@ def memcpy_dtod(dst_device: CUdeviceptr, src_device: CUdeviceptr, size_bytes: in
         res = _cuMemcpyDtoD_v1(dst_device.value, src_device.value, size_bytes)
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemcpyDtoD -> {res}")
+    ck(res)
+
+
+def pinned_host_alloc(size_bytes: int) -> ctypes.c_void_p:
+    """Allocate pinned host memory for overlapped transfers."""
+    _ensure_current_context()
+    if _cuMemAllocHost_v2 is None:
+        raise RuntimeError("cuMemAllocHost not available in CUDA driver")
+    ptr = ctypes.c_void_p()
+    res = _cuMemAllocHost_v2(ctypes.byref(ptr), ctypes.c_size_t(max(1, int(size_bytes))))
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemAllocHost -> {res}, ptr={ptr.value}")
+    ck(res)
+    return ptr
+
+
+def pinned_host_free(ptr: ctypes.c_void_p) -> None:
+    """Free pinned host memory previously allocated with pinned_host_alloc."""
+    if not ptr or int(ptr.value or 0) == 0:
+        return
+    if _cuMemFreeHost is None:
+        raise RuntimeError("cuMemFreeHost not available in CUDA driver")
+    res = _cuMemFreeHost(ptr)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemFreeHost -> {res}")
     ck(res)
 
 

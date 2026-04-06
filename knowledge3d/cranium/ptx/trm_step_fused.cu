@@ -1,79 +1,5 @@
 #include <cuda_runtime.h>
-#include <math.h>
-
-__device__ __forceinline__ float swiglu_scalar(float x) {
-    return x / (1.0f + expf(-x));
-}
-
-__device__ __forceinline__ void vec_add3_512(
-    const float* __restrict__ a,
-    const float* __restrict__ b,
-    const float* __restrict__ c,
-    float* __restrict__ out,
-    int tid,
-    int stride
-) {
-    for (int i = tid; i < 512; i += stride) {
-        out[i] = a[i] + b[i] + c[i];
-    }
-}
-
-__device__ __forceinline__ void vec_add_512(
-    const float* __restrict__ a,
-    const float* __restrict__ b,
-    float* __restrict__ out,
-    int tid,
-    int stride
-) {
-    for (int i = tid; i < 512; i += stride) {
-        out[i] = a[i] + b[i];
-    }
-}
-
-__device__ __forceinline__ void matvec_512x1024(
-    const float* __restrict__ W,
-    const float* __restrict__ v,
-    float* __restrict__ out,
-    int tid,
-    int stride
-) {
-    for (int row = tid; row < 1024; row += stride) {
-        float sum = 0.0f;
-#pragma unroll 8
-        for (int col = 0; col < 512; ++col) {
-            sum += W[row * 512 + col] * v[col];
-        }
-        out[row] = sum;
-    }
-}
-
-__device__ __forceinline__ void matvec_1024x512(
-    const float* __restrict__ W,
-    const float* __restrict__ v,
-    float* __restrict__ out,
-    int tid,
-    int stride
-) {
-    for (int row = tid; row < 512; row += stride) {
-        float sum = 0.0f;
-#pragma unroll 8
-        for (int col = 0; col < 1024; ++col) {
-            sum += W[row * 1024 + col] * v[col];
-        }
-        out[row] = sum;
-    }
-}
-
-__device__ __forceinline__ void swiglu_1024(
-    const float* __restrict__ in,
-    float* __restrict__ out,
-    int tid,
-    int stride
-) {
-    for (int i = tid; i < 1024; i += stride) {
-        out[i] = swiglu_scalar(in[i]);
-    }
-}
+#include "../cuda/trm_recursive_core.cuh"
 
 extern "C" __global__ void trm_step_fused(
     const float* __restrict__ q,
@@ -89,40 +15,37 @@ extern "C" __global__ void trm_step_fused(
 ) {
     const int tid = threadIdx.x;
     const int stride = blockDim.x;
+    __shared__ int steps_taken;
+    __shared__ float drift_value;
 
-    float* temp = workspace;                          // 512
-    float* hidden = workspace + 512;                  // 1024
-    float* temp2 = workspace + 512 + 1024;            // 512
-    float* hidden2 = workspace + 512 + 1024 + 512;    // 1024
-
-    // temp = q + y + z
-    vec_add3_512(q, y, z, temp, tid, stride);
+    if (tid == 0) {
+        steps_taken = 0;
+        drift_value = 0.0f;
+    }
     __syncthreads();
 
-    // hidden = W1 @ temp
-    matvec_512x1024(W1, temp, hidden, tid, stride);
+    for (int index = tid; index < GPU_TASK_TRM_DIMS; index += stride) {
+        y_new[index] = y[index];
+        z_new[index] = z[index];
+    }
     __syncthreads();
 
-    // hidden = swiglu(hidden)
-    swiglu_1024(hidden, hidden, tid, stride);
-    __syncthreads();
-
-    // z_new = W2 @ hidden
-    matvec_1024x512(W2, hidden, z_new, tid, stride);
-    __syncthreads();
-
-    // temp2 = y + z_new
-    vec_add_512(y, z_new, temp2, tid, stride);
-    __syncthreads();
-
-    // hidden2 = W3 @ temp2
-    matvec_512x1024(W3, temp2, hidden2, tid, stride);
-    __syncthreads();
-
-    // hidden2 = swiglu(hidden2)
-    swiglu_1024(hidden2, hidden2, tid, stride);
-    __syncthreads();
-
-    // y_new = W4 @ hidden2
-    matvec_1024x512(W4, hidden2, y_new, tid, stride);
+    trm_recursive_core_device(
+        q,
+        y_new,
+        z_new,
+        W1,
+        W2,
+        W3,
+        W4,
+        workspace,
+        tid,
+        stride,
+        1,
+        0.0f,
+        &steps_taken,
+        &drift_value,
+        &steps_taken,
+        &drift_value
+    );
 }

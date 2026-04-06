@@ -147,6 +147,10 @@ def _ref_ids_from_entry(entry: dict[str, Any]) -> list[str]:
     raw_refs: list[Any] = []
     for key in (
         "component_refs",
+        "router_refs",
+        "executor_refs",
+        "validator_refs",
+        "anti_pattern_refs",
         "visual_refs",
         "grammar_refs",
         "math_refs",
@@ -163,9 +167,7 @@ def _ref_ids_from_entry(entry: dict[str, Any]) -> list[str]:
         text = str(value or "").strip()
         if text and text not in refs:
             refs.append(text)
-        if len(refs) >= 4:
-            break
-    return refs[:4]
+    return refs
 
 
 def _entry_id(entry: dict[str, Any]) -> str:
@@ -191,6 +193,21 @@ def _entry_to_star(entry: dict[str, Any], star_type: int, galaxy_id: int, fallba
     flags = 0x01
     if _embedding_from_entry(entry):
         flags |= 0x02
+    source = _star_source(entry)
+
+    def _list_field(*keys: str) -> list[str]:
+        values: list[str] = []
+        for key in keys:
+            for container in (source, entry):
+                raw = container.get(key)
+                if not isinstance(raw, list):
+                    continue
+                for item in raw:
+                    text = str(item or "").strip()
+                    if text and text not in values:
+                        values.append(text)
+        return values
+
     return {
         "id": star_id,
         "_id": star_id,
@@ -198,6 +215,19 @@ def _entry_to_star(entry: dict[str, Any], star_type: int, galaxy_id: int, fallba
         "embedding": embedding[:32],
         "galaxy_id": int(galaxy_id) & 0xFFFFFFFF,
         "star_type": int(star_type),
+        "route_family": (
+            str(source.get("route_family") or entry.get("route_family") or "").strip().upper()
+        ),
+        "selection_role": str(source.get("selection_role") or entry.get("selection_role") or "").strip().lower(),
+        "layer_id": source.get("layer_id", source.get("layer", entry.get("layer_id", entry.get("layer", 0)))),
+        "answer_eligible": bool(source.get("answer_eligible") or entry.get("answer_eligible")),
+        "router_refs": _list_field("router_refs"),
+        "executor_refs": _list_field("executor_refs"),
+        "validator_refs": _list_field("validator_refs"),
+        "anti_pattern_refs": _list_field("anti_pattern_refs"),
+        "route_policy": dict(source.get("route_policy") or entry.get("route_policy") or {}),
+        "attractive_prior": float(source.get("attractive_prior", entry.get("attractive_prior", 0.0)) or 0.0),
+        "repulsive_prior": float(source.get("repulsive_prior", entry.get("repulsive_prior", 0.0)) or 0.0),
         "component_refs": [],
         "flags": flags,
     }
@@ -243,13 +273,24 @@ def load_all_galaxies_from_disk(galaxy_dir: Path | str | None = None) -> list[di
         except Exception:
             continue
 
+    def _resolve_ref_ids(values: Any) -> list[int]:
+        resolved: list[int] = []
+        if not isinstance(values, list):
+            return resolved
+        for value in values:
+            ref_id = str(value or "").strip()
+            if not ref_id or ref_id not in id_to_index:
+                continue
+            ref_index = int(id_to_index[ref_id])
+            if ref_index not in resolved:
+                resolved.append(ref_index)
+        return resolved
+
     for star in stars:
         ref_ids = list(star.pop("_ref_ids", []) or [])
-        star["component_refs"] = [
-            id_to_index[ref_id]
-            for ref_id in ref_ids
-            if ref_id in id_to_index
-        ][:4]
+        star["component_refs"] = _resolve_ref_ids(ref_ids)
+        for key in ("router_refs", "executor_refs", "validator_refs", "anti_pattern_refs"):
+            star[key] = _resolve_ref_ids(star.get(key))
     return stars
 
 

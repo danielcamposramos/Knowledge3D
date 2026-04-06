@@ -52,7 +52,6 @@ class ArcAgi2Adapter:
 
         test_block = task.get("test") or [{}]
         gpu_task = {
-            "type": "ARC_TASK",
             "task_id": str(task.get("id") or "arc_task"),
             "query": "solve arc transformation task",
             "training_examples": list(task.get("train") or []),
@@ -67,7 +66,7 @@ class ArcAgi2Adapter:
                 "galaxy_names": list(
                     getattr(
                         self.knowledgeverse,
-                        "GPU_ARC_TARGET_GALAXIES",
+                        "GPU_SPATIAL_TARGET_GALAXIES",
                         ("Drawing", "Grammar", "Tool"),
                     )
                 ),

@@ -89,7 +89,7 @@ def run_diagnostics(args: argparse.Namespace) -> dict[str, Any]:
     gsm8k = GSM8KBenchmark(
         knowledgeverse=kv,
         dataset_path=args.gsm8k_dataset_path,
-        max_questions=args.max_gsm8k_questions,
+        max_questions=args.max_math_questions,
     ).run_benchmark(use_enriched=True)
     _log("completed GSM8K slice")
     kv.reset_query_session()
@@ -157,7 +157,7 @@ def run_diagnostics(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--storage-root", default="/tmp/k3d_diagnostic_slices")
+    parser.add_argument("--storage-root", default="/K3D/Knowledge3D.local/logs/diagnostic_slices")
     parser.add_argument("--gsm8k-dataset-path", default=None)
     parser.add_argument("--mmlu-dataset-path", default=None)
     parser.add_argument("--arc1-dataset-path", default=None)

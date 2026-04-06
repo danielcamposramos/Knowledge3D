@@ -381,7 +381,7 @@ def _run_unified_math_pair(
     bench = UnifiedMathBenchmark(
         knowledgeverse=knowledgeverse,
         max_problems=math_count,
-        max_gsm8k_questions=gsm8k_count,
+        max_math_questions=gsm8k_count,
         source_filter=["math", "gsm8k"],
     )
     def _row_cb(source: dict[str, Any], row: dict[str, Any]) -> None:

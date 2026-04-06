@@ -17,13 +17,14 @@ if str(REPO_ROOT) not in sys.path:
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse  # noqa: E402
 from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar  # noqa: E402
+from knowledge3d.knowledgeverse import route_contract  # noqa: E402
 from knowledge3d.tools.benchmark_health_check import load_questions  # noqa: E402
 
 
 DEFAULT_STORAGE_ROOT = Path("/K3D/Knowledge3D.local")
 DEFAULT_MEANING_PATH = DEFAULT_STORAGE_ROOT / "galaxies" / "meaning_layer_stars.jsonl"
 DEFAULT_MMLU_PATH = DEFAULT_STORAGE_ROOT / "galaxies" / "proceduralized_mmlu_val_10.jsonl"
-DEFAULT_GSM8K_PATH = DEFAULT_STORAGE_ROOT / "galaxies" / "proceduralized_gsm8k_train_10.jsonl"
+DEFAULT_GSM8K_PATH = DEFAULT_STORAGE_ROOT / "galaxies" / "proceduralized_math_train_10.jsonl"
 DEFAULT_COUNTS = {
     "arc": 10,
     "math": 20,
@@ -574,6 +575,10 @@ def _language_math_bridge_id(star: MeaningCentricStar) -> str:
     return f"math_exec_{star.star_id}"
 
 
+def _language_meaning_entry_id(star: MeaningCentricStar) -> str:
+    return route_contract.language_meaning_mirror_id(star.star_id)
+
+
 def build_language_math_bridge_entry(star: MeaningCentricStar) -> dict[str, Any]:
     english_lemma = _english_surface_text(star) or star.star_id
     aliases = _surface_form_aliases(star)
@@ -976,7 +981,7 @@ def ingest_enriched_galaxy(
             if galaxy_name == "Math":
                 bridge_entry = build_language_math_bridge_entry(star)
                 language_entry = star.to_galaxy_entry(
-                    entry_id=star.star_id,
+                    entry_id=_language_meaning_entry_id(star),
                     galaxy_name="Language",
                     category="meaning_star",
                     metadata={
@@ -1038,7 +1043,7 @@ def ingest_enriched_galaxy(
         "foundation_lemma_count": len(foundation_lemmas),
         "removed_existing_synset_entries": removed_synsets,
         "proceduralized_mmlu_loaded": len(mmlu_stars),
-        "proceduralized_gsm8k_loaded": len(gsm8k_stars),
+        "proceduralized_math_loaded": len(gsm8k_stars),
         "galaxy_ingest_status": counts,
         "total_galaxy_entries": count_persisted_entries(knowledgeverse.storage_root),
     }

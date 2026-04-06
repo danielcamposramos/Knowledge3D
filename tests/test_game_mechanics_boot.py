@@ -66,6 +66,10 @@ def test_populate_game_mechanics_is_idempotent(tmp_path: Path) -> None:
     walkable_row = next(row for row in rows if row["id"] == "walkable_surface")
     assert "grammar_pathfind_to_target" in walkable_row["grammar_refs"]
     assert "meta_safety_first_strategy" in walkable_row["meta_refs"]
+    assert walkable_row["selection_role"] == "unknown"
+    assert walkable_row["layer_id"] == 0
+    assert walkable_row["answer_eligible"] is False
+    assert walkable_row["sovereign_route_exempt"] is True
     categories = {
         str((row.get("metadata") or {}).get("properties", {}).get("knowledge_category", "seed"))
         for row in rows
@@ -192,6 +196,11 @@ def test_galaxy_manager_reads_house_jsonl_entries(tmp_path: Path) -> None:
     assert "reality_strategic_reset_affordance" in reality_ids
     assert "reality_avatar_identity" in reality_ids
     assert "reality_goal_room_state" in reality_ids
+    avatar_reality = next(entry for entry in reality_entries if entry["id"] == "reality_avatar_identity")
+    assert avatar_reality["selection_role"] == "unknown"
+    assert avatar_reality["layer_id"] == 0
+    assert avatar_reality["answer_eligible"] is False
+    assert avatar_reality["sovereign_route_exempt"] is True
 
 
 def test_disk_loader_includes_house_game_mechanics(tmp_path: Path) -> None:

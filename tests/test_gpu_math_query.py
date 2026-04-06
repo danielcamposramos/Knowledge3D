@@ -64,7 +64,7 @@ def test_knowledgeverse_math_query_returns_gpu_answer(tmp_path) -> None:
     assert result["status"] == "ok"
     assert result["gpu_execution"] is True
     assert result["program_id"] == Knowledgeverse.GPU_MATH_REASONING_PROGRAM_ID
-    assert result["match"]["id"] == "benchmark_math_gsm8k_0_direct"
+    assert result["match"]["id"] == "benchmark_math_math_0_direct"
     assert result["match"]["rpn_program"] == ""
     assert result["result"] == "18"
     assert result["solver"] == "knowledgeverse_gpu_query"

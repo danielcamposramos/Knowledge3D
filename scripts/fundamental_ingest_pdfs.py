@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fundamental PDF ingestion with intelligent classification + augmentation.
+"""Fundamental PDF ingestion with unified proceduralization.
 
 PURPOSE:
   Construct foundational Galaxy payloads from legacy PDF documents.
@@ -15,8 +15,8 @@ NOT FOR:
 
 PIPELINE:
   1) Extract PDF pages.
-  2) Classify pages with Ollama (knowledge/non_knowledge/ambiguous).
-  3) Augment knowledge pages to Galaxy-ready rows.
+  2) Submit each page/chunk to the canonical knowledge proceduralizer.
+  3) Preserve receipt + staged payload rows with resumable per-page checkpoints.
   4) Persist payload + report.
   5) Optional ingestion via `scripts/fundamental_ingest_payloads.py`.
 """
@@ -35,8 +35,8 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.ingestion.ollama_manager import OllamaModelManager
-from knowledge3d.ingestion.pdf_augmenter import PDFKnowledgeAugmenter
-from knowledge3d.ingestion.pdf_classifier import PDFKnowledgeClassifier
+from knowledge3d.knowledgeverse.proceduralizer_stargate import bundle_to_payload_rows
+from knowledge3d.tools.knowledge_proceduralizer import proceduralize_text_content
 
 
 def _extract_pdf_pages(pdf_path: Path, *, max_pages: int = 0) -> dict[int, str]:
@@ -85,6 +85,32 @@ def _iter_pdf_paths(*, pdf: Path | None, pdf_dir: Path | None, pattern: str, lim
 
 def _classification_label(decision: dict[str, Any]) -> str:
     return str(decision.get("resolved_classification") or decision.get("classification") or "").strip().lower()
+
+
+def _receipt_to_decision(receipt: dict[str, Any]) -> dict[str, Any]:
+    bundle = receipt.get("parsed_bundle") if isinstance(receipt, dict) else {}
+    if not isinstance(bundle, dict):
+        bundle = {}
+    action = str(bundle.get("ingest_action") or "").strip().lower()
+    if action == "augment":
+        classification = "knowledge"
+        knowledge_type = "summary"
+    elif action == "needs_context":
+        classification = "ambiguous"
+        knowledge_type = None
+    else:
+        classification = "non_knowledge"
+        knowledge_type = None
+    return {
+        "classification": classification,
+        "resolved_classification": classification,
+        "confidence": 1.0 if bool(receipt.get("schema_ok")) else 0.35,
+        "reason": str(receipt.get("failure_code") or action or receipt.get("status") or "proceduralizer"),
+        "context_needed": [] if action != "needs_context" else ["adjacent_pages"],
+        "knowledge_type": knowledge_type,
+        "provider": receipt.get("provider"),
+        "model": receipt.get("model"),
+    }
 
 
 def _stage_root(payload_output: Path, explicit_stage_dir: Path | None) -> Path:
@@ -155,6 +181,8 @@ def _write_stage_page(
     total_pages: int,
     decision: dict[str, Any],
     rows: list[dict[str, Any]],
+    receipt: dict[str, Any] | None = None,
+    bundle: dict[str, Any] | None = None,
 ) -> None:
     payload = {
         "pdf": str(pdf_path),
@@ -163,6 +191,10 @@ def _write_stage_page(
         "decision": decision,
         "rows": rows,
     }
+    if receipt is not None:
+        payload["receipt"] = receipt
+    if bundle is not None:
+        payload["bundle"] = bundle
     pdf_stage_dir.mkdir(parents=True, exist_ok=True)
     target = _page_stage_path(pdf_stage_dir, page_num)
     tmp = target.with_suffix(target.suffix + ".tmp")
@@ -289,10 +321,14 @@ def main() -> int:
     parser.add_argument("--limit-pdfs", type=int, default=0, help="Limit number of PDFs from --pdf-dir")
     parser.add_argument("--max-pages-per-pdf", type=int, default=0, help="0 means all pages")
     parser.add_argument("--cache-dir", type=Path, default=Path("../Knowledge3D.local/pdf_cache"))
+    parser.add_argument("--provider", default="ollama", help="Canonical transport provider; ollama is default.")
+    parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
+    parser.add_argument("--model", default=None, help="Optional explicit model override.")
     parser.add_argument("--classifier-model", default="qwen2.5:32b")
     parser.add_argument("--augmenter-model", default="qwen2.5:32b")
     parser.add_argument("--ollama-timeout", type=float, default=120.0)
     parser.add_argument("--force-reprocess", action="store_true")
+    parser.add_argument("--capture-dir", type=Path, default=None, help="Optional request/response capture directory.")
     parser.add_argument(
         "--payload-output",
         type=Path,
@@ -349,19 +385,19 @@ def main() -> int:
         manifest["pdfs"] = {}
         manifest_pdfs = manifest["pdfs"]
     skipped_sources_count = 0
+    stop_due_to_plan_limit = False
+    retry_after_utc = ""
+
+    explicit_model = str(args.model or "").strip() or None
+    legacy_override = None
+    if explicit_model is None:
+        if str(args.augmenter_model).strip() and str(args.augmenter_model).strip() != "qwen2.5:32b":
+            legacy_override = str(args.augmenter_model).strip()
+        elif str(args.classifier_model).strip() and str(args.classifier_model).strip() != "qwen2.5:32b":
+            legacy_override = str(args.classifier_model).strip()
+    resolved_model = explicit_model or legacy_override
 
     with OllamaModelManager(default_timeout=float(args.ollama_timeout)) as ollama:
-        classifier = PDFKnowledgeClassifier(
-            ollama=ollama,
-            cache_dir=args.cache_dir,
-            model=args.classifier_model,
-            timeout=float(args.ollama_timeout),
-        )
-        augmenter = PDFKnowledgeAugmenter(
-            ollama=ollama,
-            model=args.augmenter_model,
-            timeout=float(args.ollama_timeout),
-        )
 
         checkpoint_interval = max(0, int(args.payload_checkpoint_interval_pdfs))
         processed_pdfs = 0
@@ -411,39 +447,32 @@ def main() -> int:
             }
             _save_stage_manifest(stage_root, manifest)
 
-            decisions = classifier.classify_pdf_pages(
-                pdf_path=pdf_path,
-                pages=pages,
-                force_reprocess=bool(args.force_reprocess),
-            )
-
             total_pages = len(pages)
-            for page_num, decision in sorted(decisions.items(), key=lambda item: item[0]):
+            for page_num, page_text in sorted(pages.items(), key=lambda item: item[0]):
                 stage_page = _page_stage_path(pdf_stage, int(page_num))
                 if int(page_num) < int(resume_from) and stage_page.exists():
                     continue
 
-                label = _classification_label(decision)
-                rows: list[dict[str, Any]] = []
                 context: dict[int, str] = {}
                 for adj in (page_num - 1, page_num + 1):
                     if adj in pages:
                         context[adj] = pages[adj]
-                if label == "knowledge":
-                    augmented = augmenter.augment_page(
-                        pdf_path=pdf_path,
-                        page_num=page_num,
-                        total_pages=total_pages,
-                        page_text=pages.get(page_num, ""),
-                        classification=decision,
-                        context_pages=context,
-                    )
-                    rows = augmenter.to_payload_rows(
-                        pdf_path=pdf_path,
-                        page_num=page_num,
-                        augmented=augmented,
-                        classification=decision,
-                    )
+                receipt, request = proceduralize_text_content(
+                    content=str(page_text or ""),
+                    source_id=f"{pdf_path.stem}_p{int(page_num):04d}",
+                    domain_hint="General",
+                    source_path=f"{pdf_path}#page={int(page_num)}",
+                    context_chunks=[f"[page {adj}] {text[:1200]}" for adj, text in sorted(context.items())],
+                    model=resolved_model,
+                    timeout=float(args.ollama_timeout),
+                    capture_dir=args.capture_dir,
+                    provider=str(args.provider).strip().lower(),
+                    model_profile=str(args.model_profile).strip().lower(),
+                    ollama=ollama,
+                    source_kind="pdf",
+                )
+                decision = _receipt_to_decision(receipt.to_dict())
+                rows = bundle_to_payload_rows(receipt.parsed_bundle, request)
                 _write_stage_page(
                     pdf_stage_dir=pdf_stage,
                     page_num=int(page_num),
@@ -451,7 +480,16 @@ def main() -> int:
                     total_pages=total_pages,
                     decision=decision,
                     rows=rows,
+                    receipt=receipt.to_dict(),
+                    bundle=receipt.parsed_bundle.to_dict(),
                 )
+                if str(receipt.failure_code or "").strip() == "plan_limit_consumed":
+                    stop_due_to_plan_limit = True
+                    retry_after_utc = str(receipt.retry_after_utc or "").strip()
+                    manifest_pdfs[str(pdf_path)]["status"] = "stopped_plan_limit"
+                    manifest_pdfs[str(pdf_path)]["retry_after_utc"] = retry_after_utc
+                    _save_stage_manifest(stage_root, manifest)
+                    break
 
             processed_pdfs += 1
             if checkpoint_interval > 0 and processed_pdfs % checkpoint_interval == 0:
@@ -459,6 +497,8 @@ def main() -> int:
                     stage_root=stage_root,
                     payload_output=args.payload_output,
                 )
+            if stop_due_to_plan_limit:
+                break
 
     by_galaxy, by_classification, per_pdf, payload_rows = _rebuild_payload_from_stage(
         stage_root=stage_root,
@@ -493,14 +533,20 @@ def main() -> int:
         "classification_counts": dict(sorted(by_classification.items())),
         "rows_by_galaxy": dict(sorted(by_galaxy.items())),
         "models": {
+            "provider": args.provider,
+            "model_profile": args.model_profile,
+            "model": resolved_model,
             "classifier": args.classifier_model,
             "augmenter": args.augmenter_model,
         },
         "cache_dir": str(args.cache_dir),
         "stage_dir": str(stage_root),
+        "capture_dir": str(args.capture_dir) if args.capture_dir is not None else "",
         "force_reprocess": bool(args.force_reprocess),
         "resume_last_page": not bool(args.disable_resume_last_page),
         "ingest_requested": bool(args.ingest),
+        "stopped_due_to_plan_limit": bool(stop_due_to_plan_limit),
+        "retry_after_utc": retry_after_utc,
     }
 
     if args.ingest:
@@ -517,6 +563,8 @@ def main() -> int:
     for galaxy, count in sorted(by_galaxy.items()):
         print(f"[pdf-ingest] {galaxy}: {count}")
 
+    if stop_due_to_plan_limit:
+        return 75
     return int(report.get("ingest_returncode", 0) or 0)
 
 

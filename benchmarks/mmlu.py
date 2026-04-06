@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Any, Callable
 
 from benchmarks.sampling import stratified_sample
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.tablet.wine.question_wine import mmlu_question_envelope
 
 
 class MMLUBenchmark:
@@ -24,6 +26,7 @@ class MMLUBenchmark:
         subjects: str | list[str] = "all",
         split: str = "test",
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ) -> None:
         self.kv = knowledgeverse or Knowledgeverse()
         self.dataset_path = self._resolve_dataset_path(dataset_path)
@@ -32,6 +35,7 @@ class MMLUBenchmark:
         self.subjects = self._parse_subjects(subjects)
         self.split = str(split).strip().lower()
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
+        self.tablet_boundary = tablet_boundary
         self.used_synthetic_fallback = False
         self.questions = self._load_questions()
         self.results: list[dict[str, Any]] = []
@@ -244,18 +248,19 @@ class MMLUBenchmark:
         }
 
     def _solve_question(self, *, question: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
+        if self.tablet_boundary is not None:
+            return self._solve_question_via_tablet(question=question, use_enriched=use_enriched)
         if use_enriched and self.runtime_seed_knowledge:
             self._seed_subject_knowledge(question)
         route = self._apply_query_scope(
             {
                 "specialist": "chat",
                 "domain_hint": question["subject"],
-                "galaxy_names": list(Knowledgeverse.GPU_MMLU_TARGET_GALAXIES),
+                "galaxy_names": list(Knowledgeverse.GPU_QUESTION_TARGET_GALAXIES),
             }
         )
         task_result = self.kv.execute_task(
             task={
-                "type": "MMLU_TASK",
                 "task_id": question["id"],
                 "query": question["question_text"],
                 "prompt": question["question_text"],
@@ -290,6 +295,43 @@ class MMLUBenchmark:
             "gpu_execution": bool(task_result.get("gpu_execution", False)),
             "program_id": str(task_result.get("program_id", "")),
             "task_result": task_result,
+        }
+
+    def _solve_question_via_tablet(
+        self,
+        *,
+        question: dict[str, Any],
+        use_enriched: bool,
+    ) -> dict[str, Any]:
+        envelope = mmlu_question_envelope(
+            task_id=str(question["id"]),
+            question=str(question["question_text"]),
+            options=list(question["options"]),
+            subject=str(question["subject"]),
+            expected_answer=str(question["correct_answer"]),
+        )
+        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        emitted = dict(tablet_result["emitted"])
+        route = emitted.get("route", {})
+        predicted = str(emitted.get("answer_choice") or emitted.get("answer_text") or "").strip()
+        correct = bool(emitted.get("correct", False))
+        return {
+            "id": question["id"],
+            "subject": question["subject"],
+            "domain": question["domain"],
+            "question_text": question["question_text"],
+            "options": list(question["options"]),
+            "correct_answer": question["correct_answer"],
+            "predicted_answer": predicted,
+            "correct": correct,
+            "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
+            "route": route,
+            "solver": str(emitted.get("task_result", {}).get("solver", "tablet_boundary")),
+            "runtime": str(emitted.get("task_result", {}).get("runtime", "")),
+            "gpu_execution": bool(emitted.get("task_result", {}).get("gpu_execution", False)),
+            "program_id": str(emitted.get("task_result", {}).get("program_id", "")),
+            "task_result": emitted.get("task_result", {}),
+            "tablet_contract": tablet_result["tablet_contract"],
         }
 
     def _compute_domain_stats(self) -> dict[str, dict[str, Any]]:

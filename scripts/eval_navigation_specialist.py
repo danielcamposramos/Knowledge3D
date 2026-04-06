@@ -61,13 +61,13 @@ def main() -> None:
     parser.add_argument(
         "--bin",
         type=str,
-        default="/tmp/log_galaxy_microbench.bin",
+        default="/K3D/Knowledge3D.local/logs/log_galaxy_microbench.bin",
         help="Log Galaxy binary file.",
     )
     parser.add_argument(
         "--meta",
         type=str,
-        default="/tmp/log_galaxy_microbench.json",
+        default="/K3D/Knowledge3D.local/logs/log_galaxy_microbench.json",
         help="Log Galaxy metadata JSON.",
     )
     parser.add_argument("--seed", type=int, default=3, help="Random seed.")

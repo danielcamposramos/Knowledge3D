@@ -10,6 +10,7 @@ from typing import Any
 
 from knowledge3d.cranium.sovereign import loader
 
+from .lesson_vram_ring import VRAMLessonRing
 from .vram_task_buffer import VRAMTaskBuffer
 
 
@@ -17,6 +18,7 @@ CUDA_DIR = Path(__file__).resolve().parents[1] / "cranium" / "cuda"
 PTX_DIR = Path(__file__).resolve().parents[1] / "cranium" / "ptx"
 CUDA_SOURCE = CUDA_DIR / "gpu_task_dispatch.cu"
 CUDA_HEADER = CUDA_DIR / "device_functions.cuh"
+TRM_CORE_HEADER = CUDA_DIR / "trm_recursive_core.cuh"
 PTX_PATH = PTX_DIR / "gpu_task_dispatch.ptx"
 
 
@@ -32,6 +34,7 @@ class GPUTaskDispatch:
         newest_source_mtime = max(
             CUDA_SOURCE.stat().st_mtime,
             CUDA_HEADER.stat().st_mtime if CUDA_HEADER.exists() else 0.0,
+            TRM_CORE_HEADER.stat().st_mtime if TRM_CORE_HEADER.exists() else 0.0,
         )
         if PTX_PATH.exists() and PTX_PATH.stat().st_mtime >= newest_source_mtime:
             return PTX_PATH
@@ -60,14 +63,17 @@ class GPUTaskDispatch:
         *,
         block_size: int = 128,
         brain_ptr=None,
-        galaxy_ptr=None,
-        galaxy_star_count: int = 0,
+        star_table=None,
+        lesson_ring: VRAMLessonRing | None = None,
+        trm_weight_buffers: dict[str, Any] | None = None,
     ) -> None:
         total = max(0, int(task_count))
         if total <= 0:
             return
         if brain_ptr is not None and total != 1:
             raise RuntimeError("persistent_brain_requires_single_task_dispatch")
+        galaxy_ptr = getattr(star_table, "gpu_ptr", None) if star_table is not None else None
+        galaxy_star_count = int(getattr(star_table, "star_count", 0) or 0) if star_table is not None else 0
         loader.launch(
             self.kernel,
             (total, 1, 1),
@@ -79,6 +85,22 @@ class GPUTaskDispatch:
                 brain_ptr if brain_ptr is not None else ctypes.c_void_p(),
                 galaxy_ptr if galaxy_ptr is not None else ctypes.c_void_p(),
                 ctypes.c_uint(int(max(0, galaxy_star_count))),
+                getattr(star_table, "router_offsets_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "router_counts_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "executor_offsets_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "executor_counts_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "validator_offsets_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "validator_counts_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "anti_pattern_offsets_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "anti_pattern_counts_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                getattr(star_table, "ref_indices_ptr", ctypes.c_void_p()) if star_table is not None else ctypes.c_void_p(),
+                ctypes.c_void_p(getattr((trm_weight_buffers or {}).get("W1"), "value", 0)),
+                ctypes.c_void_p(getattr((trm_weight_buffers or {}).get("W2"), "value", 0)),
+                ctypes.c_void_p(getattr((trm_weight_buffers or {}).get("W3"), "value", 0)),
+                ctypes.c_void_p(getattr((trm_weight_buffers or {}).get("W4"), "value", 0)),
+                lesson_ring.buffer if lesson_ring is not None else ctypes.c_void_p(),
+                lesson_ring.counter if lesson_ring is not None else ctypes.c_void_p(),
+                ctypes.c_uint(int(lesson_ring.capacity if lesson_ring is not None else 0)),
             ],
         )
         loader.synchronize()
@@ -184,7 +206,7 @@ def cpu_reference_dispatch(
             if converged and iterations_used >= 5:
                 break
 
-        if task_type == 8 and any(abs(value) > 1.0e-8 for value in goal_embedding):
+        if any(abs(value) > 1.0e-8 for value in goal_embedding):
             goal_progress = _goal_progress_ref(reasoning_state, goal_embedding, query)
 
         rows.append(

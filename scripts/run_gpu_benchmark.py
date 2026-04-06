@@ -51,19 +51,8 @@ def _mmlu_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], l
     tasks: list[dict[str, Any]] = []
     metadata: list[dict[str, Any]] = []
     for question in bench.questions[: max(1, int(count))]:
-        task_ctx = {
-            "type": "MMLU_TASK",
-            "task_id": question["id"],
-            "query": question["question_text"],
-            "prompt": question["question_text"],
-            "question": question["question_text"],
-            "options": list(question["options"]),
-            "subject": question["subject"],
-            "domain_hint": question["subject"],
-        }
         tasks.append(
             {
-                "type": "MMLU_TASK",
                 "query_embedding": embed_text_sovereign(question["question_text"]),
                 "option_embeddings": [
                     embed_text_sovereign(option)
@@ -88,7 +77,7 @@ def _mmlu_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], l
     return tasks, metadata
 
 
-def _gsm8k_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _math_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     from benchmarks.gsm8k import GSM8KBenchmark
 
     kv = _resolve_knowledgeverse(kv_or_storage)
@@ -96,18 +85,8 @@ def _gsm8k_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], 
     tasks: list[dict[str, Any]] = []
     metadata: list[dict[str, Any]] = []
     for question in bench.questions[: max(1, int(count))]:
-        task_ctx = {
-            "type": "GSM8K_TASK",
-            "task_id": question["id"],
-            "query": question["question_text"],
-            "prompt": question["question_text"],
-            "question": question["question_text"],
-            "subject": "gsm8k_math",
-            "domain_hint": "word_problem",
-        }
         tasks.append(
             {
-                "type": "GSM8K_TASK",
                 "query_embedding": embed_text_sovereign(question["question_text"]),
                 "option_embeddings": [],
                 "subject": "gsm8k_math",
@@ -134,19 +113,8 @@ def _lhe_tasks(kv_or_storage: Any, count: int) -> tuple[list[dict[str, Any]], li
     metadata: list[dict[str, Any]] = []
     for question in bench.questions[: max(1, int(count))]:
         options = list(question.get("options") or [])
-        task_ctx = {
-            "type": "LHE_TASK",
-            "task_id": question["id"],
-            "query": question["question_text"],
-            "prompt": question["question_text"],
-            "question": question["question_text"],
-            "options": options,
-            "subject": question["domain"],
-            "domain_hint": question["domain"],
-        }
         tasks.append(
             {
-                "type": "LHE_TASK",
                 "query_embedding": embed_text_sovereign(question["question_text"]),
                 "option_embeddings": [
                     embed_text_sovereign(option)
@@ -194,15 +162,8 @@ def _arc2_tasks(
         test_pairs = list(task.get("test") or [])
         test_input = list(test_pairs[0].get("input") or []) if test_pairs else []
         expected_output = list(test_pairs[0].get("output") or []) if test_pairs else []
-        task_ctx = {
-            "type": "ARC_TASK",
-            "task_id": task["id"],
-            "subject": "arc_agi_2",
-            "domain_hint": "visual_reasoning",
-        }
         tasks.append(
             {
-                "type": "ARC_TASK",
                 "query_embedding": _embedding32(frame_encoder.encode(test_input)),
                 "option_embeddings": [],
                 "subject": "arc_agi_2",
@@ -357,7 +318,7 @@ def run_gpu_benchmark(
     if suite_name == "mmlu":
         tasks, metadata = _mmlu_tasks(task_source, count)
     elif suite_name == "gsm8k":
-        tasks, metadata = _gsm8k_tasks(task_source, count)
+        tasks, metadata = _math_tasks(task_source, count)
     elif suite_name == "lhe":
         tasks, metadata = _lhe_tasks(task_source, count)
     elif suite_name == "arc2":

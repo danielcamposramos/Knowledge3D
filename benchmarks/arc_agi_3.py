@@ -8,13 +8,14 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.tablet.wine.game2d_wine import build_game2d_route
 
 
 ACTION_NAMES = ["ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6", "ACTION7"]
 ACTION_LABELS = ["Move Up", "Move Down", "Move Left", "Move Right", "Perform", "Click", "Undo"]
 RESET_ACTION_NAME = "RESET"
 RESET_ACTION_LABEL = "Reset"
-ARC3_ROUTE_GALAXIES = ["Drawing", "game_mechanics", "Grammar", "Tool", "Reality", "Word"]
+ARC3_ROUTE_GALAXIES: list[str] = []
 SPATIAL_WALKABLE_COLORS = {0, 1, 3}
 
 
@@ -915,17 +916,38 @@ def _frame_to_query_text(
 
 
 def _result_has_direct_action(result: dict[str, Any] | None) -> bool:
-    if not isinstance(result, dict):
+    packet = _normalized_runtime_result(result)
+    if not packet:
         return False
-    raw_action_name = str(result.get("action_name", "")).strip().upper()
+    raw_action_name = str(packet.get("action_name", "")).strip().upper()
     if raw_action_name in {RESET_ACTION_NAME, *ACTION_NAMES}:
         return True
-    if isinstance(result.get("answer_index"), (int, float)):
+    raw_action_index = packet.get("action_index")
+    if isinstance(raw_action_index, int) and -1 <= int(raw_action_index) < len(ACTION_NAMES):
         return True
-    if isinstance(result.get("x"), (int, float)) and isinstance(result.get("y"), (int, float)):
+    action_input = packet.get("action_input")
+    if isinstance(action_input, dict) and isinstance(action_input.get("x"), (int, float)) and isinstance(action_input.get("y"), (int, float)):
         return True
-    predicted = _normalize_grid(result.get("output_grid"))
-    return predicted != [[]]
+    if isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float)):
+        return True
+    return _normalize_grid(packet.get("output_grid")) != [[]]
+
+
+def _normalized_runtime_result(result: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(result, dict):
+        return {}
+    task_result = result.get("task_result")
+    if not isinstance(task_result, dict):
+        return dict(result)
+    merged = dict(task_result)
+    for key, value in result.items():
+        if key == "task_result":
+            continue
+        merged.setdefault(key, value)
+    route_payload = task_result.get("route")
+    if not isinstance(route_payload, dict) and isinstance(result.get("route"), dict):
+        merged["route"] = dict(result["route"])
+    return merged
 
 
 def _derive_action_from_result(
@@ -934,40 +956,26 @@ def _derive_action_from_result(
     *,
     goal_frame: list[list[int]] | None = None,
 ) -> tuple[int | str, dict[str, int]]:
-    raw_action_name = str(result.get("action_name", "")).strip().upper()
+    packet = _normalized_runtime_result(result)
+    raw_action_name = str(packet.get("action_name", "")).strip().upper()
     if raw_action_name == RESET_ACTION_NAME:
         return RESET_ACTION_NAME, {}
+    if raw_action_name in ACTION_NAMES:
+        return ACTION_NAMES.index(raw_action_name), {}
 
-    raw_answer_index = result.get("answer_index")
-    if isinstance(raw_answer_index, (int, float)):
-        action_index = max(0, min(int(raw_answer_index), len(ACTION_NAMES) - 1))
-        return action_index, {}
+    raw_action_index = packet.get("action_index")
+    if isinstance(raw_action_index, int):
+        if int(raw_action_index) < 0:
+            return RESET_ACTION_NAME, {}
+        if int(raw_action_index) < len(ACTION_NAMES):
+            return int(raw_action_index), {}
 
-    if isinstance(result.get("x"), (int, float)) and isinstance(result.get("y"), (int, float)):
-        return 5, {"x": int(result["x"]), "y": int(result["y"])}
+    action_input = packet.get("action_input")
+    if isinstance(action_input, dict) and isinstance(action_input.get("x"), (int, float)) and isinstance(action_input.get("y"), (int, float)):
+        return 5, {"x": int(action_input["x"]), "y": int(action_input["y"])}
 
-    predicted = _normalize_grid(result.get("output_grid"))
-    if predicted != [[]]:
-        def _first_active_cell(grid: list[list[int]]) -> tuple[int, int] | None:
-            for row_index, row in enumerate(grid):
-                for col_index, value in enumerate(row):
-                    if int(value) != 0:
-                        return row_index, col_index
-            return None
-
-        current_cell = _first_active_cell(frame)
-        predicted_cell = _first_active_cell(predicted)
-        if current_cell is not None and predicted_cell is not None:
-            delta_row = int(predicted_cell[0]) - int(current_cell[0])
-            delta_col = int(predicted_cell[1]) - int(current_cell[1])
-            if abs(delta_row) > abs(delta_col):
-                return (0 if delta_row < 0 else 1), {}
-            if abs(delta_col) > 0:
-                return (2 if delta_col < 0 else 3), {}
-            if predicted != frame:
-                return 4, {}
-        if predicted != frame:
-            return 4, {}
+    if isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float)):
+        return 5, {"x": int(packet["x"]), "y": int(packet["y"])}
 
     return 0, {}
 
@@ -1158,7 +1166,7 @@ class K3DARC3Agent:
         game_id: str | None = None,
         levels_completed: int = 0,
     ) -> dict[str, Any]:
-        """Translate frame → ARC_TASK → kv.execute_task() → ARC3 action dict."""
+        """Translate frame → generic 2D game payload → kv.execute_task() → game action dict."""
         normalized_frame = _normalize_grid(frame)
         normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
         frame_state = _frame_state(normalized_frame)
@@ -1257,7 +1265,7 @@ class K3DARC3Agent:
                 valid_action_indices=valid_action_indices,
             )
         gpu_task = {
-            "type": "ARC_TASK",
+            "surface_kind": "GAME_2D",
             "task_id": str(
                 task_context.get("task_id")
                 or task_context.get("id")
@@ -1288,19 +1296,23 @@ class K3DARC3Agent:
             gpu_task["spatial_plan_target"] = str(spatial_plan.get("target_label", ""))
             gpu_task["spatial_plan_action_index"] = int(spatial_plan.get("action_index", 0))
             gpu_task["spatial_plan_path_length"] = int(spatial_plan.get("path_length", 0))
+        route = build_game2d_route(
+            specialist="visual",
+            domain_hint="game_2d",
+        )
         result = self.kv.execute_task(
             task=gpu_task,
-            route={
-                "specialist": "visual",
-                "domain_hint": "arc3_interactive",
-                "galaxy_names": list(ARC3_ROUTE_GALAXIES),
-            },
+            route=route,
             specialist="visual",
-            domain_hint="arc3_interactive",
+            domain_hint="game_2d",
         )
+        result = _normalized_runtime_result(dict(result or {}))
         if spatial_plan is not None and not _result_has_direct_action(result):
             fallback_result = dict(result or {})
-            fallback_result["answer_index"] = int(spatial_plan["action_index"])
+            fallback_result["action_index"] = int(spatial_plan["action_index"])
+            fallback_result["action_name"] = ACTION_NAMES[int(spatial_plan["action_index"])]
+            fallback_result["answer_kind"] = "action"
+            fallback_result["answer_materialized"] = True
             fallback_result["confidence"] = max(
                 float(fallback_result.get("confidence", 0.0) or 0.0),
                 float(spatial_plan["confidence"]),

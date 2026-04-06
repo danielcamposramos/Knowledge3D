@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from benchmarks.math_competitions import UnifiedMathBenchmark
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -20,21 +21,23 @@ class GSM8KBenchmark:
         max_questions: int | None = None,
         query_scope_galaxies: str | list[str] | None = None,
         runtime_seed_knowledge: bool = False,
+        tablet_boundary: HeadlessTabletMPC | None = None,
     ) -> None:
         self._bench = UnifiedMathBenchmark(
             knowledgeverse=knowledgeverse,
             gsm8k_dataset_path=dataset_path,
-            max_gsm8k_questions=max_questions,
+            max_math_questions=max_questions,
             source_filter=["gsm8k"],
             query_scope_galaxies=query_scope_galaxies,
             runtime_seed_knowledge=runtime_seed_knowledge,
+            tablet_boundary=tablet_boundary,
         )
         self.kv = self._bench.kv
         self.dataset_path = self._bench.gsm8k_dataset_path
         self.max_questions = max_questions
         self.query_scope_galaxies = self._bench.query_scope_galaxies
         self.runtime_seed_knowledge = self._bench.runtime_seed_knowledge
-        self.used_synthetic_fallback = self._bench.used_synthetic_gsm8k_fallback
+        self.used_synthetic_fallback = self._bench.used_synthetic_math_fallback
         self.questions = [
             {
                 "id": row["id"],

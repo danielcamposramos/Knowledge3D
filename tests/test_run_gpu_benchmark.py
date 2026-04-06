@@ -85,10 +85,10 @@ def test_run_gpu_benchmark_mmlu_smoke(tmp_path, monkeypatch):
     assert summary["accuracy"] == 1.0
 
 
-def test_run_gpu_benchmark_supports_gsm8k_and_arc2(monkeypatch, tmp_path):
+def test_run_gpu_benchmark_supports_math_and_arc2(monkeypatch, tmp_path):
     monkeypatch.setattr(
         run_gpu_module,
-        "_gsm8k_tasks",
+        "_math_tasks",
         lambda kv, count: (
             [{"type": "GSM8K_TASK", "query_embedding": [0.0] * 32, "option_embeddings": [], "subject": "gsm8k", "domain_hint": "word_problem"}],
             [{"id": "gsm8k_0", "suite": "gsm8k", "mode": "open_ended_hash", "correct_answer": "12"}],

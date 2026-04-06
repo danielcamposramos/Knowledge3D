@@ -1,4 +1,4 @@
-"""Phase D.1 shell: queued TRM game-loop I/O around the current direct path."""
+"""Queued TRM game-loop transport around the sovereign runtime."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import json
 import time
 from typing import Any
 
-from .query_head_substrate import expand_embedding16_to128
 from .ring_buffer import RingBuffer, RingWindow
 
 
@@ -99,6 +98,9 @@ class TRMGameLoop:
         if not self._active:
             return 0
         processed = 0
+        dispatch_fn = getattr(self.knowledgeverse, "_dispatch_sovereign_task", None)
+        if dispatch_fn is None:
+            raise RuntimeError("knowledgeverse_missing__dispatch_sovereign_task")
         while self._pending_inputs and processed < max(1, int(max_tasks)):
             record = self._pending_inputs.popleft()
             task = dict(record.payload.get("task") or {})
@@ -110,27 +112,13 @@ class TRMGameLoop:
             specialist = str(record.payload.get("specialist") or "auto")
             domain_hint = record.payload.get("domain_hint")
             use_enriched = bool(record.payload.get("use_enriched", True))
-            dispatch_ticket = self._build_dispatch_ticket(task=task, specialist=specialist)
-            result = self.knowledgeverse._execute_task_direct(
+            result = dispatch_fn(
                 task=task,
                 route=route,
                 specialist=specialist,
                 domain_hint=domain_hint,
                 use_enriched=use_enriched,
             )
-            jarvis_brief = dict(result.get("jarvis_brief") or {}) if isinstance(result, dict) else {}
-            if dispatch_ticket:
-                trm_dispatch = result.setdefault("trm_dispatch", dict(dispatch_ticket))
-                if jarvis_brief:
-                    trm_dispatch.update(
-                        {
-                            "actual_swarm_groups": int(jarvis_brief.get("active_swarm_groups", 0) or 0),
-                            "actual_worker_count": int(jarvis_brief.get("worker_count", 0) or 0),
-                            "agreements": len(list(jarvis_brief.get("agreements") or [])),
-                            "contradictions": len(list(jarvis_brief.get("contradictions") or [])),
-                            "highest_confidence": str(jarvis_brief.get("highest_confidence", "")).strip(),
-                        }
-                    )
             result.setdefault(
                 "trm_io",
                 {
@@ -206,75 +194,6 @@ class TRMGameLoop:
             "input_window": self._window_payload(input_window),
             "output_window": self._window_payload(output_window),
         }
-
-    def _build_dispatch_ticket(self, *, task: dict[str, Any], specialist: str) -> dict[str, Any]:
-        task_type = str(task.get("type", "")).strip().upper() or "GENERAL_TASK"
-        options = task.get("options")
-        option_list = list(options) if isinstance(options, list) else None
-        task_complexity = self.knowledgeverse._jarvis_task_complexity(
-            task_type=task_type,
-            paths=[],
-            options=option_list,
-        )
-        recommended_groups = self._recommended_groups_for_task(task_type)
-        planned_groups = self.knowledgeverse._jarvis_determine_swarm_count(task_complexity)
-        if recommended_groups > 0:
-            planned_groups = max(int(planned_groups), int(recommended_groups))
-        query_text = str(task.get("query") or task.get("prompt") or task.get("question") or "").strip()
-        embedding = []
-        if query_text:
-            try:
-                embedding = list(self.knowledgeverse._embed_query_gpu(query_text, task=task))
-            except Exception:
-                embedding = []
-        resonance_weights: list[float] = []
-        swarm = self.knowledgeverse.get_swarm_bridge()
-        if swarm is not None and embedding:
-            try:
-                _, _, weights = swarm.execute_swarm(
-                    expand_embedding16_to128(embedding),
-                    num_iterations=1,
-                    reset_state=True,
-                    readback_mode="full",
-                )
-                if weights is not None:
-                    resonance_weights = [float(value) for value in weights.tolist()]
-            except Exception:
-                resonance_weights = []
-        worker_slots: list[dict[str, Any]] = []
-        total_groups = max(1, int(planned_groups))
-        for group_index in range(1, total_groups + 1):
-            for worker_index in range(1, 10):
-                weight = (
-                    resonance_weights[(worker_index - 1) % len(resonance_weights)]
-                    if resonance_weights
-                    else 1.0
-                )
-                worker_slots.append(
-                    {
-                        "worker_id": f"g{group_index}.w{worker_index}",
-                        "group": int(group_index),
-                        "weight": float(weight),
-                    }
-                )
-        return {
-            "task_type": task_type,
-            "specialist": str(specialist or "auto"),
-            "planned_swarm_groups": total_groups,
-            "recommended_swarm_groups": int(recommended_groups),
-            "worker_slots": worker_slots,
-            "resonance_weights": resonance_weights,
-            "task_complexity": float(task_complexity),
-            "gpu_utilization": float(self.knowledgeverse._jarvis_gpu_utilization()),
-            "vram_free_bytes": int(self.knowledgeverse._jarvis_vram_free_bytes()),
-        }
-
-    def _recommended_groups_for_task(self, task_type: str) -> int:
-        jarvis_state = getattr(self.knowledgeverse, "_jarvis_state", None)
-        if not isinstance(jarvis_state, dict):
-            return 0
-        recommended = dict(jarvis_state.get("recommended_groups_by_task") or {})
-        return max(0, int(recommended.get(str(task_type).strip(), 0) or 0))
 
     @staticmethod
     def _window_payload(window: RingWindow) -> dict[str, int]:

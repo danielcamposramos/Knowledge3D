@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from .meaning_star import MeaningCentricStar, SurfaceForm, wrap_galaxy_entry_with_meaning_star
+from . import route_contract
 
 
 _NUMBER_WORD_UNITS: dict[int, str] = {
@@ -326,19 +327,78 @@ def _entry(
     rpn_program: str,
     operation: str,
     tags: list[str],
+    extra_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    metadata = {
+        "operation": operation,
+        "tags": tags,
+        "bootstrap": "deterministic_foundation_v1",
+    }
+    if extra_metadata:
+        metadata.update(dict(extra_metadata))
     return {
         "id": entry_id,
         "name": name,
         "domain": domain,
         "category": category,
         "rpn_program": rpn_program,
-        "metadata": {
-            "operation": operation,
-            "tags": tags,
-            "bootstrap": "deterministic_foundation_v1",
-        },
+        "metadata": metadata,
     }
+
+
+def _grammar_math_word_problem_metadata(
+    *,
+    branch_topk: int,
+    anti_pattern_refs: list[str],
+    router_refs: list[str],
+) -> dict[str, Any]:
+    return {
+        "route_contract_schema_version": route_contract.ROUTE_CONTRACT_SCHEMA_VERSION,
+        "route_family": "GRAMMAR",
+        "selection_role": "executor",
+        "layer_id": 3,
+        "answer_eligible": False,
+        "sovereign_route_exempt": False,
+        "executor_refs": [
+            "grammar_transform_executor",
+            "grammar_answer_materializer",
+        ],
+        "validator_refs": [
+            "grammar_normalization_validator",
+            "grammar_answer_validator",
+        ],
+        "anti_pattern_refs": list(anti_pattern_refs),
+        "route_policy": {
+            "requires_validator": True,
+            "answer_gate": True,
+            "branch_topk": int(branch_topk),
+        },
+        "router_refs": list(router_refs),
+    }
+
+
+def _route_exempt_foundation_entry(
+    *,
+    entry_id: str,
+    name: str,
+    domain: str,
+    category: str,
+    content: str,
+    summary: str,
+    description: str,
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
+    base = {
+        "id": entry_id,
+        "name": name,
+        "domain": domain,
+        "category": category,
+        "content": content,
+        "summary": summary,
+        "description": description,
+        "metadata": dict(metadata),
+    }
+    return route_contract.apply_route_exempt_anchor_contract(base)
 
 
 def _grammar_entries() -> list[dict[str, Any]]:
@@ -558,6 +618,20 @@ def _grammar_entries() -> list[dict[str, Any]]:
             rpn_program="STACK total consumed SUB",
             operation="CONSUME_FROM_TOTAL",
             tags=["math", "word_problem", "composition", "subtraction"],
+            extra_metadata=_grammar_math_word_problem_metadata(
+                branch_topk=2,
+                anti_pattern_refs=[
+                    "anti_pattern_missing_validator_traversal",
+                    "anti_pattern_answer_format_mismatch",
+                ],
+                router_refs=[
+                    "grammar_transform_executor",
+                    "grammar_normalization_validator",
+                    "grammar_answer_validator",
+                    "grammar_answer_materializer",
+                    "math_remainder_after_use_executor",
+                ],
+            ),
         ),
         _entry(
             entry_id="rate_application",
@@ -567,6 +641,21 @@ def _grammar_entries() -> list[dict[str, Any]]:
             rpn_program="STACK quantity rate MUL",
             operation="RATE_APPLICATION",
             tags=["math", "word_problem", "composition", "multiplication"],
+            extra_metadata=_grammar_math_word_problem_metadata(
+                branch_topk=2,
+                anti_pattern_refs=[
+                    "anti_pattern_missing_validator_traversal",
+                    "anti_pattern_unit_magnitude_mismatch",
+                ],
+                router_refs=[
+                    "grammar_transform_executor",
+                    "grammar_normalization_validator",
+                    "grammar_answer_validator",
+                    "grammar_answer_materializer",
+                    "math_multiplicative_comparison_executor",
+                    "math_rate_revenue_projection_executor",
+                ],
+            ),
         ),
         _entry(
             entry_id="sequential_computation",
@@ -576,6 +665,22 @@ def _grammar_entries() -> list[dict[str, Any]]:
             rpn_program="STACK step_1 step_2 step_3 EVAL_CHAIN",
             operation="SEQUENTIAL_COMPUTATION",
             tags=["math", "word_problem", "composition", "multi_step"],
+            extra_metadata=_grammar_math_word_problem_metadata(
+                branch_topk=3,
+                anti_pattern_refs=[
+                    "anti_pattern_missing_validator_traversal",
+                    "anti_pattern_shallow_router_stop",
+                ],
+                router_refs=[
+                    "grammar_router",
+                    "grammar_sequence_executor",
+                    "grammar_transform_executor",
+                    "grammar_normalization_validator",
+                    "grammar_answer_validator",
+                    "grammar_answer_materializer",
+                    "math_multi_step_composition_executor",
+                ],
+            ),
         ),
         _entry(
             entry_id="comparison_delta",
@@ -585,6 +690,20 @@ def _grammar_entries() -> list[dict[str, Any]]:
             rpn_program="STACK larger smaller SUB",
             operation="COMPARISON_DELTA",
             tags=["math", "word_problem", "comparison"],
+            extra_metadata=_grammar_math_word_problem_metadata(
+                branch_topk=2,
+                anti_pattern_refs=[
+                    "anti_pattern_missing_validator_traversal",
+                    "anti_pattern_answer_format_mismatch",
+                ],
+                router_refs=[
+                    "grammar_transform_executor",
+                    "grammar_normalization_validator",
+                    "grammar_answer_validator",
+                    "grammar_answer_materializer",
+                    "math_additive_composition_executor",
+                ],
+            ),
         ),
         _entry(
             entry_id="percentage_application",
@@ -594,6 +713,20 @@ def _grammar_entries() -> list[dict[str, Any]]:
             rpn_program="STACK base percent MUL 100 DIV",
             operation="PERCENTAGE_APPLICATION",
             tags=["math", "word_problem", "percentage"],
+            extra_metadata=_grammar_math_word_problem_metadata(
+                branch_topk=2,
+                anti_pattern_refs=[
+                    "anti_pattern_missing_validator_traversal",
+                    "anti_pattern_unit_magnitude_mismatch",
+                ],
+                router_refs=[
+                    "grammar_transform_executor",
+                    "grammar_normalization_validator",
+                    "grammar_answer_validator",
+                    "grammar_answer_materializer",
+                    "math_fraction_of_total_executor",
+                ],
+            ),
         ),
         _entry(
             entry_id="answer_final_stack",
@@ -5707,18 +5840,19 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
     ]
     for entry_id, name, content, aliases, query_anchor, subfield, mmlu_subjects in mmlu_subject_anchors:
         entries.append(
-            {
-                "id": entry_id,
-                "name": name,
-                "domain": "reality",
-                "category": "definition",
-                "content": content,
-                "summary": name,
-                "description": content,
-                "metadata": {
+            _route_exempt_foundation_entry(
+                entry_id=entry_id,
+                name=name,
+                domain="reality",
+                category="definition",
+                content=content,
+                summary=name,
+                description=content,
+                metadata={
                     "meaning_ref": entry_id,
                     "subject": subfield,
                     "subfield": subfield,
+                    "layer": 2,
                     "query_anchor": query_anchor,
                     "answer": content,
                     "aliases": list(aliases),
@@ -5727,7 +5861,7 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
                     "confidence": 0.91,
                     "bootstrap": "deterministic_foundation_v7",
                 },
-            }
+            )
         )
 
     abstract_algebra_reality_concepts = [
@@ -5804,18 +5938,19 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
     ]
     for entry_id, name, content, aliases, query_anchor in abstract_algebra_reality_concepts:
         entries.append(
-            {
-                "id": entry_id,
-                "name": name,
-                "domain": "reality",
-                "category": "definition",
-                "content": content,
-                "summary": name,
-                "description": content,
-                "metadata": {
+            _route_exempt_foundation_entry(
+                entry_id=entry_id,
+                name=name,
+                domain="reality",
+                category="definition",
+                content=content,
+                summary=name,
+                description=content,
+                metadata={
                     "meaning_ref": entry_id,
                     "subject": "abstract_algebra",
                     "subfield": "abstract_algebra",
+                    "layer": 2,
                     "query_anchor": query_anchor,
                     "answer": content,
                     "aliases": list(aliases),
@@ -5824,7 +5959,7 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
                     "confidence": 0.95,
                     "bootstrap": "deterministic_foundation_v16",
                 },
-            }
+            )
         )
 
     def _mmlu_subject_tags(entry_id: str, subject: str, subfield: str) -> list[str]:
@@ -5935,15 +6070,15 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
     for entry_id, name, content, aliases, query_anchor, subfield in domain_anchors:
         mmlu_subjects = _mmlu_subject_tags(entry_id, subfield, subfield)
         entries.append(
-            {
-                "id": entry_id,
-                "name": name,
-                "domain": "reality",
-                "category": "definition",
-                "content": content,
-                "summary": name,
-                "description": content,
-                "metadata": {
+            _route_exempt_foundation_entry(
+                entry_id=entry_id,
+                name=name,
+                domain="reality",
+                category="definition",
+                content=content,
+                summary=name,
+                description=content,
+                metadata={
                     "meaning_ref": entry_id,
                     "subject": subfield,
                     "subfield": subfield,
@@ -5956,7 +6091,7 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
                     "confidence": 0.9,
                     "bootstrap": "deterministic_foundation_v11",
                 },
-            }
+            )
         )
 
     domain_concepts = [
@@ -6079,15 +6214,15 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
     for entry_id, name, subject, subfield, content, aliases, query_anchor in domain_concepts:
         mmlu_subjects = _mmlu_subject_tags(entry_id, subject, subfield)
         entries.append(
-            {
-                "id": entry_id,
-                "name": name,
-                "domain": "reality",
-                "category": "concept",
-                "content": content,
-                "summary": name,
-                "description": content,
-                "metadata": {
+            _route_exempt_foundation_entry(
+                entry_id=entry_id,
+                name=name,
+                domain="reality",
+                category="concept",
+                content=content,
+                summary=name,
+                description=content,
+                metadata={
                     "meaning_ref": entry_id,
                     "subject": subject,
                     "subfield": subfield,
@@ -6100,7 +6235,7 @@ def _foundational_reality_entries() -> list[dict[str, Any]]:
                     "confidence": 0.89,
                     "bootstrap": "deterministic_foundation_v12",
                 },
-            }
+            )
         )
 
     mmlu_track_c_reality_concepts = [
