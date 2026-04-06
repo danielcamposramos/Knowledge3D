@@ -100,3 +100,12 @@ def test_iter_pdf_paths_uses_pdf_list_order_and_filters_non_pdfs(tmp_path) -> No
         limit=1,
     )
     assert limited == [pdf_b]
+
+
+def test_empty_page_decision_short_circuits_model_usage() -> None:
+    decision = fundamental_ingest_pdfs._empty_page_decision(provider="ollama", model="glm-5:cloud")
+
+    assert decision["classification"] == "non_knowledge"
+    assert decision["resolved_classification"] == "non_knowledge"
+    assert decision["reason"] == "empty_page"
+    assert decision["confidence"] == 1.0

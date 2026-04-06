@@ -112,6 +112,19 @@ def _classification_label(decision: dict[str, Any]) -> str:
     return str(decision.get("resolved_classification") or decision.get("classification") or "").strip().lower()
 
 
+def _empty_page_decision(*, provider: str, model: str | None) -> dict[str, Any]:
+    return {
+        "classification": "non_knowledge",
+        "resolved_classification": "non_knowledge",
+        "confidence": 1.0,
+        "reason": "empty_page",
+        "context_needed": [],
+        "knowledge_type": None,
+        "provider": provider,
+        "model": model,
+    }
+
+
 def _receipt_to_decision(receipt: dict[str, Any]) -> dict[str, Any]:
     bundle = receipt.get("parsed_bundle") if isinstance(receipt, dict) else {}
     if not isinstance(bundle, dict):
@@ -503,6 +516,22 @@ def main() -> int:
             for page_num, page_text in sorted(pages.items(), key=lambda item: item[0]):
                 stage_page = _page_stage_path(pdf_stage, int(page_num))
                 if int(page_num) < int(resume_from) and stage_page.exists():
+                    continue
+
+                if not str(page_text or "").strip():
+                    _write_stage_page(
+                        pdf_stage_dir=pdf_stage,
+                        page_num=int(page_num),
+                        pdf_path=pdf_path,
+                        total_pages=total_pages,
+                        decision=_empty_page_decision(
+                            provider=str(args.provider).strip().lower(),
+                            model=resolved_model,
+                        ),
+                        rows=[],
+                    )
+                    manifest_pdfs[str(pdf_path)]["resume_from_page"] = int(page_num) + 1
+                    _save_stage_manifest(stage_root, manifest)
                     continue
 
                 context: dict[int, str] = {}
