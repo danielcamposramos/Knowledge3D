@@ -36,6 +36,8 @@ K3D invariants:
 - If the content is incomplete and needs more context, emit ingest_action=\"needs_context\"
 - If the content is unsafe or unusable, emit ingest_action=\"reject\"
 - Output strict JSON only. No prose. No markdown. No chain-of-thought.
+- Return at most 4 knowledge_packets per source chunk. Prefer the highest-value
+  symlink-first packets over exhaustive extraction.
 
 Return this schema exactly:
 {
@@ -80,6 +82,82 @@ Rules:
 - Mint proposed ids only when the concept is genuinely missing
 - Every id and label must be meaning-named, never benchmark-named
 """
+
+
+PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "ingest_action": {
+            "type": "string",
+            "enum": ["skip", "augment", "needs_context", "reject"],
+        },
+        "knowledge_packets": {
+            "type": "array",
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "layer_kind": {
+                        "type": "string",
+                        "enum": ["form", "meaning", "rule", "meta_rule"],
+                    },
+                    "star_id": {"type": "string"},
+                    "proposed_star_id": {"type": "string"},
+                    "meaning_class": {"type": "string"},
+                    "meaning_rpn": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "domain": {"type": "string"},
+                    "surface_forms": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                    },
+                    "symbol_refs": {"type": "array", "items": {"type": "string"}},
+                    "word_refs": {"type": "array", "items": {"type": "string"}},
+                    "taxonomy_refs": {"type": "array", "items": {"type": "string"}},
+                    "grammar_refs": {"type": "array", "items": {"type": "string"}},
+                    "reality_refs": {"type": "array", "items": {"type": "string"}},
+                    "meta_refs": {"type": "array", "items": {"type": "string"}},
+                    "relationships": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "from": {"type": "string"},
+                                "relation": {"type": "string"},
+                                "to": {"type": "string"},
+                            },
+                            "required": ["from", "relation", "to"],
+                            "additionalProperties": True,
+                        },
+                    },
+                    "route_contract": {"type": ["object", "null"]},
+                    "confidence": {"type": "number"},
+                    "needs_review": {"type": "boolean"},
+                },
+                "required": [
+                    "layer_kind",
+                    "meaning_class",
+                    "meaning_rpn",
+                    "summary",
+                    "domain",
+                    "surface_forms",
+                    "symbol_refs",
+                    "word_refs",
+                    "taxonomy_refs",
+                    "grammar_refs",
+                    "reality_refs",
+                    "meta_refs",
+                    "relationships",
+                    "confidence",
+                    "needs_review",
+                ],
+                "additionalProperties": True,
+            },
+        },
+    },
+    "required": ["ingest_action", "knowledge_packets"],
+    "additionalProperties": False,
+}
 
 
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
@@ -295,10 +373,19 @@ def _fallback_bundle(
         action = "skip"
     elif failure_code == "needs_context":
         action = "needs_context"
-    elif failure_code == "reject":
+    elif failure_code in {
+        "reject",
+        "invalid_json",
+        "empty_packets",
+        "invalid_schema",
+        "transport_error",
+        "timeout",
+        "context_exhausted",
+        "plan_limit_consumed",
+    }:
         action = "reject"
     else:
-        action = "augment"
+        action = "reject"
     if action != "augment":
         return ProceduralizerBundle(ingest_action=action, knowledge_packets=[])
     summary = request.content.strip().splitlines()[0] if request.content.strip() else request.source_id
@@ -378,6 +465,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
 
 
 __all__ = [
+    "PROCEDURALIZER_BUNDLE_JSON_SCHEMA",
     "PROCEDURALIZER_MODEL_PROFILES",
     "PROCEDURALIZER_SYSTEM_PROMPT",
     "ProceduralizerBundle",

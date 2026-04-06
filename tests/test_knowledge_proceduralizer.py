@@ -26,6 +26,7 @@ from knowledge3d.tools.knowledge_proceduralizer import (
     chunk_source_content,
     load_math_entries,
     load_mmlu_entries,
+    receipt_is_usable,
     result_to_payload_row,
 )
 
@@ -180,6 +181,44 @@ def test_merge_receipts_supports_long_hash_ids() -> None:
     assert len(merged.request_hash) == 16
     assert len(merged.response_hash) == 16
     assert len(merged.parsed_bundle.knowledge_packets) == 2
+
+
+def test_receipt_is_usable_requires_schema_clean_augment_packets() -> None:
+    packet = ProceduralizerPacket(
+        layer_kind="meaning",
+        meaning_class="definition",
+        meaning_rpn="GENERAL FACT ENTRY",
+        summary="usable anchor",
+        domain="General",
+        surface_forms={"en": "usable anchor"},
+    )
+    good = ProceduralizerReceipt(
+        status="completed",
+        provider="ollama",
+        model="glm-5:cloud",
+        latency_ms=10,
+        request_hash="req_a",
+        response_hash="resp_a",
+        raw_response_path="a.txt",
+        schema_ok=True,
+        failure_code="",
+        parsed_bundle=ProceduralizerBundle(ingest_action="augment", knowledge_packets=[packet]),
+    )
+    bad = ProceduralizerReceipt(
+        status="invalid_json",
+        provider="ollama",
+        model="glm-5:cloud",
+        latency_ms=10,
+        request_hash="req_b",
+        response_hash="resp_b",
+        raw_response_path="b.txt",
+        schema_ok=False,
+        failure_code="timeout",
+        parsed_bundle=ProceduralizerBundle(ingest_action="augment", knowledge_packets=[packet]),
+    )
+
+    assert receipt_is_usable(good) is True
+    assert receipt_is_usable(bad) is False
 
 
 def test_payload_contract_maps_domains_to_meaning_families() -> None:

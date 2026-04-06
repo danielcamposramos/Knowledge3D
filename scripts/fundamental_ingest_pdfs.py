@@ -36,7 +36,7 @@ from typing import Any
 
 from knowledge3d.ingestion.ollama_manager import OllamaModelManager
 from knowledge3d.knowledgeverse.proceduralizer_stargate import bundle_to_payload_rows
-from knowledge3d.tools.knowledge_proceduralizer import proceduralize_text_content
+from knowledge3d.tools.knowledge_proceduralizer import proceduralize_text_content, receipt_is_usable
 
 
 def _extract_pdf_pages(pdf_path: Path, *, max_pages: int = 0) -> dict[int, str]:
@@ -92,9 +92,12 @@ def _receipt_to_decision(receipt: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(bundle, dict):
         bundle = {}
     action = str(bundle.get("ingest_action") or "").strip().lower()
-    if action == "augment":
+    if action == "augment" and bool(receipt.get("schema_ok")):
         classification = "knowledge"
         knowledge_type = "summary"
+    elif action == "reject" or not bool(receipt.get("schema_ok")):
+        classification = "ambiguous"
+        knowledge_type = None
     elif action == "needs_context":
         classification = "ambiguous"
         knowledge_type = None
@@ -472,7 +475,7 @@ def main() -> int:
                     source_kind="pdf",
                 )
                 decision = _receipt_to_decision(receipt.to_dict())
-                rows = bundle_to_payload_rows(receipt.parsed_bundle, request)
+                rows = bundle_to_payload_rows(receipt.parsed_bundle, request) if receipt_is_usable(receipt) else []
                 _write_stage_page(
                     pdf_stage_dir=pdf_stage,
                     page_num=int(page_num),

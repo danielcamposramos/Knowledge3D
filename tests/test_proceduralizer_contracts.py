@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from knowledge3d.ingestion.proceduralizer_contract import (
+    PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,
     ProceduralizerBundle,
     ProceduralizerReceipt,
@@ -20,8 +21,10 @@ class _FakeOllama:
         self._output = output
         self._returncode = returncode
         self._stderr = stderr
+        self.calls: list[dict[str, object]] = []
 
     def chat(self, **_: object):
+        self.calls.append(dict(_))
         class _Result:
             def __init__(self, output: str, returncode: int, stderr: str) -> None:
                 self.output = output
@@ -84,7 +87,43 @@ def test_bundle_to_payload_rows_emits_route_exempt_meaning_rows() -> None:
     assert rows[0]["entry"]["metadata"]["sovereign_route_exempt"] is True
 
 
+def test_parse_bundle_invalid_json_rejects_without_packets() -> None:
+    request = ProceduralizerRequest(
+        source_kind="text",
+        source_id="bad_json_1",
+        source_path="eval://bad_json_1",
+        domain_hint="General",
+        content="not valid json",
+    )
+
+    bundle, schema_ok, failure_code = parse_bundle("timed out", request)
+
+    assert schema_ok is False
+    assert failure_code == "invalid_json"
+    assert bundle.ingest_action == "reject"
+    assert bundle.knowledge_packets == []
+
+
 def test_wine_bridge_writes_receipt_and_capture(tmp_path: Path) -> None:
+    fake = _FakeOllama(
+        output=json.dumps(
+            {
+                "ingest_action": "augment",
+                "knowledge_packets": [
+                    {
+                        "layer_kind": "rule",
+                        "meaning_class": "rule",
+                        "meaning_rpn": "A B ADD",
+                        "summary": "addition rule anchor",
+                        "domain": "Mathematics",
+                        "surface_forms": {"en": "addition rule anchor"},
+                        "taxonomy_refs": ["concept_mathematics"],
+                        "confidence": 0.95,
+                    }
+                ],
+            }
+        )
+    )
     output = json.dumps(
         {
             "ingest_action": "augment",
@@ -104,7 +143,7 @@ def test_wine_bridge_writes_receipt_and_capture(tmp_path: Path) -> None:
     )
     bridge = ProceduralizerWineBridge(
         capture_dir=tmp_path,
-        ollama=_FakeOllama(output),
+        ollama=fake,
     )
     request = ProceduralizerRequest(
         source_kind="text",
@@ -123,6 +162,8 @@ def test_wine_bridge_writes_receipt_and_capture(tmp_path: Path) -> None:
     assert Path(receipt.raw_response_path).exists()
     assert receipt.parsed_bundle.ingest_action == "augment"
     assert receipt.parsed_bundle.knowledge_packets[0].domain == "Mathematics"
+    assert fake.calls
+    assert fake.calls[0]["response_format"] == PROCEDURALIZER_BUNDLE_JSON_SCHEMA
 
 
 def test_wine_bridge_detects_plan_limit_and_sets_retry(tmp_path: Path) -> None:
@@ -142,6 +183,43 @@ def test_wine_bridge_detects_plan_limit_and_sets_retry(tmp_path: Path) -> None:
 
     assert receipt.failure_code == "plan_limit_consumed"
     assert receipt.retry_after_utc
+
+
+def test_wine_bridge_does_not_flag_timeout_words_inside_valid_json(tmp_path: Path) -> None:
+    fake = _FakeOllama(
+        output=json.dumps(
+            {
+                "ingest_action": "augment",
+                "knowledge_packets": [
+                    {
+                        "layer_kind": "rule",
+                        "meaning_class": "rule",
+                        "meaning_rpn": "receipt write timeout artifact keep",
+                        "summary": "receipts are written before cleanup on timeout",
+                        "domain": "Tools",
+                        "surface_forms": {"en": "timeout receipt policy"},
+                        "taxonomy_refs": ["concept_tool"],
+                        "meta_refs": ["policy:timeout"],
+                        "confidence": 0.9,
+                    }
+                ],
+            }
+        )
+    )
+    bridge = ProceduralizerWineBridge(capture_dir=tmp_path, ollama=fake)
+    request = ProceduralizerRequest(
+        source_kind="text",
+        source_id="timeout_policy",
+        source_path="eval://timeout_policy",
+        domain_hint="Tools",
+        content="Receipts must be written before cleanup on timeout.",
+    )
+
+    receipt = bridge.submit(request, model_profile="quality")
+
+    assert receipt.status == "completed"
+    assert receipt.failure_code == ""
+    assert receipt.schema_ok is True
 
 
 def test_manifest_ingest_stops_on_plan_limit(tmp_path: Path, monkeypatch) -> None:
@@ -202,6 +280,7 @@ def test_manifest_ingest_stops_on_plan_limit(tmp_path: Path, monkeypatch) -> Non
         provider_name="ollama",
         model=None,
         model_profile="quality",
+        timeout_seconds=20.0,
         capture_dir=None,
         output_dir=tmp_path / "out",
         galaxy_manager=None,
@@ -210,3 +289,64 @@ def test_manifest_ingest_stops_on_plan_limit(tmp_path: Path, monkeypatch) -> Non
     assert report["stopped_due_to_plan_limit"] is True
     assert report["retry_after_utc"] == "2026-04-06T05:01:00+00:00"
     assert len(report["entries"]) == 1
+
+
+def test_manifest_ingest_rejects_invalid_receipt(tmp_path: Path, monkeypatch) -> None:
+    source_path = tmp_path / "sample.txt"
+    source_path.write_text("alpha beta gamma", encoding="utf-8")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "entries": [
+                    {
+                        "id": "doc_1",
+                        "name": "Sample",
+                        "path": str(source_path),
+                        "content_type": "text",
+                        "domain_hint": "General",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    def _fake_proceduralize_text_content(**_: object):
+        request = ProceduralizerRequest(
+            source_kind="manifest",
+            source_id="doc_1",
+            source_path=str(source_path),
+            domain_hint="General",
+            content="alpha beta gamma",
+        )
+        receipt = ProceduralizerReceipt(
+            status="invalid_json",
+            provider="ollama",
+            model=PROCEDURALIZER_MODEL_PROFILES["quality"],
+            latency_ms=1,
+            request_hash="req",
+            response_hash="resp",
+            raw_response_path=str(tmp_path / "resp.txt"),
+            schema_ok=False,
+            failure_code="timeout",
+            parsed_bundle=ProceduralizerBundle(ingest_action="reject", knowledge_packets=[]),
+        )
+        return receipt, request
+
+    monkeypatch.setattr(ingest_from_manifest, "proceduralize_text_content", _fake_proceduralize_text_content)
+
+    report = ingest_from_manifest.ingest_manifest(
+        manifest_path,
+        provider_name="ollama",
+        model=None,
+        model_profile="quality",
+        timeout_seconds=20.0,
+        capture_dir=None,
+        output_dir=tmp_path / "out",
+        galaxy_manager=None,
+    )
+
+    assert report["ingested"] == 0
+    assert report["rejected"] == 1
+    assert report["entries"][0]["status"] == "rejected"

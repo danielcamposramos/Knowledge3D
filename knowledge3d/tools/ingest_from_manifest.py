@@ -8,10 +8,11 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.ingestion.proceduralizer_contract import PROCEDURALIZER_MODEL_PROFILES
 from knowledge3d.knowledgeverse.galaxy_manager import GalaxyManager
 
 from .content_to_stars import write_stars_jsonl
-from .knowledge_proceduralizer import packet_to_star, proceduralize_text_content
+from .knowledge_proceduralizer import packet_to_star, proceduralize_text_content, receipt_is_usable
 
 
 def _entry_hash(value: str) -> str:
@@ -66,6 +67,7 @@ def ingest_entry(
     provider_name: str,
     model: str | None,
     model_profile: str,
+    timeout_seconds: float,
     capture_dir: str | Path | None,
     output_dir: str | Path,
     galaxy_manager: GalaxyManager | None = None,
@@ -95,17 +97,21 @@ def ingest_entry(
         source_path=str(file_path),
         context_chunks=[f"name:{entry.get('name', '')}", f"content_type:{content_type}"],
         model=model,
+        timeout=float(timeout_seconds),
         provider=provider_name,
         model_profile=model_profile,
         capture_dir=capture_dir,
         source_kind="manifest",
     )
-    if receipt.parsed_bundle.ingest_action != "augment" or not receipt.parsed_bundle.knowledge_packets:
+    if not receipt_is_usable(receipt):
         failure_code = str(receipt.failure_code or "").strip()
         retry_after_utc = str(receipt.retry_after_utc or "").strip()
+        status = "rejected" if receipt.parsed_bundle.ingest_action == "reject" or not bool(receipt.schema_ok) else "skipped"
+        if failure_code == "plan_limit_consumed":
+            status = "stopped_plan_limit"
         return {
             "path": str(file_path),
-            "status": "stopped_plan_limit" if failure_code == "plan_limit_consumed" else "skipped",
+            "status": status,
             "reason": receipt.parsed_bundle.ingest_action,
             "provider": receipt.provider,
             "failure_code": failure_code,
@@ -143,6 +149,7 @@ def ingest_manifest(
     provider_name: str,
     model: str | None,
     model_profile: str,
+    timeout_seconds: float,
     capture_dir: str | Path | None,
     output_dir: str | Path,
     galaxy_manager: GalaxyManager | None = None,
@@ -161,6 +168,7 @@ def ingest_manifest(
             provider_name=provider_name,
             model=model,
             model_profile=model_profile,
+            timeout_seconds=timeout_seconds,
             capture_dir=capture_dir,
             output_dir=output_dir,
             galaxy_manager=galaxy_manager,
@@ -183,6 +191,7 @@ def ingest_manifest(
         "total_entries": len(report_rows),
         "ingested": sum(1 for row in report_rows if row.get("status") == "ingested"),
         "skipped": sum(1 for row in report_rows if row.get("status") == "skipped"),
+        "rejected": sum(1 for row in report_rows if row.get("status") == "rejected"),
         "stopped_due_to_plan_limit": bool(stopped_due_to_plan_limit),
         "retry_after_utc": retry_after_utc,
         "stars_path": str(stars_path),
@@ -199,6 +208,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--provider", default="ollama", help="Default transport provider; ollama is canonical.")
     parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
     parser.add_argument("--model", default=None, help="Override provider model name.")
+    parser.add_argument("--timeout-seconds", type=float, default=120.0, help="Per-request proceduralizer timeout.")
     parser.add_argument("--capture-dir", type=Path, default=None, help="Optional directory for request/response captures.")
     parser.add_argument("--output-dir", type=Path, required=True, help="Directory for stars/report output.")
     parser.add_argument(
@@ -213,16 +223,23 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
+    explicit_model = str(args.model).strip() if args.model is not None else ""
+    resolved_model = explicit_model or PROCEDURALIZER_MODEL_PROFILES.get(
+        str(args.model_profile).strip().lower(),
+        PROCEDURALIZER_MODEL_PROFILES["quality"],
+    )
     galaxy_manager = None if args.no_persist else GalaxyManager(storage_root=args.storage_root)
     report = ingest_manifest(
         args.manifest,
         provider_name=str(args.provider).strip().lower(),
-        model=str(args.model).strip() or None,
+        model=explicit_model or None,
         model_profile=str(args.model_profile).strip().lower(),
+        timeout_seconds=float(args.timeout_seconds),
         capture_dir=args.capture_dir,
         output_dir=args.output_dir,
         galaxy_manager=galaxy_manager,
     )
+    report["model"] = resolved_model
     print(json.dumps(report, indent=2, ensure_ascii=False))
     return 75 if bool(report.get("stopped_due_to_plan_limit")) else 0
 

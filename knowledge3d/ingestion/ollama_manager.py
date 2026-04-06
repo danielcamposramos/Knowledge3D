@@ -93,6 +93,7 @@ class OllamaModelManager:
         timeout: float | None = None,
         temperature: float = 0.3,
         options: dict[str, Any] | None = None,
+        response_format: str | dict[str, Any] | None = None,
     ) -> OllamaQueryResult:
         """Run a structured chat call through the Ollama HTTP API."""
         run_timeout = timeout if timeout is not None else self.default_timeout
@@ -116,6 +117,8 @@ class OllamaModelManager:
                 **resolved_options,
             },
         }
+        if response_format is not None:
+            payload["format"] = response_format
         if think_value is not None:
             payload["think"] = think_value
         body = json.dumps(payload).encode("utf-8")

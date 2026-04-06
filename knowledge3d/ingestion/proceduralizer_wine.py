@@ -16,10 +16,12 @@ from typing import Any
 from knowledge3d.ingestion.ollama_manager import OllamaManager
 
 from .proceduralizer_contract import (
+    PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,
     PROCEDURALIZER_SYSTEM_PROMPT,
     ProceduralizerReceipt,
     ProceduralizerRequest,
+    extract_json_object,
     parse_bundle,
     request_hash,
     response_hash,
@@ -33,6 +35,9 @@ def _request_user_message(request: ProceduralizerRequest) -> str:
         f"source_path={request.source_path or 'unknown'}",
         f"domain_hint={request.domain_hint or 'General'}",
         f"ingest_mode={request.ingest_mode or 'augment'}",
+        "",
+        "Response schema:",
+        json.dumps(PROCEDURALIZER_BUNDLE_JSON_SCHEMA, ensure_ascii=False, sort_keys=True),
         "",
     ]
     if request.existing_ref_menu:
@@ -112,6 +117,7 @@ class ProceduralizerWineBridge:
             timeout=run_timeout,
             temperature=float(dict(options or {}).pop("temperature", 0.1)),
             options=options,
+            response_format=PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
         )
         latency_ms = int((time.perf_counter() - started) * 1000.0)
         raw_output = result.output if result.returncode == 0 else (result.stderr or result.output)
@@ -169,6 +175,12 @@ class ProceduralizerWineBridge:
         lowered = str(raw_output or "").lower()
         if not lowered:
             return ""
+        if extract_json_object(raw_output) is not None:
+            return ""
+        if lowered.strip() in {"timed out", "timeout"}:
+            return "timeout"
+        if "operation timed out" in lowered or "request timed out" in lowered:
+            return "timeout"
         if "rate limit" in lowered:
             return "plan_limit_consumed"
         if "quota" in lowered and any(token in lowered for token in ("exceeded", "reached", "limit", "usage")):

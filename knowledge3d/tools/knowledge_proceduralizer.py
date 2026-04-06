@@ -87,7 +87,7 @@ _THINK_RE = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
 _NUMBER_RE = re.compile(r"####\s*([^\n]+)")
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 
-PROCEDURALIZER_MAX_CONTENT_CHARS = 12000
+PROCEDURALIZER_MAX_CONTENT_CHARS = 6000
 PROCEDURALIZER_CHUNK_OVERLAP_CHARS = 900
 
 
@@ -337,6 +337,21 @@ def _merge_receipts(chunk_receipts: list[Any], *, provider: str, model: str) -> 
     )
 
 
+def receipt_is_usable(receipt: Any) -> bool:
+    if receipt is None:
+        return False
+    if not bool(getattr(receipt, "schema_ok", False)):
+        return False
+    if str(getattr(receipt, "failure_code", "") or "").strip():
+        return False
+    bundle = getattr(receipt, "parsed_bundle", None)
+    if bundle is None:
+        return False
+    if str(getattr(bundle, "ingest_action", "") or "").strip().lower() != "augment":
+        return False
+    return bool(list(getattr(bundle, "knowledge_packets", []) or []))
+
+
 def load_mmlu_entries(
     data_dir: Path,
     split: str = "val",
@@ -505,7 +520,7 @@ def proceduralize_entry(
         capture_dir=capture_dir,
         model_profile=model_profile,
     )
-    if receipt.parsed_bundle.ingest_action != "augment":
+    if not receipt_is_usable(receipt):
         return _fallback_result(entry, receipt.failure_code or receipt.status, provider=receipt.provider)
     raw_response = ""
     for raw_path in [part for part in str(receipt.raw_response_path or "").split("|") if part.strip()]:
@@ -756,7 +771,7 @@ def proceduralize_entry_to_payload_rows(
         source_kind=source_kind,
     )
     request = build_request_from_entry(entry, quality_profile=model_profile, source_kind=source_kind)
-    return bundle_to_payload_rows(receipt.parsed_bundle, request), receipt
+    return (bundle_to_payload_rows(receipt.parsed_bundle, request) if receipt_is_usable(receipt) else []), receipt
 
 
 def proceduralize_text_content(
@@ -879,7 +894,7 @@ def proceduralize_dataset(
             retry_after_utc = str(receipt.retry_after_utc or "").strip()
         request = build_request_from_entry(entry, quality_profile=model_profile, source_kind=source_kind)
         rows = bundle_to_payload_rows(receipt.parsed_bundle, request)
-        if receipt.parsed_bundle.ingest_action == "augment":
+        if receipt_is_usable(receipt):
             for packet in receipt.parsed_bundle.knowledge_packets:
                 packet_id = packet.star_id or packet.proposed_star_id
                 if packet_id and packet_id in duplicate_packet_ids:
@@ -1162,6 +1177,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if str(args.source_kind).strip().lower() == "text":
+        explicit_model = str(args.model).strip() if args.model is not None else ""
+        resolved_text_model = explicit_model or PROCEDURALIZER_MODEL_PROFILES.get(
+            str(args.model_profile).strip().lower(),
+            PROCEDURALIZER_MODEL_PROFILES["quality"],
+        )
         if args.content_file is not None:
             content = args.content_file.read_text(encoding="utf-8", errors="ignore")
         else:
@@ -1171,30 +1191,31 @@ def main(argv: list[str] | None = None) -> int:
             source_id=str(args.source_id),
             domain_hint=str(args.domain_hint),
             source_path=str(args.source_path),
-            model=str(args.model).strip() or None,
+            model=explicit_model or None,
             timeout=timeout,
             capture_dir=args.capture_dir,
             provider=str(args.provider).strip().lower(),
             model_profile=str(args.model_profile).strip().lower(),
-            options=dict(MODEL_OPTIONS.get(str(args.model or PROCEDURALIZER_MODEL_PROFILES.get(str(args.model_profile).strip().lower(), PROCEDURALIZER_MODEL_PROFILES["quality"])), {})),
+            options=dict(MODEL_OPTIONS.get(resolved_text_model, {})),
             source_kind="text",
         )
         output_format = str(args.emit or args.output_format).strip().lower()
+        created = len(receipt.parsed_bundle.knowledge_packets) if receipt_is_usable(receipt) else 0
         if output_format == "payload":
-            rows = bundle_to_payload_rows(receipt.parsed_bundle, request)
+            rows = bundle_to_payload_rows(receipt.parsed_bundle, request) if receipt_is_usable(receipt) else []
             written = write_payload_jsonl(rows, args.output)
         elif output_format == "bundle":
             written = write_bundle_jsonl([{"request": request.to_dict(), "receipt": receipt.to_dict()}], args.output)
         else:
-            stars = [packet_to_star(packet, request) for packet in receipt.parsed_bundle.knowledge_packets]
+            stars = [packet_to_star(packet, request) for packet in receipt.parsed_bundle.knowledge_packets] if receipt_is_usable(receipt) else []
             written = write_stars_jsonl(stars, args.output)
         summary = {
             "processed": 1,
-            "created": len(receipt.parsed_bundle.knowledge_packets),
+            "created": created,
             "output_path": str(written),
             "provider": args.provider,
             "model_profile": args.model_profile,
-            "model": args.model or PROCEDURALIZER_MODEL_PROFILES.get(str(args.model_profile).strip().lower(), PROCEDURALIZER_MODEL_PROFILES["quality"]),
+            "model": resolved_text_model,
             "schema_ok": receipt.schema_ok,
             "ingest_action": receipt.parsed_bundle.ingest_action,
         }
