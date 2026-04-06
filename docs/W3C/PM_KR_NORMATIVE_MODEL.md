@@ -10,7 +10,7 @@
 
 ## Abstract
 
-This document defines the **normative model** for Procedural Memory Knowledge Representation (PM-KR), a knowledge representation standard that treats knowledge as executable procedures organized in compositional layers with symlink-style references. PM-KR enables compression-preserving knowledge representation, dual-client consistency (human and AI), and sovereign execution (zero external dependencies in inference hot path).
+This document defines the **normative model** for Procedural Memory Knowledge Representation (PM-KR), a knowledge representation technology that treats knowledge as executable procedures organized in compositional layers with symlink-style references. PM-KR enables compression-preserving knowledge representation, dual-client consistency (human and AI), and sovereign execution (zero external dependencies in inference hot path).
 
 ---
 

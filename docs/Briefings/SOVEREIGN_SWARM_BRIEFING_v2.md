@@ -754,7 +754,7 @@ else:
 
 ### The House (Persistent Memory - Disk)
 
-**NEW (2025-11-19):** The House implements "Software as Space" — the first comprehensive spatial UI architecture standard.
+**NEW (2025-11-19):** The House implements "Software as Space" — the first comprehensive spatial UI architecture specification.
 
 **Core Principle:** The House is a game. Rooms are game modes. Knowledge is the terrain.
 
@@ -920,7 +920,7 @@ Computer RAM:           Galaxy Universe:
 - **Codecs**: PD02 (dense fallback, 3.97:1), PD04 (dictionary, 12-80:1), auto-fallback on fidelity <0.99
 - **Validation**: 9,000+ samples (4,000 text + 5,000 character embeddings)
 - **Files**: `adaptive_procedural_bridge.py`, `procedural_compiler.py`, `procedural_galaxy.py`
-- **W3C Contribution**: Procedural Knowledge Representation (PKR) standard draft in progress
+- **W3C Contribution**: Procedural Knowledge Representation (PKR) technology draft in progress
 - **Mathematical foundation**: Validates Milton Ponson's "domains of discourse" prediction (30-year theory)
   - Matryoshka dimensions = semantic domains
   - Dictionary atoms = redundancy extraction

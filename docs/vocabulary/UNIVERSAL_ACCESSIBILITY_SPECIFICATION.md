@@ -9,7 +9,7 @@
 
 ## Abstract
 
-This specification defines a unified, multi-modal accessibility model for spatial AI systems. It standardizes how text, Braille, sign language, haptics, and audio description are represented and accessed within a common 3D knowledge space so that assistive capabilities emerge from architecture rather than add-on tooling.
+This specification defines a unified, multi-modal accessibility model for spatial AI systems. It defines how text, Braille, sign language, haptics, and audio description are represented and accessed within a common 3D knowledge space so that assistive capabilities emerge from architecture rather than add-on tooling.
 
 Normative requirements align with W3C WAI/WCAG guidance while leveraging WebXR, ARIA, and glTF 2.0 for implementation. The model is validated in production within Knowledge3D (K3D).
 

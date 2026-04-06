@@ -252,7 +252,7 @@ K3D Brain Model v1.0 (base)
 
 **The K3D brain model IS the product:**
 
-The base brain model (`v1.0`) is the **reference implementation proof** that hyper-parallel + hyper-modular cognition works. This is what wins AI benchmark prizes and demonstrates the paradigm. The enhancements — diverse specialist populations, domain-specific adapter libraries, domain-tuned navigation biases — are what **labs and implementations build on top** when they adopt the PM-KR standard.
+The base brain model (`v1.0`) is the **reference implementation proof** that hyper-parallel + hyper-modular cognition works. This is what wins AI benchmark prizes and demonstrates the paradigm. The enhancements — diverse specialist populations, domain-specific adapter libraries, domain-tuned navigation biases — are what **labs and implementations build on top** when they adopt the PM-KR technology.
 
 ```
 K3D Brain v1.0 (reference proof — open, benchmarked, published)
@@ -263,7 +263,7 @@ K3D Brain v1.0 (reference proof — open, benchmarked, published)
   +- Lab D: Creative specialist population (music theory, visual composition, narrative)
 ```
 
-Each lab starts from the same base brain and grows their own specialist ecosystem. The brain model is the seed; the specialists are the flowers. **The PM-KR standard defines how brains are structured (hyper-modular) and how brains think (hyper-parallel). K3D proves it works.**
+Each lab starts from the same base brain and grows their own specialist ecosystem. The brain model is the seed; the specialists are the flowers. **The PM-KR technology defines how brains are structured (hyper-modular) and how brains think (hyper-parallel). K3D proves it works.**
 
 **Memory architecture compliance:**
 - Storage is OUTSIDE the model head — Galaxy Universe (VRAM) and House (persistent 3D space)
@@ -544,13 +544,13 @@ Galaxy Universe                    Specialist Swarm
 - [SLEEPTIME_PROTOCOL_SPECIFICATION.md](SLEEPTIME_PROTOCOL_SPECIFICATION.md) — Brain model persistence between sleep cycles
 - [RPN_DOMAIN_OPCODE_REGISTRY.md](RPN_DOMAIN_OPCODE_REGISTRY.md) — Procedural substrate for parallel cores
 - [SOVEREIGN_NSI_SPECIFICATION.md](SOVEREIGN_NSI_SPECIFICATION.md) — PTX execution layer
-- [W3C PM-KR Community Group](https://www.w3.org/community/pm-kr/) — Procedural Memory Knowledge Representation standardization
+- [W3C PM-KR Community Group](https://www.w3.org/community/pm-kr/) — Procedural Memory Knowledge Representation technology
 
 **Coined by**: Daniel Ramos, Knowledge3D Project, March 16, 2026
 
 **Reference implementation**: Knowledge3D (K3D) — https://github.com/danielcamposramos/Knowledge3D
 
-**W3C standardization**: PM-KR (Procedural Memory Knowledge Representation) Community Group
+**W3C Community Group**: PM-KR (Procedural Memory Knowledge Representation) Community Group
 
 **Companion paradigm**: Hyper-Modular Architecture (February 20, 2026)
 
@@ -558,7 +558,7 @@ Galaxy Universe                    Specialist Swarm
 
 **This is not incremental improvement over parallel processing or mixture-of-experts. This is a new paradigm: one mind, many specialized thinkers, communicating during execution, converging to one answer — a living brain that persists, grows, and is ready for the ternary hardware that will make it native.**
 
-**The K3D brain model v1.0 is the proof. The PM-KR standard is the specification. The ternary accelerators are the future. And the diverse labs and implementations that adopt this paradigm — they are the ecosystem that proves it works.**
+**The K3D brain model v1.0 is the proof. The PM-KR technology is the specification. The ternary accelerators are the future. And the diverse labs and implementations that adopt this paradigm — they are the ecosystem that proves it works.**
 
 ---
 

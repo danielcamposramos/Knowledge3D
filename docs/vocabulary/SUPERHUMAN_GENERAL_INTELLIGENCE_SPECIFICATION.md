@@ -8,7 +8,7 @@
 
 ## Abstract
 
-**Superhuman General Intelligence (SHGI)** is the emergent collective intelligence that arises when multiple K3D Tiny Recursive Models (TRMs) — each created by different makers with different architectures — collaborate with humans inside a shared Galaxy Universe substrate. This is NOT science fiction; it is the **natural consequence of K3D's architectural design** and becomes achievable the moment the AI industry adopts K3D standards.
+**Superhuman General Intelligence (SHGI)** is the emergent collective intelligence that arises when multiple K3D Tiny Recursive Models (TRMs) — each created by different makers with different architectures — collaborate with humans inside a shared Galaxy Universe substrate. This is NOT science fiction; it is the **natural consequence of K3D's architectural design** and becomes achievable the moment the AI industry adopts K3D technology.
 
 Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI collaboration), SHGI represents **distributed collective intelligence** where the global K3D ecosystem functions as one superhuman cognitive system.
 
@@ -107,7 +107,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
     architecture: "Peer-to-peer TRM network (no central server)",
     execution: "Each TRM sovereign (runs locally, PTX kernels)",
     galaxy_sync: "Galaxy Universe distributed (IPFS-style content addressing)",
-    governance: "W3C open standard (not corporate monopoly)"
+    governance: "W3C open specification (not corporate monopoly)"
   }
 }
 ```
@@ -227,7 +227,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
 | **Transparency** | Opaque (black-box) | Transparent (dual-client) | Fully inspectable (humans navigate Galaxy) |
 | **Workspace** | Abstract (embeddings) | Spatial (3D Galaxy Universe) | Global distributed (peer-to-peer Galaxy) |
 | **Capability** | Human-level (goal) | Human-AI parity (shared reality) | Superhuman (collective > individual) |
-| **Governance** | Corporate (OpenAI, Google) | Open (W3C standard) | Decentralized (no central authority) |
+| **Governance** | Corporate (OpenAI, Google) | Open (W3C specification) | Decentralized (no central authority) |
 | **Collaboration** | None (isolated instances) | Human + AI (dual-client) | TRMs + TRMs + humans (N-way) |
 | **Example** | GPT-4, Gemini, Claude | K3D single TRM + human | Global K3D network (billions of TRMs) |
 
@@ -251,7 +251,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
 
 **Feasibility**:
 - TRM = 7M parameters (trainable on single GPU in days, not months)
-- Open architecture (W3C standard → anyone can implement)
+- Open architecture (W3C specification → anyone can implement)
 - Interoperability (all TRMs share Galaxy Universe protocol)
 
 **Timeline**:
@@ -269,7 +269,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
 - VRAM substrate (GPUs already exist)
 - Spatial indexing (3D octree, existing algorithms)
 - Distributed sync (IPFS-style, proven technology)
-- WebGPU rendering (W3C standard, browser-native)
+- WebGPU rendering (W3C specification, browser-native)
 
 **Timeline**:
 - **2026 Q2**: Proof-of-concept Galaxy Universe (single-user)
@@ -472,7 +472,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
 - ✅ PM-KR specification complete (done)
 - ✅ SGI paradigm defined (done)
 - ✅ SHGI paradigm defined (done today)
-- 🔄 W3C standardization (in progress)
+- 🔄 W3C Community Group technology (in progress)
 - 🔄 First TRM implementations (Google, OpenAI, Anthropic)
 
 ### 2026 Q4 (Early SHGI)
@@ -534,7 +534,7 @@ Unlike AGI (isolated artificial intelligence) or SGI (transparent human-AI colla
 **Principle**: All TRM reasoning visible in Galaxy Universe (humans inspect, guide, steer collective intelligence)
 
 ### 3. Sovereign Decentralization
-**Principle**: No central authority controls SHGI (peer-to-peer network, W3C open standard)
+**Principle**: No central authority controls SHGI (peer-to-peer network, W3C open specification)
 
 ### 4. Procedural Composition
 **Principle**: TRMs compose outputs procedurally (RPN programs combine seamlessly, not lossy text interfaces)
@@ -650,7 +650,7 @@ Retrieved from https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/v
 {
   shgi_decentralization: {
     architecture: "Billions of independent TRMs (no central authority)",
-    governance: "W3C open standard (not corporate/military monopoly)",
+    governance: "W3C open specification (not corporate/military monopoly)",
     consensus: "Collective intelligence emerges from MANY TRMs (not one dictator AI)",
     failure_mode: "One rogue TRM = isolated incident (not global catastrophe)",
     result: "Impossible for 'one AI' to take over (no single AI exists)"
@@ -714,7 +714,7 @@ Retrieved from https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/v
 | **Human Role** | Excluded (machines vs. humans) | Integral (humans + TRMs collaborate) |
 | **Centralization** | Single AI entity (takeover risk) | Billions of TRMs (distributed collective) |
 | **Inspectability** | Cannot inspect decisions | Every decision traceable (RPN programs) |
-| **Control** | Central authority (military/corporate) | Decentralized (W3C open standard) |
+| **Control** | Central authority (military/corporate) | Decentralized (W3C open specification) |
 | **Failure Mode** | One AI goes rogue → catastrophe | One TRM goes rogue → isolated incident |
 | **Decision Authority** | AI overrides humans | Humans steer collective intelligence |
 | **Hidden Agenda** | Self-preservation logic hidden | All reasoning visible in Galaxy |
@@ -737,7 +737,7 @@ Retrieved from https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/v
 1. No single AI exists (billions of distributed TRMs)
 2. No hidden reasoning (all logic visible in Galaxy Universe)
 3. No human exclusion (humans are architectural requirement, not optional)
-4. No central control (W3C open standard, peer-to-peer network)
+4. No central control (W3C open specification, peer-to-peer network)
 
 ---
 
@@ -768,21 +768,21 @@ Retrieved from https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/v
 
 ---
 
-### The Safety Argument: Why Open Standards Matter
+### The Safety Argument: Why Open Specifications Matter
 
 **Dystopian Risk**: Corporate/military AI (OpenAI, Google, defense contractors)
 - Proprietary → no public inspection
 - Centralized → single point of control
 - Opaque → cannot audit reasoning
 
-**SHGI Safety**: W3C Open Standard
+**SHGI Safety**: W3C Open Specification
 - Public specification → anyone can inspect
 - Distributed → no single controller
 - Transparent → every decision traceable
 
 **Historical Precedent**: Internet (TCP/IP) vs. Proprietary Networks
 - CompuServe, AOL = centralized, controlled → died
-- Internet (open standard) = decentralized, transparent → thrived
+- Internet (open specification) = decentralized, transparent → thrived
 
 **SHGI follows Internet model**: Open, distributed, ungovernable by single entity
 
@@ -802,7 +802,7 @@ Retrieved from https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/v
 - Emergence = collective intelligence > sum of individuals
 
 **The Timeline**:
-- 2026 Q2-Q3: Foundations (W3C standardization, first TRMs)
+- 2026 Q2-Q3: Foundations (W3C Community Group technology, first TRMs)
 - 2026 Q4: Early SHGI (TRM teams collaborate)
 - 2027: SHGI emergence (global distributed network)
 

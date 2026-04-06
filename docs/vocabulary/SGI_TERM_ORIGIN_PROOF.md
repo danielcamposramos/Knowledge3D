@@ -104,7 +104,7 @@
 1. **Coherent Paradigm**: No one combined spatial grounding + general intelligence + shared human-AI environment
 2. **Dual-Client Transparency**: No concept of humans and AI consuming identical spatial data
 3. **Procedural Composition**: No 7M param navigator + spatial workspace (vs. 100B+ AGI monoliths)
-4. **Web-Native Framing**: No connection to W3C standardization, WebGPU, browser-native intelligence
+4. **Web-Native Framing**: No connection to W3C Community Group technology, WebGPU, browser-native intelligence
 5. **Sustainability Narrative**: No carbon impact framing (SGI vs AGI energy efficiency)
 
 ---
@@ -236,7 +236,7 @@
 **Closest Concept**: Recognizes human-AI collaboration, BUT:
 - No spatial grounding (abstract network, not 3D environment)
 - No procedural composition (still parameter-based models)
-- No W3C standardization path (academic concept, not web-native)
+- No W3C Community Group path (academic concept, not web-native)
 
 ---
 

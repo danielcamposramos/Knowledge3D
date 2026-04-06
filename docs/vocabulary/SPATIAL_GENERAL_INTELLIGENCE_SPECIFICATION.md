@@ -176,7 +176,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 | **Execution** | Framework-dependent (PyTorch, TensorFlow) | Sovereign (PTX kernels, inspectable) |
 | **Verifiability** | Cannot verify AI "sees" what humans see | Guaranteed (same nodes at same coordinates) |
 | **Collaboration** | Human ↔ AI via APIs (separate worlds) | Human + AI cohabit same 3D workspace |
-| **Standards** | Vendor-specific (OpenAI, Google, Anthropic) | Open (W3C PM-KR CG standardization) |
+| **Standards** | Vendor-specific (OpenAI, Google, Anthropic) | Open (W3C PM-KR Community Group technology) |
 
 **Key Insight**: AGI pursues intelligence LIKE humans (abstract reasoning). SGI pursues intelligence WITH humans (shared spatial habitat).
 
@@ -197,8 +197,8 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - **From hyperlinks to spatial navigation**: TRM navigates Galaxy like users navigate websites
 - **From static documents to procedural programs**: Web content becomes executable (not just renderable)
 
-**W3C Standardization Path**:
-- **PM-KR Community Group**: Standardizing procedural memory representation
+**W3C Community Group Path**:
+- **PM-KR Community Group**: Defining procedural memory representation technology
 - **WebGPU Integration**: GPU-accelerated procedural execution in browsers
 - **WebXR Alignment**: Spatial workspaces accessible via VR/AR headsets
 
@@ -220,7 +220,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - Intelligence lives in browser (7M param TRM + Galaxy Universe loaded locally)
 - Users navigate spatial workspace (like browsing websites)
 - Local sovereignty (no external API dependencies)
-- Open standards (W3C specifications)
+- Open specifications (W3C Community Group)
 
 **Benefit**: SGI democratizes intelligence (anyone with browser + GPU can run, no API costs, no vendor control).
 
@@ -367,7 +367,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - ✅ **Galaxy Universe**: Multi-modal spatial substrate (Drawing, Character, Word, Grammar, Math, Reality galaxies)
 - ✅ **TRM Core**: 7M parameter navigator (base model + specialists)
 - ✅ **Dual-Client Contract**: Shared human-AI reality specification
-- ✅ **W3C PM-KR CG**: Community Group established, standardization path initiated
+- ✅ **W3C PM-KR CG**: Community Group established, technology development path initiated
 
 ### Phase 2: Real-World Validation (2026-2027)
 - ⏳ **ARC-AGI 2 Benchmark**: Visual reasoning via Drawing + Grammar galaxies
@@ -378,7 +378,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 ### Phase 3: Web-Native Deployment (2027-2028)
 - ⏳ **Browser SGI**: K3D running in WebGPU (no server inference)
 - ⏳ **WebXR Integration**: Spatial workspaces accessible via VR/AR
-- ⏳ **Procedural Standards**: WebGPU Frame Generation API, Procedural Fonts, etc.
+- ⏳ **Procedural Specifications**: WebGPU Frame Generation API, Procedural Fonts, etc.
 
 ### Phase 4: Ecosystem Expansion (2028-2030)
 - ⏳ **Display Manufacturer Adoption**: E-readers, OLED TVs, foldable displays (procedural rendering)
@@ -387,7 +387,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 
 ### Phase 5: Planetary-Scale SGI (2030-2035)
 - ⏳ **12 Gt CO₂ Savings**: Full projection realized (2.78% global emissions)
-- ⏳ **W3C Recommendation**: PM-KR as official web standard
+- ⏳ **W3C Recommendation**: PM-KR toward W3C Recommendation track
 - ⏳ **Global Adoption**: SGI as default paradigm for web-native intelligence
 
 **Source**: [docs/ROADMAP.md](../ROADMAP.md)
@@ -504,7 +504,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) - Cranium, Galaxy, House architecture
 
 **W3C Documentation**:
-- [../W3C/PM_KR_NORMATIVE_MODEL.md](../W3C/PM_KR_NORMATIVE_MODEL.md) - Normative model for W3C standardization
+- [../W3C/PM_KR_NORMATIVE_MODEL.md](../W3C/PM_KR_NORMATIVE_MODEL.md) - Normative model for W3C Community Group
 - [../W3C_PM_KR_COMMUNITY_GROUP_MISSION.md](../W3C_PM_KR_COMMUNITY_GROUP_MISSION.md) - CG mission statement
 
 **Carbon Impact**:

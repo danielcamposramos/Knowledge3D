@@ -471,7 +471,7 @@ similar_nodes = galaxy.query_embedding_similarity(
 
 ### 6.2 Research Directions
 - Formal verification of K3D Node invariants
-- Standardization via W3C Community Group Note
+- Publication via W3C Community Group Report
 - Integration with IEEE P2874 Spatial Web protocols
 
 ---

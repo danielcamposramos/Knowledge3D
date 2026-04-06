@@ -911,7 +911,7 @@ K3D's SleepTime Protocol is a novel contribution that applies biological and dat
 
 ---
 
-**Proposed W3C Standardization Path**:
+**Proposed W3C Community Group Path**:
 1. **Q1 2026**: Publish as W3C Community Group Draft Report
 2. **Q2 2026**: Solicit feedback from AI KR CG and WebApps WG
 3. **Q3 2026**: Propose formal W3C Note on "Memory Consolidation Protocols for Spatial AI"

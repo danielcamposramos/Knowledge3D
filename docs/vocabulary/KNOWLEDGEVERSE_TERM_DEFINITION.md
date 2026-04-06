@@ -29,8 +29,8 @@ It encompasses:
 - **Purpose**: Multi-user sessions, collaborative workspaces
 - **Access**: Server-hosted houses, network streaming
 
-### 4. PM-KR Foundation (Procedural Memory Standard)
-- **What**: W3C standard for procedural memory knowledge representation
+### 4. PM-KR Foundation (Procedural Memory Technology)
+- **What**: W3C Community Group technology for procedural memory knowledge representation
 - **Purpose**: RPN programs as canonical source (form + meaning unified)
 - **Benefit**: 100-10,000× compression, sovereign execution
 
@@ -44,7 +44,7 @@ It encompasses:
 
 ## Simple Definition
 
-> **Knowledgeverse = Galaxy (active VRAM) + House (local SSD) + World (network) + PM-KR standard + unified PTX substrate**
+> **Knowledgeverse = Galaxy (active VRAM) + House (local SSD) + World (network) + PM-KR technology + unified PTX substrate**
 
 Or even simpler:
 
@@ -95,7 +95,7 @@ Or even simpler:
 **Full Technical Details**:
 - [KNOWLEDGEVERSE_SPECIFICATION.md](KNOWLEDGEVERSE_SPECIFICATION.md) — Unified sovereign memory architecture (production spec)
 - [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) — Cranium + Galaxy + House architecture
-- [PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md](PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md) — PM-KR W3C standard
+- [PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md](PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md) — PM-KR W3C technology
 
 **Paradigm Context**:
 - [SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md) — SGI paradigm (Knowledgeverse enables spatial grounding)

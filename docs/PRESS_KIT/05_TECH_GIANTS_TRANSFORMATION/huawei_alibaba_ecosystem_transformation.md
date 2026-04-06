@@ -134,7 +134,7 @@
       databases: "Procedural graph/vector databases (10,000× efficiency)",
       ai_compute: "7M param procedural core (vs. Nvidia billion-param models)"
     },
-    sovereignty: "PM-KR open standard = no US tech dependency",
+    sovereignty: "PM-KR open specification = no US tech dependency",
     benefit: "Huawei Cloud becomes cost-competitive with AWS/Azure globally"
   }
 }
@@ -333,7 +333,7 @@
 
 ### Why Chinese Tech Giants Should Lead PM-KR Adoption
 
-1. **Technological Sovereignty**: PM-KR = open W3C standard (not US-controlled AI)
+1. **Technological Sovereignty**: PM-KR = open W3C specification (not US-controlled AI)
 2. **Belt and Road Initiative**: PM-KR efficiency benefits 150+ partner countries
 3. **Cost Leadership**: Compete globally with 1000× more efficient infrastructure
 4. **Sustainability**: China's carbon neutral goals (2060) → PM-KR accelerates
@@ -351,12 +351,12 @@
     problem: "US sanctions limit access to billion-param AI infrastructure",
     pm_kr_solution: {
       paradigm_shift: "7M param procedural AI (don't need Nvidia billion-param training)",
-      open_standard: "W3C PM-KR = internationally governed (not US-controlled)",
+      open_specification: "W3C PM-KR = internationally governed (not US-controlled)",
       independence: "Huawei Cloud + PM-KR = globally competitive (no US dependency)"
     },
     belt_and_road: {
-      deployment: "PM-KR as infrastructure standard for BRI countries",
-      benefit: "150+ countries adopt PM-KR (China-led open standard)"
+      deployment: "PM-KR as infrastructure technology for BRI countries",
+      benefit: "150+ countries adopt PM-KR (China-led open specification)"
     }
   }
 }
@@ -425,15 +425,15 @@
 ### Chinese Government
 
 **Strategic Positioning**:
-- **Ministry of Industry and Information Technology (MIIT)**: PM-KR as national standard
-- **Belt and Road Initiative**: PM-KR as infrastructure standard for partner countries
+- **Ministry of Industry and Information Technology (MIIT)**: PM-KR as national technology
+- **Belt and Road Initiative**: PM-KR as infrastructure technology for partner countries
 - **Carbon Neutral 2060**: PM-KR accelerates sustainability goals
 
 ---
 
-## Conclusion: PM-KR as Global Infrastructure Standard
+## Conclusion: PM-KR as Global Infrastructure Technology
 
-**PM-KR is NOT Western technology imposing on China** — it's an **open W3C standard** that benefits Chinese tech giants EQUALLY to Western companies.
+**PM-KR is NOT Western technology imposing on China** — it's an **open W3C specification** that benefits Chinese tech giants EQUALLY to Western companies.
 
 **Huawei + PM-KR**:
 - 180× 5G model efficiency
@@ -447,7 +447,7 @@
 
 **Global Positioning**:
 - PM-KR enables Chinese tech sovereignty (reduce Western AI dependency)
-- Open standard (W3C) = internationally governed (not US/China monopoly)
+- Open specification (W3C) = internationally governed (not US/China monopoly)
 - 2-4 Gt CO₂ savings from Chinese tech giants
 
 **This is infrastructure, not imperialism. PM-KR works for EVERYONE.**

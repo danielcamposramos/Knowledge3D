@@ -93,7 +93,7 @@
 - Manufacturing Data: 1,000× compression (192 TB/day → 192 GB/day)
 - Yield Optimization: 5-10% improvement (real-time vs. batch)
 
-**Strategic**: Taiwan's "Silicon Shield" becomes "Procedural Design Standard Shield"
+**Strategic**: Taiwan's "Silicon Shield" becomes "Procedural Design Shield"
 
 ---
 
@@ -107,7 +107,7 @@
 - Kaspersky: 10,000× malware signatures, zero-day behavioral detection
 - 1C: 10× ERP/CRM compression, 100× faster reports
 
-**Geopolitical**: True technological sovereignty (W3C open standard, not US-controlled)
+**Geopolitical**: True technological sovereignty (W3C open specification, not US-controlled)
 
 ---
 
@@ -232,7 +232,7 @@ Emergent collective intelligence from multiple TRMs (7M params each) + humans co
 
 ## W3C Governance
 
-**PM-KR = W3C Open Standard** (not US, China, or any single country controlled)
+**PM-KR = W3C Open Specification** (not US, China, or any single country controlled)
 
 **Working Groups Engaged**:
 1. GPU for the Web WG (Jim Blandy/Mozilla, Corentin Wallez/Google)

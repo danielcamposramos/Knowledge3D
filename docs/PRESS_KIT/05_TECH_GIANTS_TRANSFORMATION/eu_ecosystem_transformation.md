@@ -18,7 +18,7 @@
 - **Nokia/Ericsson**: 1000× 5G/6G network data compression
 - **Carbon impact**: 2-4 Gt CO₂ reduction (2026-2035) from EU tech ecosystem
 
-**Strategic Positioning**: PM-KR enables **EU digital sovereignty** — W3C open standard (not US Big Tech monopoly), **GDPR-aligned** (sovereign execution, no cloud data export), **Green Deal aligned** (2-4 Gt CO₂ savings).
+**Strategic Positioning**: PM-KR enables **EU digital sovereignty** — W3C open specification (not US Big Tech monopoly), **GDPR-aligned** (sovereign execution, no cloud data export), **Green Deal aligned** (2-4 Gt CO₂ savings).
 
 ---
 
@@ -295,7 +295,7 @@
 **Impact**:
 - **Network Data**: 1 PB → 1 TB (1000× compression)
 - **Base Station AI**: 200× compression (deploy to ALL stations)
-- **Open RAN**: True vendor-agnostic (PM-KR open standard)
+- **Open RAN**: True vendor-agnostic (PM-KR open specification)
 
 ---
 
@@ -408,8 +408,8 @@
         gdpr_aligned: "Transparent execution (humans inspect AI reasoning, GDPR right to explanation)"
       }
     },
-    open_standard: {
-      w3c_governance: "PM-KR = W3C open standard (EU participates as equal member)",
+    open_specification: {
+      w3c_governance: "PM-KR = W3C open specification (EU participates as equal member)",
       not_us_monopoly: "Cannot be sanctioned, cannot be controlled by US Big Tech",
       international: "EU collaborates with China, Russia, Japan, etc. as equals"
     }

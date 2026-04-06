@@ -430,7 +430,7 @@ The Knowledgeverse is the runtime memory substrate where everything coexists in 
 | `SLEEPTIME_PROTOCOL_SPECIFICATION.md` | Sleep-time consolidation |
 | `SOVEREIGN_TRAINING_SPECIFICATION.md` | Training methodology |
 | `TRM_SPECIALIST_MATRYOSHKA_ARCHITECTURE.md` | Specialist adapter tree |
-| `PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md` | PM-KR standard |
+| `PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md` | PM-KR technology |
 | `PROCEDURAL_VISUAL_SPECIFICATION.md` | Procedural visual system |
 | `HYPER_MODULAR_ARCHITECTURE.md` | Hyper-modular design |
 | `UNIFIED_SIGNAL_SPECIFICATION.md` | Unified signal processing |

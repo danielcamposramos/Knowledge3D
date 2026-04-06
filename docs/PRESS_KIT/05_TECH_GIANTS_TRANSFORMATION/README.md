@@ -55,7 +55,7 @@
 - Chip Design: 10,000× storage reduction
 - Manufacturing Data: 1,000× compression
 - **Impact**: 3-5 Gt CO₂
-- **Strategic**: "Silicon Shield" → "Procedural Design Standard Shield"
+- **Strategic**: "Silicon Shield" → "Procedural Design Shield"
 
 ### 4. Russia
 
@@ -64,7 +64,7 @@
 - VK: 10,000× social graph, 100-1,000× video
 - Kaspersky: 10,000× malware signatures
 - **Impact**: 1-2 Gt CO₂
-- **Strategic**: True technological sovereignty (W3C open standard)
+- **Strategic**: True technological sovereignty (W3C open specification)
 
 ### 5. Japan
 
@@ -194,7 +194,7 @@ This is not regional optimization — this is **universal infrastructure transfo
 **For W3C Community**:
 - Focus on architectural universality (same pattern applies everywhere)
 - Note geopolitical neutrality (every nation benefits equally)
-- W3C governance ensures open standard (not US/China/any single nation controlled)
+- W3C governance ensures open specification (not US/China/any single nation controlled)
 
 ---
 

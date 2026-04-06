@@ -74,7 +74,7 @@
 
 ## Rainbow Warriors Alignment
 - **Sustainability Focus**: PM-KR 50-70% energy reduction = Caribbean climate goals
-- **Digital Sovereignty**: Small island nations benefit from open W3C standard
+- **Digital Sovereignty**: Small island nations benefit from open W3C specification
 - **Regional Collaboration**: CARICOM-wide PM-KR adoption
 
 **Carbon Impact**: 0.05-0.1 Gt CO₂ (2026-2035) from Caribbean digital economy

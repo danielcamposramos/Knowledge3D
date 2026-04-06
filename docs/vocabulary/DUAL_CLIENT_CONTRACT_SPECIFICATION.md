@@ -433,7 +433,7 @@ ai_data = decode_texture_ptx(node.textures[1]);  // UV Map 1: Compressed data
 - **Visual Hierarchy (Drawing Grammar)**: Visual nodes can reference lower-level drawing programs (primitives→strokes→shapes→scenes). Same dual-client contract: humans see executed drawings; AI reads procedural programs + embeddings from the same nodes.
 - **AI Decode**: <20µs per texture (RTX 3060)
 
-**W3C Standardization**: See [`TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md`](../../TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md) for proposed glTF extension: `K3D_dual_texture`
+**W3C Community Group**: See [`TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md`](../../TEMP/W3C_INSERTION_6_DUAL_TEXTURE_AND_MATRYOSHKA.md) for proposed glTF extension: `K3D_dual_texture`
 
 ---
 
@@ -1027,7 +1027,7 @@ K3D's Dual-Client Contract is a novel contribution that enables humans and Synth
 
 ---
 
-**Proposed W3C Standardization Path**:
+**Proposed W3C Community Group Path**:
 1. **Q1 2026**: Publish as W3C Community Group Draft Report
 2. **Q2 2026**: Propose WebXR extension for Synthetic Users ("WebXR Synthetic User API")
 3. **Q3 2026**: Collaborate with Khronos Group on glTF extensions for dual-client metadata

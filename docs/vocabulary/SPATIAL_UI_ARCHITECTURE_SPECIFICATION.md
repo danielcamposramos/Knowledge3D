@@ -10,7 +10,7 @@
 
 ## Abstract
 
-This specification defines a **Spatial User Interface Architecture** for embodied AI and human collaboration in shared 3D environments. The architecture treats **"software as space"**, where applications manifest as navigable rooms, knowledge as physical artifacts, and computation as spatial interaction. The specification establishes standards for:
+This specification defines a **Spatial User Interface Architecture** for embodied AI and human collaboration in shared 3D environments. The architecture treats **"software as space"**, where applications manifest as navigable rooms, knowledge as physical artifacts, and computation as spatial interaction. The specification establishes specifications for:
 
 1. **House Architecture**: Semantic room taxonomy for persistent memory and UI
 2. **Galaxy Universe**: Addressable 3D RAM space for multi-modal active memory
@@ -18,7 +18,7 @@ This specification defines a **Spatial User Interface Architecture** for embodie
 4. **Dual-Client Contract**: Unified reality for human (visual 3D) and AI (semantic graph) perception
 5. **Memory Tablet**: Universal interface bridging spatial and conventional paradigms
 
-This standard enables the transition from 2D windowed interfaces to **3D spatial operating systems** where humans and AI cohabit shared reality.
+This specification enables the transition from 2D windowed interfaces to **3D spatial operating systems** where humans and AI cohabit shared reality.
 
 ---
 

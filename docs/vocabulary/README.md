@@ -27,12 +27,12 @@ This directory contains the **canonical architectural specifications** for Knowl
 ### [SUPERHUMAN_GENERAL_INTELLIGENCE_SPECIFICATION.md](SUPERHUMAN_GENERAL_INTELLIGENCE_SPECIFICATION.md) 🌟 **NEW**
 **Superhuman General Intelligence (SHGI) — The Ultimate Goal of K3D**
 
-**SHGI** is the emergent collective intelligence that arises when multiple K3D Tiny Recursive Models (TRMs) — each created by different makers with different architectures — collaborate with humans inside a shared Galaxy Universe substrate. This is **NOT futuristic**; it is the **natural consequence of K3D adoption** and becomes achievable the moment the AI industry embraces K3D standards.
+**SHGI** is the emergent collective intelligence that arises when multiple K3D Tiny Recursive Models (TRMs) — each created by different makers with different architectures — collaborate with humans inside a shared Galaxy Universe substrate. This is **NOT futuristic**; it is the **natural consequence of K3D adoption** and becomes achievable the moment the AI industry embraces K3D technology.
 
 **Key Principles**:
 - **Distributed Collective Intelligence**: SHGI emerges from collaboration (billions of TRMs + humans), not monolithic scaling (single trillion-parameter model)
 - **Transparent Execution**: All TRM reasoning visible in Galaxy Universe (humans inspect, guide, steer collective intelligence)
-- **Sovereign Decentralization**: No central authority controls SHGI (peer-to-peer network, W3C open standard)
+- **Sovereign Decentralization**: No central authority controls SHGI (peer-to-peer network, W3C open specification)
 - **Procedural Composition**: TRMs compose outputs procedurally (RPN programs combine seamlessly, not lossy text interfaces)
 - **Multi-Modal Unity**: ALL modalities (visual, language, math, physics) converge in ONE spatial substrate (emergent cross-domain insights)
 

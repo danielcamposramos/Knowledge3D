@@ -1,4 +1,4 @@
-# PM-KR Standardization Roadmap
+# PM-KR Technology Roadmap
 
 ## Phase 1 (Q1-Q2 2026): Data Model
 Deliverables:

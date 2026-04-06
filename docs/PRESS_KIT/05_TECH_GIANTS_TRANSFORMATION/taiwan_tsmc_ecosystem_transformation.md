@@ -16,7 +16,7 @@
 - **Global supply chain**: Transforms EVERY chip designer (Apple, NVIDIA, AMD, Qualcomm)
 - **Carbon impact**: 3-5 Gt CO₂ reduction (2026-2035) from semiconductor ecosystem
 
-**Geopolitical Significance**: PM-KR ensures **Taiwan's technological leadership** for decades — open W3C standard (not US/China controlled), universal infrastructure that EVERY chip designer/manufacturer needs.
+**Geopolitical Significance**: PM-KR ensures **Taiwan's technological leadership** for decades — open W3C specification (not US/China controlled), universal infrastructure that EVERY chip designer/manufacturer needs.
 
 ---
 
@@ -259,13 +259,13 @@
     current_shield: "TSMC manufacturing capability (92% advanced chips)",
     pm_kr_shield: {
       design_leadership: "TSMC becomes procedural design library leader (not just manufacturing)",
-      open_standard: "W3C PM-KR = internationally governed (not US/China monopoly)",
+      open_specification: "W3C PM-KR = internationally governed (not US/China monopoly)",
       universal_need: "EVERY chip designer needs PM-KR procedural libraries",
-      taiwan_role: "Taiwan = procedural semiconductor standard bearer",
+      taiwan_role: "Taiwan = procedural semiconductor technology leader",
       duration: "Decades of leadership (not just current process node advantage)"
     },
     geopolitical_benefit: {
-      independence: "Open standard = Taiwan not dependent on US/China tech ecosystems",
+      independence: "Open specification = Taiwan not dependent on US/China tech ecosystems",
       collaboration: "W3C governance = Taiwan equal partner (not subordinate)",
       influence: "Taiwan shapes global semiconductor standards (procedural libraries)"
     }
@@ -273,7 +273,7 @@
 }
 ```
 
-**Key Insight**: TSMC's current advantage = manufacturing process (5nm, 3nm, 2nm). PM-KR gives Taiwan **design standard leadership** that lasts DECADES beyond any single process node.
+**Key Insight**: TSMC's current advantage = manufacturing process (5nm, 3nm, 2nm). PM-KR gives Taiwan **design technology leadership** that lasts DECADES beyond any single process node.
 
 ---
 
@@ -322,7 +322,7 @@
 - **Ministry of Economic Affairs** (MOEA)
 - **Taiwan AI Labs** (Dr. Ethan Tu, Founder)
 
-**Entry Angle**: W3C open standard ensures Taiwan's **long-term technological leadership** (not just current manufacturing advantage)
+**Entry Angle**: W3C open specification ensures Taiwan's **long-term technological leadership** (not just current manufacturing advantage)
 
 ### Academic Institutions
 
@@ -354,7 +354,7 @@
 
 1. **TSMC PDK Official Support**: Release PM-KR procedural PDKs for 3nm, 2nm nodes
 2. **Customer Adoption**: Apple, NVIDIA, AMD, Qualcomm adopt procedural chip design
-3. **W3C Standardization**: Procedural Semiconductor Design Standard v1.0
+3. **W3C Specification**: Procedural Semiconductor Design Specification v1.0
 
 ---
 
@@ -376,12 +376,12 @@
 ### 1. **Technological Leadership**
 
 **Current**: TSMC = manufacturing process leader (3nm, 2nm)
-**PM-KR**: Taiwan = procedural design standard leader (decades of leadership)
+**PM-KR**: Taiwan = procedural design technology leader (decades of leadership)
 
 ### 2. **Geopolitical Independence**
 
 **Current**: Caught between US and China tech ecosystems
-**PM-KR**: W3C open standard = internationally governed (Taiwan equal partner)
+**PM-KR**: W3C open specification = internationally governed (Taiwan equal partner)
 
 ### 3. **Economic Impact**
 
@@ -400,7 +400,7 @@
 ### Taiwan Government
 
 **Pitch**:
-> "PM-KR ensures Taiwan's technological leadership for decades — not just manufacturing (3nm, 2nm), but design standard leadership (procedural chip design). W3C open standard = Taiwan equal partner in global governance, not dependent on US/China ecosystems."
+> "PM-KR ensures Taiwan's technological leadership for decades — not just manufacturing (3nm, 2nm), but design technology leadership (procedural chip design). W3C open specification = Taiwan equal partner in global governance, not dependent on US/China ecosystems."
 
 ### TSMC Leadership
 
@@ -414,7 +414,7 @@
 
 ---
 
-## Conclusion: TSMC = Global Chip Manufacturing Leader → Procedural Design Standard Leader
+## Conclusion: TSMC = Global Chip Manufacturing Leader → Procedural Design Technology Leader
 
 **Current State**: TSMC dominates manufacturing (92% advanced chips)
 
@@ -425,11 +425,11 @@
 - **3-5 Gt CO₂ savings** (semiconductor ecosystem efficiency)
 
 **Geopolitical Impact**:
-- **Taiwan's strategic advantage**: Decades of design standard leadership (not just current process node)
-- **W3C open standard**: Internationally governed (Taiwan equal partner)
+- **Taiwan's strategic advantage**: Decades of design technology leadership (not just current process node)
+- **W3C open specification**: Internationally governed (Taiwan equal partner)
 - **Universal adoption**: EVERY chip designer benefits (Apple, NVIDIA, AMD, Qualcomm, Intel, Broadcom)
 
-**TSMC + PM-KR = Taiwan's Silicon Shield becomes a Procedural Design Standard Shield**
+**TSMC + PM-KR = Taiwan's Silicon Shield becomes a Procedural Design Shield**
 
 **This is not incremental improvement. This is infrastructure transformation.**
 

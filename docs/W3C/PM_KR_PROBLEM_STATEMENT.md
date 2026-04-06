@@ -331,16 +331,16 @@ strategy = {
    - Procedural programs generate dual perceptions
    - Verifiable shared ground truth
 
-**Proposal**: PM-KR as candidate W3C standard for spatial knowledge representation.
+**Proposal**: PM-KR as candidate W3C technology for spatial knowledge representation.
 
 ---
 
 ## 8. Open Questions for Community
 
-### 8.1 Standardization Path
+### 8.1 Community Group Path
 
 **Questions**:
-1. Should PM-KR be a standalone W3C standard or glTF extension?
+1. Should PM-KR be a standalone W3C specification or glTF extension?
 2. How to formalize conformance testing for external implementations?
 3. What governance model for canonical procedure registries?
 
@@ -394,7 +394,7 @@ strategy = {
 
 **Validation**: 38.5% math accuracy, 46.7% ARC-AGI, 100% GPU sovereignty (K3D production system)
 
-**Proposal**: Formalize PM-KR as W3C candidate standard for next-generation spatial knowledge representation.
+**Proposal**: Formalize PM-KR as W3C candidate technology for next-generation spatial knowledge representation.
 
 ---
 

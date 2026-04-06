@@ -235,7 +235,7 @@
 **PM-KR Transformation**:
 - **Hardware excellence maintained**: Samsung/SK Hynix 10,000× design efficiency
 - **Software independence gained**: Naver/Kakao compete globally with procedural AI
-- **Digital sovereignty**: W3C open standard (not US Big Tech controlled)
+- **Digital sovereignty**: W3C open specification (not US Big Tech controlled)
 
 **Korea + PM-KR = Hardware leadership + Software sovereignty**
 

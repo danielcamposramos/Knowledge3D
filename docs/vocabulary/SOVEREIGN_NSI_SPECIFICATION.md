@@ -1148,8 +1148,8 @@ K3D's Sovereign NSI specification is a novel contribution that eliminates extern
 
 ---
 
-**Proposed W3C Standardization Path**:
+**Proposed W3C Community Group Path**:
 1. **Q1 2026**: Publish as W3C Community Group Draft Report on "Sovereign Neurosymbolic Integration"
-2. **Q2 2026**: Propose integration with W3C Semantic Web standards (RDF/OWL extensions)
-3. **Q3 2026**: Collaborate with AI standardization bodies (IEEE, ISO) on sovereignty certification
+2. **Q2 2026**: Propose integration with W3C Semantic Web specifications (RDF/OWL extensions)
+3. **Q3 2026**: Collaborate with AI technology bodies (IEEE, ISO) on sovereignty certification
 4. **2027**: W3C Recommendation for "Spatial Neurosymbolic Knowledge Representation"

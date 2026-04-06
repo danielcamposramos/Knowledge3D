@@ -10,7 +10,7 @@
 
 ## Abstract
 
-This document provides **empirical validation** of Procedural Memory Knowledge Representation (PM-KR) claims through the Knowledge3D (K3D) reference implementation. It maps normative requirements to test results, performance benchmarks, and production metrics. Target audience: standardization bodies, reviewers, and potential adopters.
+This document provides **empirical validation** of Procedural Memory Knowledge Representation (PM-KR) claims through the Knowledge3D (K3D) reference implementation. It maps normative requirements to test results, performance benchmarks, and production metrics. Target audience: standards bodies, reviewers, and potential adopters.
 
 ---
 
@@ -1205,7 +1205,7 @@ jq -r '.events[].signature' pmkr_level_c_provenance_audit_2026-02-20.jsonl | \
 
 **Production Readiness**: ✅ **Sovereign runtime path production-usable**, with ongoing work on Level C audit-pack completeness
 
-### 11.2 Standardization Implications
+### 11.2 Technology Development Implications
 
 **PM-KR is ready for W3C Community Group review** because:
 

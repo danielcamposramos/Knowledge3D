@@ -1,7 +1,7 @@
-# Procedural Memory Knowledge Representation Standard (PM-KR)
+# Procedural Memory Knowledge Representation Technology (PM-KR)
 
 **Version**: 1.0  
-**Status**: Candidate Standard (K3D Canonical Vocabulary)  
+**Status**: Candidate Specification (K3D Canonical Vocabulary)  
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Implementation)  
 **Date**: February 19, 2026
 
@@ -11,7 +11,7 @@
 
 This specification defines **Procedural Memory KR (PM-KR)** for Knowledge3D: a procedural-first, compression-aware knowledge representation model where knowledge is stored as executable programs plus symlinked references from **form to meaning**.
 
-PM-KR standardizes:
+PM-KR defines:
 
 - Canonical procedural storage (RPN/PTX-aligned) as source of truth.
 - Layered composition (Form -> Meaning -> Rules -> Meta-Rules).
@@ -19,7 +19,7 @@ PM-KR standardizes:
 - Dual-client consistency (human and synthetic users consume the same node truth).
 - Sovereign boundary rules (PTX-only hot path; ingestion/migration outside hot path).
 
-This document formalizes PM-KR as a candidate computer science standard within K3D and a base for W3C-facing output documents under `docs/W3C/`.
+This document formalizes PM-KR as a candidate computer science technology within K3D and a base for W3C-facing output documents under `docs/W3C/`.
 
 ---
 
@@ -174,39 +174,39 @@ A PM-KR implementation SHOULD provide tests for:
 
 ## 9. Relationship to Existing K3D Specifications
 
-PM-KR consolidates and standardizes the procedural-memory aspects already present across K3D specs:
+PM-KR consolidates and defines the procedural-memory aspects already present across K3D specs:
 
 - Knowledgeverse memory topology and sovereignty boundaries.
 - Dual-client shared reality contract.
 - Foundational form/meaning/rule layering and symlink pattern.
 - Adaptive procedural compression (PD04) as storage/runtime optimization.
 
-PM-KR is therefore an umbrella KR standard vocabulary document, not a replacement of domain-specific specs.
+PM-KR is therefore an umbrella KR technology vocabulary document, not a replacement of domain-specific specs.
 
 ---
 
-## 10. Standardization Position
+## 10. Technology Position
 
 PM-KR can be described as:
 
 - A **new knowledge representation paradigm** in K3D.
-- A **candidate standard specification** for broader computer science and web standards discussion.
+- A **candidate technology specification** for broader computer science and web technology discussion.
 
-To claim external formal standard status, governance and external conformance pathways are required (for example W3C-style publication flow), tracked via documents in `docs/W3C/`.
+To advance toward formal W3C Recommendation status, governance and external conformance pathways are required (for example W3C Community Group → Working Group publication flow), tracked via documents in `docs/W3C/`.
 
 ---
 
-## 11. External Standardization Pathway
+## 11. External Technology Pathway
 
-PM-KR is positioned for external standardization via W3C Community Group process. Complete W3C-facing documentation package available at:
+PM-KR is positioned for external technology development via W3C Community Group process. Complete W3C-facing documentation package available at:
 
-**`docs/W3C/`** (external standardization package):
+**`docs/W3C/`** (external technology package):
 - `PM_KR_PROBLEM_STATEMENT.md` — Motivation and broader impact
 - `PM_KR_NORMATIVE_MODEL.md` — Clean normative specification (RFC 2119 compliant)
 - `PM_KR_CONFORMANCE_PROFILES.md` — Implementation guidance (Level A/B/C)
 - `PM_KR_INTEROPERABILITY_GUIDE.md` — Migration strategies (RDF/OWL/JSON-LD)
 - `PM_KR_EVIDENCE_VALIDATION_MATRIX.md` — K3D validation matrix with evidence-maturity tags (repo-verified, run-log verified, target/projection)
-- `README.md` — Package overview and standardization roadmap
+- `README.md` — Package overview and technology roadmap
 
 **Proposed W3C Timeline**:
 - Q2 2026: Community Group formation
@@ -218,12 +218,12 @@ PM-KR is positioned for external standardization via W3C Community Group process
 ## 12. Changelog
 
 **1.1 (2026-02-20)**:
-- Added external standardization pathway (§11)
+- Added external technology pathway (§11)
 - Cross-referenced W3C documentation package (`docs/W3C/`)
 - Clarified relationship between K3D vocabulary spec (internal) vs W3C normative model (external)
 - No changes to core PM-KR model (maintains v1.0 stability)
 
 **1.0 (2026-02-19)**:
-- Initial PM-KR standard document created
+- Initial PM-KR technology document created
 - Defines procedural-memory KR invariants, conformance levels, and sovereignty boundary alignment
 - Establishes canonical K3D vocabulary specification

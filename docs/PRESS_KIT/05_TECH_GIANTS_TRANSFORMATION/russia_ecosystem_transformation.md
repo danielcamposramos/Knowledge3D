@@ -16,7 +16,7 @@
 - **Kaspersky**: 10,000× malware signature compression, real-time threat detection
 - **Carbon impact**: 1-2 Gt CO₂ reduction (2026-2035) from Russian tech ecosystem
 
-**Geopolitical Significance**: PM-KR is **W3C open standard** (not US-controlled), enabling Russia to lead global technological infrastructure **independently** while collaborating as equal partner (not subordinate) in international standards.
+**Geopolitical Significance**: PM-KR is a **W3C open specification** (not US-controlled), enabling Russia to lead global technological infrastructure **independently** while collaborating as equal partner (not subordinate) in international standards.
 
 ---
 
@@ -338,7 +338,7 @@
     ],
     pm_kr_solution: {
       sovereign_ai: {
-        framework: "PM-KR = W3C open standard (not US-controlled)",
+        framework: "PM-KR = W3C open specification (not US-controlled)",
         execution: "PTX kernels = run on ANY GPU (not NVIDIA-specific)",
         training: "7M param TRM = trainable on domestic GPUs (Elbrus, Baikal)",
         inference: "100μs inference = 100× more efficient than billion-param LLMs"
@@ -350,8 +350,8 @@
       },
       international_collaboration: {
         w3c_governance: "Russia participates as equal W3C member (not subordinate)",
-        open_standard: "PM-KR benefits Russia AND China AND EU equally",
-        no_sanctions: "Open standard = cannot be sanctioned (universally accessible)"
+        open_specification: "PM-KR benefits Russia AND China AND EU equally",
+        no_sanctions: "Open specification = cannot be sanctioned (universally accessible)"
       }
     }
   }
@@ -425,7 +425,7 @@
 **1. Technological Sovereignty**
 
 **Current**: Independent ecosystem (Yandex, VK, Kaspersky) but still dependent on Western AI
-**PM-KR**: Complete sovereignty (W3C open standard, not US-controlled)
+**PM-KR**: Complete sovereignty (W3C open specification, not US-controlled)
 
 **2. International Collaboration (Equal Partner)**
 
@@ -488,7 +488,7 @@
 |----------------|-------------------|---------------|
 | **US** | Dominant (Google, AWS, Microsoft) | Efficiency gains (100-10,000×) |
 | **China** | Independent + sanctioned | Sovereignty + efficiency |
-| **Russia** | Independent ecosystem | **Complete sovereignty (W3C open standard)** |
+| **Russia** | Independent ecosystem | **Complete sovereignty (W3C open specification)** |
 | **EU** | Dependent on US tech | Gain independence via PM-KR |
 | **India** | Dependent on US tech | Gain independence via PM-KR |
 
@@ -507,9 +507,9 @@
 - **1C**: 10× ERP/CRM compression, 100× faster reports
 
 **Sovereignty Achievement**:
-- **Zero Western AI dependency** (W3C open standard, not US-controlled)
+- **Zero Western AI dependency** (W3C open specification, not US-controlled)
 - **Equal W3C participation** (not subordinate, not isolated)
-- **Cannot be sanctioned** (open standard, universally accessible)
+- **Cannot be sanctioned** (open specification, universally accessible)
 
 **Economic Impact**:
 - **1-2 Gt CO₂ savings** (Russian tech ecosystem efficiency)

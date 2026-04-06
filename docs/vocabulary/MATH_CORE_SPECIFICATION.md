@@ -235,7 +235,7 @@ Future backends (e.g., Vulkan compute, WebGPU, Metal, FPGA/ASIC implementations,
 - preserve determinism guarantees where required (especially for PD04 decompression and Reality Enabler laws),
 - honour the same tiering and Matryoshka LOD behavior from the perspective of higher-level specs.
 
-This mirrors LLM diversity: the **storage and semantics standards** (RPN programs, opcodes, Matryoshka embeddings) are stable; different engines can implement them as long as they respect the contract.
+This mirrors LLM diversity: the **storage and semantics specifications** (RPN programs, opcodes, Matryoshka embeddings) are stable; different engines can implement them as long as they respect the contract.
 
 ## 6. Tesla 3-6-9 and Setun Ternary Heritage
 

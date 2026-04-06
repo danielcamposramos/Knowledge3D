@@ -19,7 +19,7 @@ K3D's ontology is **procedural-first, spatial-native, ternary-ready, and dual-cl
 - **Dual-client transparent**: The same ontological structure serves human readers (visual tree, shelf organization, room layout) and AI agents (programmatic navigation, embedding similarity, RPN execution). One ontology, two modalities, zero divergence.
 
 **Normative References:**
-- PM-KR Standard Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- PM-KR Technology Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
 - Meaning-Centric Star Schema Specification v1.0 (docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md)
 - Three Brain System Specification v1.1 (docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md)
