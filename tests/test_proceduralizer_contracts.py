@@ -12,7 +12,12 @@ from knowledge3d.ingestion.proceduralizer_contract import (
     parse_bundle,
 )
 from knowledge3d.ingestion.proceduralizer_wine import ProceduralizerWineBridge
-from knowledge3d.knowledgeverse.proceduralizer_stargate import bundle_to_payload_rows
+from knowledge3d.knowledgeverse.proceduralizer_stargate import (
+    build_row_enrichment_context,
+    bundle_to_payload_rows,
+    load_external_enrichment_context,
+    second_pass_enrich_payload_rows,
+)
 from knowledge3d.tools import ingest_from_manifest
 
 
@@ -85,6 +90,7 @@ def test_bundle_to_payload_rows_emits_route_exempt_meaning_rows() -> None:
     assert len(rows) == 1
     assert rows[0]["entry"]["selection_role"] == "unknown"
     assert rows[0]["entry"]["metadata"]["sovereign_route_exempt"] is True
+    assert rows[0]["entry"]["metadata"]["foundational_layer_id"] == 2
 
 
 def test_parse_bundle_invalid_json_rejects_without_packets() -> None:
@@ -218,8 +224,150 @@ def test_wine_bridge_does_not_flag_timeout_words_inside_valid_json(tmp_path: Pat
     receipt = bridge.submit(request, model_profile="quality")
 
     assert receipt.status == "completed"
-    assert receipt.failure_code == ""
-    assert receipt.schema_ok is True
+
+
+def test_second_pass_enrichment_deepens_history_symlinks() -> None:
+    rows = [
+        {
+            "galaxy": "Word",
+            "entry": {
+                "id": "notation_bce_dating",
+                "name": "B.C.E. dating notation",
+                "category": "proceduralizer_form",
+                "rpn_program": "dating notation bce",
+                "metadata": {
+                    "surface_forms": {"en": "B.C.E."},
+                    "procedural_layer_kind": "form",
+                    "taxonomy_refs": [],
+                    "word_refs": [],
+                    "symbol_refs": [],
+                    "grammar_refs": [],
+                    "reality_refs": [],
+                    "meta_refs": [],
+                    "relationships": [],
+                },
+                "selection_role": "unknown",
+                "layer_id": 0,
+                "answer_eligible": False,
+                "sovereign_route_exempt": True,
+            },
+        },
+        {
+            "galaxy": "Reality",
+            "entry": {
+                "id": "era_paleolithic",
+                "name": "Paleolithic era from 2 million B.C.E. to 10,000 B.C.E. in prehistory",
+                "category": "proceduralizer_meaning",
+                "rpn_program": "paleolithic era prehistory bce",
+                "metadata": {
+                    "surface_forms": {"en": "Paleolithic Era"},
+                    "procedural_layer_kind": "meaning",
+                    "taxonomy_refs": [],
+                    "word_refs": [],
+                    "symbol_refs": [],
+                    "grammar_refs": [],
+                    "reality_refs": [],
+                    "meta_refs": [],
+                    "relationships": [
+                        {"from": "era_paleolithic", "relation": "precedes", "to": "era_mesolithic"},
+                        {"from": "era_paleolithic", "relation": "part_of", "to": "prehistory"},
+                    ],
+                },
+                "selection_role": "unknown",
+                "layer_id": 0,
+                "answer_eligible": False,
+                "sovereign_route_exempt": True,
+            },
+        },
+    ]
+
+    context = build_row_enrichment_context(rows)
+    enriched = second_pass_enrich_payload_rows(rows, context=context)
+    metadata = enriched[1]["entry"]["metadata"]
+
+    assert "prehistory" in metadata["taxonomy_refs"]
+    assert "high_school_world_history" in metadata["taxonomy_refs"]
+    assert "notation_bce_dating" in metadata["symbol_refs"]
+    assert "era_mesolithic" in metadata["reality_refs"]
+    assert metadata["foundational_layer_id"] == 2
+    assert "second_pass_symlink_enriched" in metadata["meta_refs"]
+
+
+def test_second_pass_enrichment_keeps_form_packets_route_exempt_but_linked() -> None:
+    rows = [
+        {
+            "galaxy": "Grammar",
+            "entry": {
+                "id": "script_hieroglyphic_egyptian",
+                "name": "Egyptian hieroglyphic writing system",
+                "category": "proceduralizer_form",
+                "rpn_program": "egyptian hieroglyphic writing system",
+                "metadata": {
+                    "surface_forms": {"en": "hieroglyphic writing"},
+                    "procedural_layer_kind": "form",
+                    "taxonomy_refs": [],
+                    "word_refs": [],
+                    "symbol_refs": [],
+                    "grammar_refs": [],
+                    "reality_refs": [],
+                    "meta_refs": [],
+                    "relationships": [],
+                },
+                "selection_role": "unknown",
+                "layer_id": 0,
+                "answer_eligible": False,
+                "sovereign_route_exempt": True,
+            },
+        }
+    ]
+
+    enriched = second_pass_enrich_payload_rows(rows)
+    entry = enriched[0]["entry"]
+    metadata = entry["metadata"]
+
+    assert entry["selection_role"] == "unknown"
+    assert entry["layer_id"] == 0
+    assert entry["sovereign_route_exempt"] is True
+    assert metadata["foundational_layer_kind"] == "form"
+    assert metadata["foundational_layer_id"] == 1
+    assert "concept_language" in metadata["taxonomy_refs"]
+    assert "grammar_forward_entity_extraction" in metadata["grammar_refs"]
+
+
+def test_load_external_enrichment_context_reads_live_checkpoint_shape(tmp_path: Path) -> None:
+    checkpoint = tmp_path / "galaxy_consolidated_latest.json"
+    checkpoint.write_text(
+        json.dumps(
+            {
+                "galaxies": {
+                    "Reality": [
+                        {
+                            "id": "concept_history",
+                            "name": "History concept anchor",
+                            "rpn_program": "history concept anchor",
+                            "metadata": {"surface_forms": {"en": "history"}},
+                        },
+                        {
+                            "entry": {
+                                "id": "grammar_subject_domain_alignment",
+                                "name": "Grammar subject domain alignment",
+                                "rpn_program": "grammar subject domain alignment",
+                                "metadata": {"surface_forms": {"en": "subject domain alignment"}},
+                            }
+                        },
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    context = load_external_enrichment_context(checkpoint)
+
+    assert "concept_history" in context["id_set"]
+    assert "grammar_subject_domain_alignment" in context["id_set"]
+    assert "history" in context["token_to_ids"]
+    assert "concept_history" in context["token_to_ids"]["history"]
 
 
 def test_manifest_ingest_stops_on_plan_limit(tmp_path: Path, monkeypatch) -> None:

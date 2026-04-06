@@ -35,7 +35,12 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.ingestion.ollama_manager import OllamaModelManager
-from knowledge3d.knowledgeverse.proceduralizer_stargate import bundle_to_payload_rows
+from knowledge3d.knowledgeverse.proceduralizer_stargate import (
+    build_row_enrichment_context,
+    bundle_to_payload_rows,
+    load_external_enrichment_context,
+    second_pass_enrich_payload_rows,
+)
 from knowledge3d.tools.knowledge_proceduralizer import proceduralize_text_content, receipt_is_usable
 
 
@@ -259,15 +264,35 @@ def _iter_stage_records(stage_root: Path) -> list[dict[str, Any]]:
     return records
 
 
-def _rebuild_payload_from_stage(*, stage_root: Path, payload_output: Path) -> tuple[Counter[str], Counter[str], dict[str, dict[str, Any]], int]:
+def _rebuild_payload_from_stage(
+    *,
+    stage_root: Path,
+    payload_output: Path,
+    storage_root: Path | None = None,
+) -> tuple[Counter[str], Counter[str], dict[str, dict[str, Any]], int]:
     by_galaxy: Counter[str] = Counter()
     by_classification: Counter[str] = Counter()
     per_pdf: dict[str, dict[str, Any]] = {}
     total_rows = 0
+    records = _iter_stage_records(stage_root)
+    external_context = load_external_enrichment_context(
+        (storage_root / "checkpoints" / "galaxy_consolidated_latest.json") if storage_root is not None else None
+    )
+    rows_by_pdf: dict[str, list[dict[str, Any]]] = {}
+    for record in records:
+        pdf_key = str(record.get("pdf", ""))
+        rows = record.get("rows")
+        if not isinstance(rows, list):
+            continue
+        rows_by_pdf.setdefault(pdf_key, []).extend(row for row in rows if isinstance(row, dict))
+    contexts_by_pdf = {
+        pdf_key: build_row_enrichment_context(rows, external_context=external_context)
+        for pdf_key, rows in rows_by_pdf.items()
+    }
 
     payload_output.parent.mkdir(parents=True, exist_ok=True)
     with payload_output.open("w", encoding="utf-8") as handle:
-        for record in _iter_stage_records(stage_root):
+        for record in records:
             pdf_key = str(record.get("pdf", ""))
             page_num = int(record.get("page_num", 0) or 0)
             total_pages = int(record.get("total_pages", 0) or 0)
@@ -277,6 +302,7 @@ def _rebuild_payload_from_stage(*, stage_root: Path, payload_output: Path) -> tu
                 decision = {}
             if not isinstance(rows, list):
                 rows = []
+            rows = second_pass_enrich_payload_rows(rows, context=contexts_by_pdf.get(pdf_key))
 
             label = _classification_label(decision) or "unknown"
             by_classification[label] += 1
@@ -577,6 +603,7 @@ def main() -> int:
                 _rebuild_payload_from_stage(
                     stage_root=stage_root,
                     payload_output=args.payload_output,
+                    storage_root=args.storage_root,
                 )
             if stop_due_to_plan_limit:
                 break
@@ -584,6 +611,7 @@ def main() -> int:
     by_galaxy, by_classification, per_pdf, payload_rows = _rebuild_payload_from_stage(
         stage_root=stage_root,
         payload_output=args.payload_output,
+        storage_root=args.storage_root,
     )
     pdf_stats = []
     for pdf in pdf_paths:
