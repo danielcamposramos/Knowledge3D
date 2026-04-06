@@ -19,8 +19,6 @@ _MODULE_EXPORTS = {
     "corpus_manifest": "knowledge3d.ingestion.corpus_manifest",
     "batch_orchestrator": "knowledge3d.ingestion.batch_orchestrator",
     "enrichment_pipeline": "knowledge3d.ingestion.enrichment_pipeline",
-    "pdf_classifier": "knowledge3d.ingestion.pdf_classifier",
-    "pdf_augmenter": "knowledge3d.ingestion.pdf_augmenter",
     "encapsulate_importer": "knowledge3d.ingestion.encapsulate_importer",
     "encapsulate_exporter": "knowledge3d.ingestion.encapsulate_exporter",
 }
@@ -32,8 +30,6 @@ _SYMBOL_EXPORTS = {
     "CorpusType": ("knowledge3d.ingestion.corpus_manifest", "CorpusType"),
     "BatchOrchestrator": ("knowledge3d.ingestion.batch_orchestrator", "BatchOrchestrator"),
     "EnrichmentPipeline": ("knowledge3d.ingestion.enrichment_pipeline", "EnrichmentPipeline"),
-    "PDFKnowledgeClassifier": ("knowledge3d.ingestion.pdf_classifier", "PDFKnowledgeClassifier"),
-    "PDFKnowledgeAugmenter": ("knowledge3d.ingestion.pdf_augmenter", "PDFKnowledgeAugmenter"),
     "EncapsulateImporter": ("knowledge3d.ingestion.encapsulate_importer", "EncapsulateImporter"),
     "EncapsulateExporter": ("knowledge3d.ingestion.encapsulate_exporter", "EncapsulateExporter"),
 }

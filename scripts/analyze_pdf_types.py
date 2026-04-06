@@ -1,27 +1,75 @@
 #!/usr/bin/env python3
-"""
-Analyze PDFs to identify:
-1. Scanned PDFs with OCR layer (BEST for OCR training)
-2. Scanned PDFs without text (need OCR after training)
-3. Modern vector PDFs (skip for OCR training)
-"""
+"""Canonical PDF OCR/eligibility preflight for ordered base-knowledge ingestion."""
 
+from __future__ import annotations
+
+import argparse
+import json
+import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
-import fitz  # PyMuPDF
+from typing import Any
+
+try:
+    import fitz  # type: ignore
+except Exception:  # pragma: no cover - handled by _require_fitz
+    fitz = None
 
 
-def analyze_pdf_page(page: fitz.Page) -> Dict:
-    """Analyze a single PDF page to determine its type."""
-    # Get page dimensions
+ROOT_SLUG_OVERRIDES = {
+    "encyclopedias": "encyclopedias",
+    "echosystems default libraries": "default_libraries",
+}
+ELIGIBLE_TYPES = {"vector", "mixed", "scanned_with_ocr"}
+
+
+def _require_fitz() -> Any:
+    if fitz is None:
+        raise RuntimeError(
+            "PyMuPDF (fitz) is required for PDF preflight. "
+            "Run this script inside /K3D/Knowledge3D.local/envs/k3d-cranium/bin/python."
+        )
+    return fitz
+
+
+def _slugify(value: str) -> str:
+    lowered = value.strip().lower()
+    override = ROOT_SLUG_OVERRIDES.get(lowered)
+    if override:
+        return override
+    lowered = re.sub(r"[^a-z0-9]+", "_", lowered)
+    lowered = re.sub(r"_+", "_", lowered).strip("_")
+    return lowered or "root"
+
+
+def root_slug(index: int, root: Path) -> str:
+    return f"{int(index):02d}_{_slugify(root.name)}"
+
+
+def discover_pdf_paths(root: Path) -> list[Path]:
+    return sorted(path for path in root.rglob("*.pdf") if path.is_file() and path.suffix.lower() == ".pdf")
+
+
+def count_source_inventory(root: Path) -> dict[str, int]:
+    counts = {"pdf": 0, "json": 0, "other": 0}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        suffix = path.suffix.lower()
+        if suffix == ".pdf":
+            counts["pdf"] += 1
+        elif suffix == ".json":
+            counts["json"] += 1
+        else:
+            counts["other"] += 1
+    return counts
+
+
+def analyze_pdf_page(page: Any) -> dict[str, Any]:
     rect = page.rect
     page_area = rect.width * rect.height
 
-    # Get all images on the page
     images = page.get_images(full=True)
-
-    # Calculate total image coverage
     image_coverage = 0.0
     for img_ref in images:
         try:
@@ -30,18 +78,14 @@ def analyze_pdf_page(page: fitz.Page) -> Dict:
             for bbox in bbox_list:
                 img_area = (bbox.x1 - bbox.x0) * (bbox.y1 - bbox.y0)
                 image_coverage += img_area
-        except:
-            pass
+        except Exception:
+            continue
 
     image_coverage_ratio = image_coverage / page_area if page_area > 0 else 0.0
-
-    # Get text content
     text = page.get_text("text").strip()
     char_count = len(text)
-
-    # Get text blocks to see if they're on top of images
-    blocks = page.get_text("dict")["blocks"]
-    text_block_count = sum(1 for b in blocks if b["type"] == 0)  # Type 0 = text
+    blocks = page.get_text("dict").get("blocks", [])
+    text_block_count = sum(1 for block in blocks if block.get("type") == 0)
 
     return {
         "page_area": page_area,
@@ -50,87 +94,62 @@ def analyze_pdf_page(page: fitz.Page) -> Dict:
         "char_count": char_count,
         "text_block_count": text_block_count,
         "has_images": len(images) > 0,
-        "has_text": char_count > 50,  # Threshold for meaningful text
+        "has_text": char_count > 50,
     }
 
 
-def classify_pdf(pdf_path: Path, sample_pages: int = 5) -> Dict:
-    """
-    Classify a PDF as:
-    - 'scanned_with_ocr': Scanned pages with OCR text layer (BEST for training)
-    - 'scanned_no_text': Scanned images without text (need OCR)
-    - 'vector': Modern vector PDF (skip for OCR training)
-    - 'mixed': Contains both scanned and vector pages
-    """
-    try:
-        doc = fitz.open(pdf_path)
+def classify_pdf(pdf_path: Path, sample_pages: int = 5) -> dict[str, Any]:
+    fitz_mod = _require_fitz()
 
+    try:
+        doc = fitz_mod.open(pdf_path)
         if len(doc) == 0:
+            doc.close()
             return {
-                "path": pdf_path,
-                "type": "empty",
+                "path": str(pdf_path),
+                "type": "error",
                 "pages": 0,
                 "file_size_mb": pdf_path.stat().st_size / (1024 * 1024),
-                "error": "No pages"
+                "error": "No pages",
             }
 
-        # Sample pages (first, middle, last, and a few random)
         total_pages = len(doc)
-        pages_to_sample = min(sample_pages, total_pages)
-
-        if total_pages <= sample_pages:
+        pages_to_sample = min(max(1, int(sample_pages)), total_pages)
+        if total_pages <= pages_to_sample:
             sample_indices = list(range(total_pages))
         else:
-            # Sample first, last, middle, and evenly spaced
-            sample_indices = [
-                0,  # First
-                total_pages - 1,  # Last
-                total_pages // 2,  # Middle
-                total_pages // 4,  # Quarter
-                3 * total_pages // 4,  # Three-quarters
-            ]
+            raw_indices = [0, total_pages - 1, total_pages // 2, total_pages // 4, (3 * total_pages) // 4]
+            sample_indices = []
+            for idx in raw_indices:
+                if 0 <= idx < total_pages and idx not in sample_indices:
+                    sample_indices.append(idx)
+                if len(sample_indices) >= pages_to_sample:
+                    break
 
-        # Analyze sampled pages
-        page_analyses = []
-        for idx in sample_indices:
-            if 0 <= idx < total_pages:
-                page = doc[idx]
-                page_analyses.append(analyze_pdf_page(page))
-
+        page_analyses = [analyze_pdf_page(doc[idx]) for idx in sample_indices]
         doc.close()
 
-        # Calculate aggregate statistics
-        avg_image_coverage = sum(p["image_coverage_ratio"] for p in page_analyses) / len(page_analyses)
-        avg_char_count = sum(p["char_count"] for p in page_analyses) / len(page_analyses)
-        pages_with_images = sum(1 for p in page_analyses if p["has_images"])
-        pages_with_text = sum(1 for p in page_analyses if p["has_text"])
+        avg_image_coverage = sum(page["image_coverage_ratio"] for page in page_analyses) / len(page_analyses)
+        avg_char_count = sum(page["char_count"] for page in page_analyses) / len(page_analyses)
+        pages_with_images = sum(1 for page in page_analyses if page["has_images"])
+        pages_with_text = sum(1 for page in page_analyses if page["has_text"])
 
         file_size_mb = pdf_path.stat().st_size / (1024 * 1024)
         size_per_page_kb = (pdf_path.stat().st_size / total_pages) / 1024
-
-        # Classification logic
-        # Scanned PDFs typically have:
-        # - High image coverage (>50% of page)
-        # - Larger file size per page (>50KB, often 100KB-1MB)
-
-        is_scanned = (
-            avg_image_coverage > 0.5 and  # Images cover most of page
-            size_per_page_kb > 50  # Larger file size per page
-        )
-
-        has_ocr_text = pages_with_text >= (pages_to_sample * 0.8)  # 80% of sampled pages have text
+        is_scanned = avg_image_coverage > 0.5 and size_per_page_kb > 50
+        has_ocr_text = pages_with_text >= max(1, int(round(len(page_analyses) * 0.8)))
 
         if is_scanned and has_ocr_text:
-            pdf_type = "scanned_with_ocr"  # BEST for OCR training
+            pdf_type = "scanned_with_ocr"
         elif is_scanned and not has_ocr_text:
-            pdf_type = "scanned_no_text"  # Need OCR
+            pdf_type = "scanned_no_text"
         elif not is_scanned and has_ocr_text:
-            pdf_type = "vector"  # Modern PDF, skip for OCR training
+            pdf_type = "vector"
         else:
-            pdf_type = "mixed"  # Mixed content
+            pdf_type = "mixed"
 
         return {
-            "path": pdf_path,
+            "path": str(pdf_path),
             "type": pdf_type,
             "pages": total_pages,
             "file_size_mb": file_size_mb,
@@ -141,108 +160,140 @@ def classify_pdf(pdf_path: Path, sample_pages: int = 5) -> Dict:
             "pages_with_text": pages_with_text,
             "sampled_pages": len(page_analyses),
         }
-
-    except Exception as e:
+    except Exception as exc:
         return {
-            "path": pdf_path,
+            "path": str(pdf_path),
             "type": "error",
-            "error": str(e)[:100],
-            "file_size_mb": pdf_path.stat().st_size / (1024 * 1024) if pdf_path.exists() else 0,
+            "pages": 0,
+            "file_size_mb": pdf_path.stat().st_size / (1024 * 1024) if pdf_path.exists() else 0.0,
+            "error": str(exc)[:200],
         }
 
 
-def main():
-    # Find all PDFs in the database
-    database_root = Path("/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries")
+def _write_json(path: Path, payload: Any) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    if not database_root.exists():
-        print(f"❌ Database not found: {database_root}")
-        return 1
 
-    print("=" * 80)
-    print("PDF TYPE ANALYSIS")
-    print("=" * 80)
-    print()
-    print(f"Scanning: {database_root}")
-    print()
+def _write_lines(path: Path, lines: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = "\n".join(lines)
+    if text:
+        text += "\n"
+    path.write_text(text, encoding="utf-8")
 
-    # Find all PDFs
-    pdf_paths = sorted(database_root.rglob("*.pdf"))
-    print(f"Found {len(pdf_paths)} PDFs")
-    print()
 
-    # Analyze each PDF
-    results = []
-    for i, pdf_path in enumerate(pdf_paths, 1):
-        print(f"[{i}/{len(pdf_paths)}] Analyzing: {pdf_path.name[:60]}", end="", flush=True)
-        result = classify_pdf(pdf_path, sample_pages=5)
-        results.append(result)
-        print(f" → {result['type']}")
+def _sorted_eligible_entries(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    eligible = [record for record in records if str(record.get("type", "")).strip().lower() in ELIGIBLE_TYPES]
+    return sorted(
+        eligible,
+        key=lambda record: (-int(record.get("pages", 0) or 0), str(record.get("path", ""))),
+    )
 
-    print()
-    print("=" * 80)
-    print("SUMMARY")
-    print("=" * 80)
 
-    # Categorize results
-    scanned_with_ocr = [r for r in results if r.get("type") == "scanned_with_ocr"]
-    scanned_no_text = [r for r in results if r.get("type") == "scanned_no_text"]
-    vector_pdfs = [r for r in results if r.get("type") == "vector"]
-    mixed_pdfs = [r for r in results if r.get("type") == "mixed"]
-    errors = [r for r in results if r.get("type") == "error"]
+def analyze_root(root: Path, *, output_dir: Path, sample_pages: int = 5) -> dict[str, Any]:
+    inventory = count_source_inventory(root)
+    pdf_paths = discover_pdf_paths(root)
+    records = [classify_pdf(path, sample_pages=sample_pages) for path in pdf_paths]
 
-    print()
-    print(f"✅ Scanned PDFs with OCR layer: {len(scanned_with_ocr)} (BEST for OCR training)")
-    print(f"⚠️  Scanned PDFs without text:   {len(scanned_no_text)} (need OCR)")
-    print(f"📄 Vector PDFs:                  {len(vector_pdfs)} (skip for OCR training)")
-    print(f"🔀 Mixed content:                {len(mixed_pdfs)}")
-    print(f"❌ Errors:                       {len(errors)}")
-    print()
+    type_counts: dict[str, int] = {}
+    for record in records:
+        pdf_type = str(record.get("type", "error")).strip().lower() or "error"
+        type_counts[pdf_type] = type_counts.get(pdf_type, 0) + 1
 
-    # Show statistics for scanned_with_ocr (best for training)
-    if scanned_with_ocr:
-        total_pages_scanned = sum(r.get("pages", 0) for r in scanned_with_ocr)
-        total_size_scanned = sum(r.get("file_size_mb", 0) for r in scanned_with_ocr)
-        avg_size_per_page = sum(r.get("size_per_page_kb", 0) for r in scanned_with_ocr) / len(scanned_with_ocr)
+    eligible_records = _sorted_eligible_entries(records)
+    ocr_needed = sorted(
+        str(record.get("path", ""))
+        for record in records
+        if str(record.get("type", "")).strip().lower() == "scanned_no_text"
+    )
+    extraction_errors = sorted(
+        (
+            f"{record.get('path', '')}\t{record.get('error', '')}"
+            if str(record.get("error", "")).strip()
+            else str(record.get("path", ""))
+        )
+        for record in records
+        if str(record.get("type", "")).strip().lower() == "error"
+    )
 
-        print("📊 Scanned PDFs with OCR (Training Targets):")
-        print(f"   Total pages: {total_pages_scanned}")
-        print(f"   Total size: {total_size_scanned:.1f} MB")
-        print(f"   Avg size/page: {avg_size_per_page:.1f} KB")
-        print()
+    all_inventory_path = output_dir / "all_pdf_inventory.json"
+    eligible_path = output_dir / "eligible_pdfs.txt"
+    ocr_needed_path = output_dir / "ocr_needed_pdfs.txt"
+    errors_path = output_dir / "extraction_errors.txt"
+    summary_path = output_dir / "summary.json"
 
-        print("   Top 10 by page count:")
-        for r in sorted(scanned_with_ocr, key=lambda x: x.get("pages", 0), reverse=True)[:10]:
-            print(f"      {r['path'].name[:50]:50} - {r.get('pages', 0):4} pages, {r.get('file_size_mb', 0):6.1f} MB")
-        print()
+    _write_json(all_inventory_path, records)
+    _write_lines(eligible_path, [str(record["path"]) for record in eligible_records])
+    _write_lines(ocr_needed_path, ocr_needed)
+    _write_lines(errors_path, extraction_errors)
 
-    # Save detailed results
-    output_path = Path("/K3D/Knowledge3D.local/logs/pdf_type_analysis.txt")
-    with output_path.open("w") as f:
-        f.write("SCANNED PDFs WITH OCR (BEST FOR TRAINING)\n")
-        f.write("=" * 80 + "\n")
-        for r in sorted(scanned_with_ocr, key=lambda x: x.get("pages", 0), reverse=True):
-            f.write(f"{r['path']}\n")
-            f.write(f"  Pages: {r.get('pages', 0)}, Size: {r.get('file_size_mb', 0):.1f} MB, ")
-            f.write(f"Size/page: {r.get('size_per_page_kb', 0):.1f} KB, ")
-            f.write(f"Img coverage: {r.get('avg_image_coverage', 0):.1%}\n\n")
+    summary = {
+        "root": str(root),
+        "output_dir": str(output_dir),
+        "inventory": inventory,
+        "discovered_pdf_count": len(pdf_paths),
+        "eligible_pdf_count": len(eligible_records),
+        "ocr_needed_count": len(ocr_needed),
+        "error_count": len(extraction_errors),
+        "sample_pages": int(sample_pages),
+        "type_counts": dict(sorted(type_counts.items())),
+        "artifacts": {
+            "all_pdf_inventory": str(all_inventory_path),
+            "eligible_pdfs": str(eligible_path),
+            "ocr_needed_pdfs": str(ocr_needed_path),
+            "extraction_errors": str(errors_path),
+        },
+    }
+    _write_json(summary_path, summary)
+    return summary
 
-        f.write("\n\nVECTOR PDFs (SKIP FOR OCR TRAINING)\n")
-        f.write("=" * 80 + "\n")
-        for r in sorted(vector_pdfs, key=lambda x: x.get("pages", 0), reverse=True):
-            f.write(f"{r['path']}\n")
-            f.write(f"  Pages: {r.get('pages', 0)}, Size: {r.get('file_size_mb', 0):.1f} MB\n\n")
 
-        f.write("\n\nSCANNED PDFs WITHOUT TEXT (NEED OCR)\n")
-        f.write("=" * 80 + "\n")
-        for r in scanned_no_text:
-            f.write(f"{r['path']}\n\n")
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--root",
+        action="append",
+        dest="roots",
+        type=Path,
+        required=True,
+        help="Source root to preflight. Repeat to preserve ingestion order.",
+    )
+    parser.add_argument(
+        "--results-root",
+        type=Path,
+        default=Path("/K3D/Knowledge3D.local/results/base_knowledge_ingest"),
+        help="Root directory for preflight outputs.",
+    )
+    parser.add_argument("--sample-pages", type=int, default=5, help="Number of pages to sample per PDF.")
+    args = parser.parse_args()
 
-    print(f"📁 Detailed results saved to: {output_path}")
-    print()
+    try:
+        _require_fitz()
+    except RuntimeError as exc:
+        print(f"[pdf-preflight] {exc}", file=sys.stderr)
+        return 2
 
+    summaries = []
+    for index, root in enumerate(args.roots, start=1):
+        root = root.expanduser().resolve()
+        if not root.exists():
+            print(f"[pdf-preflight] missing root: {root}", file=sys.stderr)
+            return 1
+        output_dir = args.results_root / root_slug(index, root) / "preflight"
+        summary = analyze_root(root, output_dir=output_dir, sample_pages=max(1, int(args.sample_pages)))
+        summaries.append(summary)
+        print(
+            f"[pdf-preflight] root={root} pdf={summary['discovered_pdf_count']} "
+            f"eligible={summary['eligible_pdf_count']} ocr_needed={summary['ocr_needed_count']} "
+            f"errors={summary['error_count']} out={output_dir}"
+        )
+
+    aggregate_path = args.results_root / "summary.json"
+    _write_json(aggregate_path, {"roots": summaries})
+    print(f"[pdf-preflight] aggregate_summary={aggregate_path}")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

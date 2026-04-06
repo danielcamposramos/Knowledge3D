@@ -67,12 +67,37 @@ def _extract_pdf_pages(pdf_path: Path, *, max_pages: int = 0) -> dict[int, str]:
     return pages
 
 
-def _iter_pdf_paths(*, pdf: Path | None, pdf_dir: Path | None, pattern: str, limit: int) -> list[Path]:
+def _load_pdf_list(pdf_list: Path, *, limit: int) -> list[Path]:
+    out: list[Path] = []
+    if not pdf_list.exists():
+        return out
+    for raw_line in pdf_list.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        path = Path(line)
+        if path.is_file() and path.suffix.lower() == ".pdf":
+            out.append(path)
+            if limit > 0 and len(out) >= limit:
+                break
+    return out
+
+
+def _iter_pdf_paths(
+    *,
+    pdf: Path | None,
+    pdf_dir: Path | None,
+    pdf_list: Path | None,
+    pattern: str,
+    limit: int,
+) -> list[Path]:
     out: list[Path] = []
     if pdf is not None:
         if pdf.exists() and pdf.suffix.lower() == ".pdf":
             out.append(pdf)
         return out
+    if pdf_list is not None:
+        return _load_pdf_list(pdf_list, limit=limit)
     if pdf_dir is None or not pdf_dir.exists():
         return out
     for path in sorted(pdf_dir.glob(pattern)):
@@ -320,15 +345,33 @@ def main() -> int:
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--pdf", type=Path, help="Single PDF path to ingest")
     src.add_argument("--pdf-dir", type=Path, help="Directory of PDFs to ingest")
+    src.add_argument(
+        "--pdf-list",
+        type=Path,
+        help="Newline-delimited PDF list processed exactly in file order; preferred for ordered large-batch ingest.",
+    )
     parser.add_argument("--pattern", default="**/*.pdf", help="Glob pattern when using --pdf-dir")
-    parser.add_argument("--limit-pdfs", type=int, default=0, help="Limit number of PDFs from --pdf-dir")
+    parser.add_argument(
+        "--limit-pdfs",
+        type=int,
+        default=0,
+        help="Limit number of PDFs from --pdf-dir or --pdf-list (0 means no limit).",
+    )
     parser.add_argument("--max-pages-per-pdf", type=int, default=0, help="0 means all pages")
     parser.add_argument("--cache-dir", type=Path, default=Path("../Knowledge3D.local/pdf_cache"))
     parser.add_argument("--provider", default="ollama", help="Canonical transport provider; ollama is default.")
     parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
     parser.add_argument("--model", default=None, help="Optional explicit model override.")
-    parser.add_argument("--classifier-model", default="qwen2.5:32b")
-    parser.add_argument("--augmenter-model", default="qwen2.5:32b")
+    parser.add_argument(
+        "--classifier-model",
+        default="qwen2.5:32b",
+        help="Legacy compatibility override; use --model or --model-profile for canonical runs.",
+    )
+    parser.add_argument(
+        "--augmenter-model",
+        default="qwen2.5:32b",
+        help="Legacy compatibility override; use --model or --model-profile for canonical runs.",
+    )
     parser.add_argument("--ollama-timeout", type=float, default=120.0)
     parser.add_argument("--force-reprocess", action="store_true")
     parser.add_argument("--capture-dir", type=Path, default=None, help="Optional request/response capture directory.")
@@ -374,7 +417,13 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    pdf_paths = _iter_pdf_paths(pdf=args.pdf, pdf_dir=args.pdf_dir, pattern=args.pattern, limit=max(0, int(args.limit_pdfs)))
+    pdf_paths = _iter_pdf_paths(
+        pdf=args.pdf,
+        pdf_dir=args.pdf_dir,
+        pdf_list=args.pdf_list,
+        pattern=args.pattern,
+        limit=max(0, int(args.limit_pdfs)),
+    )
     if not pdf_paths:
         print("[pdf-ingest] no PDF files found")
         return 1
@@ -529,6 +578,7 @@ def main() -> int:
 
     report = {
         "pdf_count": len(pdf_paths),
+        "source_mode": "pdf" if args.pdf is not None else ("pdf_list" if args.pdf_list is not None else "pdf_dir"),
         "payload_rows": int(payload_rows),
         "skipped_sources_count": int(skipped_sources_count),
         "skipped_sources_output": str(skip_output),

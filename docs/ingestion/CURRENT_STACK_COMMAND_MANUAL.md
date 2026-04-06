@@ -1,38 +1,17 @@
 # Current Stack Command Manual
 
-**Version**: 1.0  
-**Date**: February 20, 2026  
-**Scope**: Canonical operational commands for fundamental augmentation, PDF ingestion, payload ingestion, daemon runtime, and benchmark senders.
+**Version**: 2.0  
+**Date**: April 6, 2026  
+**Scope**: Canonical preflight, ordered PDF ingestion, payload ingestion, daemon runtime, and benchmark senders.
 
----
-
-## 1. Canonical Command Set
-
-Use these scripts as the current source of truth:
-
-- `scripts/fundamental_construct_knowledge.sh`
-- `scripts/fundamental_augment_benchmarks.py`
-- `scripts/fundamental_ingest_pdfs.py`
-- `scripts/fundamental_ingest_payloads.py`
-- `scripts/run_overnight_pdf_ingestion.sh`
-- `scripts/k3d_daemon.py`
-- `benchmarks/math_sender.py`
-- `benchmarks/arc_sender.py`
-- `benchmarks/lhe_sender.py`
-- `benchmarks/mmlu_sender.py`
-
-Avoid using wrappers that currently do not match `fundamental_ingest_pdfs.py` CLI (`--pdf-list`, `--skip-first`).
-
----
-
-## 2. Environment Baseline
+## 1. Environment Baseline
 
 From repo root:
 
 ```bash
 cd "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
 export PYTHON_BIN="/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python"
-export K3D_ROOT="../Knowledge3D.local"
+export K3D_ROOT="/K3D/Knowledge3D.local"
 ```
 
 All Python commands below assume:
@@ -41,217 +20,162 @@ All Python commands below assume:
 PYTHONPATH=. "$PYTHON_BIN" ...
 ```
 
----
+Use the managed env above. Do not use system Python for PDF preflight or ingestion.
 
-## 3. Fundamental Benchmark Construction
+## 2. Canonical Ingestion Stack
 
-One-command wrapper (augment then ingest):
+Use only the unified proceduralizer path:
+
+- `scripts/analyze_pdf_types.py`
+- `scripts/fundamental_ingest_pdfs.py`
+- `scripts/fundamental_ingest_payloads.py`
+- `knowledge3d/tools/knowledge_proceduralizer.py`
+
+Legacy classifier/augmenter modules have been archived under `Old_Attempts/` and are not part of the live stack.
+
+## 3. Ordered Base-Knowledge Restart
+
+The current base-knowledge run order is fixed:
+
+1. `/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias`
+2. `/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/`
+
+The preflight is recursive and PDF-only. JSON and every other non-PDF sidecar are ignored before ingestion.
+
+## 4. Canonical OCR / Eligibility Preflight
+
+Run the preflight once for both roots, preserving the order above:
 
 ```bash
-bash scripts/fundamental_construct_knowledge.sh ../Knowledge3D.local ../Knowledge3D.local/datasets/external_payloads
+PYTHONPATH=. "$PYTHON_BIN" scripts/analyze_pdf_types.py \
+  --root "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias" \
+  --root "/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries/" \
+  --results-root "$K3D_ROOT/results/base_knowledge_ingest"
 ```
 
-Optional tuning:
+Per-root artifacts are emitted under:
 
-```bash
-OLLAMA_MODEL="qwen2.5:14b" \
-OLLAMA_STRIDE=50 \
-MAX_OLLAMA_CALLS=200 \
-bash scripts/fundamental_construct_knowledge.sh
-```
+- `$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/preflight/`
+- `$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/preflight/`
 
-Outputs:
+Each root emits:
 
-- Payload: `../Knowledge3D.local/datasets/external_payloads/benchmark_aug_*/benchmark_augmentation_payload.jsonl`
-- Augment report: `.../benchmark_augmentation_report.json`
-- Ingest report: `.../benchmark_augmentation_ingest_report.json`
+- `all_pdf_inventory.json`
+- `eligible_pdfs.txt`
+- `ocr_needed_pdfs.txt`
+- `extraction_errors.txt`
+- `summary.json`
 
----
+Eligibility rules for this wave:
 
-## 4. Intelligent PDF Ingestion (Resumable)
+- ingest: `vector`, `mixed`, `scanned_with_ocr`
+- skip and list only: `scanned_no_text`
+- skip and log separately: `error`
 
-Single PDF:
+Eligible PDFs are ordered by page count descending, then absolute path ascending.
+
+## 5. Ordered PDF Ingestion
+
+Use the `eligible_pdfs.txt` artifact from preflight. `--pdf-list` is the preferred large-batch entrypoint because it preserves exact file order.
+
+### Root 1: Encyclopedias
 
 ```bash
 PYTHONPATH=. "$PYTHON_BIN" scripts/fundamental_ingest_pdfs.py \
-  --pdf "/path/to/file.pdf" \
-  --classifier-model "deepseek-r1:14b" \
-  --augmenter-model "qwen2.5:14b" \
-  --cache-dir "$K3D_ROOT/pdf_cache" \
-  --payload-output "$K3D_ROOT/fundamental_augmentation/pdf_payload_single.jsonl" \
-  --report-output "$K3D_ROOT/fundamental_augmentation/pdf_report_single.json"
+  --pdf-list "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/preflight/eligible_pdfs.txt" \
+  --provider ollama \
+  --model-profile quality \
+  --capture-dir "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/captures" \
+  --stage-dir "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/stages" \
+  --payload-output "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/payloads/payload.jsonl" \
+  --report-output "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/summaries/ingest_report.json" \
+  --skip-sources-output "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/summaries/skipped_sources.jsonl"
 ```
 
-Directory batch:
+### Root 2: EchoSystems Default Libraries
 
 ```bash
 PYTHONPATH=. "$PYTHON_BIN" scripts/fundamental_ingest_pdfs.py \
-  --pdf-dir "/mnt/arquivos/0 ChatGPTs/DataBase" \
-  --pattern "**/*.pdf" \
-  --limit-pdfs 2000 \
-  --classifier-model "deepseek-r1:14b" \
-  --augmenter-model "qwen2.5:14b" \
-  --cache-dir "$K3D_ROOT/pdf_cache" \
-  --payload-output "$K3D_ROOT/fundamental_augmentation/full_pdf_payloads_overnight.jsonl" \
-  --report-output "$K3D_ROOT/fundamental_augmentation/full_pdf_report_overnight.json"
+  --pdf-list "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/preflight/eligible_pdfs.txt" \
+  --provider ollama \
+  --model-profile quality \
+  --capture-dir "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/captures" \
+  --stage-dir "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/stages" \
+  --payload-output "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/payloads/payload.jsonl" \
+  --report-output "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/summaries/ingest_report.json" \
+  --skip-sources-output "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/summaries/skipped_sources.jsonl"
 ```
 
-Resume behavior:
+Operational rules preserved by the canonical path:
 
-- Stage directory defaults to `.<payload_stem>_stage` next to payload.
-- Rerun reprocesses the last staged page by default, then continues.
-- This is intentional for power-loss safety.
+- context clears between distinct sources
+- oversized page/chunk processing preserves overlap
+- per-document and per-page resume remains active
+- plan-limit detection stops cleanly and writes `retry_after_utc = now + 5h01m`
 
----
+## 6. Payload Ingestion into the Resident Corpus
 
-## 5. Overnight Full Run (tmux)
-
-Launch:
-
-```bash
-tmux new -s k3d_pdf_ingestion
-bash scripts/run_overnight_pdf_ingestion.sh
-```
-
-Detach and reattach:
-
-```bash
-# detach: Ctrl+b, then d
-tmux attach -t k3d_pdf_ingestion
-```
-
-Live log:
-
-```bash
-tail -f /tmp/k3d_overnight_pdf_ingestion.log
-```
-
-Important:
-
-- `scripts/run_overnight_pdf_ingestion.sh` has no `--help` mode.
-- Passing `--help` will still start ingestion.
-
----
-
-## 6. Progress and Health Checks
-
-Check active ingestion process:
-
-```bash
-ps -eo pid,ppid,etime,cmd | rg "scripts/fundamental_ingest_pdfs.py --pdf-dir" | rg -v rg
-```
-
-Check manifest-based resume/progress:
-
-```bash
-"$PYTHON_BIN" - <<'PY'
-import json
-from pathlib import Path
-p = Path("../Knowledge3D.local/fundamental_augmentation/.full_pdf_payloads_overnight_stage/manifest.json")
-if not p.exists():
-    print("manifest_missing")
-    raise SystemExit(0)
-m = json.loads(p.read_text(encoding="utf-8"))
-pdfs = m.get("pdfs", {})
-total = len(pdfs)
-done = sum(1 for v in pdfs.values() if isinstance(v, dict) and v.get("resume_from_page", 1) > 1)
-print({"pdfs_tracked": total, "pdfs_with_progress": done})
-PY
-```
-
-Check skipped/corrupt/encrypted sources:
-
-```bash
-wc -l ../Knowledge3D.local/fundamental_augmentation/full_pdf_payloads_overnight_skipped_sources.jsonl
-tail -n 20 ../Knowledge3D.local/fundamental_augmentation/full_pdf_payloads_overnight_skipped_sources.jsonl
-```
-
-GPU monitor:
-
-```bash
-nvidia-smi
-```
-
----
-
-## 7. Payload Ingestion into Knowledgeverse
-
-Ingest one or more payload files:
+After each root completes payload generation:
 
 ```bash
 PYTHONPATH=. "$PYTHON_BIN" scripts/fundamental_ingest_payloads.py \
-  --payload \
-    "$K3D_ROOT/fundamental_augmentation/full_pdf_payloads_overnight.jsonl" \
-    $K3D_ROOT/datasets/external_payloads/benchmark_aug_*/benchmark_augmentation_payload.jsonl \
+  --payload "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/payloads/payload.jsonl" \
   --storage-root "$K3D_ROOT" \
-  --report "$K3D_ROOT/results/fundamental_ingestion_report.json"
+  --report "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/summaries/payload_ingest_report.json"
 ```
-
-Disable symlink compression only for diagnostics:
 
 ```bash
 PYTHONPATH=. "$PYTHON_BIN" scripts/fundamental_ingest_payloads.py \
-  --payload "$K3D_ROOT/fundamental_augmentation/full_pdf_payloads_overnight.jsonl" \
+  --payload "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/payloads/payload.jsonl" \
   --storage-root "$K3D_ROOT" \
-  --report "$K3D_ROOT/results/fundamental_ingestion_report_debug.json" \
-  --disable-symlink-compression
+  --report "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/summaries/payload_ingest_report.json"
 ```
 
----
+## 7. Progress and Safety Checks
 
-## 8. Daemon Runtime and Benchmark Senders
-
-Start daemon (TCP mode):
+Inspect current preflight summaries:
 
 ```bash
-PYTHONPATH=. "$PYTHON_BIN" scripts/k3d_daemon.py \
-  --mode tcp \
-  --host 127.0.0.1 \
-  --port 54326 \
-  --storage-root "$K3D_ROOT"
+jq . "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/preflight/summary.json"
+jq . "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/preflight/summary.json"
 ```
 
-Run benchmark senders:
+Check ingestion progress:
 
 ```bash
-PYTHONPATH=. "$PYTHON_BIN" benchmarks/math_sender.py --host 127.0.0.1 --port 54326 --max-questions 400
-PYTHONPATH=. "$PYTHON_BIN" benchmarks/arc_sender.py --host 127.0.0.1 --port 54326 --max-tasks 100
-PYTHONPATH=. "$PYTHON_BIN" benchmarks/lhe_sender.py --host 127.0.0.1 --port 54326 --max-questions 100
-PYTHONPATH=. "$PYTHON_BIN" benchmarks/mmlu_sender.py --host 127.0.0.1 --port 54326 --max-questions 100
+ps -eo pid,ppid,etime,cmd | rg "scripts/fundamental_ingest_pdfs.py" | rg -v rg
 ```
 
-Capture sender output to file:
+Check resumable staging:
 
 ```bash
-PYTHONPATH=. "$PYTHON_BIN" benchmarks/math_sender.py --host 127.0.0.1 --port 54326 --max-questions 400 \
-  | tee "$K3D_ROOT/results/math_sender_$(date +%Y%m%d_%H%M%S).json"
+find "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/stages" -name 'page_*.json' | wc -l
+find "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/stages" -name 'page_*.json' | wc -l
 ```
 
----
-
-## 9. Graceful Stop and Resume
-
-Stop overnight run cleanly:
+Check OCR-needed PDFs:
 
 ```bash
-tmux attach -t k3d_pdf_ingestion
-# inside tmux, press Ctrl+C once
+wc -l "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/preflight/ocr_needed_pdfs.txt"
+wc -l "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/preflight/ocr_needed_pdfs.txt"
 ```
 
-Restart later (resume from stage):
+Check extraction/runtime skips:
 
 ```bash
-tmux new -s k3d_pdf_ingestion
-bash scripts/run_overnight_pdf_ingestion.sh
+tail -n 20 "$K3D_ROOT/results/base_knowledge_ingest/01_encyclopedias/summaries/skipped_sources.jsonl"
+tail -n 20 "$K3D_ROOT/results/base_knowledge_ingest/02_default_libraries/summaries/skipped_sources.jsonl"
 ```
 
-The ingestion resumes from staged pages and rewrites the last page checkpoint to recover from partial writes.
+## 8. Post-Feed Validation
 
----
+After both roots are ingested:
 
-## 10. Troubleshooting Quick Map
+1. inspect representative resident rows in `galaxy_consolidated_latest.json`
+2. rerun canonical probes
+3. rerun the text-heavy benchmark slice only:
+   - `gsm8k=10`
+   - `mmlu=10`
+   - `lhe=10`
 
-- `ModuleNotFoundError: knowledge3d`: missing `PYTHONPATH=.`
-- Empty output payload with running GPU: check skip log JSONL and report JSON
-- Slow or stalled progress: verify Ollama model availability and timeout (`--ollama-timeout`)
-- Excess skipped PDFs: inspect skip log phases (`extract_pages`, classifier/augmenter failures)
+`arc3_local` / `GAME_2D` knowledge work remains out of scope for this base-knowledge restart.
