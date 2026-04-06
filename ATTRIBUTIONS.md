@@ -533,6 +533,80 @@ The **visual-text grounding** that enables K3D's OCR and character recognition w
 
 ---
 
+### 1.2.1 Tiny Recursive Model (TRM)
+
+**Source**:
+- [Less is More: Recursive Reasoning with Tiny Networks (arXiv:2510.04871)](https://arxiv.org/abs/2510.04871)
+- [SamsungSAILMontreal/TinyRecursiveModels](https://github.com/SamsungSAILMontreal/TinyRecursiveModels)
+
+**Author**: Alexia Jolicoeur-Martineau  
+**Public Affiliation at Time of Writing**: Samsung SAIT AI Lab, Montreal
+
+**What It Is**:
+- A compact recursive reasoning architecture centered on a **single tiny network**
+- Publicly presented as a **2-layer, 7M-parameter** recursive model
+- A direct challenge to the assumption that hard reasoning tasks require ever-larger foundational models
+
+**What Inspired Us**:
+- **Recursive answer refinement**: improve an answer over multiple internal reasoning steps instead of betting everything on one forward pass
+- **Compact-model seriousness**: treat small models as first-class reasoning systems, not as toys or mere distillations
+- **Architectural courage**: openly argue that scale is not the only viable path to strong reasoning
+- **Benchmark pressure**: demonstrate that small recursive models can remain competitive on difficult reasoning tasks such as ARC
+
+**Our Adaptation**:
+- We took the broader **small-recursive-reasoning thesis** seriously and pushed it into K3D's sovereign architecture
+- **TRM-as-Avatar**: in K3D, the tiny recursive model is not just a Python-called subroutine but the resident reasoning entity operating over persistent memory
+- **Externalized knowledge substrate**: instead of asking compact weights to memorize everything, K3D combines tiny recursive reasoning with **Galaxy/House procedural memory**
+- **PTX + RPN execution environment**: recursive reasoning is integrated with GPU-native execution, procedural knowledge, and inspectable audit structures
+
+**What We Did NOT Borrow**:
+- We did **not** import TRM training code, weights, or benchmark setup directly into K3D's sovereign hot path
+- We did **not** claim Alexia's architecture as our invention
+- We did **not** treat TRM as a drop-in implementation detail; we treated it as a contemporary research signal validating the broader direction
+
+**Credit**:
+- **Alexia Jolicoeur-Martineau** for publicly articulating and demonstrating the power of **tiny recursive reasoning**
+- For showing, with unusual clarity, that compact recursive systems deserve to be taken seriously as a path to generalization
+- For releasing the paper and code in a way that made this line of work legible and discussable by the broader community
+
+---
+
+### 1.2.2 Boris Knyazev: Graph Reasoning and Optimization Lineage
+
+**Public Sources**:
+- [Boris Knyazev Homepage](https://bknyaz.github.io/)
+- [GitHub: bknyaz](https://github.com/bknyaz)
+
+**Public Roles at Time of Writing**:
+- Research Scientist, Samsung AI Lab Montreal
+- Adjunct Professor, University of Montreal
+
+**Why He Is Mentioned Here**:
+K3D's current reasoning direction does not grow only out of language-model practice. It also grows out of the **graph reasoning, optimization, and structured generalization** tradition. Boris Knyazev's public research profile sits directly in that lineage:
+- graph neural networks
+- reasoning
+- optimization
+- scientific discovery
+
+That makes his work part of the **adjacent intellectual environment** that reinforces K3D's decision to invest in explicit structure, persistent relational memory, and compact reasoning systems.
+
+**What We Acknowledge**:
+- **Graph-first reasoning discipline**: strong reasoning often depends on explicit relational structure, not only on scale
+- **Optimization awareness**: good architectures emerge from disciplined trade-offs, not just parameter growth
+- **Scientific-discovery framing**: reasoning systems should support inspectable structure and compositional inference, not only fluent outputs
+
+**What We Did NOT Borrow**:
+- We do **not** claim direct architectural borrowing from Boris Knyazev's separate research projects
+- We do **not** claim use of his unpublished methods, weights, or internal Samsung research
+- This is an attribution of **research lineage and contemporary influence**, not a claim of code reuse
+
+**Credit**:
+- **Boris Knyazev** for representing an important contemporary line of work at the intersection of graph reasoning, optimization, and scientific discovery
+- For helping define the broader reasoning ecosystem in which compact, structured, non-scale-maximal approaches remain intellectually alive
+- For the public research identity that makes this lineage visible to those of us building adjacent systems such as K3D
+
+---
+
 ### 1.3 ARC-AGI: Abstraction and Reasoning Corpus
 
 **Source**: [ARC-AGI GitHub](https://github.com/fchollet/ARC-AGI)
