@@ -12,7 +12,7 @@
 
 As we enter the era of **AI-generated code** (2026+), a critical infrastructure problem emerges: **interpreted languages (Python, JavaScript, etc.) load comments and documentation into runtime memory, creating waste when machines execute code they don't need to read.**
 
-This document proposes **MR-HR Dual Versioning** as a PM-KR standard:
+This document proposes **MR-HR Dual Versioning** as a PM-KR technology:
 - **MR (Machine-Readable)**: Stripped, optimized code for execution (no comments, compressed)
 - **HR (Human-Readable)**: Documented, explained code for humans and AI agents to study
 
@@ -504,7 +504,7 @@ RETURN
 
 ---
 
-## PM-KR Specification: MR-HR Standard
+## PM-KR Specification: MR-HR Technology
 
 ### Conformance Levels
 
@@ -898,7 +898,7 @@ The **MR-HR Dual Versioning Paradigm** addresses a critical infrastructure gap i
 
 **K3D demonstrates this works** — `codeopt` has been in production since October 2025, achieving measurable savings across Python and JavaScript codebases.
 
-**PM-KR standardization** would enable:
+**PM-KR technology development** would enable:
 - Multi-agent systems to optimize memory usage
 - Robots to download verified workflows (MR) from Galaxy
 - Humans to audit procedural knowledge (HR) for safety/ethics

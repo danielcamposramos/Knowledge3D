@@ -164,7 +164,7 @@ Key differentiators to highlight (PM-KR column):
 - Hard traceability (vs post-hoc narrative)
 - Reference-first model (vs high duplication)
 - Explicit dual-client contract (vs indirect for LLMs)
-- W3C standardization path (vs vendor-defined)
+- W3C specification path (vs vendor-defined)
 
 Style guide:
 - Table format with alternating row colors (light gray/white)

@@ -93,13 +93,13 @@ Savings: 200,000× reduction (20GB → 100KB)
 - Intel XeSS: Yet another implementation
 - **Result**: Same logic implemented 3× (vendor lock-in)
 
-**PM-KR Standard**:
+**PM-KR Technology**:
 ```javascript
 {
-  standard: "PM-KR Procedural Frame Generation v1.0",
+  specification: "PM-KR Procedural Frame Generation v1.0",
   execution: "PTX (NVIDIA) + ROCm (AMD) + oneAPI (Intel)",
   vendor_agnostic: true,
-  benefit: "ONE W3C standard works across all GPUs"
+  benefit: "ONE W3C specification works across all GPUs"
 }
 ```
 
@@ -164,7 +164,7 @@ Savings: 200,000× reduction (20GB → 100KB)
 
 ---
 
-## W3C Standardization Opportunity
+## W3C Community Group Opportunity
 
 ### GPU for the Web WG Collaboration
 
@@ -173,7 +173,7 @@ Savings: 200,000× reduction (20GB → 100KB)
 **Proposed Deliverable**: **WebGPU Procedural Frame Generation API**
 
 ```javascript
-// W3C Standard: Procedural Frame Generation for WebGPU
+// W3C Specification: Procedural Frame Generation for WebGPU
 navigator.gpu.createProceduralFrameGenerator({
   rule: "motion_interpolation_rpn",
   targetFramerate: 120,              // Adaptive (60/90/120/240)
@@ -187,7 +187,7 @@ navigator.gpu.createProceduralFrameGenerator({
 - **Chrome/Firefox/Safari**: Native frame generation without NVIDIA/AMD drivers
 - **Mobile browsers**: DLSS-quality on phones (7M params vs. 2GB impossible)
 - **Energy efficiency**: 60-80% power reduction (longer battery life)
-- **Cross-platform**: ONE standard works everywhere
+- **Cross-platform**: ONE specification works everywhere
 
 ---
 
@@ -211,12 +211,12 @@ navigator.gpu.createProceduralFrameGenerator({
 
 **NVIDIA (DLSS Team)**:
 - **Contact**: DLSS engineering team (via GPU for Web WG connection)
-- **Pitch**: "PM-KR procedural layer complements DLSS → 40,000× VRAM savings, cross-vendor W3C standard"
+- **Pitch**: "PM-KR procedural layer complements DLSS → 40,000× VRAM savings, cross-vendor W3C specification"
 - **Benefit**: Position NVIDIA as W3C collaborator (not just proprietary vendor)
 
 **AMD (FSR Team)**:
 - **Contact**: FSR Redstone developers (GPUOpen community)
-- **Pitch**: "PM-KR procedural ray regeneration as open standard (building on AMD's open-source FSR philosophy)"
+- **Pitch**: "PM-KR procedural ray regeneration as open specification (building on AMD's open-source FSR philosophy)"
 - **Benefit**: AMD leadership in W3C GPU standards
 
 ---
@@ -242,7 +242,7 @@ navigator.gpu.createProceduralFrameGenerator({
 - [GPU vs CPU AI Rendering Performance](https://ecosystem.aethir.com/blog-posts/ai-rendering-gpu-vs-cpu-performance)
 
 **PM-KR Architecture**:
-- [PM-KR Standard Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- [PM-KR Technology Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - [Dual-Client Contract](../../vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - [Knowledgeverse Specification](../../vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
 

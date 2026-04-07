@@ -1,7 +1,7 @@
 # Cross-CG Synergy Map
 
 ## Objective
-Position PM-KR as a complementary standards effort that integrates with related W3C and web ecosystem groups.
+Position PM-KR as a complementary specification effort that integrates with related W3C and web ecosystem groups.
 
 ## Collaboration Targets
 1. WebML CG

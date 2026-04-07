@@ -47,7 +47,7 @@
 
 5. **W3C Collaboration** (8:00-10:00)
    - Brazil-Netherlands partnership (Daniel Ramos + Milton Ponson)
-   - W3C Community Group standardization
+   - W3C Community Group specification work
    - Open-source implementation (GitHub)
    - Real-world applications: e-readers, accessibility, explainable AI
 

@@ -8,7 +8,7 @@ At Rainbow Warriors Core Foundation CIAMSD Institute, Milton focuses on formal s
 
 Milton has also driven carbon-impact positioning for the project, helping shape the long-horizon scenario modeling published in the K3D carbon blueprint. His contribution links technical architecture decisions to environmental outcomes and policy relevance, including practical tradeoffs around compute efficiency, storage duplication, and long-term operational cost.
 
-His partnership with Daniel Campos Ramos anchors a MERCOSUR-EU collaboration in frontier technologies: engineering implementation from Brazil and mathematical-environmental framing from the Netherlands, coordinated through W3C standardization work.
+His partnership with Daniel Campos Ramos anchors a MERCOSUR-EU collaboration in frontier technologies: engineering implementation from Brazil and mathematical-environmental framing from the Netherlands, coordinated through W3C Community Group work.
 He consistently pushes for clear assumptions, transparent methodology, and measurable checkpoints when communicating sustainability outcomes to technical and policy audiences.
 His work keeps standards and climate accountability tightly linked.
 

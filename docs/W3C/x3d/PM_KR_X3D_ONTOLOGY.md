@@ -19,7 +19,7 @@
 - PM-KR X3D Procedural Memory Component v0.1 (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)
 - PM-KR X3D Avatar Embodiment Specification v0.1 (docs/w3c/x3d/PM_KR_X3D_AVATAR_SPECIFICATION.md)
 - K3D Formal Ontology Specification v1.0 (docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md)
-- PM-KR Standard Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- PM-KR Technology Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
 - Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - Meaning-Centric Star Schema Specification v1.0 (docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md)

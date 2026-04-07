@@ -340,7 +340,7 @@
 
 **PM-KR Positioning**:
 - Challenge Big AI monopoly (OpenAI, Google, Anthropic)
-- Open standard (W3C, not proprietary)
+- Open specification (W3C, not proprietary)
 - User sovereignty (not AI overlords)
 
 ### 3. **Hardware-Software Integration**

@@ -246,7 +246,7 @@ Cloud gaming (NVIDIA GeForce NOW, Xbox Cloud):
 
 ---
 
-## W3C Standardization Opportunity
+## W3C Community Group Opportunity
 
 ### GPU for the Web WG (WebGPU Procedural Display API)
 
@@ -255,7 +255,7 @@ Cloud gaming (NVIDIA GeForce NOW, Xbox Cloud):
 **Proposed Deliverable**: **WebGPU Procedural Display API**
 
 ```javascript
-// W3C Standard: Procedural Display Protocol for WebGPU
+// W3C Specification: Procedural Display Protocol for WebGPU
 navigator.gpu.createProceduralDisplayStream({
   target: "external_display",
   protocol: "procedural_scene_graph",
@@ -365,7 +365,7 @@ This use case contributes to the **12 Gigatons CO₂ savings (2026-2035)** proje
 - [DisplayPort vs. HDMI Gaming](https://www.avaccess.com/blogs/guides/displayport-1-4-vs-hdmi-2-1-gaming/)
 
 **PM-KR Architecture**:
-- [PM-KR Standard Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- [PM-KR Technology Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - [Dual-Client Contract](../../vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - [Knowledgeverse Specification](../../vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
 - [Spatial General Intelligence (SGI)](../../vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)

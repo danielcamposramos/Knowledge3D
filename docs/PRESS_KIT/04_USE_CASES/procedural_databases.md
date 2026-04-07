@@ -312,7 +312,7 @@ SELECT category, AVG(price), COUNT(*) FROM products GROUP BY category;
 
 ---
 
-## W3C Standardization Opportunity
+## W3C Community Group Opportunity
 
 ### Proposed Deliverable: Procedural Database Query Language (PDQL)
 
@@ -433,7 +433,7 @@ This use case contributes to the **12 Gigatons CO₂ savings (2026-2035)** proje
 - [MongoDB Architecture](https://www.mongodb.com/)
 
 **PM-KR Architecture**:
-- [PM-KR Standard Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- [PM-KR Technology Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - [Dual-Client Contract](../../vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - [Knowledgeverse Specification](../../vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
 - [Spatial General Intelligence (SGI)](../../vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)

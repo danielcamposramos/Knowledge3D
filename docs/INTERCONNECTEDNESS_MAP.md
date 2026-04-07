@@ -114,7 +114,7 @@ This document maps **47 distinct cross-disciplinary connections** made by Daniel
 
 ---
 
-## Part 2: W3C Standardization Connections (February 2026)
+## Part 2: W3C Community Group Connections (February 2026)
 
 ### Connection #8: Debian `apt` → PM-KR Distribution
 **Disciplines bridged**: Linux package management (1993-present) + W3C knowledge representation standards
@@ -207,8 +207,8 @@ This document maps **47 distinct cross-disciplinary connections** made by Daniel
 - Patient intake, grant approval, data sync workflows
 
 **Target domain**: PM-KR use case validation
-**Insight**: "OpenFn proves procedural knowledge IS critical infrastructure. If we can standardize it with PM-KR, 40+ countries benefit!"
-**Result**: OpenFn becomes anchor use case for PM-KR standardization
+**Insight**: "OpenFn proves procedural knowledge IS critical infrastructure. If we can define it with PM-KR, 40+ countries benefit!"
+**Result**: OpenFn becomes anchor use case for PM-KR technology development
 **Impact**: Connects PM-KR to $X billion BPM industry + international development
 **Validation**: Adam Sobieski introduced OpenFn as relevant to PM-KR (February 2026)
 **Prior art**: None (workflow automation and knowledge representation standards treated separately)
@@ -219,7 +219,7 @@ This document maps **47 distinct cross-disciplinary connections** made by Daniel
 
 ### Connection #13: MVCIC (Multi-Vibe Coding Chains)
 **Disciplines bridged**: Software development + Collective intelligence + Procedural workflows
-**Insight**: "If PM-KR standardizes procedural workflows, and K3D is built via multi-agent workflows, then MVCIC itself validates PM-KR!"
+**Insight**: "If PM-KR defines procedural workflows, and K3D is built via multi-agent workflows, then MVCIC itself validates PM-KR!"
 **Result**: MVCIC as concrete PM-KR implementation example
 - Claude instances = architecture agents
 - Codex instances = implementation agents

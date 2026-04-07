@@ -199,7 +199,7 @@ Row data:
 10. Standards posture
     - LLMs: Vendor-defined interfaces (OpenAI API, Anthropic API, etc.)
     - RAG: Framework-specific (LangChain, LlamaIndex, proprietary)
-    - PM-KR: W3C Community Group standardization (open standards path)
+    - PM-KR: W3C Community Group specification (open standards path)
 
 KEY DIFFERENTIATOR: PM-KR achieves 25,000× smaller model size (7M vs 175B params)
 with hard explainability and dual-client transparency.

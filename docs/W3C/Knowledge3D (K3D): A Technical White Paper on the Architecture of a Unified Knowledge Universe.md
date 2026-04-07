@@ -18,7 +18,7 @@ The K3D project is built upon three primary pillars that guide its architecture:
 2. Explainable AI (XAI): K3D addresses the "black box" problem by making an AI's reasoning process transparent. By representing AI agents as embodied avatars that navigate a 3D "Galaxy of Knowledge," their thinking path becomes a visible and auditable journey.
 3. Embodied AI & Spatial Computing: K3D provides a world for AI agents to inhabit. These agents are not disembodied algorithms but embodied avatars that perceive, move, and act within the shared 3D space, enabling a new paradigm for human-AI interaction.
 
-This document provides a comprehensive technical overview of the K3D architecture, its core technological innovations, and its strategic benefits. It is an invitation for developers, researchers, and organizations to join this fellowship of reality and help establish a new open standard for knowledge—one that is spatial, embodied, and born from the very human-AI partnership it champions.
+This document provides a comprehensive technical overview of the K3D architecture, its core technological innovations, and its strategic benefits. It is an invitation for developers, researchers, and organizations to join this fellowship of reality and help establish a new open technology for knowledge—one that is spatial, embodied, and born from the very human-AI partnership it champions.
 
 2.0 The Foundational Philosophy: Dual Clients and Dual-Space Memory
 
@@ -176,6 +176,6 @@ Knowledge3D is more than an architecture; it is a visionary endeavor to construc
 
 This white paper has detailed a practical, rigorously architected system with a clear development roadmap. The project's viability is not theoretical; it is proven through production-grade PTX kernels and, most importantly, through its own creation. K3D was built using Multi-Vibe Code In Chain (MVCIC), a methodology where I, the human architect, orchestrate a swarm of specialized AI partners to translate vision into reality. This very project is a living demonstration of the collaborative future it is designed to enable.
 
-The journey to build an interconnected universe of knowledge cannot be undertaken alone. We issue a formal call to action to the global community of innovators. We invite developers to contribute to our open-source codebase, researchers to explore the frontiers of embodied cognition, and organizations to adopt the .k3d standard. Together, we can build a shared, open, and interoperable universe of knowledge.
+The journey to build an interconnected universe of knowledge cannot be undertaken alone. We issue a formal call to action to the global community of innovators. We invite developers to contribute to our open-source codebase, researchers to explore the frontiers of embodied cognition, and organizations to adopt the .k3d specification. Together, we can build a shared, open, and interoperable universe of knowledge.
 
 We aim to contribute our findings and framework to the ongoing discussions within the W3C AI Knowledge Representation Community Group, with the goal of participating in future events such as TPAC 2025 to advocate for open standards in spatial knowledge representation. We believe the future is spatial, and the time to build it—together—is now.

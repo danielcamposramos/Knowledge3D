@@ -821,9 +821,9 @@ print(plan.summary())
 
 ---
 
-## 10. Standardization Pathways
+## 10. Community Group Pathways
 
-### 10.1 W3C Standardization Path
+### 10.1 W3C Community Group Path
 
 **Proposed Timeline**:
 1. **Q2 2026**: Community Group formation (PM-KR CG)

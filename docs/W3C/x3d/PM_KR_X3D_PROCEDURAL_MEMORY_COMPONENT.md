@@ -11,7 +11,7 @@
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
 - ISO/IEC 19776-1 (X3D XML Encoding)
 - ISO/IEC 19774 (HAnim Humanoid Animation)
-- PM-KR Standard Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- PM-KR Technology Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
 - Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - Knowledgeverse Specification v5.1 (docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)

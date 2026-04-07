@@ -152,7 +152,7 @@ PM-KR in K3D can be summarized as:
 - deterministic, auditable execution behavior
 - explicit separation of ingestion complexity and runtime guarantees
 
-That combination is what makes the model suitable for standardization discussion: it is concrete enough to test and broad enough to interoperate.
+That combination is what makes the model suitable for specification discussion: it is concrete enough to test and broad enough to interoperate.
 
 ## 15) Implementation Checklist for Engineering Teams
 For teams evaluating implementation or pilot adoption, this checklist is a practical starting point:

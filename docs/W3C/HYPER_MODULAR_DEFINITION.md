@@ -423,7 +423,7 @@ A knowledge representation system is **hyper-modular** if and only if:
 
 **Reference implementation**: Knowledge3D (K3D) — https://github.com/danielcamposramos/Knowledge3D
 
-**W3C standardization**: PM-KR (Procedural Memory Knowledge Representation) Community Group
+**W3C Community Group**: PM-KR (Procedural Memory Knowledge Representation) Community Group
 
 ---
 

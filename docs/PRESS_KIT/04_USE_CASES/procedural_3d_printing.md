@@ -196,7 +196,7 @@ Total: 3.5 GB to manufacture one model
 - Different printers interpret G-code differently (Marlin, Klipper, RepRap)
 - STL/3MF → slicer-specific G-code = vendor lock-in
 
-**PM-KR Standard**:
+**PM-KR Technology**:
 ```javascript
 {
   universal_procedural_print: {
@@ -267,7 +267,7 @@ Total: 3.5 GB to manufacture one model
 
 ---
 
-## W3C Standardization Opportunity
+## W3C Community Group Opportunity
 
 ### WebGPU Procedural 3D Printing API
 
@@ -276,7 +276,7 @@ Total: 3.5 GB to manufacture one model
 **Proposed Deliverable**: **WebGPU Procedural Manufacturing API**
 
 ```javascript
-// W3C Standard: Browser-native 3D printing
+// W3C Specification: Browser-native 3D printing
 navigator.gpu.createProceduralPrint({
   model: "procedural_rpn_program",
   material: "PLA_properties",
@@ -296,7 +296,7 @@ navigator.gpu.createProceduralPrint({
 
 **ISO/ASTM International** (Additive Manufacturing Standards):
 - **Contact**: Mohsen Seifi (ASTM F42 Chair), Olaf Diegel (ISO TC 261)
-- **Pitch**: "PM-KR Procedural Manufacturing Format (PMF) as ISO standard (100,000× compression, adaptive control, cross-printer compatibility)"
+- **Pitch**: "PM-KR Procedural Manufacturing Format (PMF) as ISO specification (100,000× compression, adaptive control, cross-printer compatibility)"
 - **Entry Point**: 3MF became ISO standard (2025) → PM-KR as evolution
 
 **3MF Consortium**:
@@ -329,7 +329,7 @@ navigator.gpu.createProceduralPrint({
 - **Entry Point**: ISO/ASTM standards collaboration
 
 **Consumer Printers** (Prusa, Ultimaker, Creality):
-- **Pitch**: "PM-KR open standard = cross-printer compatibility, web-based slicing"
+- **Pitch**: "PM-KR open specification = cross-printer compatibility, web-based slicing"
 - **Entry Point**: Open-source community (Marlin, Klipper firmware)
 
 ### Tier 3: Slicing Software
@@ -376,7 +376,7 @@ This use case contributes to the **12 Gigatons CO₂ savings (2026-2035)** proje
 - [Smart Manufacturing Anomaly Detection](https://link.springer.com/article/10.1007/s00170-025-16795-y)
 
 **PM-KR Architecture**:
-- [PM-KR Standard Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- [PM-KR Technology Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - [Dual-Client Contract](../../vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - [Knowledgeverse Specification](../../vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
 - [Spatial General Intelligence (SGI)](../../vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)

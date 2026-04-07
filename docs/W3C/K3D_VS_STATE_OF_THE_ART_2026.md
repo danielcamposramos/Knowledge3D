@@ -480,7 +480,7 @@ Adequacy vs completeness framing
 - **Jonathan DeRouchie**: Asking if PM-KR will provide what he lacks (industry need)
 - **Dave Raggett**: Adequacy framing aligns with K3D Houses (architectural validation)
 
-**PM-KR's role**: Bring K3D's 5-7 year lead to W3C standardization, so the industry can catch up faster.
+**PM-KR's role**: Bring K3D's 5-7 year lead to W3C Community Group technology development, so the industry can catch up faster.
 
 ---
 

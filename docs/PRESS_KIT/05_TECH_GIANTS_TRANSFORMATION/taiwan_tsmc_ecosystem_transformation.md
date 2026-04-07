@@ -391,7 +391,7 @@
 ### 4. **Global Collaboration**
 
 **W3C Governance**: Taiwan participates as equal member (not subordinate to US/China)
-**Universal Standard**: EVERY chip designer benefits (Apple, NVIDIA, AMD, Qualcomm, MediaTek)
+**Universal Technology**: EVERY chip designer benefits (Apple, NVIDIA, AMD, Qualcomm, MediaTek)
 
 ---
 

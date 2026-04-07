@@ -20,7 +20,7 @@
 
 ## 2. Mission Statement
 
-Develop and standardize **Procedural Memory Knowledge Representation (PM-KR)**, a novel knowledge representation paradigm that achieves:
+Develop and define **Procedural Memory Knowledge Representation (PM-KR)**, a novel knowledge representation paradigm that achieves:
 
 1. **Compression-preserving knowledge storage** through procedural composition and symlink-style references
 2. **Dual-client reality** where humans and AI systems consume the same procedural knowledge source
@@ -231,7 +231,7 @@ Develop and standardize **Procedural Memory Knowledge Representation (PM-KR)**, 
 
 ### 8.1 Consensus Model
 
-**W3C Community Group standard process**:
+**W3C Community Group process**:
 - **Proposals**: Any participant may submit (via mailing list or GitHub issue)
 - **Discussion**: Public mailing list, GitHub issues, meetings
 - **Consensus call**: Chair solicits objections (1-2 week response period)

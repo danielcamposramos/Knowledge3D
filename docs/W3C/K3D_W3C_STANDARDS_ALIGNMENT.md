@@ -329,7 +329,7 @@ if (navigator.k3d) {
 
 ---
 
-## 6. Standardization Roadmap
+## 6. Technology Roadmap
 
 ### 6.1 Short-Term (2025-2026)
 
@@ -429,7 +429,7 @@ RPN programs execute in a **sandboxed environment**:
 | **WebVR/WebXR** | Immersive rendering | K3D adds AI co-presence + semantic navigation |
 | **OpenCyc/Wikidata** | Knowledge graph | K3D adds 3D spatial layout + procedural compression |
 
-**K3D's Unique Value**: First standard to unify 3D spatial computing with semantic knowledge representation and multi-modal accessibility at the architectural level.
+**K3D's Unique Value**: First technology to unify 3D spatial computing with semantic knowledge representation and multi-modal accessibility at the architectural level.
 
 ---
 

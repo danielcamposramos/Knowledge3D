@@ -7,7 +7,7 @@
 
 # Hyper-Modular Architecture
 
-**Hyper-Modular Architecture** is a software and knowledge representation paradigm introduced in 2026 by Daniel Ramos during the development of Knowledge3D (K3D) and its subsequent standardization through the W3C Procedural Memory Knowledge Representation (PM-KR) Community Group.[1][2] The paradigm extends traditional modular architecture by implementing modularity at multiple hierarchical levels simultaneously, with each level composed via canonical procedural references rather than duplication.[3]
+**Hyper-Modular Architecture** is a software and knowledge representation paradigm introduced in 2026 by Daniel Ramos during the development of Knowledge3D (K3D) and its subsequent development through the W3C Procedural Memory Knowledge Representation (PM-KR) Community Group.[1][2] The paradigm extends traditional modular architecture by implementing modularity at multiple hierarchical levels simultaneously, with each level composed via canonical procedural references rather than duplication.[3]
 
 ## Contents
 1. Definition
@@ -16,7 +16,7 @@
 4. Comparison to Related Paradigms
 5. Reference Implementation
 6. Applications
-7. Standardization Efforts
+7. Technology Development Efforts
 8. See Also
 9. References
 10. External Links
@@ -151,7 +151,7 @@ AI systems benefit from hyper-modular architecture through:
 
 This enables sharing of canonical knowledge (e.g., Visual Galaxy) across all agents while allowing agent-specific compositions.[3]
 
-## Standardization Efforts
+## Technology Development Efforts
 
 ### W3C PM-KR Community Group
 
@@ -195,11 +195,11 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 
 [3] Ramos, D. (2026). "Hyper-Modular Architecture: Definition and Specification." PM-KR W3C Community Group. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/HYPER_MODULAR_DEFINITION.md
 
-[4] Ramos, D. (2026). "PM-KR Evidence Validation Matrix." PM-KR W3C Standardization Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md
+[4] Ramos, D. (2026). "PM-KR Evidence Validation Matrix." PM-KR W3C Technology Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md
 
 [5] Ramos, D. (2026). "Sovereign NSI Specification." Knowledge3D Vocabulary Documentation. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md
 
-[6] Ramos, D. (2026). "PM-KR Problem Statement." PM-KR W3C Standardization Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_PROBLEM_STATEMENT.md
+[6] Ramos, D. (2026). "PM-KR Problem Statement." PM-KR W3C Technology Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_PROBLEM_STATEMENT.md
 
 [7] Ramos, D. (2026). "K3D vs State of the Art 2026 Analysis." PM-KR W3C Documentation. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/K3D_VS_STATE_OF_THE_ART_2026.md
 
@@ -207,7 +207,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 
 [9] Knowledge3D Project. (2026). "Integration Tests." GitHub Repository. https://github.com/danielcamposramos/Knowledge3D/tree/main/tests
 
-[10] Ramos, D. (2026). "PM-KR Normative Model." PM-KR W3C Standardization Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_NORMATIVE_MODEL.md
+[10] Ramos, D. (2026). "PM-KR Normative Model." PM-KR W3C Technology Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_NORMATIVE_MODEL.md
 
 [11] Sporny, M. (2026). "RE: PM-KR CG Announcement." W3C Public Mailing List Archives. (Response to PM-KR announcement discussing CBOR-LD compression tables and RDF canonicalization)
 
@@ -221,7 +221,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 
 * [Knowledge3D (K3D) GitHub Repository](https://github.com/danielcamposramos/Knowledge3D) - Official repository containing reference implementation and documentation
 * [PM-KR W3C Community Group](https://www.w3.org/community/pm-kr/) - Official W3C Community Group page
-* [PM-KR W3C Standardization Package](https://github.com/danielcamposramos/Knowledge3D/tree/main/docs/W3C) - Complete standardization documentation including:
+* [PM-KR W3C Technology Package](https://github.com/danielcamposramos/Knowledge3D/tree/main/docs/W3C) - Complete technology documentation including:
   * [Problem Statement](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_PROBLEM_STATEMENT.md)
   * [Normative Model](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_NORMATIVE_MODEL.md)
   * [Conformance Profiles](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_CONFORMANCE_PROFILES.md)
@@ -253,7 +253,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
    - In the submission notes, explain:
      - "New technical term coined Feb 20, 2026 by Daniel Ramos"
      - "Reference implementation: Knowledge3D (K3D) with empirical validation"
-     - "W3C standardization: PM-KR Community Group (published Feb 20, 2026)"
+     - "W3C Community Group: PM-KR (published Feb 20, 2026)"
      - "Notable expert validation: Manu Sporny (JSON-LD co-creator), Milton Ponson (mathematician), Adam Sobieski (W3C veteran)"
      - "Addresses open challenges in knowledge representation (70% compression, sovereignty, dual-client reality)"
 
@@ -261,7 +261,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
    - **Significant coverage**: PM-KR W3C CG publication, expert validation
    - **Reliable sources**: W3C official pages, GitHub repository with documentation, expert endorsements
    - **Independent sources**: W3C is independent third-party (not self-published)
-   - **Long-term significance**: Standardization effort (not temporary)
+   - **Long-term significance**: Community Group technology development effort (not temporary)
 
 6. **Prepare for Review**
    - Wikipedia reviewers may request:
@@ -307,12 +307,12 @@ Anticipated reviewer questions and responses:
 A: Yes. The term was coined on Feb 20, 2026, and within hours received validation from notable W3C experts (Manu Sporny, JSON-LD co-creator; Adam Sobieski, W3C CG veteran). The W3C PM-KR Community Group (official W3C publication) uses hyper-modular architecture as a foundational concept. Reference implementation (K3D) demonstrates empirical validation (70% compression, 100% sovereignty, 68/68 tests passing).
 
 **Q: "Are there independent sources?"**
-A: W3C Community Group publication (Feb 20, 2026) is an independent third-party source. Expert validation from Manu Sporny (Digital Bazaar CEO, JSON-LD co-creator), Milton Ponson (mathematician), Adam Sobieski (W3C CG founder, 10+ years), and Jonathan DeRouchie (production AI systems) provides independent recognition. As PM-KR standardization progresses, academic papers and tech media coverage will emerge.
+A: W3C Community Group publication (Feb 20, 2026) is an independent third-party source. Expert validation from Manu Sporny (Digital Bazaar CEO, JSON-LD co-creator), Milton Ponson (mathematician), Adam Sobieski (W3C CG founder, 10+ years), and Jonathan DeRouchie (production AI systems) provides independent recognition. As PM-KR technology development progresses, academic papers and tech media coverage will emerge.
 
 **Q: "Is this a neologism?"**
 A: Yes, but with immediate technical adoption. The term was coined Feb 20, 2026, for a novel architectural paradigm with:
 - Reference implementation (K3D, empirically validated)
-- W3C standardization (PM-KR CG)
+- W3C Community Group (PM-KR CG)
 - Expert validation (4+ notable figures)
 - Formal definition (published specification)
 This meets Wikipedia's criteria for technical neologisms with substantive adoption.
@@ -328,7 +328,7 @@ Once the article is approved:
 
 1. **Monitor for updates**
    - Add new academic citations as they emerge
-   - Update with PM-KR standardization milestones
+   - Update with PM-KR technology development milestones
    - Add industry adoption examples
 
 2. **Respond to edits**

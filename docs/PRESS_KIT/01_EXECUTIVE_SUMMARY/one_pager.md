@@ -1,7 +1,7 @@
 # PM-KR and Knowledge3D One Pager
 
 ## What
-PM-KR is a W3C Community Group effort that standardizes how knowledge is stored once and reused through references. Knowledge3D (K3D) is the reference implementation.
+PM-KR is a W3C Community Group effort that defines how knowledge is stored once and reused through references. Knowledge3D (K3D) is the reference implementation.
 
 ## Why
 Today, same knowledge is duplicated across files, embeddings, accessibility layers, and app databases. PM-KR targets one canonical source for humans and AI, with deterministic traces and lower compute overhead.

@@ -11,7 +11,7 @@
 | Human and AI source parity | Usually indirect | Partial | Explicit dual-client contract orientation |
 | Governance controls | Policy wrappers around model behavior | Policy plus retrieval guardrails | Boundary contracts plus auditable procedural lineage |
 | Carbon profile tendency | High for large-scale training/inference regimes | Moderate to high depending on model usage | Designed for lower compute duplication; uses scenario modeling |
-| Standards posture | Vendor-defined interfaces dominate | Framework-specific implementations | W3C Community Group standardization path in progress |
+| Standards posture | Vendor-defined interfaces dominate | Framework-specific implementations | W3C Community Group specification path in progress |
 
 Notes:
 - The PM-KR values are based on K3D published internal reports and W3C package drafts.

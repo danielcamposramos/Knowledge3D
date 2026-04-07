@@ -12,7 +12,7 @@ Daniel Campos Ramos
 - Scheduling: flexible with advance notice
 
 ## Suggested Interview Topics
-1. PM-KR standards trajectory and W3C context
+1. PM-KR technology trajectory and W3C context
 2. K3D architecture and sovereign runtime path
 3. MERCOSUR-EU collaboration narrative
 4. Carbon projection methodology and caveats

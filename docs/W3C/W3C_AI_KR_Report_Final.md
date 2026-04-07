@@ -43,7 +43,7 @@ This report provides an update on the activities and progress of the W3C AI Know
 
 We propose the following contribution, which advances the conceptual and architectural requirements for a Spatial Web standard in KR. This work emphasizes Explainable AI (XAI), trustworthy Neurosymbolic Integration (NSI), and sovereign multi-modal fusion.
 
-K3D establishes a unified, open standard (.k3d) for 3D spatial knowledge representation that achieves XAI through embodied transparency in a shared reality. It implements a **Three-Brain System**:
+K3D establishes a unified, open specification (.k3d) for 3D spatial knowledge representation that achieves XAI through embodied transparency in a shared reality. It implements a **Three-Brain System**:
 *   **Cranium:** GPU-native PTX kernels for atomic cognition.
 *   **Galaxy:** Active 3D embeddings in GPU RAM.
 *   **House:** Persistent GLB/glTF-extended worlds on disk.
@@ -183,7 +183,7 @@ The framework's spatial nature provides a verifiable foundation for safety-criti
 
 | Category | Proposed Action/Wishlist Item | K3D Alignment/Rationale |
 |---|---|---|
-| KR Standardization | Standardize .k3d Node Format and glTF Extensions for Multi-Modal KR Exchange. | K3D's atomic nodes provide a basis for persistent spatial memory and align with IEEE P2874 for the Spatial Web. |
+| KR Technology Development | Define .k3d Node Format and glTF Extensions for Multi-Modal KR Exchange. | K3D's atomic nodes provide a basis for persistent spatial memory and align with IEEE P2874 for the Spatial Web. |
 | Efficiency Standards | Establish benchmarks for parameter efficiency in reasoning tasks. | K3D's 7M parameter models achieving ARC-AGI level reasoning highlight the need for new efficiency standards. |
 | NSI/Architecture | Establish Guidelines for Sovereign, Multi-Modal Architectures with Organic Emergence. | K3D's Router-as-Specialist architecture enables continuous self-improvement and validates the accessibility of trustworthy AI. |
 | Sovereign AI Certification | Create a W3C working group for sovereign AI certification. | As AI becomes critical infrastructure, standards are needed to ensure systems can operate independently. |

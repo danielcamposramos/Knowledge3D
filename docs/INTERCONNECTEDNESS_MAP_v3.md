@@ -538,7 +538,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 
 ---
 
-## Part 6: W3C Standardization (PM-KR Community Group)
+## Part 6: W3C Community Group (PM-KR Community Group)
 
 ### SYNTHESIS CHAIN M: Standards & Collaboration
 
@@ -570,7 +570,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
   RDF Canonicalization (Manu's work): Canonical form → digital signatures → trust
     ↓ (K3D Adaptation)
   Procedural Canonicalization: Canonical RPN programs → signatures → verifiable workflows
-    ↓ (PM-KR Standard)
+    ↓ (PM-KR Technology)
   Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
   ```
 - **His questions to K3D** (driving future work):
@@ -610,7 +610,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 - **His contribution to PM-KR**:
   - **BPM/Workflow Track**: Connects PM-KR to $X billion industry (Camunda, Temporal, Zapier, OpenFn)
   - **BPMN → PM-KR Mapping**: Compile BPMN XML to executable RPN programs
-  - **Audit Message Schema**: His "at point X during Y, observed Z" format → PM-KR standard
+  - **Audit Message Schema**: His "at point X during Y, observed Z" format → PM-KR technology
   - **Lean4 Formalization**: Theorem proving for workflow correctness (Year 2 work)
 - **Timeline**: 5-7 years (2019 WICG proposal → 2026 K3D validation)
 - **Insight**: "Adam proposed this 5 years ago, nobody built it. K3D IS the implementation!"
@@ -643,7 +643,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
   - Industry validation: LinkedIn-scale systems engineer sees PM-KR relevance
   - Graph + Procedural synthesis: GNNs (structural) + PM-KR (procedural) = complete representation
   - Recommendation systems: Procedural workflows for explainable recommendations
-- **Result**: Production LLM/GNN expertise for PM-KR standardization
+- **Result**: Production LLM/GNN expertise for PM-KR technology development
 
 **Connection #59: Hanna Abi Akl → 5th Early Ingressor**
 - **Contribution**: W3C Community Group voting member
@@ -664,7 +664,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
   - Local customization (each hospital/NGO House adapts canonical Galaxy workflows)
   - Audit journal (compliance tracking)
 - **Result**: Proves PM-KR addresses real production workflows, not just theory
-- **Validation**: OpenFn use case becomes anchor for PM-KR standardization
+- **Validation**: OpenFn use case becomes anchor for PM-KR technology development
 
 **Connection #61: Marko Rodriguez (Apache TinkerPop Founder, Gremlin Creator) → Graph Theory Foundation**
 - **Disciplines**: Graph theory + Graph traversal + Property graphs
@@ -1150,7 +1150,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 
 **Connection #108: MVCIC (Multi-Vibe Code In Chain) → Living PM-KR Proof**
 - **Disciplines**: Software development + Collective intelligence + Procedural workflows + PM-KR validation
-- **Insight**: "If PM-KR standardizes procedural workflows, and K3D is built via multi-agent workflows, then MVCIC itself validates PM-KR!"
+- **Insight**: "If PM-KR defines procedural workflows, and K3D is built via multi-agent workflows, then MVCIC itself validates PM-KR!"
 - **Result**: MVCIC as concrete PM-KR implementation example:
   - Claude instances = architecture agents
   - Codex instances = implementation agents

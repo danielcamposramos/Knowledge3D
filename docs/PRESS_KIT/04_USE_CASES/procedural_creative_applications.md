@@ -127,7 +127,7 @@ Total: 40GB+ duplicate AI models
 - Revit RVT → 3ds Max import = geometry export (20× file size explosion)
 - Figma → Photoshop = flatten layers (lose editability)
 
-**PM-KR Standard**:
+**PM-KR Technology**:
 ```javascript
 {
   universal_format: "PM-KR Procedural Creative Format (PCF)",
@@ -230,7 +230,7 @@ Total: 40GB+ duplicate AI models
 **Market Position**:
 - Affinity Designer (one-time purchase alternative to Adobe)
 - CorelDRAW (illustration, signage, print industry)
-- Open standard (PM-KR) vs. proprietary formats (PSD, AI)
+- Open specification (PM-KR) vs. proprietary formats (PSD, AI)
 
 ### 4. Game Asset Creation (Blender, Maya, 3ds Max, Substance Painter)
 
@@ -247,7 +247,7 @@ Total: 40GB+ duplicate AI models
 
 ---
 
-## W3C Standardization Opportunity
+## W3C Community Group Opportunity
 
 ### Existing Contacts (Extend with Creative Apps Angle)
 
@@ -268,7 +268,7 @@ Total: 40GB+ duplicate AI models
 
 **Web Applications WG** (W3C):
 - **Contact**: Marcos Cáceres (Mozilla), Sangwhan Moon (Google)
-- **Pitch**: "PM-KR procedural creative workspace as Web Standard (enable Photoshop-quality in browser, break Adobe monopoly)"
+- **Pitch**: "PM-KR procedural creative workspace as Web Technology (enable Photoshop-quality in browser, break Adobe monopoly)"
 - **Benefit**: Open web platform for professional creative tools
 
 **Open Font Format (OFF) / Fonts WG** (W3C):
@@ -313,7 +313,7 @@ Total: 40GB+ duplicate AI models
 ### Tier 3: Corel, Affinity, Figma (Adobe Challengers)
 
 **Pitch**:
-> "PM-KR procedural format = open W3C standard (break Adobe proprietary lock-in):
+> "PM-KR procedural format = open W3C specification (break Adobe proprietary lock-in):
 > - Read Adobe files natively (PSD, AI, PDF) via procedural interpretation
 > - Web-native tools (compete with Figma, no subscription)
 > - Cross-tool compatibility (Affinity ↔ Corel ↔ Blender seamless)"
@@ -323,7 +323,7 @@ Total: 40GB+ duplicate AI models
 ### Tier 4: Game Engines (Unity, Unreal, Godot)
 
 **Pitch**:
-> "PM-KR procedural assets as game engine standard:
+> "PM-KR procedural assets as game engine technology:
 > - Procedural textures, models, animations (download rules, not GB files)
 > - Real-time collaboration (hundreds of artists, 10KB/edit sync)
 > - Asset store efficiency (infinite variations from one procedural asset)"
@@ -368,7 +368,7 @@ This use case contributes to the **12 Gigatons CO₂ savings (2026-2035)** proje
 - [Future of SVG in 2026](https://svgmaker.io/blogs/future-of-svg-in-2026)
 
 **PM-KR Architecture**:
-- [PM-KR Standard Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
+- [PM-KR Technology Specification](../../vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
 - [Dual-Client Contract](../../vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
 - [Knowledgeverse Specification](../../vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
 - [Spatial General Intelligence (SGI)](../../vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)
@@ -390,7 +390,7 @@ This use case contributes to the **12 Gigatons CO₂ savings (2026-2035)** proje
 ### Medium-term (Q3-Q4 2026):
 1. **W3C specification**: Draft "Procedural Creative Format (PCF) v1.0"
 2. **Conference submissions**: SIGGRAPH 2026 (creative graphics), Autodesk University 2026 (BIM track)
-3. **Industry partnerships**: Collaborate with Affinity, Corel on open standard adoption
+3. **Industry partnerships**: Collaborate with Affinity, Corel on open specification adoption
 
 ---
 

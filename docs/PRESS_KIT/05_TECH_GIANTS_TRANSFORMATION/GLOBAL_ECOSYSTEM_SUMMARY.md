@@ -257,7 +257,7 @@ Emergent collective intelligence from multiple TRMs (7M params each) + humans co
 - Industry outreach (Adobe, AWS Database, Neo4j, Pinecone, TSMC, SAP)
 
 **Medium-term** (Q3-Q4 2026):
-- W3C Specification: "Procedural Memory KR Standard v1.0"
+- W3C Specification: "Procedural Memory KR Specification v1.0"
 - Multi-user Galaxy (collaborative workspaces)
 - Conference submissions (SIGGRAPH, VLDB, Display Week)
 
