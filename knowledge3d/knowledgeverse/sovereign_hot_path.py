@@ -891,7 +891,41 @@ class SovereignHotPath:
         )
         build_feed_signature, _resolved_names = self._expected_build_feed_signature()
         build_feed_t0 = time.perf_counter()
-        build_feed = self._load_build_feed(build_feed_signature)
+        auto_refresh_summary: dict[str, Any] = {}
+        try:
+            build_feed = self._load_build_feed(build_feed_signature)
+        except RuntimeError as exc:
+            message = str(exc)
+            rebuildable_prefixes = (
+                "sovereign_build_feed_missing:",
+                "sovereign_build_feed_missing_component:",
+                "sovereign_build_feed_stale:",
+                "sovereign_build_feed_signature_mismatch:",
+                "sovereign_build_feed_house_signature_mismatch:",
+                "sovereign_build_feed_default_signature_mismatch:",
+                "sovereign_feed_source_missing:",
+                "sovereign_feed_source_missing_component:",
+                "sovereign_feed_source_stale:",
+                "sovereign_feed_source_signature_mismatch:",
+                "sovereign_feed_source_house_signature_mismatch:",
+                "sovereign_feed_source_default_signature_mismatch:",
+            )
+            if force_rebuild or not message.startswith(rebuildable_prefixes):
+                raise
+            refresh_feed_source_t0 = time.perf_counter()
+            feed_source_refresh = self.refresh_feed_source(galaxy_names=_resolved_names)
+            refresh_feed_source_s = float(time.perf_counter() - refresh_feed_source_t0)
+            refresh_build_feed_t0 = time.perf_counter()
+            build_feed_refresh = self.refresh_build_feed(galaxy_names=_resolved_names)
+            refresh_build_feed_s = float(time.perf_counter() - refresh_build_feed_t0)
+            build_feed = self._load_build_feed(build_feed_signature)
+            auto_refresh_summary = {
+                "auto_refresh_trigger": message,
+                "feed_source_refresh_s": refresh_feed_source_s,
+                "build_feed_refresh_s": refresh_build_feed_s,
+                "feed_source_refresh": dict(feed_source_refresh or {}),
+                "build_feed_refresh": dict(build_feed_refresh or {}),
+            }
         build_feed_load_s = float(time.perf_counter() - build_feed_t0)
         star_build_t0 = time.perf_counter()
         build_summary = self._build_stars_from_build_feed(build_feed)
@@ -920,6 +954,8 @@ class SovereignHotPath:
         }
         summary.update(build_summary)
         summary.update(self.materializer.ptx_signatures())
+        if auto_refresh_summary:
+            summary["auto_refresh"] = auto_refresh_summary
         self._last_load_summary = dict(summary)
         return summary
 
@@ -3428,6 +3464,12 @@ class SovereignHotPath:
         validator_star = self._host_star(trace.validator_index)
         winner_star = self._host_star(trace.winner_index)
         options = list(task.get("options") or [])
+        declared_task_type = str(task.get("type") or payload["surface_kind"]).strip().upper()
+        effective_task_type = self.knowledgeverse._effective_question_task_type(
+            task_type=declared_task_type,
+            task=task,
+            options=options,
+        )
         answer_index = int(row.get("answer_index", 0) or 0)
         answer_text = _materialize_answer_text(
             options=options,
@@ -3441,6 +3483,8 @@ class SovereignHotPath:
             or (router_star or {}).get("route_family")
             or payload["surface_kind"]
         )
+        if resolved_route_family == "QUESTION" and effective_task_type in {"MMLU_TASK", "LHE_TASK"}:
+            resolved_route_family = effective_task_type.replace("_TASK", "")
         trace_star_ids = [
             str((self._host_star(index) or {}).get("id", ""))
             for index in list(trace.route_trace_star_indices or [])
@@ -3485,6 +3529,7 @@ class SovereignHotPath:
         runtime_packet["answer_materialized"] = bool(runtime_packet.get("answer_materialized"))
         failure_code = str(runtime_packet.get("failure_code") or "").strip()
         task_status = "ok" if (failure_code == "" or runtime_packet["answer_materialized"]) else "error"
+        materialized_answer_text = str(runtime_packet.get("answer_text") or "")
         anti_pattern_ids: list[str] = []
         if int(trace.anti_pattern_signal) > 0:
             anti_star = self._host_star(trace.winner_index)
@@ -3494,12 +3539,20 @@ class SovereignHotPath:
                     anti_pattern_ids.append(anti_id)
         return {
             "status": "ok" if task_status == "ok" else "error",
-            "query_type": payload["surface_kind"],
+            "query_type": effective_task_type.replace("_TASK", "") if effective_task_type else payload["surface_kind"],
+            "answer": materialized_answer_text,
+            "response": materialized_answer_text,
+            "result": materialized_answer_text,
+            "predicted_answer": materialized_answer_text,
+            "gpu_execution": True,
+            "runtime": "knowledgeverse_gpu_query",
+            "solver": "knowledgeverse_gpu_query",
+            "program_id": "gpu_task_dispatch_sovereign",
             "task_result": {
                 "status": task_status,
                 "answer_index": answer_index,
-                "answer": str(runtime_packet.get("answer_text") or ""),
-                "response": str(runtime_packet.get("answer_text") or ""),
+                "answer": materialized_answer_text,
+                "response": materialized_answer_text,
                 "confidence": float(row.get("confidence", 0.0) or 0.0),
                 "convergence_signal": int(row.get("convergence_signal", 0) or 0),
                 "iterations_used": int(row.get("iterations_used", 0) or 0),
@@ -3540,7 +3593,7 @@ class SovereignHotPath:
             },
             "program_type": "gpu_task_dispatch_sovereign",
             "trm_dispatch": {
-                "task_type": payload["surface_kind"],
+                "task_type": effective_task_type.replace("_TASK", "") if effective_task_type else payload["surface_kind"],
                 "router_star_id": str((router_star or {}).get("id", "")),
                 "executor_star_id": str((executor_star or {}).get("id", "")),
                 "validator_star_id": str((validator_star or {}).get("id", "")),

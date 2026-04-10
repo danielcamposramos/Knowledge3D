@@ -1,12 +1,9 @@
-"""
-Lightweight RPN bridge for the sovereign three-tier architecture.
+"""Lightweight RPN bridge for the sovereign three-tier architecture.
 
 Tier 1 focuses on ultra-fast execution of the most common operations
 (arithmetic, elementary math, comparisons, and basic stack modifiers).
-The bridge attempts to load the dedicated lightweight PTX kernel. When a
-CUDA context is not available (e.g., in CPU-only CI), it gracefully
-falls back to a minimal CPU interpreter that mirrors the Tier‑1 opcode
-set so unit tests can still exercise the public API.
+The live surface defaults to the known-good lite PTX kernel and keeps the
+Transfer Yard variant as an explicit opt-in while its JIT path is hardened.
 """
 from __future__ import annotations
 
@@ -54,26 +51,42 @@ class LightweightRPNEngine:
         self._cached_scalars_obj: Optional[bytes] = None
         self._cached_vectors_obj: Optional[bytes] = None
 
-        ptx_path = Path(__file__).parent.parent / "ptx" / "modular_rpn_kernel_lite.ptx"
-        if not ptx_path.exists():
-            raise FileNotFoundError(f"[LightweightRPN] PTX kernel missing: {ptx_path}")
-        try:
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[LightweightRPN] CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES')}")
-            self._kernel = loader.load_ptx_file(str(ptx_path), "modular_rpn_geometric_kernel")
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print("[LightweightRPN] Loaded PTX")
-            self._device_state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print("[LightweightRPN] Allocated device state")
-            zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
-            loader.memcpy_htod(self._device_state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print("[LightweightRPN] GPU path enabled")
-            self._gpu_enabled = True
-        except Exception as exc:
-            # Hard fail: no CPU fallback. Sovereign path must run on GPU.
-            raise RuntimeError(f"[LightweightRPN] GPU path failed: {exc}") from exc
+        ptx_root = Path(__file__).parent.parent / "ptx"
+        requested_variant = os.environ.get("K3D_TIER1_PTX_VARIANT", "lite").strip().lower()
+        candidates: list[tuple[str, Path, str]] = []
+        if requested_variant == "transfer_yard":
+            candidates.append(
+                ("transfer_yard", ptx_root / "modular_rpn_kernel_lite_transfer_yard.ptx", "modular_rpn_transfer_yard_kernel")
+            )
+        candidates.append(("lite", ptx_root / "modular_rpn_kernel_lite.ptx", "modular_rpn_geometric_kernel"))
+        if requested_variant != "transfer_yard":
+            candidates.append(
+                ("transfer_yard", ptx_root / "modular_rpn_kernel_lite_transfer_yard.ptx", "modular_rpn_transfer_yard_kernel")
+            )
+
+        last_exc: Exception | None = None
+        for variant_name, ptx_path, entry_name in candidates:
+            if not ptx_path.exists():
+                last_exc = FileNotFoundError(f"[LightweightRPN] PTX kernel missing: {ptx_path}")
+                continue
+            try:
+                if os.environ.get("K3D_RPN_DEBUG"):
+                    print(f"[LightweightRPN] CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES')}")
+                    print(f"[LightweightRPN] Trying Tier-1 variant {variant_name}: {ptx_path.name}")
+                self._kernel = loader.load_ptx_file(str(ptx_path), entry_name)
+                self._device_state = loader.gpu_malloc(self.MAX_INSTANCES * self.INSTANCE_STRIDE)
+                zeros = (ctypes.c_uint8 * (self.MAX_INSTANCES * self.INSTANCE_STRIDE))()
+                loader.memcpy_htod(self._device_state, ctypes.cast(zeros, ctypes.c_void_p), ctypes.sizeof(zeros))
+                self._gpu_enabled = True
+                self._variant_name = variant_name
+                break
+            except Exception as exc:
+                last_exc = exc
+                self._kernel = None
+                self._device_state = None
+                self._gpu_enabled = False
+        if not self._gpu_enabled:
+            raise RuntimeError(f"[LightweightRPN] Sovereign Tier-1 GPU path failed: {last_exc}") from last_exc
 
     def __del__(self) -> None:
         try:
@@ -131,7 +144,7 @@ class LightweightRPNEngine:
         scalars: Iterable[float],
         vectors: Iterable[Iterable[float]],
     ) -> float:
-        """Execute a single RPN program on Tier‑1."""
+        """Execute a single RPN program on Tier‑1 using sovereign GPU kernels."""
         op_codes_list = [int(o) for o in op_codes]
         scalars_list = [float(s) for s in scalars]
         vectors_list = [[float(c) for c in v] for v in vectors]
@@ -153,18 +166,11 @@ class LightweightRPNEngine:
                 "Use the Tier 2 (standard) or Tier 3 (advanced) engine."
             )
 
-        if self._gpu_enabled:
-            return self._execute_gpu(instance_id, op_codes_list, scalars_list, vectors_list)
-
-        result = self._execute_cpu(op_codes_list, scalars_list, vectors_list)
-        self._cached_result = result
-        self._cached_codes_obj = None
-        self._cached_scalars_obj = None
-        self._cached_vectors_obj = None
-        self._cached_codes_bytes = bytes(self._encode_uint16(op_codes_list))
-        self._cached_scalars_bytes = self._encode_f32(scalars_list)
-        self._cached_vectors_bytes = self._encode_f32_flat(vectors_list)
-        return result
+        # Sovereign architecture: GPU execution is mandatory
+        if not self._gpu_enabled:
+            raise RuntimeError("[LightweightRPN] Sovereign GPU kernel required but not available")
+        
+        return self._execute_gpu(instance_id, op_codes_list, scalars_list, vectors_list)
 
     # ------------------------------------------------------------------ #
     # GPU path (shares structure with Tier‑2 engine but trimmed ops)
@@ -261,106 +267,20 @@ class LightweightRPNEngine:
             ctypes.sizeof(header_zero),
         )
 
-    # ------------------------------------------------------------------ #
-    # CPU interpreter (fallback)
-    # ------------------------------------------------------------------ #
-    def _execute_cpu(
-        self,
-        op_codes: Iterable[int],
-        scalars: Iterable[float],
-        vectors: Iterable[Iterable[float]],
-    ) -> float:
-        stack: list[list[float]] = []
-        scalar_index = 0
-        vector_index = 0
-
-        def pop_scalar() -> float:
-            if not stack:
-                raise RuntimeError("Tier‑1 CPU fallback stack underflow")
-            value = stack.pop()
-            return float(value[0])
-
-        def push_scalar(value: float) -> None:
-            stack.append([value, 0.0, 0.0, 0.0])
-
-        for op in op_codes:
-            if op == 0:  # literal scalar
-                push_scalar(float(scalars[scalar_index]))
-                scalar_index += 1
-            elif op == 1:  # literal vector
-                vec = [0.0, 0.0, 0.0, 0.0]
-                cur_vec = list(vectors[vector_index])
-                for idx in range(min(3, len(cur_vec))):
-                    vec[idx] = cur_vec[idx]
-                vector_index += 1
-                stack.append(vec)
-            elif op in (10, 11, 12, 13):  # add/sub/mul/div
-                b = pop_scalar()
-                a = pop_scalar()
-                if op == 10:
-                    push_scalar(a + b)
-                elif op == 11:
-                    push_scalar(a - b)
-                elif op == 12:
-                    push_scalar(a * b)
-                else:
-                    push_scalar(a / b)
-            elif op == 15:  # neg
-                push_scalar(-pop_scalar())
-            elif op in (20, 21, 22, 24, 25, 26):
-                a = pop_scalar()
-                if op == 20:
-                    push_scalar(math.sqrt(a))
-                elif op == 21:
-                    push_scalar(math.exp(a))
-                elif op == 22:
-                    push_scalar(math.log(a))
-                elif op == 24:
-                    push_scalar(math.sin(a))
-                elif op == 25:
-                    push_scalar(math.cos(a))
-                else:
-                    push_scalar(math.tan(a))
-            elif op in (40, 42, 44, 46, 47):
-                b = pop_scalar()
-                a = pop_scalar()
-                if op == 40:
-                    push_scalar(1.0 if a > b else 0.0)
-                elif op == 42:
-                    push_scalar(1.0 if a < b else 0.0)
-                elif op == 44:
-                    push_scalar(1.0 if abs(a - b) <= 1e-6 else 0.0)
-                elif op == 46:
-                    push_scalar(max(a, b))
-                else:
-                    push_scalar(min(a, b))
-            elif op == 50:  # dup
-                if not stack:
-                    raise RuntimeError("Tier‑1 CPU fallback stack underflow")
-                stack.append(list(stack[-1]))
-            elif op == 51:  # swap
-                if len(stack) < 2:
-                    raise RuntimeError("Tier‑1 CPU fallback stack underflow")
-                stack[-1], stack[-2] = stack[-2], stack[-1]
-            elif op == 52:  # drop
-                if not stack:
-                    raise RuntimeError("Tier‑1 CPU fallback stack underflow")
-                stack.pop()
-            else:
-                raise RuntimeError(f"Unexpected opcode {op} in Tier‑1 CPU interpreter")
-
-        if not stack:
-            raise RuntimeError("Tier‑1 CPU fallback produced empty stack")
-        return float(stack[-1][0])
+    # Sovereign architecture: CPU fallback removed - GPU kernels are mandatory
 
     # ------------------------------------------------------------------ #
     # Encoding helpers
     # ------------------------------------------------------------------ #
     @staticmethod
-    def _encode_opcodes_bytes(values: Iterable[int]) -> bytes:
+    def _encode_uint16(values: Iterable[int]) -> bytes:
         vals = [int(v) & 0xFFFF for v in values]
         OpArray = ctypes.c_uint16 * len(vals)
         return memoryview(OpArray(*vals)).tobytes(order="C")
+
+    @staticmethod
+    def _encode_opcodes_bytes(values: Iterable[int]) -> bytes:
+        return LightweightRPNEngine._encode_uint16(values)
 
     @staticmethod
     def _encode_f32(values: Iterable[float]) -> bytes:

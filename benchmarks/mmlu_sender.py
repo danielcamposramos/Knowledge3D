@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.tablet.wine.question_wine import mmlu_question_envelope
+
 try:
     from benchmarks.daemon_client import DaemonClient
 except ModuleNotFoundError:  # Direct script execution.
@@ -90,23 +92,13 @@ def main() -> int:
     use_enriched = True
     enforce_gpu = not bool(args.allow_zero_gpu)
     for row in rows:
-        prompt = row["question"]
-        if row.get("options"):
-            prompt += "\nOptions:\n" + "\n".join(f"- {opt}" for opt in row["options"])
-        payload = {
-            "command": "ROUTE",
-            "specialist": "chat",
-            "use_enriched": use_enriched,
-            "task": {
-                "task_id": row["task_id"],
-                "query": prompt,
-                "prompt": prompt,
-                "messages": [{"role": "user", "content": prompt}],
-                "subject": row.get("subject"),
-                "options": row.get("options", []),
-                "domain_hint": "multi",
-            },
-        }
+        envelope = mmlu_question_envelope(
+            task_id=str(row["task_id"]),
+            question=str(row["question"]),
+            options=list(row.get("options") or []),
+            subject=str(row.get("subject") or "general"),
+        )
+        payload = envelope.to_route_payload(use_enriched=use_enriched)
         response = client.send(payload)
         if enforce_gpu:
             client.assert_gpu_for_solved_command(

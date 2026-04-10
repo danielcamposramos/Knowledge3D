@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+from collections import Counter
 from pathlib import Path
+from statistics import median
 from typing import Any, Callable
 
 from benchmarks.math_competitions import UnifiedMathBenchmark
@@ -47,6 +50,7 @@ class GSM8KBenchmark:
             for row in self._bench.problems
         ]
         self.results: list[dict[str, Any]] = []
+        self.last_summary: dict[str, Any] = {}
 
         self.dataset_source = "GSM8K"
         self.dataset_file = str(self.dataset_path) if self.dataset_path.exists() else "not_found"
@@ -87,8 +91,11 @@ class GSM8KBenchmark:
                 "question_id": row["problem_id"],
                 "question_text": source["question_text"],
                 "predicted_answer": row.get("predicted_answer"),
+                "answer_format": self._classify_answer_format(row.get("predicted_answer")),
                 "correct_answer": source["correct_answer"],
                 "correct": bool(row.get("correct", False)),
+                "elapsed_s": float(row.get("elapsed_s", 0.0) or 0.0),
+                "elapsed_ms": round(float(row.get("elapsed_s", 0.0) or 0.0) * 1000.0, 3),
                 "reasoning_trace": list(row.get("reasoning_trace", [])),
                 "route": row.get("route"),
                 "solver": str(row.get("solver", "")),
@@ -99,7 +106,7 @@ class GSM8KBenchmark:
             }
             for source, row in zip(self.questions, self._bench.results)
         ]
-        return {
+        output = {
             "benchmark": "GSM8K",
             "total_questions": len(self.questions),
             "correct": sum(1 for row in self.results if row.get("correct")),
@@ -108,21 +115,103 @@ class GSM8KBenchmark:
             "dataset_path": self.dataset_file,
             "dataset_source": self.dataset_source,
             "synthetic_fallback": self.synthetic_fallback,
+            "timing_summary": self._timing_summary(),
+            "answer_format_counts": self._answer_format_counts(),
             "results": self.results,
         }
+        self.last_summary = dict(output)
+        return output
+
+    def _timing_summary(self) -> dict[str, float | int]:
+        timings = [
+            float(row.get("elapsed_s", 0.0) or 0.0)
+            for row in self.results
+            if float(row.get("elapsed_s", 0.0) or 0.0) >= 0.0
+        ]
+        if not timings:
+            return {
+                "count": 0,
+                "avg_task_s": 0.0,
+                "avg_task_ms": 0.0,
+                "median_task_s": 0.0,
+                "median_task_ms": 0.0,
+                "min_task_s": 0.0,
+                "max_task_s": 0.0,
+            }
+        avg_s = sum(timings) / len(timings)
+        med_s = float(median(timings))
+        return {
+            "count": len(timings),
+            "avg_task_s": round(avg_s, 6),
+            "avg_task_ms": round(avg_s * 1000.0, 3),
+            "median_task_s": round(med_s, 6),
+            "median_task_ms": round(med_s * 1000.0, 3),
+            "min_task_s": round(min(timings), 6),
+            "max_task_s": round(max(timings), 6),
+        }
+
+    def _answer_format_counts(self) -> dict[str, int]:
+        counts: Counter[str] = Counter(
+            str(row.get("answer_format") or "unknown")
+            for row in self.results
+        )
+        return {key: int(count) for key, count in sorted(counts.items())}
+
+    @staticmethod
+    def _classify_answer_format(value: Any) -> str:
+        if value is None:
+            return "empty"
+        text = str(value).strip()
+        if not text:
+            return "empty"
+        try:
+            float(text)
+            return "numeric"
+        except Exception:
+            return "text"
 
     def save_results(self, output_path: str | Path) -> None:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
+        payload = dict(self.last_summary) if self.last_summary else {
             "benchmark": "GSM8K",
-            "total": len(self.results),
+            "total_questions": len(self.results),
             "correct": sum(1 for row in self.results if row.get("correct")),
             "accuracy": (
                 sum(1 for row in self.results if row.get("correct")) / len(self.results)
                 if self.results
                 else 0.0
             ),
+            "timing_summary": self._timing_summary(),
+            "answer_format_counts": self._answer_format_counts(),
             "results": self.results,
         }
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the sovereign GSM8K benchmark through the tablet boundary.")
+    parser.add_argument("--dataset-path", type=str, default=None)
+    parser.add_argument("--max-tasks", type=int, default=20)
+    parser.add_argument("--query-scope-galaxies", type=str, default=None)
+    parser.add_argument("--summary-output", type=str, default=None)
+    parser.add_argument("--use-enriched", action="store_true", default=False)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    benchmark = GSM8KBenchmark(
+        dataset_path=args.dataset_path,
+        max_questions=args.max_tasks,
+        query_scope_galaxies=args.query_scope_galaxies,
+    )
+    summary = benchmark.run_benchmark(use_enriched=bool(args.use_enriched))
+    if args.summary_output:
+        benchmark.save_results(args.summary_output)
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,35 @@
+name: trmc_core
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - numpy<2
+  - cuda-nvcc=12.4
+  - cuda-nvrtc=12.4
+  - cuda-toolkit=12.4
+  - cmake
+  - git
+  - pkg-config
+  - libffi
+  - zlib
+  - openssl
+  - python-rapidjson
+  - scikit-learn
+  - pandas
+  - pygltflib
+  - umap-learn
+  - requests
+  - pip:
+      - cupy-cuda12x==14.0.1
+      - cuda-python>=12.4,<12.5
+      - torch
+      - pytest
+      - pytest-benchmark
+      - websockets==10.4
+      - pyyaml
+      - pillow
+      - typing_extensions
+      - arc-agi==0.0.7

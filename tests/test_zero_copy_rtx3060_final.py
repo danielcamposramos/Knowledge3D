@@ -18,7 +18,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['K3D_USE_PRIMARY_CTX'] = '1'
 
 # Add project root to path
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from knowledge3d.cranium.sovereign import loader
 

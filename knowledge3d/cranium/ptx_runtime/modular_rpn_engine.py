@@ -19,15 +19,82 @@ from knowledge3d.cranium.ptx_runtime.math_core_pool import (
     MathCorePool,
     get_global_math_core_pool,
 )
+from knowledge3d.cranium.ptx_runtime.micro_specialist_pool import (
+    get_global_micro_specialist_pool,
+)
 from .rpn_opcodes import (
     OP_ENTROPY_SUM,
     OP_GALAXY_SCAN,
     OP_GALAXY_SIMILARITY,
     OP_LOAD_GALAXY,
+    OP_PH_BODY_DESPAWN,
+    OP_PH_BODY_SPAWN,
+    OP_PH_BROAD_PHASE,
+    OP_PH_COLLISION_QUERY,
+    OP_PH_CONSTRAINT_COLOR,
+    OP_PH_CONSTRAINT_GENERATE,
+    OP_PH_FRICTION_APPLY,
+    OP_PH_GALAXY_WRITE,
+    OP_PH_GRAVITY_APPLY,
+    OP_PH_IMPULSE_PROPAGATE,
+    OP_PH_INTEGRATE,
+    OP_PH_ISLAND_WAKE,
+    OP_PH_MATERIAL_FETCH,
+    OP_PH_NARROW_PHASE,
+    OP_PH_PREDICT_POS,
+    OP_PH_RESTITUTION_APPLY,
+    OP_PH_SLEEP_CHECK,
+    OP_PH_TERNARY_CLASSIFY,
+    OP_PH_XPBD_SOLVE,
+    OP_BH_APPLY_FORCE,
+    OP_BH_ARRIVE,
+    OP_BH_BLACKBOARD_READ,
+    OP_BH_BLACKBOARD_WRITE,
+    OP_BH_BT_TICK,
+    OP_CAS_BUILD,
+    OP_CAS_EVAL,
+    OP_CAS_HASH,
+    OP_CAS_PUSH_CONST,
+    OP_CAS_PUSH_SYM,
+    OP_CANONICALIZE,
+    OP_COEFF_EXTRACT,
+    OP_COLLECT,
+    OP_CONTEXTUAL_REWRITE,
+    OP_BH_FLEE,
+    OP_BH_GOAP_PLAN,
+    OP_BH_PATHFIND,
+    OP_BH_PERCEIVE,
+    OP_BH_SEEK,
+    OP_BH_SEPARATE,
+    OP_BH_SLEEP_CHECK,
+    OP_LINSOLVE,
+    OP_LOG_SIMPLIFY,
+    OP_PATTERN_MATCH,
+    OP_POLY_ADD,
+    OP_POLY_BUILD,
+    OP_POLY_COEFF,
+    OP_POLY_DIV,
+    OP_POLY_FACTOR,
+    OP_POLY_GCD,
+    OP_POLY_MUL,
+    OP_POLY_REM,
+    OP_RATIONALIZE,
+    OP_RULE_SELECT,
+    OP_RULE_APPLY,
+    OP_SEMANTIC_EQUIV,
+    OP_SEMANTIC_RESOLVE,
+    OP_SIMPLIFY,
+    OP_SOLVE_LINEAR,
+    OP_SOLVE_QUADRATIC,
+    OP_SUBSTITUTE,
+    OP_TRIG_SIMPLIFY,
     OP_SIGMOID_APPROX,
     OP_SMAV,
     OP_SPARSE_LOAD,
     OP_POINTER_LITERAL,
+    OP_CHECKPOINT,
+    OP_ROLLBACK,
+    OP_VERIFY,
     OP_RECALL,
     OP_STORE,
     OP_TRM_MATVEC_1024x512,
@@ -35,6 +102,54 @@ from .rpn_opcodes import (
     OP_TRM_SWIGLU_1024,
     OP_TRM_SWIGLU_512,
     OP_TRM_VEC_ADD3_512,
+    OP_VAR_W,
+    OP_VAR_X,
+    OP_VAR_Y,
+    OP_VAR_Z,
+    OP_CONST,
+    OP_SYMBOLIC_DIFF,
+    OP_SYMBOLIC_INTEGRATE,
+    OP_GRADIENT,
+    # Drawing Engine Phases 2-6 opcodes
+    OP_BEZIER_EVAL,
+    OP_SHAPE_UNION,
+    OP_SHAPE_INTERSECT,
+    OP_SHAPE_SUBTRACT,
+    OP_DRAW_REL_LINE,
+    OP_DRAW_FIELD_COEF,
+    OP_DRAW_DOT_EMIT,
+    OP_DRAW_VECTORDOTMAP_ENCODE,
+    OP_DRAW_VECTORDOTMAP_DECODE,
+    OP_DRAW_LAYER_NEW,
+    OP_LAYER_BLEND,
+    OP_BLEND_MULTIPLY,
+    OP_BLEND_SCREEN,
+    OP_BLEND_OVERLAY,
+    OP_ATMOSPHERE_FOG,
+    OP_VIGNETTE,
+    # 3D Technique Suite opcodes
+    OP_NURBS_EVAL,
+    OP_MARCHING_CUBES,
+    OP_LSYSTEM_GENERATE,
+    OP_PARAMETRIC_SURFACE,
+    OP_CSG_UNION_3D,
+    OP_CSG_INTERSECT_3D,
+    OP_CSG_SUBTRACT_3D,
+    OP_CROSS_MODAL_LINK,
+    OP_PROCEDURAL_TEXTURE,
+    OP_TEX_PERLIN_NOISE,
+    OP_TEX_VORONOI,
+    OP_TEX_VALUE_NOISE,
+    OP_TEX_GRID_NOISE,
+    OP_TEX_FFT_BLUR,
+    OP_TEX_WARP,
+    OP_TEX_BLEND,
+    OP_TEX_NORMAL_MAP,
+    OP_TEX_COLOR_RAMP,
+    OP_TEX_TURBULENCE,
+    OP_TEX_MARBLE,
+    OP_TEX_TRANSFORM,
+    OP_TEX_BAKE,
 )
 from .codec_opcodes import (
     OP_TERNARY_QUANT,
@@ -101,6 +216,75 @@ class ModularRPNEngine:
         "load_galaxy": OP_LOAD_GALAXY,
         "galaxy_similarity": OP_GALAXY_SIMILARITY,
         "galaxy_scan": OP_GALAXY_SCAN,
+        "ph_broad_phase": OP_PH_BROAD_PHASE,
+        "ph_narrow_phase": OP_PH_NARROW_PHASE,
+        "ph_constraint_generate": OP_PH_CONSTRAINT_GENERATE,
+        "ph_xpbd_solve": OP_PH_XPBD_SOLVE,
+        "ph_integrate": OP_PH_INTEGRATE,
+        "ph_sleep_check": OP_PH_SLEEP_CHECK,
+        "ph_galaxy_write": OP_PH_GALAXY_WRITE,
+        "ph_material_fetch": OP_PH_MATERIAL_FETCH,
+        "ph_predict_pos": OP_PH_PREDICT_POS,
+        "ph_constraint_color": OP_PH_CONSTRAINT_COLOR,
+        "ph_impulse_propagate": OP_PH_IMPULSE_PROPAGATE,
+        "ph_restitution_apply": OP_PH_RESTITUTION_APPLY,
+        "ph_friction_apply": OP_PH_FRICTION_APPLY,
+        "ph_island_wake": OP_PH_ISLAND_WAKE,
+        "ph_body_spawn": OP_PH_BODY_SPAWN,
+        "ph_body_despawn": OP_PH_BODY_DESPAWN,
+        "ph_gravity_apply": OP_PH_GRAVITY_APPLY,
+        "ph_collision_query": OP_PH_COLLISION_QUERY,
+        "ph_ternary_classify": OP_PH_TERNARY_CLASSIFY,
+        "bh_perceive": OP_BH_PERCEIVE,
+        "bh_seek": OP_BH_SEEK,
+        "bh_flee": OP_BH_FLEE,
+        "bh_arrive": OP_BH_ARRIVE,
+        "bh_separate": OP_BH_SEPARATE,
+        "bh_apply_force": OP_BH_APPLY_FORCE,
+        "bh_bt_tick": OP_BH_BT_TICK,
+        "bh_goap_plan": OP_BH_GOAP_PLAN,
+        "bh_sleep_check": OP_BH_SLEEP_CHECK,
+        "bh_blackboard_read": OP_BH_BLACKBOARD_READ,
+        "bh_blackboard_write": OP_BH_BLACKBOARD_WRITE,
+        "bh_pathfind": OP_BH_PATHFIND,
+        "poly_coeff": OP_POLY_COEFF,
+        "poly_build": OP_POLY_BUILD,
+        "poly_add": OP_POLY_ADD,
+        "poly_mul": OP_POLY_MUL,
+        "poly_div": OP_POLY_DIV,
+        "poly_rem": OP_POLY_REM,
+        "poly_gcd": OP_POLY_GCD,
+        "poly_factor": OP_POLY_FACTOR,
+        "simplify": OP_SIMPLIFY,
+        "substitute": OP_SUBSTITUTE,
+        "collect": OP_COLLECT,
+        "rationalize": OP_RATIONALIZE,
+        "trig_simplify": OP_TRIG_SIMPLIFY,
+        "log_simplify": OP_LOG_SIMPLIFY,
+        "solve_linear": OP_SOLVE_LINEAR,
+        "solve_quadratic": OP_SOLVE_QUADRATIC,
+        "linsolve": OP_LINSOLVE,
+        "pattern_match": OP_PATTERN_MATCH,
+        "rule_apply": OP_RULE_APPLY,
+        "coeff_extract": OP_COEFF_EXTRACT,
+        "cas_push_sym": OP_CAS_PUSH_SYM,
+        "cas_push_const": OP_CAS_PUSH_CONST,
+        "cas_build": OP_CAS_BUILD,
+        "cas_eval": OP_CAS_EVAL,
+        "canonicalize": OP_CANONICALIZE,
+        "cas_hash": OP_CAS_HASH,
+        "semantic_resolve": OP_SEMANTIC_RESOLVE,
+        "rule_select": OP_RULE_SELECT,
+        "contextual_rewrite": OP_CONTEXTUAL_REWRITE,
+        "semantic_equiv": OP_SEMANTIC_EQUIV,
+        "var_x": OP_VAR_X,
+        "var_y": OP_VAR_Y,
+        "var_z": OP_VAR_Z,
+        "var_w": OP_VAR_W,
+        "const": OP_CONST,
+        "symbolic_diff": OP_SYMBOLIC_DIFF,
+        "symbolic_integrate": OP_SYMBOLIC_INTEGRATE,
+        "gradient": OP_GRADIENT,
         "sin": 24,
         "cos": 25,
         "tan": 26,
@@ -153,42 +337,9 @@ class ModularRPNEngine:
         "gte": 0xDC,
         "store": OP_STORE,
         "recall": OP_RECALL,
-        # Procedural drawing opcodes (host parser may also consume)
-        "MOVE": 0x64,
-        "LINE": 0x65,
-        "QUAD": 0x66,
-        "CUBIC": 0x67,
-        "ARC": 0x68,
-        "CLOSE": 0x69,
-        "STROKE": 0x6A,
-        "FILL": 0x6B,
-        "PUSH_STATE": 0x70,
-        "POP_STATE": 0x71,
-        "TRANSLATE": 0x72,
-        "ROTATE": 0x73,
-        "SCALE": 0x74,
-        "SET_STROKE_COLOR": 0x75,
-        "SET_FILL_COLOR": 0x76,
-        "SET_LINE_WIDTH": 0x77,
-        "SET_TERNARY_HINT": 0x78,
-        # Lower-case aliases for convenience
-        "move": 0x64,
-        "line": 0x65,
-        "quad": 0x66,
-        "cubic": 0x67,
-        "arc": 0x68,
-        "close": 0x69,
-        "stroke": 0x6A,
-        "fill": 0x6B,
-        "push_state": 0x70,
-        "pop_state": 0x71,
-        "translate_draw": 0x72,
-        "rotate_draw": 0x73,
-        "scale_draw": 0x74,
-        "set_stroke_color": 0x75,
-        "set_fill_color": 0x76,
-        "set_line_width": 0x77,
-        "set_ternary_hint": 0x78,
+        "checkpoint": OP_CHECKPOINT,
+        "rollback": OP_ROLLBACK,
+        "verify": OP_VERIFY,
         "tadd": 112,
         "tmul": 113,
         "tnot": 114,
@@ -197,6 +348,46 @@ class ModularRPNEngine:
         "tpack": 117,
         "tunpack": 118,
         "tfuse": 83,
+        # Drawing Engine Phases 2-6 opcodes
+        "bezier_eval": OP_BEZIER_EVAL,
+        "shape_union": OP_SHAPE_UNION,
+        "shape_intersect": OP_SHAPE_INTERSECT,
+        "shape_subtract": OP_SHAPE_SUBTRACT,
+        "rel_line": OP_DRAW_REL_LINE,
+        "field_coef": OP_DRAW_FIELD_COEF,
+        "dot_emit": OP_DRAW_DOT_EMIT,
+        "vectordotmap_encode": OP_DRAW_VECTORDOTMAP_ENCODE,
+        "vectordotmap_decode": OP_DRAW_VECTORDOTMAP_DECODE,
+        "layer_new": OP_DRAW_LAYER_NEW,
+        "layer_blend": OP_LAYER_BLEND,
+        "blend_multiply": OP_BLEND_MULTIPLY,
+        "blend_screen": OP_BLEND_SCREEN,
+        "blend_overlay": OP_BLEND_OVERLAY,
+        "atmosphere_fog": OP_ATMOSPHERE_FOG,
+        "vignette": OP_VIGNETTE,
+        # 3D Technique Suite opcodes
+        "nurbs_eval": OP_NURBS_EVAL,
+        "marching_cubes": OP_MARCHING_CUBES,
+        "lsystem_generate": OP_LSYSTEM_GENERATE,
+        "parametric_surface": OP_PARAMETRIC_SURFACE,
+        "csg_union_3d": OP_CSG_UNION_3D,
+        "csg_intersect_3d": OP_CSG_INTERSECT_3D,
+        "csg_subtract_3d": OP_CSG_SUBTRACT_3D,
+        "cross_modal_link": OP_CROSS_MODAL_LINK,
+        "procedural_texture": OP_PROCEDURAL_TEXTURE,
+        "tex_perlin_noise": OP_TEX_PERLIN_NOISE,
+        "tex_voronoi": OP_TEX_VORONOI,
+        "tex_value_noise": OP_TEX_VALUE_NOISE,
+        "tex_grid_noise": OP_TEX_GRID_NOISE,
+        "tex_fft_blur": OP_TEX_FFT_BLUR,
+        "tex_warp": OP_TEX_WARP,
+        "tex_blend": OP_TEX_BLEND,
+        "tex_normal_map": OP_TEX_NORMAL_MAP,
+        "tex_color_ramp": OP_TEX_COLOR_RAMP,
+        "tex_turbulence": OP_TEX_TURBULENCE,
+        "tex_marble": OP_TEX_MARBLE,
+        "tex_transform": OP_TEX_TRANSFORM,
+        "tex_bake": OP_TEX_BAKE,
         # Ternary codec ops
         "TERNARY_QUANT": OP_TERNARY_QUANT,
         "TERNARY_DEQUANT": OP_TERNARY_DEQUANT,
@@ -242,6 +433,12 @@ class ModularRPNEngine:
         "TERNARY_ADD",
         "TERNARY_MUL",
     }
+    MICRO_STAGE1_TOKENS = frozenset({
+        "MICRO_SPAWN",
+        "MICRO_RUN",
+        "MICRO_COLLECT",
+        "MICRO_RELEASE",
+    })
     _global_gpu_call_count: int = 0
 
     def __init__(
@@ -274,6 +471,7 @@ class ModularRPNEngine:
 
         self._sovereign_engine = SovereignRPNEngine()
         self._mesh_engine = None
+        self._last_stage1_micro_trace: list[dict[str, object]] = []
         from .mesh_opcodes import MESH_TOKEN_TO_OPCODE
 
         for token, opcode in MESH_TOKEN_TO_OPCODE.items():
@@ -362,6 +560,77 @@ class ModularRPNEngine:
 
         return self._expand_store_recall_tokens(expanded)
 
+    def _runtime_tokens(self, expression_or_tokens: str | Sequence[str]) -> List[str]:
+        """Return execution-ready tokens with Stage-1 micro macros expanded away."""
+        base_tokens = (
+            self.tokenize_rpn(str(expression_or_tokens))
+            if isinstance(expression_or_tokens, str)
+            else [str(token).strip() for token in expression_or_tokens]
+        )
+        expanded = self.expand_stage1_micro_macros(base_tokens)
+        return [str(token).strip() for token in list(expanded.get("tokens", []))]
+
+    def expand_stage1_micro_macros(
+        self,
+        expression_or_tokens: str | Sequence[str],
+    ) -> dict[str, object]:
+        """Parse Stage-1 micro-specialist macros without executing them on the host.
+
+        The macro surface is admission-stage metadata that resident workers expand
+        into slot acquisition and fan-out/fan-in plans before the underlying
+        lightweight kernels run. This method does not perform reasoning; it only
+        records the macro contract in a structured form.
+        """
+        tokens = (
+            self.tokenize_rpn(str(expression_or_tokens))
+            if isinstance(expression_or_tokens, str)
+            else [str(token).strip() for token in expression_or_tokens]
+        )
+        macros: list[dict[str, object]] = []
+        passthrough: list[str] = []
+        idx = 0
+        while idx < len(tokens):
+            token = str(tokens[idx]).strip()
+            upper = token.upper()
+            if upper == "MICRO_SPAWN":
+                count_token = tokens[idx + 1] if idx + 1 < len(tokens) else "0"
+                try:
+                    requested = max(0, int(float(count_token)))
+                except Exception:
+                    requested = 0
+                snapshot = get_global_micro_specialist_pool().snapshot()
+                granted = min(int(snapshot.get("slots_free", 0)), requested)
+                macros.append(
+                    {
+                        "macro": "MICRO_SPAWN",
+                        "requested_slots": int(requested),
+                        "granted_slots": int(granted),
+                        "pool_snapshot": snapshot,
+                    }
+                )
+                idx += 2
+                continue
+            if upper == "MICRO_RUN":
+                macros.append({"macro": "MICRO_RUN"})
+                idx += 1
+                continue
+            if upper == "MICRO_COLLECT":
+                reducer = str(tokens[idx + 1]).strip() if idx + 1 < len(tokens) else "SUM"
+                macros.append({"macro": "MICRO_COLLECT", "reducer": reducer.upper()})
+                idx += 2 if idx + 1 < len(tokens) else 1
+                continue
+            if upper == "MICRO_RELEASE":
+                macros.append({"macro": "MICRO_RELEASE"})
+                idx += 1
+                continue
+            passthrough.append(token)
+            idx += 1
+        self._last_stage1_micro_trace = [dict(row) for row in macros]
+        return {
+            "tokens": passthrough,
+            "macros": [dict(row) for row in macros],
+        }
+
     @staticmethod
     def _slot_id(slot: str) -> int:
         """
@@ -441,6 +710,8 @@ class ModularRPNEngine:
             # Check if it's an operator (case-insensitive)
             elif token.lower() in self.OPCODES:
                 op_codes.append(self.OPCODES[token.lower()])
+            elif token.upper().startswith("OP_") and token[3:].lower() in self.OPCODES:
+                op_codes.append(self.OPCODES[token[3:].lower()])
 
             # Otherwise, treat as scalar literal
             else:
@@ -480,7 +751,7 @@ class ModularRPNEngine:
             >>> engine.evaluate("[1,0,0] [0,1,0] cross mag")  # Cross product magnitude
             1.0
         """
-        tokens = self.tokenize_rpn(expression)
+        tokens = self._runtime_tokens(expression)
         if self._is_mesh_expression(tokens):
             return self.evaluate_mesh(expression)
         if any(token in self.CODEC_TOKENS for token in tokens):
@@ -488,12 +759,11 @@ class ModularRPNEngine:
             self._record_gpu_call(1)
             return self._sovereign_engine.execute_codec(tokens, data=data, return_vector=return_vector)
 
-        core_id = self._ensure_core(tier=1, override_instance=instance_id)
+        op_codes, scalars, vectors = self.compile_tokens(tokens, instance_id)
+        selected_tier = int(self._sovereign_engine.select_tier(op_codes))
+        core_id = self._ensure_core(tier=selected_tier, override_instance=instance_id)
         # Reset instance to clear stack before evaluation
         self._sovereign_engine.reset_instance(core_id)
-
-        # Tokenize expression
-        op_codes, scalars, vectors = self.compile_tokens(tokens, instance_id)
 
         # Execute on GPU via sovereign bridge
         self._record_gpu_call(1)
@@ -512,13 +782,16 @@ class ModularRPNEngine:
         instance_id: Optional[int] = None,
     ) -> tuple[float, list[float]]:
         """Evaluate one RPN expression and return both top result and scalar stack."""
-        tokens = self.tokenize_rpn(expression)
+        tokens = self._runtime_tokens(expression)
         if self._is_mesh_expression(tokens):
             raise ValueError("Mesh expressions are not supported in evaluate_with_stack; use evaluate_mesh.")
         if any(token in self.CODEC_TOKENS for token in tokens):
             raise ValueError("Codec opcodes are not supported in evaluate_with_stack.")
 
-        core_id = self._ensure_core(tier=2, override_instance=instance_id)
+        provisional_instance = int(instance_id) if instance_id is not None else 0
+        op_codes, scalars, vectors = self.compile_tokens(tokens, provisional_instance)
+        selected_tier = int(self._sovereign_engine.select_tier(op_codes))
+        core_id = self._ensure_core(tier=selected_tier, override_instance=instance_id)
         self._sovereign_engine.reset_instance(core_id)
         op_codes, scalars, vectors = self.compile_tokens(tokens, core_id)
         self._record_gpu_call(1)
@@ -557,7 +830,7 @@ class ModularRPNEngine:
         programs = []
 
         for expr in expressions:
-            tokens = self.tokenize_rpn(expr)
+            tokens = self._runtime_tokens(expr)
             if self._is_mesh_expression(tokens):
                 raise ValueError("Mesh expressions are not supported in evaluate_batch; use evaluate_mesh.")
             if any(token in self.CODEC_TOKENS for token in tokens):
@@ -582,7 +855,7 @@ class ModularRPNEngine:
         """Evaluate multiple RPN expressions and return device buffer pointer + count."""
         programs = []
         for expr in expressions:
-            tokens = self.tokenize_rpn(expr)
+            tokens = self._runtime_tokens(expr)
             if self._is_mesh_expression(tokens):
                 raise ValueError("Mesh expressions are not supported in evaluate_batch_device.")
             op_codes, scalars, vectors = self.compile_tokens(tokens)
@@ -715,6 +988,10 @@ class RPNProgram:
     def u8(self, val: int):
         """Append uint8 opcode"""
         self.bytecode.append(val & 0xFF)
+
+    def u16(self, val: int):
+        """Append uint16 opcode (little-endian)."""
+        self.bytecode.extend(int(val).to_bytes(2, byteorder="little", signed=False))
 
     def u32(self, val: int):
         """Append uint32 value (little-endian)"""

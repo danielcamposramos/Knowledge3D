@@ -112,9 +112,10 @@ def test_mmlu_paths_allocate_hypothesis_and_validation_workers(tmp_path) -> None
         options=["A", "B", "C", "D"],
     )
 
-    assert len(paths) == 8
+    assert len(paths) == 9
     assert sum(1 for path in paths if path.get("path_role") == "hypothesis") == 4
     assert sum(1 for path in paths if path.get("path_role") == "validation") == 4
+    assert {int(path.get("worker_slot", -1)) for path in paths[:9]} == set(range(9))
 
 
 def test_lhe_paths_allocate_option_and_cross_validation_workers(tmp_path) -> None:

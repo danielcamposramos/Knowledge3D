@@ -28,6 +28,12 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.local_paths import resolve_storage_root
+from knowledge3d.ingestion import (
+    ingest_cas_grammar,
+    ingest_entity_bootstrap,
+    ingest_physics_bootstrap,
+    ingest_sas_bootstrap,
+)
 from knowledge3d.knowledgeverse.galaxy_manager import normalize_disk_entry
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
@@ -258,6 +264,11 @@ def main() -> int:
         eager_load_default_galaxies=False,
         start_live_loops=False,
     )
+    physics_bootstrap_ingested = ingest_physics_bootstrap(kv.galaxy_manager)
+    entity_bootstrap_ingested = ingest_entity_bootstrap(kv.galaxy_manager)
+    cas_grammar_ingested = ingest_cas_grammar(kv.galaxy_manager)
+    _sas_values, _sas_star_ids, sas_stars = ingest_sas_bootstrap(kv.galaxy_manager)
+    sas_bootstrap_ingested = len(sas_stars)
     before = _counts(kv)
     word_index = _build_word_name_index(kv)
 
@@ -330,6 +341,10 @@ def main() -> int:
         "shared_instance": True,
         "instance_id": id(kv),
         "payloads": [str(p) for p in args.payload],
+        "physics_bootstrap_ingested": physics_bootstrap_ingested,
+        "entity_bootstrap_ingested": entity_bootstrap_ingested,
+        "cas_grammar_ingested": cas_grammar_ingested,
+        "sas_bootstrap_ingested": sas_bootstrap_ingested,
         "ingest_stats": ingest_stats,
         "totals": {
             "added": total_added,

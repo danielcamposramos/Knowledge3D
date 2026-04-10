@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 import time
 
+import pytest
+
 from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 from benchmarks.math_competitions import MathCompetitionBenchmark
@@ -184,27 +186,15 @@ def test_lhe_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     assert result["results"][0]["tablet_contract"]["action_type"] == "UPDATE_TABLET"
 
 
-def test_math_benchmark_defaults_to_synthetic_guard_set(monkeypatch) -> None:
+def test_math_benchmark_rejects_synthetic_runtime_fallback(monkeypatch) -> None:
     monkeypatch.setattr(MathCompetitionBenchmark, "_has_present_dataset", lambda self, root: False)
-    benchmark = MathCompetitionBenchmark(
-        dataset_path=None,
-        dataset_mode="synthetic",
-        max_problems=20,
-        knowledgeverse=_RunnerKnowledgeverse(""),
-    )
-
-    assert benchmark.dataset_mode == "synthetic"
-    assert benchmark.dataset_path == Path("")
-    assert len(benchmark.problems) == 20
-    assert all(problem.get("tier") for problem in benchmark.problems)
-    assert all(
-        not str(problem.get("competition", "")).upper().startswith("GSM8K")
-        for problem in benchmark.problems
-    )
-    assert all(
-        "derivative" not in str(problem.get("problem_text", "")).lower()
-        for problem in benchmark.problems
-    )
+    with pytest.raises(FileNotFoundError, match="math_dataset_missing"):
+        MathCompetitionBenchmark(
+            dataset_path=None,
+            dataset_mode="synthetic",
+            max_problems=20,
+            knowledgeverse=_RunnerKnowledgeverse(""),
+        )
 
 
 class _RunnerKnowledgeverse:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -61,7 +62,18 @@ class IMOBenchmark:
 
     def _resolve_dataset_path(self, dataset_path: str | Path | None) -> Path:
         if dataset_path is not None:
-            return Path(dataset_path)
+            candidate = Path(dataset_path)
+            if candidate.is_dir():
+                nested = [
+                    candidate / "answerbench_v2.csv",
+                    candidate / "answerbench.csv",
+                    candidate / "gradingbench.csv",
+                    candidate / "proofbench.csv",
+                ]
+                for path in nested:
+                    if path.exists():
+                        return path
+            return candidate
         candidates = [
             Path("/K3D/Knowledge3D.local/datasets/imo_bench/answerbench_v2.csv"),
             Path("/K3D/Knowledge3D.local/datasets/imo_bench/answerbench.csv"),
@@ -86,8 +98,9 @@ class IMOBenchmark:
                 questions = []
             if questions:
                 return stratified_sample(questions, self.max_questions)
-        self.used_synthetic_fallback = True
-        return stratified_sample(self._synthetic_questions(), self.max_questions)
+        raise FileNotFoundError(
+            f"imo_dataset_missing: no valid IMO records found at {self.dataset_path or 'canonical roots'}"
+        )
 
     def _load_from_csv(self, path: Path) -> list[dict[str, Any]]:
         questions: list[dict[str, Any]] = []
@@ -175,7 +188,9 @@ class IMOBenchmark:
         step = max(1, int(progress_every or 25))
 
         for index, problem in enumerate(self._bench.problems[resume_index:], start=resume_index + 1):
+            row_start = time.monotonic()
             result = self._bench._solve_problem(problem=problem, use_enriched=use_enriched)
+            elapsed_s = round(max(0.0, time.monotonic() - row_start), 3)
             self.results.append(
                 {
                     "question_id": result["problem_id"],
@@ -198,6 +213,8 @@ class IMOBenchmark:
                         (row.get("subcategory", "") for row in self.questions if row["id"] == problem["id"]),
                         "",
                     ),
+                    "elapsed_s": elapsed_s,
+                    "elapsed_ms": round(elapsed_s * 1000.0, 3),
                 }
             )
             if result.get("correct"):

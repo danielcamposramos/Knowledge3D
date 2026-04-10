@@ -850,11 +850,11 @@ class ProceduralDrawingBridge:
 
         Format (little-endian, 4-byte aligned):
             opcode (uint32) followed by operands (float32)
-            MOVE: opcode(0x64) , x, y
-            LINE: opcode(0x65) , x, y
-            QUAD: opcode(0x66) , cx, cy, x, y
-            CUBIC:opcode(0x67) , cx1, cy1, cx2, cy2, x, y
-            ARC:  opcode(0x68) , rx, ry, angle, large_arc, sweep, x, y (simplified)
+            MOVE: opcode(0x200) , x, y
+            LINE: opcode(0x201) , x, y
+            QUAD: opcode(0x202) , cx, cy, x, y
+            CUBIC:opcode(0x203) , cx1, cy1, cx2, cy2, x, y
+            ARC:  opcode(0x204) , rx, ry, angle, large_arc, sweep, x, y (simplified)
             CLOSE/STROKE/FILL: opcode only
         """
         import struct
@@ -863,50 +863,59 @@ class ProceduralDrawingBridge:
         bytecode = bytearray()
 
         OPCODES = {
-            "MOVE": 0x64,
-            "LINE": 0x65,
-            "QUAD": 0x66,
-            "CUBIC": 0x67,
-            "ARC": 0x68,
-            "CLOSE": 0x69,
-            "STROKE": 0x6A,
-            "FILL": 0x6B,
+            "MOVE": 0x200,
+            "LINE": 0x201,
+            "QUAD": 0x202,
+            "CUBIC": 0x203,
+            "ARC": 0x204,
+            "CLOSE": 0x205,
+            "STROKE": 0x206,
+            "FILL": 0x207,
+            "DRAW_MOVE": 0x200,
+            "DRAW_LINE": 0x201,
+            "DRAW_QUAD": 0x202,
+            "DRAW_CUBIC": 0x203,
+            "DRAW_ARC": 0x204,
+            "DRAW_CLOSE": 0x205,
+            "DRAW_STROKE": 0x206,
+            "DRAW_FILL": 0x207,
+            "CURVE": 0x202,
             "BEGIN_PATH": 0x90,
-            "PUSH_STATE": 0x70,
-            "POP_STATE": 0x71,
-            "TRANSLATE": 0x72,
-            "ROTATE": 0x73,
-            "SCALE": 0x74,
-            "SET_STROKE_COLOR": 0x75,
-            "SET_COLOR": 0x75,  # Alias for SET_STROKE_COLOR
-            "SET_FILL_COLOR": 0x76,
-            "SET_LINE_WIDTH": 0x77,
-            "STROKE_WIDTH": 0x77,  # Alias for SET_LINE_WIDTH
-            "SET_TERNARY_HINT": 0x78,
-            "TERNARY_MODULATE": 0x78,  # Alias for SET_TERNARY_HINT
+            "PUSH_STATE": 0x208,
+            "POP_STATE": 0x209,
+            "TRANSLATE": 0x20A,
+            "ROTATE": 0x20B,
+            "SCALE": 0x20C,
+            "SET_STROKE_COLOR": 0x20D,
+            "SET_COLOR": 0x20D,  # Alias for SET_STROKE_COLOR
+            "SET_FILL_COLOR": 0x20E,
+            "SET_LINE_WIDTH": 0x20F,
+            "STROKE_WIDTH": 0x20F,  # Alias for SET_LINE_WIDTH
+            "SET_TERNARY_HINT": 0x210,
+            "TERNARY_MODULATE": 0x210,  # Alias for SET_TERNARY_HINT
             "ROTATE_MATRIX": 0x79,  # Rotation via math buffer (cos, sin)
             "PRECOMPUTED_PATH": 0x7A,  # Path from math buffer points
         }
 
         OPERAND_COUNTS = {
-            0x64: 2,  # MOVE x y
-            0x65: 2,  # LINE x y
-            0x66: 4,  # QUAD cx cy x y
-            0x67: 6,  # CUBIC cx1 cy1 cx2 cy2 x y
-            0x68: 6,  # ARC rx ry angle large_arc sweep x y (angle simplified)
-            0x69: 0,
-            0x6A: 0,
-            0x6B: 0,
+            0x200: 2,  # MOVE x y
+            0x201: 2,  # LINE x y
+            0x202: 4,  # QUAD cx cy x y
+            0x203: 6,  # CUBIC cx1 cy1 cx2 cy2 x y
+            0x204: 6,  # ARC rx ry angle large_arc sweep x y (angle simplified)
+            0x205: 0,
+            0x206: 0,
+            0x207: 0,
             0x90: 0,  # BEGIN_PATH
-            0x70: 0,
-            0x71: 0,
-            0x72: 2,
-            0x73: 1,
-            0x74: 2,
-            0x75: 4,
-            0x76: 4,
-            0x77: 1,
-            0x78: 1,
+            0x208: 0,
+            0x209: 0,
+            0x20A: 2,
+            0x20B: 1,
+            0x20C: 2,
+            0x20D: 4,
+            0x20E: 4,
+            0x20F: 1,
+            0x210: 1,
             0x79: 0,  # ROTATE_MATRIX (consumes math buffer)
             0x7A: 0,  # PRECOMPUTED_PATH (consumes math buffer)
         }

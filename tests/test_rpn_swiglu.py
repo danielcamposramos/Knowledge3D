@@ -3,11 +3,13 @@
 
 def main() -> int:
     import sys
+    from pathlib import Path
 
     import numpy as np
 
     # Test without importing the full package to avoid cuda.bindings issues
-    sys.path.insert(0, "knowledge3d/cranium/ptx_runtime")
+    _root = Path(__file__).parent.parent
+    sys.path.insert(0, str(_root / "knowledge3d/cranium/ptx_runtime"))
 
     try:
         from modular_rpn_engine import ModularRPNEngine

@@ -8,6 +8,7 @@ import os
 import sys
 import time
 import numpy as np
+from pathlib import Path
 
 # Set environment before any CUDA imports
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -15,8 +16,9 @@ os.environ["LC_ALL"] = "C.UTF-8"
 os.environ["LANG"] = "C.UTF-8"
 
 # Add paths for direct imports
-sys.path.insert(0, "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D")
-sys.path.insert(0, "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/knowledge3d/cranium/codecs/ptx_bindings")
+_root = Path(__file__).parent.parent
+sys.path.insert(0, str(_root))
+sys.path.insert(0, str(_root / "knowledge3d/cranium/codecs/ptx_bindings"))
 
 # Import PTX bindings directly
 from audio_harmonic_binding import AudioHarmonicGPU

@@ -1,0 +1,53 @@
+{
+  "timestamp": "2026-04-07T01:46:36.962243",
+  "system_info": {
+    "cuda_available": false,
+    "gpu_info": null,
+    "cpu_info": {
+      "brand": "AMD Ryzen 5 5600G with Radeon Graphics",
+      "cores": 12,
+      "hz": "4.4499 GHz"
+    },
+    "memory_info": {
+      "total_gb": 93.419189453125,
+      "available_gb": 51.4831657409668,
+      "percent": 44.9
+    }
+  },
+  "kernel_loading": {
+    "kernel_loading": {
+      "load_time_ms": 18.40798498596996,
+      "kernel_name": "modular_rpn_geometric_kernel",
+      "status": "success"
+    }
+  },
+  "memory_operations": {
+    "gpu_memory_alloc": {
+      "alloc_time_ms": 0.02217001747339964,
+      "size_bytes": 1024,
+      "status": "success"
+    },
+    "gpu_memcpy_h2d": {
+      "memcpy_time_ms": 0.05250994581729174,
+      "size_bytes": 1024,
+      "status": "success"
+    },
+    "gpu_memcpy_d2h": {
+      "memcpy_time_ms": 0.028090027626603842,
+      "size_bytes": 1024,
+      "status": "success"
+    }
+  },
+  "working_status": true,
+  "rpn_operations": {},
+  "benchmark_duration": 1.680474,
+  "summary": {
+    "kernel_found": true,
+    "gpu_available": false,
+    "total_tests": 4,
+    "successful_tests": 3,
+    "avg_kernel_load_time_ms": 0,
+    "avg_memory_alloc_time_ms": 0.02217001747339964,
+    "rpn_operations_success": false
+  }
+}

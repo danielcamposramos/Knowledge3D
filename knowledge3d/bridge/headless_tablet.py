@@ -25,6 +25,7 @@ SURFACE_KIND_SPATIAL_3D = "SPATIAL_3D"
 SURFACE_KIND_CHAT = "CHAT"
 SURFACE_KIND_GENERAL = "GENERAL"
 SURFACE_KIND_GRAMMAR = "GRAMMAR"
+ROUTE_POLICY_ALL_LIVE_GALAXIES = "all_live_galaxies"
 
 _TABLET_MUTATION_TYPES = {
     SURFACE_KIND_GAME_2D: 1,
@@ -305,6 +306,8 @@ class TabletEnvelope:
     task: dict[str, Any]
     domain_hint: str | None = None
     galaxies: tuple[str, ...] = ()
+    route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES
+    result_kind: str | None = None
     user_lang: str = "en"
     document_langs: tuple[str, ...] = ("en",)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -312,11 +315,15 @@ class TabletEnvelope:
     def to_route_payload(self, *, use_enriched: bool = True) -> dict[str, Any]:
         task_payload = dict(self.task)
         task_payload.setdefault("surface_kind", _normalize_surface_kind(self.surface_kind))
+        task_payload.setdefault("route_policy", str(self.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES))
+        if self.result_kind:
+            task_payload.setdefault("expected_result_kind", str(self.result_kind))
         payload: dict[str, Any] = {
             "command": "ROUTE",
             "surface_kind": _normalize_surface_kind(self.surface_kind),
             "specialist": self.specialist,
             "use_enriched": bool(use_enriched),
+            "route_policy": str(self.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             "task": task_payload,
         }
         if self.query:
@@ -370,6 +377,9 @@ class TabletIngest:
         specialist: str = "visual",
         domain_hint: str | None = "game_2d",
         galaxies: Sequence[str] | None = None,
+        route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
+        result_kind: str | None = None,
+        task_context: Mapping[str, Any] | None = None,
         metadata: Mapping[str, Any] | None = None,
     ) -> TabletEnvelope:
         route_galaxies = tuple(
@@ -381,6 +391,7 @@ class TabletIngest:
             if str(name).strip()
         )
         task_payload = {
+            "type": "ARC_TASK",
             "surface_kind": SURFACE_KIND_GAME_2D,
             "task_id": str(task_id),
             "query": str(query),
@@ -392,11 +403,20 @@ class TabletIngest:
             "available_actions": list(available_actions or []),
             "action_options": [str(option) for option in (action_options or []) if str(option).strip()],
         }
+        task_payload["options"] = list(task_payload["action_options"])
+        for key, value in dict(task_context or {}).items():
+            normalized_key = str(key).strip()
+            if not normalized_key:
+                continue
+            task_payload[normalized_key] = value
         merged_metadata = dict(metadata or {})
         merged_metadata.setdefault("expected_output", expected_output)
         merged_metadata.setdefault("expected_game_action", dict(expected_game_action or {}))
         merged_metadata.setdefault("action_options", list(task_payload["action_options"]))
+        merged_metadata.setdefault("options", list(task_payload["options"]))
         merged_metadata.setdefault("available_actions", list(task_payload["available_actions"]))
+        if result_kind is not None:
+            merged_metadata.setdefault("expected_result_kind", str(result_kind))
         return TabletEnvelope(
             surface_kind=SURFACE_KIND_GAME_2D,
             task_id=str(task_id),
@@ -404,6 +424,8 @@ class TabletIngest:
             specialist=str(specialist or "visual"),
             domain_hint=str(domain_hint).strip() if domain_hint is not None else None,
             galaxies=route_galaxies,
+            route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+            result_kind=str(result_kind) if result_kind is not None else None,
             task=task_payload,
             metadata=merged_metadata,
         )
@@ -416,6 +438,7 @@ class TabletIngest:
         expected_answer: Any | None = None,
         competition: str | None = None,
         galaxies: Sequence[str] | None = None,
+        route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
     ) -> TabletEnvelope:
         merged_metadata = dict(metadata or {})
@@ -428,7 +451,9 @@ class TabletIngest:
             specialist="math",
             domain_hint=None,
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
+            route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
+                "type": "MATH_TASK",
                 "surface_kind": SURFACE_KIND_MATH,
                 "task_id": str(task_id),
                 "query": str(question),
@@ -448,6 +473,7 @@ class TabletIngest:
         expected_answer: str | None = None,
         specialist: str = "auto",
         galaxies: Sequence[str] | None = None,
+        route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
     ) -> TabletEnvelope:
         option_list = [str(option) for option in (options or []) if str(option).strip()]
@@ -462,7 +488,9 @@ class TabletIngest:
             specialist=str(specialist or "auto"),
             domain_hint=str(domain or "general"),
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
+            route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
+                "type": "QUESTION_TASK",
                 "surface_kind": SURFACE_KIND_QUESTION,
                 "task_id": str(task_id),
                 "query": str(question),
@@ -576,6 +604,9 @@ class TabletEmit:
         success = str(normalized_response.get("status", "")).lower() == "ok" and str(
             task_result.get("status", "")
         ).lower() in {"", "ok", "success"}
+        expected_result_kind = str(
+            envelope.metadata.get("expected_result_kind") or envelope.result_kind or ""
+        ).strip().lower()
         game_action: dict[str, Any]
         if predicted_grid is not None:
             game_action = {
@@ -591,6 +622,8 @@ class TabletEmit:
             action_input = task_result.get("action_input")
             if isinstance(action_input, Mapping):
                 game_action["action_input"] = dict(action_input)
+        actual_result_kind = "grid" if predicted_grid is not None else "control"
+        wrong_result_kind = bool(expected_result_kind) and actual_result_kind != expected_result_kind
         correct = False
         if predicted_grid is not None and expected_output is not None:
             correct = predicted_grid == expected_output
@@ -601,6 +634,12 @@ class TabletEmit:
                 correct = int(expected_index) == int(action_index)
             elif expected_name and action_name:
                 correct = expected_name == _normalise_text_answer(action_name)
+        if wrong_result_kind:
+            success = False
+            correct = False
+        failure_code = str(packet.get("failure_code") or "")
+        if wrong_result_kind:
+            failure_code = f"unexpected_result_kind:{actual_result_kind}"
         return {
             "task_id": envelope.task_id,
             "status": "success" if success else "error",
@@ -611,13 +650,15 @@ class TabletEmit:
             "action_index": action_index,
             "action_name": action_name,
             "answer_materialized": bool(packet.get("answer_materialized")),
-            "failure_code": str(packet.get("failure_code") or ""),
+            "failure_code": failure_code,
             "trace_star_ids": list(packet.get("trace_star_ids") or []),
             "trace_roles": list(packet.get("trace_roles") or []),
             "anti_pattern_ids": list(packet.get("anti_pattern_ids") or []),
             "game_action": game_action,
             "expected_output": expected_output,
             "expected_game_action": expected_game_action,
+            "expected_result_kind": expected_result_kind,
+            "actual_result_kind": actual_result_kind,
             "correct": bool(correct),
             "route": route_payload,
             "task_result": task_result,

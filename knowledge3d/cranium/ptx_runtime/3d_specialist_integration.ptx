@@ -1,0 +1,130 @@
+// 3d_specialist_integration.ptx
+// Integration of 3D drawing engine with TRM Matryoshka architecture
+// Specialist routing and dispatch for 3D operations with sovereignty compliance
+
+.version 7.8
+.target sm_89
+.address_size 64
+
+// Main 3D specialist router - integrates with trm_step_fused.ptx
+// Fixed: Removed .struct declarations, using byte-offset parameter passing
+.visible .entry specialist_3d_router(
+    .param .u64 dispatch_params,     // Pointer to Specialist3DDispatch structure
+    .param .u64 galaxy_universe_ptr, // Galaxy Universe pointer
+    .param .u64 house_index_ptr,     // House index for knowledge lookup
+    .param .u32 trm_step_counter,    // Current TRM step counter
+    .param .u64 worker_8_context     // Jarvis worker 8 context
+)
+{
+    .reg .u64 %dispatch_ptr, %galaxy_ptr, %house_ptr, %worker_ptr;
+    .reg .u32 %specialist_id, %route_depth, %galaxy_mask, %modality_flags;
+    .reg .f32 %confidence, %final_confidence;
+    .reg .u64 %envelope_ptr, %rpn_ptr, %embed_ptr;
+    .reg .u32 %step_counter;
+    .reg .pred %p_valid_dispatch, %p_jarvis_route, %p_high_confidence;
+
+    // Load dispatch parameters
+    ld.param.u64 %dispatch_ptr, [dispatch_params];
+    ld.param.u64 %galaxy_ptr, [galaxy_universe_ptr];
+    ld.param.u64 %house_ptr, [house_index_ptr];
+    ld.param.u32 %step_counter, [trm_step_counter];
+    ld.param.u64 %worker_ptr, [worker_8_context];
+
+    // Extract dispatch parameters using byte offsets
+    ld.global.u32 %specialist_id, [%dispatch_ptr];        // specialist_id (offset 0)
+    ld.global.u32 %route_depth, [%dispatch_ptr+4];       // route_depth (offset 4)
+    ld.global.u32 %galaxy_mask, [%dispatch_ptr+8];       // galaxy_mask (offset 8)
+    ld.global.f32 %confidence, [%dispatch_ptr+12];       // confidence_score (offset 12)
+    ld.global.u64 %envelope_ptr, [%dispatch_ptr+16];     // task_envelope_ptr (offset 16)
+    ld.global.u64 %rpn_ptr, [%dispatch_ptr+24];          // rpn_program_ptr (offset 24)
+    ld.global.u64 %embed_ptr, [%dispatch_ptr+32];        // embedding_ptr (offset 32)
+    ld.global.u32 %modality_flags, [%dispatch_ptr+40];   // modality_flags (offset 40)
+
+    // Validate dispatch parameters
+    setp.eq.u32 %p_valid_dispatch, %specialist_id, 0;
+    @%p_valid_dispatch bra invalid_dispatch;
+
+    // Check route depth limit (sovereignty constraint)
+    setp.ge.u32 %p_valid_dispatch, %route_depth, 5;  // ROUTE_DEPTH_LIMIT = 5
+    @%p_valid_dispatch bra route_depth_exceeded;
+
+    // Route to appropriate 3D specialist based on specialist ID
+    setp.eq.u32 %p_jarvis_route, %specialist_id, 8;  // WORKER_8_JARVIS = 8
+    @%p_jarvis_route bra route_to_jarvis;
+
+    // Route to specific 3D specialists
+    setp.eq.u32 %p_valid_dispatch, %specialist_id, 8;  // SPECIALIST_VISUAL_3D = 8
+    @%p_valid_dispatch bra route_visual_3d;
+
+    setp.eq.u32 %p_valid_dispatch, %specialist_id, 9;  // SPECIALIST_TEXT_3D = 9
+    @%p_valid_dispatch bra route_text_3d;
+
+    setp.eq.u32 %p_valid_dispatch, %specialist_id, 10;  // SPECIALIST_MULTIMODAL_3D = 10
+    @%p_valid_dispatch bra route_multimodal_3d;
+
+    // Unknown specialist - fall back to Jarvis
+    bra route_to_jarvis;
+
+// Route to Jarvis Worker 8 (symlink reader)
+route_to_jarvis:
+    // Simple Jarvis implementation - just set confidence
+    mov.f32 %final_confidence, %confidence;
+    
+    // Validate confidence from Jarvis routing
+    setp.ge.f32 %p_high_confidence, %final_confidence, 0.7;  // CONFIDENCE_THRESHOLD = 0.7
+    @%p_high_confidence bra valid_jarvis_route;
+    
+    // Low confidence: apply simple fallback
+    mul.f32 %final_confidence, %final_confidence, 0.3;  // *0.3 penalty
+    bra end_routing;
+
+valid_jarvis_route:
+    // Jarvis successfully routed
+    st.global.f32 [%dispatch_ptr+12], %final_confidence;  // Update confidence
+    bra end_routing;
+
+// Visual 3D Specialist Route
+route_visual_3d:
+    // Simple visual 3D processing
+    mul.f32 %final_confidence, %confidence, 1.0;  // *1.0 for visual
+    bra update_route_state;
+
+// Text-to-3D Specialist Route  
+route_text_3d:
+    // Simple text-to-3D processing
+    mul.f32 %final_confidence, %confidence, 0.9;  // *0.9 for text
+    bra update_route_state;
+
+// Multi-modal 3D Specialist Route
+route_multimodal_3d:
+    // Simple multi-modal processing
+    mul.f32 %final_confidence, %confidence, 0.8;  // *0.8 for multi-modal
+    bra update_route_state;
+
+// Update routing state for next TRM step
+update_route_state:
+    // Increment route depth and update confidence
+    add.u32 %route_depth, %route_depth, 1;
+    st.global.u32 [%dispatch_ptr+4], %route_depth;
+    st.global.f32 [%dispatch_ptr+12], %final_confidence;
+    
+    // Simple logging - just store timestamp
+    mov.u32 %step_counter, %clock;
+    
+    bra end_routing;
+
+// Handle routing errors
+invalid_dispatch:
+route_depth_exceeded:
+    // Apply sovereignty-compliant error handling
+    mov.f32 %final_confidence, 0.0;  // Zero confidence for invalid routes
+    st.global.f32 [%dispatch_ptr+12], %final_confidence;
+    
+    // Simple failure logging
+    mov.u32 %step_counter, %clock;
+    
+    bra end_routing;
+
+end_routing:
+    ret;
+}

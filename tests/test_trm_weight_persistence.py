@@ -695,74 +695,23 @@ def test_phase_b6_fractal_emitter_threads_self_similarity_into_candidates(tmp_pa
     assert kv._gpu_scalar_literal(local_candidates[0]["specialist_fractal"]) in expr
 
 
-def test_phase_b7_cognitive_executive_blends_swarm_trust_weights(tmp_path, monkeypatch):
+def test_phase_b7_fixed_swarm_dispatch_uses_surface_weights(tmp_path):
     kv = Knowledgeverse(storage_root=tmp_path / "kv_cognitive_executive")
-
-    class _Diag:
-        def __init__(self):
-            self.resonance_matrix = np.asarray(
-                [
-                    [1.0, 0.9, 0.8, 0.8, 0.7, 0.7, 0.6, 0.6],
-                    [0.9, 1.0, 0.7, 0.7, 0.6, 0.6, 0.5, 0.5],
-                    [0.8, 0.7, 1.0, 0.6, 0.5, 0.5, 0.4, 0.4],
-                    [0.8, 0.7, 0.6, 1.0, 0.5, 0.5, 0.4, 0.4],
-                    [0.7, 0.6, 0.5, 0.5, 1.0, 0.4, 0.3, 0.3],
-                    [0.7, 0.6, 0.5, 0.5, 0.4, 1.0, 0.3, 0.3],
-                    [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 1.0, 0.2],
-                    [0.6, 0.5, 0.4, 0.4, 0.3, 0.3, 0.2, 1.0],
-                ],
-                dtype=np.float32,
-            )
-            self.chain_norms = np.asarray([2.5, 2.0, 1.7, 1.6, 1.3, 1.2, 1.0, 0.9, 0.5], dtype=np.float32)
-
-    class _FakeSwarm:
-        def __init__(self):
-            self.exec_calls = 0
-            self.diag = _Diag()
-
-        def execute_swarm(self, *_args, **_kwargs):
-            self.exec_calls += 1
-            return np.zeros((128,), dtype=np.float32), None, np.asarray([0.30, 0.20, 0.15, 0.12, 0.09, 0.06, 0.05, 0.03], dtype=np.float32)
-
-        def get_chain_diagnostics(self):
-            return self.diag
-
-    class _FakeExecutive:
-        def __init__(self):
-            self.calls = []
-
-        def compute_trust_weights(self, resonance_matrix, chain_norms):
-            self.calls.append(
-                {
-                    "matrix_shape": tuple(np.asarray(resonance_matrix).shape),
-                    "norms_shape": tuple(np.asarray(chain_norms).shape),
-                }
-            )
-            return np.asarray([0.40, 0.18, 0.12, 0.10, 0.08, 0.05, 0.04, 0.03], dtype=np.float32), 0.5
-
-    fake_swarm = _FakeSwarm()
-    fake_executive = _FakeExecutive()
-    monkeypatch.setattr(kv, "get_swarm_bridge", lambda: fake_swarm)
-    monkeypatch.setattr(kv, "get_cognitive_executive", lambda: fake_executive)
-
     selection_steps: list[str] = []
     weights = kv._dispatch_swarm_weights(
         query_embedding=[1.0] + [0.0] * 15,
         paths=[
-            {"program_id": "p0"},
-            {"program_id": "p1"},
-            {"program_id": "p2"},
+            {"program_id": "p0", "worker_slot": 0},
+            {"program_id": "p1", "worker_slot": 1},
+            {"program_id": "p2", "worker_slot": 2},
         ],
         selection_steps=selection_steps,
+        task_type="QUESTION_TASK",
     )
 
-    assert fake_swarm.exec_calls == 1
-    assert len(fake_executive.calls) == 1
-    assert fake_executive.calls[0]["matrix_shape"] == (8, 8)
-    assert fake_executive.calls[0]["norms_shape"] == (8,)
     assert len(weights) == 3
-    assert weights[0] > weights[1] > weights[2]
-    assert any("GRE cognitive executive:" in step for step in selection_steps)
+    assert weights == pytest.approx([1.5, 2.0, 2.0])
+    assert any("Nine-chain swarm dispatch:" in step for step in selection_steps)
 
 
 def test_phase_a3_atomic_fission_threads_compositional_consistency_into_math_candidates(tmp_path, monkeypatch):

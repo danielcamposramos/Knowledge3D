@@ -23,11 +23,13 @@ Architecture:
 
 import ctypes
 import math
+import struct
 from pathlib import Path
 import random
 from typing import Tuple, Optional, Iterable, Sequence, List
 
 from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
+from knowledge3d.cranium.kernels.ptx_compiler import compile_cuda_file
 from knowledge3d.cranium.sovereign.loader import (
     get_function,
     get_global,
@@ -182,6 +184,136 @@ class UInt8Vector(_HostVector):
 class Int8Vector(_HostVector):
     CTYPE = ctypes.c_int8
     PYTHON_TYPE = int
+
+
+class _TextureHandlePoolStruct(ctypes.Structure):
+    _fields_ = [
+        ("slot_ptr", ctypes.c_uint64 * 256),
+        ("width", ctypes.c_uint32 * 256),
+        ("height", ctypes.c_uint32 * 256),
+        ("in_use", ctypes.c_uint8 * 256),
+        ("baked_source_slot", ctypes.c_uint32 * 64),
+        ("baked_in_use", ctypes.c_uint8 * 64),
+    ]
+
+
+class _EntityHotPathStruct(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("star_table_idx", ctypes.c_uint32),
+        ("physics_body_id", ctypes.c_uint32),
+        ("behavior_rpn_addr", ctypes.c_uint64),
+        ("house_x", ctypes.c_float),
+        ("house_y", ctypes.c_float),
+        ("house_z", ctypes.c_float),
+        ("sleep_state", ctypes.c_uint8),
+        ("faction", ctypes.c_uint8),
+        ("ai_tier", ctypes.c_uint8),
+        ("perception_flags", ctypes.c_uint8),
+        ("perception_radius", ctypes.c_float),
+        ("last_player_dist", ctypes.c_float),
+        ("awareness", ctypes.c_float),
+        ("blackboard_star_id", ctypes.c_uint32),
+        ("meta_rule_addr", ctypes.c_uint32),
+        ("cranial_origin", ctypes.c_float * 3),
+        ("_pad", ctypes.c_float),
+    ]
+
+
+assert ctypes.sizeof(_EntityHotPathStruct) == 68
+
+
+class _CASStarNodePayload(ctypes.Union):
+    _fields_ = [
+        ("immf32", ctypes.c_float),
+        ("immi32", ctypes.c_int32),
+        ("payload", ctypes.c_uint32),
+        ("child0", ctypes.c_uint32),
+    ]
+
+
+class _CASStarNodeStruct(ctypes.Structure):
+    _fields_ = [
+        ("opcode", ctypes.c_uint32),
+        ("flags", ctypes.c_uint32),
+        ("data", _CASStarNodePayload),
+        ("next", ctypes.c_uint32),
+    ]
+
+
+assert ctypes.sizeof(_CASStarNodeStruct) == 16
+
+
+class _ArcGridStruct(ctypes.Structure):
+    _fields_ = [
+        ("cells", ctypes.c_uint8 * 900),
+        ("height", ctypes.c_uint16),
+        ("width", ctypes.c_uint16),
+    ]
+
+
+assert ctypes.sizeof(_ArcGridStruct) == 904
+
+
+class _ArcGridStruct(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("cells", ctypes.c_uint8 * 900),
+        ("height", ctypes.c_uint16),
+        ("width", ctypes.c_uint16),
+    ]
+
+
+class _StarNodeStruct(ctypes.Structure):
+    _pack_ = 1
+    _fields_ = [
+        ("opcode", ctypes.c_uint32),
+        ("flags", ctypes.c_uint32),
+        ("payload", ctypes.c_uint32),
+        ("next", ctypes.c_uint32),
+    ]
+
+
+assert ctypes.sizeof(_ArcGridStruct) == 904
+assert ctypes.sizeof(_StarNodeStruct) == 16
+
+
+def _normalize_arc_grid(grid: Sequence[Sequence[int]]) -> list[list[int]]:
+    if not isinstance(grid, Sequence):
+        raise ValueError("ARC grid must be a rectangular sequence of rows")
+    rows = [[int(cell) for cell in row] for row in grid]
+    if not rows:
+        return []
+    width = len(rows[0])
+    if len(rows) > 30 or width > 30:
+        raise ValueError("ARC grid exceeds 30x30 limit")
+    for row in rows:
+        if len(row) != width:
+            raise ValueError("ARC grid must be rectangular")
+    return rows
+
+
+def _pack_arc_grid(grid: Sequence[Sequence[int]]) -> _ArcGridStruct:
+    normalized = _normalize_arc_grid(grid)
+    packed = _ArcGridStruct()
+    flat = [max(0, min(255, int(cell))) for row in normalized for cell in row]
+    for idx, cell in enumerate(flat):
+        packed.cells[idx] = cell
+    packed.height = len(normalized)
+    packed.width = len(normalized[0]) if normalized else 0
+    return packed
+
+
+def _build_kkrieger_permutation_table() -> list[int]:
+    """Replicate gentexture.cpp InitPerlin() exactly on host."""
+    seed = 0x93638245
+    temp: list[int] = []
+    for _ in range(4096):
+        temp.append(seed & 0xFFFFFFFF)
+        seed = ((seed << 1) & 0xFFFFFFFF) ^ (0xC0000401 if (seed & 0x80000000) else 0)
+    table = list(range(4096))
+    table.sort(key=lambda idx: temp[idx])
+    return table
 
 
 class TritInspectionBatch:
@@ -1936,6 +2068,7 @@ class MultimodalHaltingGate:
         scores,
         candidate_hashes,
         *,
+        worker_weights=None,
         minimum_threshold: float,
         gap_threshold: float,
         agreement_threshold: float,
@@ -1953,12 +2086,23 @@ class MultimodalHaltingGate:
             tuple[array_like, array_like]: (flags[4], metrics[3]) where metrics are
             [top_score, score_gap, agreement_count].
         """
-        score_arr = _f32_vector(scores)
+        raw_score_arr = _f32_vector(scores)
         hash_arr = _u32_vector(candidate_hashes)
-        if score_arr.shape != hash_arr.shape:
+        if raw_score_arr.shape != hash_arr.shape:
             raise ValueError(
-                f"score/hash shape mismatch: {score_arr.shape} != {hash_arr.shape}"
+                f"score/hash shape mismatch: {raw_score_arr.shape} != {hash_arr.shape}"
             )
+        if worker_weights is None:
+            weight_values = [1.0 for _ in range(raw_score_arr.shape[0])]
+        else:
+            weight_values = [float(value) for value in worker_weights]
+            if len(weight_values) != raw_score_arr.shape[0]:
+                raise ValueError("worker_weights_length_mismatch")
+        weighted_scores = [
+            float(score) * max(0.0, float(weight_values[idx]))
+            for idx, score in enumerate(raw_score_arr.tolist())
+        ]
+        score_arr = _f32_vector(weighted_scores)
 
         flags = UInt32Vector.zeros(4)
         metrics = Float32Vector.zeros(3)
@@ -2041,6 +2185,34 @@ class ModularRPNEngine:
         self._galaxy_entry_stride = 19
         self._galaxy_embedding_dim = 16
         self._galaxy_embedding_offset = 3
+        self.d_physics_bodies: Optional[CUdeviceptr] = None
+        self.d_physics_contacts: Optional[CUdeviceptr] = None
+        self.d_physics_events: Optional[CUdeviceptr] = None
+        self.d_physics_predicted: Optional[CUdeviceptr] = None
+        self._d_material_table: Optional[CUdeviceptr] = None
+        self._d_entity_hot_paths: Optional[CUdeviceptr] = None
+        self._entity_count: int = 0
+        self._entity_behavior_program_ptrs: dict[str, int] = {}
+        self._entity_behavior_program_allocs: list[CUdeviceptr] = []
+        self._d_texture_pool: Optional[CUdeviceptr] = None
+        self._d_texture_perm_table: Optional[CUdeviceptr] = None
+        self._texture_slot_ptrs: list[CUdeviceptr] = []
+        self._texture_slot_dims: tuple[int, int] = (0, 0)
+        self._cas_module = None
+        self._cas_expr_build_kernel = None
+        self._cas_diff_kernel = None
+        self._cas_poly_mul_kernel = None
+        self._cas_simplify_kernel = None
+        self._sas_module = None
+        self._sas_canonicalize_kernel = None
+        self._sas_pattern_match_kernel = None
+        self._sas_rule_apply_kernel = None
+        self._arc_verification_module = None
+        self._arc_verify_candidate_kernel = None
+        self._arc_score_candidates_kernel = None
+        self._arc_verify_module = None
+        self._arc_verify_candidate_kernel = None
+        self._arc_score_candidates_kernel = None
 
         # Zero-initialize state buffer using ctypes (no NumPy)
         ZerosArray = ctypes.c_uint8 * total_bytes
@@ -2050,12 +2222,20 @@ class ModularRPNEngine:
         query_zeros = QueryZerosArray()
         memcpy_htod(self.d_query_embeddings, ctypes.cast(query_zeros, ctypes.c_void_p), ctypes.sizeof(query_zeros))
         self._bind_runtime_globals()
+        self.bind_texture_pool()
 
     def _set_module_global(self, symbol_name: str, value, ctype) -> None:
         symbol_ptr, symbol_size = get_global(self.module, symbol_name)
         payload = ctype(value)
         copy_size = min(symbol_size, ctypes.sizeof(payload))
         memcpy_htod(symbol_ptr, ctypes.cast(ctypes.byref(payload), ctypes.c_void_p), copy_size)
+
+    def _try_set_module_global(self, symbol_name: str, value, ctype) -> bool:
+        try:
+            self._set_module_global(symbol_name, value, ctype)
+            return True
+        except Exception:
+            return False
 
     def _bind_runtime_globals(self) -> None:
         galaxy_ptr = int(self.d_galaxy_entries.value) if self.d_galaxy_entries is not None else 0
@@ -2066,6 +2246,979 @@ class ModularRPNEngine:
         self._set_module_global("g_galaxy_embedding_offset", int(self._galaxy_embedding_offset), ctypes.c_uint32)
         self._set_module_global("g_query_embedding_ptr", int(self.d_query_embeddings.value), ctypes.c_uint64)
         self._set_module_global("g_query_embedding_stride", 16, ctypes.c_uint32)
+        self._bind_physics_globals()
+        self._bind_entity_globals()
+        self._bind_texture_globals()
+
+    def _bind_physics_globals(self) -> None:
+        physics_ptr = int(self.d_physics_bodies.value) if self.d_physics_bodies is not None else 0
+        contacts_ptr = int(self.d_physics_contacts.value) if self.d_physics_contacts is not None else 0
+        events_ptr = int(self.d_physics_events.value) if self.d_physics_events is not None else 0
+        predicted_ptr = int(self.d_physics_predicted.value) if self.d_physics_predicted is not None else 0
+        self._try_set_module_global("g_physics_body_soa_ptr", physics_ptr, ctypes.c_uint64)
+        self._try_set_module_global("g_physics_contact_soa_ptr", contacts_ptr, ctypes.c_uint64)
+        self._try_set_module_global("g_physics_event_queue_ptr", events_ptr, ctypes.c_uint64)
+        self._try_set_module_global("g_physics_predicted_soa_ptr", predicted_ptr, ctypes.c_uint64)
+
+    def _bind_texture_globals(self) -> None:
+        texture_pool_ptr = int(self._d_texture_pool.value) if self._d_texture_pool is not None else 0
+        texture_perm_ptr = int(self._d_texture_perm_table.value) if self._d_texture_perm_table is not None else 0
+        self._try_set_module_global("g_texture_pool_ptr", texture_pool_ptr, ctypes.c_uint64)
+        self._try_set_module_global("g_texture_permutation_table_ptr", texture_perm_ptr, ctypes.c_uint64)
+
+    def _ensure_cas_module_loaded(self):
+        if self._cas_module is not None:
+            return self._cas_module
+        src_path = Path(__file__).parent.parent / "kernels" / "cas_kernels.cu"
+        ptx_path = Path(__file__).parent.parent / "ptx" / "cas_kernels.ptx"
+        ptx_text = compile_cuda_file(src_path)
+        ptx_path.write_text(ptx_text, encoding="utf-8")
+        self._cas_module = load_module_from_file(str(ptx_path))
+        self._cas_expr_build_kernel = get_function(self._cas_module, "k3d_expr_build")
+        self._cas_diff_kernel = get_function(self._cas_module, "k3d_diff")
+        self._cas_poly_mul_kernel = get_function(self._cas_module, "k3d_poly_mul")
+        self._cas_simplify_kernel = get_function(self._cas_module, "k3d_simplify")
+        return self._cas_module
+
+    def _zero_module_global(self, module, symbol_name: str) -> int:
+        symbol_ptr, symbol_size = get_global(module, symbol_name)
+        ZeroArray = ctypes.c_uint8 * int(symbol_size)
+        zero_host = ZeroArray()
+        memcpy_htod(symbol_ptr, ctypes.cast(zero_host, ctypes.c_void_p), int(symbol_size))
+        return int(symbol_size)
+
+    def _fill_module_global(self, module, symbol_name: str, fill_byte: int) -> int:
+        symbol_ptr, symbol_size = get_global(module, symbol_name)
+        HostArray = ctypes.c_uint8 * int(symbol_size)
+        host = HostArray(*([int(fill_byte) & 0xFF] * int(symbol_size)))
+        memcpy_htod(symbol_ptr, ctypes.cast(host, ctypes.c_void_p), int(symbol_size))
+        return int(symbol_size)
+
+    def _copy_module_global(self, source_module, dest_module, symbol_name: str) -> int:
+        src_ptr, src_size = get_global(source_module, symbol_name)
+        dst_ptr, dst_size = get_global(dest_module, symbol_name)
+        size = int(min(src_size, dst_size))
+        HostArray = ctypes.c_uint8 * size
+        host = HostArray()
+        memcpy_dtoh(ctypes.cast(host, ctypes.c_void_p), src_ptr, size)
+        memcpy_htod(dst_ptr, ctypes.cast(host, ctypes.c_void_p), size)
+        return size
+
+    def _upload_module_global(self, module, symbol_name: str, host_obj) -> int:
+        symbol_ptr, symbol_size = get_global(module, symbol_name)
+        size = min(int(symbol_size), ctypes.sizeof(host_obj))
+        memcpy_htod(symbol_ptr, ctypes.cast(host_obj, ctypes.c_void_p), size)
+        return size
+
+    def _ensure_sas_module_loaded(self):
+        if self._sas_module is not None:
+            return self._sas_module
+        prior_cas_module = self._ensure_cas_module_loaded()
+        src_path = Path(__file__).parent.parent / "kernels" / "sas_module_linked.cu"
+        ptx_path = Path(__file__).parent.parent / "ptx" / "sas_kernels.ptx"
+        ptx_text = compile_cuda_file(src_path)
+        ptx_path.write_text(ptx_text, encoding="utf-8")
+        self._sas_module = load_module_from_file(str(ptx_path))
+        self._sas_canonicalize_kernel = get_function(self._sas_module, "k3d_canonicalize")
+        self._sas_pattern_match_kernel = get_function(self._sas_module, "k3d_pattern_match")
+        self._sas_rule_apply_kernel = get_function(self._sas_module, "k3d_rule_apply")
+        for symbol_name in ("g_cas_pool", "g_cas_coeffs", "g_cas_pool_top", "g_cas_coeff_top"):
+            self._copy_module_global(prior_cas_module, self._sas_module, symbol_name)
+        self._cas_module = self._sas_module
+        self._cas_expr_build_kernel = get_function(self._cas_module, "k3d_expr_build")
+        self._cas_diff_kernel = get_function(self._cas_module, "k3d_diff")
+        self._cas_poly_mul_kernel = get_function(self._cas_module, "k3d_poly_mul")
+        self._cas_simplify_kernel = get_function(self._cas_module, "k3d_simplify")
+        return self._sas_module
+
+    def _ensure_arc_verification_module_loaded(self):
+        if self._arc_verification_module is not None:
+            return self._arc_verification_module
+        src_path = Path(__file__).parent.parent / "kernels" / "arc_verification.cu"
+        ptx_path = Path(__file__).parent.parent / "ptx" / "arc_verification.ptx"
+        ptx_text = compile_cuda_file(src_path)
+        ptx_path.write_text(ptx_text, encoding="utf-8")
+        self._arc_verification_module = load_module_from_file(str(ptx_path))
+        self._arc_verify_candidate_kernel = get_function(
+            self._arc_verification_module,
+            "arc_verify_candidate",
+        )
+        self._arc_score_candidates_kernel = get_function(
+            self._arc_verification_module,
+            "arc_score_candidates",
+        )
+        return self._arc_verification_module
+
+    def _active_cas_module(self):
+        if self._sas_module is not None:
+            return self._sas_module
+        if self._cas_module is not None:
+            return self._cas_module
+        if self.module is not None:
+            return self.module
+        return self._ensure_cas_module_loaded()
+
+    def _ensure_arc_verification_module_loaded(self):
+        if self._arc_verify_module is not None:
+            return self._arc_verify_module
+        src_path = Path(__file__).parent.parent / "kernels" / "arc_verification.cu"
+        ptx_path = Path(__file__).parent.parent / "ptx" / "arc_verification.ptx"
+        ptx_text = compile_cuda_file(src_path)
+        ptx_path.write_text(ptx_text, encoding="utf-8")
+        self._arc_verify_module = load_module_from_file(str(ptx_path))
+        self._arc_verify_candidate_kernel = get_function(self._arc_verify_module, "arc_verify_candidate")
+        self._arc_score_candidates_kernel = get_function(self._arc_verify_module, "arc_score_candidates")
+        return self._arc_verify_module
+
+    def _pack_arc_grid(self, grid: Sequence[Sequence[int]]) -> _ArcGridStruct:
+        rows = [list(row) for row in list(grid or [])]
+        height = len(rows)
+        width = len(rows[0]) if rows else 0
+        if height > 30 or width > 30:
+            raise ValueError("ARC grid exceeds 30x30")
+        for row in rows:
+            if len(row) != width:
+                raise ValueError("ARC grid must be rectangular")
+        packed = _ArcGridStruct()
+        for idx in range(900):
+            packed.cells[idx] = 0
+        cursor = 0
+        for row in rows:
+            for value in row:
+                packed.cells[cursor] = int(value) & 0xFF
+                cursor += 1
+        packed.height = int(height)
+        packed.width = int(width)
+        return packed
+
+    def bind_cas_pool(self) -> dict[str, int]:
+        """Zero the sovereign CAS STAR pools on both modular and dedicated CAS modules."""
+        cas_module = self._ensure_cas_module_loaded()
+        pool_bytes = 0
+        coeff_bytes = 0
+        modules = [self.module, cas_module]
+        if self._sas_module is not None and self._sas_module not in modules:
+            modules.append(self._sas_module)
+        for module in modules:
+            try:
+                pool_bytes = self._zero_module_global(module, "g_cas_pool")
+                coeff_bytes = self._zero_module_global(module, "g_cas_coeffs")
+                self._zero_module_global(module, "g_cas_pool_top")
+                self._zero_module_global(module, "g_cas_coeff_top")
+                try:
+                    self._fill_module_global(module, "g_sas_hashcons", 0xFF)
+                except Exception:
+                    pass
+            except Exception:
+                continue
+        return {
+            "pool_bytes": int(pool_bytes),
+            "coeff_bytes": int(coeff_bytes),
+        }
+
+    def bind_sas_symbol_table(self, values: list[float], star_ids: list[int]) -> None:
+        """Upload the boot-time SAS symbol table into constant memory."""
+        sas_module = self._ensure_sas_module_loaded()
+        value_data = [float(v) for v in list(values)[:256]]
+        star_id_data = [int(v) for v in list(star_ids)[:256]]
+        while len(value_data) < 256:
+            value_data.append(0.0)
+        while len(star_id_data) < 256:
+            star_id_data.append(0)
+        ValueArray = ctypes.c_float * 256
+        StarIdArray = ctypes.c_uint32 * 256
+        host_values = ValueArray(*value_data)
+        host_star_ids = StarIdArray(*star_id_data)
+        modules = [self.module, sas_module]
+        for module in modules:
+            try:
+                self._upload_module_global(module, "g_sas_symbol_values", host_values)
+                self._upload_module_global(module, "g_sas_symbol_star_ids", host_star_ids)
+                self._fill_module_global(module, "g_sas_hashcons", 0xFF)
+            except Exception:
+                continue
+
+    def _bind_entity_globals(self) -> None:
+        entity_ptr = int(self._d_entity_hot_paths.value) if self._d_entity_hot_paths is not None else 0
+        self._try_set_module_global("g_entity_hot_path_ptr", entity_ptr, ctypes.c_uint64)
+        self._try_set_module_global("g_entity_count", int(self._entity_count), ctypes.c_uint32)
+
+    def bind_physics_runtime(
+        self,
+        *,
+        body_soa: Optional[CUdeviceptr] = None,
+        contact_soa: Optional[CUdeviceptr] = None,
+        event_queue: Optional[CUdeviceptr] = None,
+        predicted_soa: Optional[CUdeviceptr] = None,
+    ) -> dict[str, int]:
+        self.d_physics_bodies = body_soa
+        self.d_physics_contacts = contact_soa
+        self.d_physics_events = event_queue
+        self.d_physics_predicted = predicted_soa
+        self._bind_physics_globals()
+        return {
+            "body_soa_ptr": int(body_soa.value) if body_soa is not None else 0,
+            "contact_soa_ptr": int(contact_soa.value) if contact_soa is not None else 0,
+            "event_queue_ptr": int(event_queue.value) if event_queue is not None else 0,
+            "predicted_soa_ptr": int(predicted_soa.value) if predicted_soa is not None else 0,
+        }
+
+    def bind_physics_material_table(self, material_entries: list[dict]) -> int:
+        """Serialize Layer-2 material stars into a GPU-side physics lookup table."""
+        n = len(material_entries)
+        if self._d_material_table is not None:
+            gpu_free(self._d_material_table)
+            self._d_material_table = None
+        if n == 0:
+            self._try_set_module_global("g_physics_material_table_ptr", 0, ctypes.c_uint64)
+            self._try_set_module_global("g_physics_material_table_count", 0, ctypes.c_uint32)
+            return 0
+
+        EntryArray = ctypes.c_uint8 * (n * 20)
+        buf = EntryArray()
+        for i, entry in enumerate(material_entries):
+            offset = i * 20
+            struct.pack_into("<I", buf, offset, int(entry["star_id"]))
+            struct.pack_into("<f", buf, offset + 4, float(entry["friction"]))
+            struct.pack_into("<f", buf, offset + 8, float(entry["restitution"]))
+            struct.pack_into("<f", buf, offset + 12, float(entry["density"]))
+            struct.pack_into("<I", buf, offset + 16, int(entry.get("texture_id", 0xFFFFFFFF)))
+        self._d_material_table = gpu_malloc(n * 20)
+        memcpy_htod(self._d_material_table, ctypes.cast(buf, ctypes.c_void_p), n * 20)
+        self._try_set_module_global("g_physics_material_table_ptr", int(self._d_material_table.value), ctypes.c_uint64)
+        self._try_set_module_global("g_physics_material_table_count", n, ctypes.c_uint32)
+        return n
+
+    def bind_texture_pool(
+        self,
+        *,
+        width: int = 64,
+        height: int = 64,
+        slot_count: int = 256,
+    ) -> dict[str, int]:
+        width_i = max(1, int(width))
+        height_i = max(1, int(height))
+        slot_count_i = max(1, min(256, int(slot_count)))
+
+        if self._d_texture_pool is not None:
+            gpu_free(self._d_texture_pool)
+            self._d_texture_pool = None
+        if self._d_texture_perm_table is not None:
+            gpu_free(self._d_texture_perm_table)
+            self._d_texture_perm_table = None
+        for ptr in self._texture_slot_ptrs:
+            gpu_free(ptr)
+        self._texture_slot_ptrs = []
+
+        pool = _TextureHandlePoolStruct()
+        float_count = width_i * height_i
+        FloatArray = ctypes.c_float * float_count
+        zero_texture = FloatArray()
+
+        for idx in range(slot_count_i):
+            d_slot = gpu_malloc(ctypes.sizeof(zero_texture))
+            memcpy_htod(d_slot, ctypes.cast(zero_texture, ctypes.c_void_p), ctypes.sizeof(zero_texture))
+            pool.slot_ptr[idx] = int(d_slot.value)
+            pool.width[idx] = width_i
+            pool.height[idx] = height_i
+            pool.in_use[idx] = 0
+            self._texture_slot_ptrs.append(d_slot)
+        for idx in range(slot_count_i, 256):
+            pool.slot_ptr[idx] = 0
+            pool.width[idx] = 0
+            pool.height[idx] = 0
+            pool.in_use[idx] = 0
+        for idx in range(64):
+            pool.baked_source_slot[idx] = 0xFFFFFFFF
+            pool.baked_in_use[idx] = 0
+
+        self._d_texture_pool = gpu_malloc(ctypes.sizeof(pool))
+        memcpy_htod(self._d_texture_pool, ctypes.cast(ctypes.byref(pool), ctypes.c_void_p), ctypes.sizeof(pool))
+
+        perm_values = _build_kkrieger_permutation_table()
+        PermArray = ctypes.c_uint16 * len(perm_values)
+        perm_host = PermArray(*perm_values)
+        self._d_texture_perm_table = gpu_malloc(ctypes.sizeof(perm_host))
+        memcpy_htod(self._d_texture_perm_table, ctypes.cast(perm_host, ctypes.c_void_p), ctypes.sizeof(perm_host))
+
+        self._texture_slot_dims = (width_i, height_i)
+        self._bind_texture_globals()
+        return {
+            "width": width_i,
+            "height": height_i,
+            "slot_count": slot_count_i,
+            "perm_entries": len(perm_values),
+        }
+
+    def launch_k3d_expr_build(self, program_words: Sequence[int]) -> int:
+        """Build a STAR DAG from a compact uint32 program stream."""
+        self._ensure_cas_module_loaded()
+        program = [int(word) for word in program_words]
+        if not program:
+            raise ValueError("program_words must not be empty")
+        WordArray = ctypes.c_uint32 * len(program)
+        host_program = WordArray(*program)
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0xFFFFFFFF)
+        d_program = gpu_malloc(ctypes.sizeof(host_program))
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_program, ctypes.cast(host_program, ctypes.c_void_p), ctypes.sizeof(host_program))
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._cas_expr_build_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint64(int(d_program.value)),
+                    ctypes.c_uint32(len(program)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_program)
+            gpu_free(d_out)
+
+    def launch_k3d_diff(self, root_idx: int, var_sym_id: int) -> int:
+        """Launch the dedicated sovereign CAS differentiation kernel."""
+        self._ensure_cas_module_loaded()
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0xFFFFFFFF)
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._cas_diff_kernel,
+                grid=(1, 1, 1),
+                block=(32, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(root_idx)),
+                    ctypes.c_uint32(int(var_sym_id)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_out)
+
+    def launch_k3d_poly_mul(self, poly_a_idx: int, poly_b_idx: int) -> int:
+        """Launch the dedicated sovereign polynomial multiplication kernel."""
+        self._ensure_cas_module_loaded()
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0xFFFFFFFF)
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._cas_poly_mul_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(poly_a_idx)),
+                    ctypes.c_uint32(int(poly_b_idx)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_out)
+
+    def launch_k3d_simplify(self, root_idx: int) -> int:
+        """Launch the dedicated sovereign CAS simplification kernel."""
+        self._ensure_cas_module_loaded()
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0xFFFFFFFF)
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._cas_simplify_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(root_idx)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_out)
+
+    def launch_k3d_canonicalize(self, root_idx: int) -> int:
+        """Normalize a STAR DAG and return its canonical root index."""
+        self._ensure_sas_module_loaded()
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0xFFFFFFFF)
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._sas_canonicalize_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(root_idx)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_out)
+
+    def launch_k3d_pattern_match(
+        self, pattern_root_idx: int, subject_root_idx: int
+    ) -> tuple[list[int], list[int], bool]:
+        """Run bounded one-way pattern matching on the sovereign SAS surface."""
+        self._ensure_sas_module_loaded()
+        VarArray = ctypes.c_uint32 * 16
+        host_var_ids = VarArray(*([0xFFFFFFFF] * 16))
+        host_subj_idxs = VarArray(*([0xFFFFFFFF] * 16))
+        CountArray = ctypes.c_uint32 * 1
+        host_count = CountArray(0)
+        host_matched = CountArray(0)
+        d_var_ids = gpu_malloc(ctypes.sizeof(host_var_ids))
+        d_subj_idxs = gpu_malloc(ctypes.sizeof(host_subj_idxs))
+        d_count = gpu_malloc(ctypes.sizeof(host_count))
+        d_matched = gpu_malloc(ctypes.sizeof(host_matched))
+        try:
+            memcpy_htod(d_var_ids, ctypes.cast(host_var_ids, ctypes.c_void_p), ctypes.sizeof(host_var_ids))
+            memcpy_htod(d_subj_idxs, ctypes.cast(host_subj_idxs, ctypes.c_void_p), ctypes.sizeof(host_subj_idxs))
+            memcpy_htod(d_count, ctypes.cast(host_count, ctypes.c_void_p), ctypes.sizeof(host_count))
+            memcpy_htod(d_matched, ctypes.cast(host_matched, ctypes.c_void_p), ctypes.sizeof(host_matched))
+            launch(
+                self._sas_pattern_match_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(pattern_root_idx)),
+                    ctypes.c_uint32(int(subject_root_idx)),
+                    ctypes.c_uint64(int(d_var_ids.value)),
+                    ctypes.c_uint64(int(d_subj_idxs.value)),
+                    ctypes.c_uint64(int(d_count.value)),
+                    ctypes.c_uint64(int(d_matched.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_var_ids, ctypes.c_void_p), d_var_ids, ctypes.sizeof(host_var_ids))
+            memcpy_dtoh(ctypes.cast(host_subj_idxs, ctypes.c_void_p), d_subj_idxs, ctypes.sizeof(host_subj_idxs))
+            memcpy_dtoh(ctypes.cast(host_count, ctypes.c_void_p), d_count, ctypes.sizeof(host_count))
+            memcpy_dtoh(ctypes.cast(host_matched, ctypes.c_void_p), d_matched, ctypes.sizeof(host_matched))
+            count = min(int(host_count[0]), 16)
+            return (
+                [int(host_var_ids[idx]) for idx in range(count)],
+                [int(host_subj_idxs[idx]) for idx in range(count)],
+                bool(host_matched[0]),
+            )
+        finally:
+            gpu_free(d_var_ids)
+            gpu_free(d_subj_idxs)
+            gpu_free(d_count)
+            gpu_free(d_matched)
+
+    def launch_k3d_rule_apply(
+        self,
+        replacement_template_idx: int,
+        var_ids: list[int],
+        subj_idxs: list[int],
+    ) -> int:
+        """Materialize a rewrite result from a template and binding table."""
+        self._ensure_sas_module_loaded()
+        trimmed_var_ids = [int(v) for v in list(var_ids)[:16]]
+        trimmed_subj_idxs = [int(v) for v in list(subj_idxs)[:16]]
+        count = min(len(trimmed_var_ids), len(trimmed_subj_idxs), 16)
+        while len(trimmed_var_ids) < 16:
+            trimmed_var_ids.append(0xFFFFFFFF)
+        while len(trimmed_subj_idxs) < 16:
+            trimmed_subj_idxs.append(0xFFFFFFFF)
+        VarArray = ctypes.c_uint32 * 16
+        OutArray = ctypes.c_uint32 * 1
+        host_var_ids = VarArray(*trimmed_var_ids)
+        host_subj_idxs = VarArray(*trimmed_subj_idxs)
+        host_out = OutArray(0xFFFFFFFF)
+        d_var_ids = gpu_malloc(ctypes.sizeof(host_var_ids))
+        d_subj_idxs = gpu_malloc(ctypes.sizeof(host_subj_idxs))
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_var_ids, ctypes.cast(host_var_ids, ctypes.c_void_p), ctypes.sizeof(host_var_ids))
+            memcpy_htod(d_subj_idxs, ctypes.cast(host_subj_idxs, ctypes.c_void_p), ctypes.sizeof(host_subj_idxs))
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._sas_rule_apply_kernel,
+                grid=(1, 1, 1),
+                block=(1, 1, 1),
+                params=[
+                    ctypes.c_uint32(int(replacement_template_idx)),
+                    ctypes.c_uint64(int(d_var_ids.value)),
+                    ctypes.c_uint64(int(d_subj_idxs.value)),
+                    ctypes.c_uint32(int(count)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_var_ids)
+            gpu_free(d_subj_idxs)
+            gpu_free(d_out)
+
+    def read_cas_pool_top(self) -> int:
+        """Return the current sovereign CAS/SAS pool top index."""
+        module = self._active_cas_module()
+        symbol_ptr, _symbol_size = get_global(module, "g_cas_pool_top")
+        host_value = ctypes.c_uint32(0)
+        memcpy_dtoh(
+            ctypes.cast(ctypes.byref(host_value), ctypes.c_void_p),
+            symbol_ptr,
+            ctypes.sizeof(host_value),
+        )
+        return int(host_value.value)
+
+    def read_cas_star_node(self, node_idx: int) -> dict[str, int | float]:
+        """Read one STAR node from the active sovereign CAS/SAS pool."""
+        node_index = int(node_idx)
+        if node_index < 0:
+            raise ValueError(f"node_idx must be >= 0, got {node_idx}")
+        module = self._active_cas_module()
+        pool_ptr, pool_size = get_global(module, "g_cas_pool")
+        node_size = ctypes.sizeof(_CASStarNodeStruct)
+        if node_index * node_size >= int(pool_size):
+            raise IndexError(node_idx)
+        host_node = _CASStarNodeStruct()
+        memcpy_dtoh(
+            ctypes.cast(ctypes.byref(host_node), ctypes.c_void_p),
+            ctypes.c_void_p(int(pool_ptr.value) + (node_index * node_size)),
+            node_size,
+        )
+        flags = int(host_node.flags)
+        return {
+            "opcode": int(host_node.opcode),
+            "flags": flags,
+            "arity": int(flags & 0xFF),
+            "tag": int((flags >> 8) & 0xFF),
+            "refcount": int((flags >> 16) & 0xFF),
+            "payload": int(host_node.data.payload),
+            "child0": int(host_node.data.child0),
+            "child1": int(host_node.next),
+            "immf32": float(host_node.data.immf32),
+            "immi32": int(host_node.data.immi32),
+        }
+
+    def read_cas_node(self, node_idx: int) -> dict[str, int | float]:
+        """Compatibility alias for code that expects the older CAS read helper name."""
+        return self.read_cas_star_node(node_idx)
+
+    def read_cas_coefficients(self, coeff_offset: int, coeff_count: int) -> list[float]:
+        """Read a slice from the active sovereign CAS coefficient buffer."""
+        offset = max(0, int(coeff_offset))
+        count = max(0, int(coeff_count))
+        if count == 0:
+            return []
+        module = self._active_cas_module()
+        coeff_ptr, coeff_size = get_global(module, "g_cas_coeffs")
+        float_size = ctypes.sizeof(ctypes.c_float)
+        if offset * float_size >= int(coeff_size):
+            return []
+        available = (int(coeff_size) // float_size) - offset
+        count = min(count, max(0, available))
+        if count <= 0:
+            return []
+        HostArray = ctypes.c_float * count
+        host = HostArray()
+        memcpy_dtoh(
+            ctypes.cast(host, ctypes.c_void_p),
+            ctypes.c_void_p(int(coeff_ptr.value) + (offset * float_size)),
+            ctypes.sizeof(host),
+        )
+        return [float(host[idx]) for idx in range(count)]
+
+    @staticmethod
+    def _pack_arc_grid(grid: list[list[int]]) -> _ArcGridStruct:
+        if not isinstance(grid, list) or not grid:
+            raise ValueError("ARC grid must be a non-empty rectangular list")
+        if not all(isinstance(row, list) and row for row in grid):
+            raise ValueError("ARC grid rows must be non-empty lists")
+        height = len(grid)
+        width = len(grid[0])
+        if height > 30 or width > 30:
+            raise ValueError(f"ARC grid exceeds 30x30 bounds: {height}x{width}")
+        if any(len(row) != width for row in grid):
+            raise ValueError("ARC grid must be rectangular")
+        cells = [0] * 900
+        cursor = 0
+        for row in grid:
+            for value in row:
+                cell = int(value)
+                if cell < 0 or cell > 255:
+                    raise ValueError(f"ARC cell out of uint8 range: {cell}")
+                cells[cursor] = cell
+                cursor += 1
+        host_grid = _ArcGridStruct()
+        for idx, value in enumerate(cells):
+            host_grid.cells[idx] = int(value)
+        host_grid.height = int(height)
+        host_grid.width = int(width)
+        return host_grid
+
+    def launch_arc_verify_candidate(
+        self,
+        candidate: list[list[int]],
+        training_outputs: list[list[list[int]]],
+    ) -> int:
+        """Return the number of training outputs matched exactly by one candidate grid."""
+        self._ensure_arc_verification_module_loaded()
+        candidate_host = self._pack_arc_grid(candidate)
+        outputs = list(training_outputs or [])
+        if not outputs:
+            return 0
+        OutputArray = _ArcGridStruct * len(outputs)
+        host_outputs = OutputArray(*(self._pack_arc_grid(grid) for grid in outputs))
+        host_result = ctypes.c_uint32(0)
+        d_candidate = gpu_malloc(ctypes.sizeof(candidate_host))
+        d_outputs = gpu_malloc(ctypes.sizeof(host_outputs))
+        d_result = gpu_malloc(ctypes.sizeof(host_result))
+        try:
+            memcpy_htod(
+                d_candidate,
+                ctypes.cast(ctypes.byref(candidate_host), ctypes.c_void_p),
+                ctypes.sizeof(candidate_host),
+            )
+            memcpy_htod(
+                d_outputs,
+                ctypes.cast(host_outputs, ctypes.c_void_p),
+                ctypes.sizeof(host_outputs),
+            )
+            memcpy_htod(
+                d_result,
+                ctypes.cast(ctypes.byref(host_result), ctypes.c_void_p),
+                ctypes.sizeof(host_result),
+            )
+            launch(
+                self._arc_verify_candidate_kernel,
+                grid=(1, 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(int(d_candidate.value)),
+                    ctypes.c_uint64(int(d_outputs.value)),
+                    ctypes.c_uint32(len(outputs)),
+                    ctypes.c_uint64(int(d_result.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(
+                ctypes.cast(ctypes.byref(host_result), ctypes.c_void_p),
+                d_result,
+                ctypes.sizeof(host_result),
+            )
+            return int(host_result.value)
+        finally:
+            gpu_free(d_candidate)
+            gpu_free(d_outputs)
+            gpu_free(d_result)
+
+    def launch_arc_score_candidates(
+        self,
+        candidates: list[list[list[int]]],
+        training_outputs: list[list[list[int]]],
+    ) -> list[int]:
+        """Score a batch of candidate ARC grids against the training outputs."""
+        self._ensure_arc_verification_module_loaded()
+        candidate_grids = list(candidates or [])
+        outputs = list(training_outputs or [])
+        if not candidate_grids:
+            return []
+        if not outputs:
+            return [0 for _ in candidate_grids]
+        CandidateArray = _ArcGridStruct * len(candidate_grids)
+        OutputArray = _ArcGridStruct * len(outputs)
+        host_candidates = CandidateArray(*(self._pack_arc_grid(grid) for grid in candidate_grids))
+        host_outputs = OutputArray(*(self._pack_arc_grid(grid) for grid in outputs))
+        ResultArray = ctypes.c_uint32 * len(candidate_grids)
+        host_scores = ResultArray(*([0] * len(candidate_grids)))
+        d_candidates = gpu_malloc(ctypes.sizeof(host_candidates))
+        d_outputs = gpu_malloc(ctypes.sizeof(host_outputs))
+        d_scores = gpu_malloc(ctypes.sizeof(host_scores))
+        try:
+            memcpy_htod(
+                d_candidates,
+                ctypes.cast(host_candidates, ctypes.c_void_p),
+                ctypes.sizeof(host_candidates),
+            )
+            memcpy_htod(
+                d_outputs,
+                ctypes.cast(host_outputs, ctypes.c_void_p),
+                ctypes.sizeof(host_outputs),
+            )
+            memcpy_htod(
+                d_scores,
+                ctypes.cast(host_scores, ctypes.c_void_p),
+                ctypes.sizeof(host_scores),
+            )
+            launch(
+                self._arc_score_candidates_kernel,
+                grid=(len(candidate_grids), 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(int(d_candidates.value)),
+                    ctypes.c_uint32(len(candidate_grids)),
+                    ctypes.c_uint64(int(d_outputs.value)),
+                    ctypes.c_uint32(len(outputs)),
+                    ctypes.c_uint64(int(d_scores.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(
+                ctypes.cast(host_scores, ctypes.c_void_p),
+                d_scores,
+                ctypes.sizeof(host_scores),
+            )
+            return [int(host_scores[idx]) for idx in range(len(candidate_grids))]
+        finally:
+            gpu_free(d_candidates)
+            gpu_free(d_outputs)
+            gpu_free(d_scores)
+
+    def read_cas_node(self, node_idx: int) -> dict[str, int | float]:
+        """Read one STAR node back from the sovereign CAS pool."""
+        if int(node_idx) < 0:
+            raise ValueError("node_idx must be >= 0")
+        cas_module = self._active_cas_module()
+        pool_ptr, pool_size = get_global(cas_module, "g_cas_pool")
+        node_size = ctypes.sizeof(_StarNodeStruct)
+        offset = int(node_idx) * node_size
+        if offset + node_size > int(pool_size):
+            raise ValueError(f"node_idx out of bounds: {node_idx}")
+        host = _StarNodeStruct()
+        memcpy_dtoh(
+            ctypes.cast(ctypes.byref(host), ctypes.c_void_p),
+            ctypes.c_void_p(int(pool_ptr.value) + offset),
+            node_size,
+        )
+        return {
+            "opcode": int(host.opcode),
+            "flags": int(host.flags),
+            "payload": int(host.payload),
+            "next": int(host.next),
+            "immf32": float(struct.unpack("<f", struct.pack("<I", int(host.payload)))[0]),
+        }
+
+    def read_cas_pool_top(self) -> int:
+        """Return the current sovereign CAS pool top pointer."""
+        cas_module = self._active_cas_module()
+        top_ptr, top_size = get_global(cas_module, "g_cas_pool_top")
+        if int(top_size) < ctypes.sizeof(ctypes.c_uint32):
+            raise RuntimeError("g_cas_pool_top global too small")
+        host = ctypes.c_uint32(0)
+        memcpy_dtoh(
+            ctypes.cast(ctypes.byref(host), ctypes.c_void_p),
+            top_ptr,
+            ctypes.sizeof(host),
+        )
+        return int(host.value)
+
+    def read_cas_coefficients(self, offset: int, count: int) -> list[float]:
+        """Read a coefficient slice from the sovereign CAS coefficient pool."""
+        if int(offset) < 0 or int(count) < 0:
+            raise ValueError("offset and count must be >= 0")
+        cas_module = self._active_cas_module()
+        coeff_ptr, coeff_size = get_global(cas_module, "g_cas_coeffs")
+        elem_size = ctypes.sizeof(ctypes.c_float)
+        byte_offset = int(offset) * elem_size
+        byte_count = int(count) * elem_size
+        if byte_offset + byte_count > int(coeff_size):
+            raise ValueError(f"coefficient slice out of bounds: offset={offset} count={count}")
+        HostArray = ctypes.c_float * int(count)
+        host = HostArray()
+        memcpy_dtoh(
+            ctypes.cast(host, ctypes.c_void_p),
+            ctypes.c_void_p(int(coeff_ptr.value) + byte_offset),
+            byte_count,
+        )
+        return [float(host[idx]) for idx in range(int(count))]
+
+    def launch_arc_verify_candidate(
+        self,
+        candidate: list[list[int]],
+        training_outputs: list[list[list[int]]],
+    ) -> int:
+        """Return the number of training outputs matched exactly by one candidate."""
+        self._ensure_arc_verification_module_loaded()
+        candidate_host = self._pack_arc_grid(candidate)
+        training_rows = [_pack for _pack in (self._pack_arc_grid(grid) for grid in list(training_outputs or []))]
+        TrainingArray = _ArcGridStruct * max(1, len(training_rows))
+        host_training = TrainingArray(*training_rows) if training_rows else TrainingArray(_ArcGridStruct())
+        OutArray = ctypes.c_uint32 * 1
+        host_out = OutArray(0)
+        d_candidate = gpu_malloc(ctypes.sizeof(candidate_host))
+        d_training = gpu_malloc(ctypes.sizeof(host_training))
+        d_out = gpu_malloc(ctypes.sizeof(host_out))
+        try:
+            memcpy_htod(d_candidate, ctypes.cast(ctypes.byref(candidate_host), ctypes.c_void_p), ctypes.sizeof(candidate_host))
+            memcpy_htod(d_training, ctypes.cast(host_training, ctypes.c_void_p), ctypes.sizeof(host_training))
+            memcpy_htod(d_out, ctypes.cast(host_out, ctypes.c_void_p), ctypes.sizeof(host_out))
+            launch(
+                self._arc_verify_candidate_kernel,
+                grid=(1, 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(int(d_candidate.value)),
+                    ctypes.c_uint64(int(d_training.value)),
+                    ctypes.c_uint32(len(training_rows)),
+                    ctypes.c_uint64(int(d_out.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_out, ctypes.c_void_p), d_out, ctypes.sizeof(host_out))
+            return int(host_out[0])
+        finally:
+            gpu_free(d_candidate)
+            gpu_free(d_training)
+            gpu_free(d_out)
+
+    def launch_arc_score_candidates(
+        self,
+        candidates: list[list[list[int]]],
+        training_outputs: list[list[list[int]]],
+    ) -> list[int]:
+        """Score a batch of candidate grids against training outputs."""
+        self._ensure_arc_verification_module_loaded()
+        candidate_rows = [_pack for _pack in (self._pack_arc_grid(grid) for grid in list(candidates or []))]
+        training_rows = [_pack for _pack in (self._pack_arc_grid(grid) for grid in list(training_outputs or []))]
+        if not candidate_rows:
+            return []
+        CandidateArray = _ArcGridStruct * len(candidate_rows)
+        TrainingArray = _ArcGridStruct * max(1, len(training_rows))
+        ScoreArray = ctypes.c_uint32 * len(candidate_rows)
+        host_candidates = CandidateArray(*candidate_rows)
+        host_training = TrainingArray(*training_rows) if training_rows else TrainingArray(_ArcGridStruct())
+        host_scores = ScoreArray(*([0] * len(candidate_rows)))
+        d_candidates = gpu_malloc(ctypes.sizeof(host_candidates))
+        d_training = gpu_malloc(ctypes.sizeof(host_training))
+        d_scores = gpu_malloc(ctypes.sizeof(host_scores))
+        try:
+            memcpy_htod(d_candidates, ctypes.cast(host_candidates, ctypes.c_void_p), ctypes.sizeof(host_candidates))
+            memcpy_htod(d_training, ctypes.cast(host_training, ctypes.c_void_p), ctypes.sizeof(host_training))
+            memcpy_htod(d_scores, ctypes.cast(host_scores, ctypes.c_void_p), ctypes.sizeof(host_scores))
+            launch(
+                self._arc_score_candidates_kernel,
+                grid=(len(candidate_rows), 1, 1),
+                block=(256, 1, 1),
+                params=[
+                    ctypes.c_uint64(int(d_candidates.value)),
+                    ctypes.c_uint32(len(candidate_rows)),
+                    ctypes.c_uint64(int(d_training.value)),
+                    ctypes.c_uint32(len(training_rows)),
+                    ctypes.c_uint64(int(d_scores.value)),
+                ],
+            )
+            synchronize()
+            memcpy_dtoh(ctypes.cast(host_scores, ctypes.c_void_p), d_scores, ctypes.sizeof(host_scores))
+            return [int(host_scores[idx]) for idx in range(len(candidate_rows))]
+        finally:
+            gpu_free(d_candidates)
+            gpu_free(d_training)
+            gpu_free(d_scores)
+
+    def bind_entity_behavior_programs(self, compiled_programs: dict[str, bytes]) -> dict[str, int]:
+        for ptr in self._entity_behavior_program_allocs:
+            gpu_free(ptr)
+        self._entity_behavior_program_allocs = []
+        self._entity_behavior_program_ptrs = {}
+        for star_id, blob in compiled_programs.items():
+            data = bytes(blob or b"")
+            if not data:
+                continue
+            HostArray = ctypes.c_uint8 * len(data)
+            host = HostArray.from_buffer_copy(data)
+            device_ptr = gpu_malloc(len(data))
+            memcpy_htod(device_ptr, ctypes.cast(host, ctypes.c_void_p), len(data))
+            self._entity_behavior_program_allocs.append(device_ptr)
+            self._entity_behavior_program_ptrs[str(star_id)] = int(device_ptr.value)
+        return dict(self._entity_behavior_program_ptrs)
+
+    def bind_entity_soa(self, entity_hot_path_array: list[dict]) -> dict[str, int]:
+        count = len(entity_hot_path_array)
+        if self._d_entity_hot_paths is not None:
+            gpu_free(self._d_entity_hot_paths)
+            self._d_entity_hot_paths = None
+        self._entity_count = 0
+        if count == 0:
+            self._bind_entity_globals()
+            return {"entity_count": 0, "stride_bytes": ctypes.sizeof(_EntityHotPathStruct)}
+
+        HostArray = _EntityHotPathStruct * count
+        host = HostArray()
+        for idx, entry in enumerate(entity_hot_path_array):
+            behavior_addr = int(entry.get("behavior_rpn_addr", 0) or 0)
+            if behavior_addr == 0:
+                behavior_addr = int(self._entity_behavior_program_ptrs.get(str(entry.get("star_id", "")), 0))
+            cranial_origin = list(entry.get("cranial_origin", [0.0, 1.6, 0.0]) or [0.0, 1.6, 0.0])[:3]
+            while len(cranial_origin) < 3:
+                cranial_origin.append(0.0)
+            host[idx] = _EntityHotPathStruct(
+                star_table_idx=int(entry.get("star_table_idx", idx)),
+                physics_body_id=int(entry.get("physics_body_id", 0)),
+                behavior_rpn_addr=int(behavior_addr),
+                house_x=float(entry.get("house_x", 0.0)),
+                house_y=float(entry.get("house_y", 0.0)),
+                house_z=float(entry.get("house_z", 0.0)),
+                sleep_state=int(entry.get("sleep_state", 0)),
+                faction=int(entry.get("faction", 0)),
+                ai_tier=int(entry.get("ai_tier", 0)),
+                perception_flags=int(entry.get("perception_flags", 0x1)),
+                perception_radius=float(entry.get("perception_radius", 30.0)),
+                last_player_dist=float(entry.get("last_player_dist", 999.0)),
+                awareness=float(entry.get("awareness", 0.0)),
+                blackboard_star_id=int(entry.get("blackboard_star_id", 0)),
+                meta_rule_addr=int(entry.get("meta_rule_addr", 0)),
+                cranial_origin=(ctypes.c_float * 3)(*map(float, cranial_origin)),
+                _pad=0.0,
+            )
+
+        nbytes = ctypes.sizeof(host)
+        self._d_entity_hot_paths = gpu_malloc(nbytes)
+        memcpy_htod(self._d_entity_hot_paths, ctypes.cast(host, ctypes.c_void_p), nbytes)
+        self._entity_count = count
+        self._bind_entity_globals()
+        return {"entity_count": count, "stride_bytes": ctypes.sizeof(_EntityHotPathStruct)}
+
+    def _read_texture_pool_metadata(self) -> _TextureHandlePoolStruct:
+        if self._d_texture_pool is None:
+            raise RuntimeError("Texture pool is not bound")
+        host = _TextureHandlePoolStruct()
+        memcpy_dtoh(ctypes.cast(ctypes.byref(host), ctypes.c_void_p), self._d_texture_pool, ctypes.sizeof(host))
+        return host
+
+    def read_texture_slot(self, handle: int) -> tuple[int, int, list[float]]:
+        pool = self._read_texture_pool_metadata()
+        slot = int(handle) - 1
+        if slot < 0 or slot >= 256 or pool.slot_ptr[slot] == 0:
+            raise ValueError(f"Invalid texture handle: {handle}")
+        width = int(pool.width[slot])
+        height = int(pool.height[slot])
+        FloatArray = ctypes.c_float * (width * height)
+        host = FloatArray()
+        memcpy_dtoh(ctypes.cast(host, ctypes.c_void_p), CUdeviceptr(pool.slot_ptr[slot]), ctypes.sizeof(host))
+        return width, height, [float(host[idx]) for idx in range(width * height)]
+
+    def read_baked_texture(self, texture_id: int) -> tuple[int, int, list[float]]:
+        pool = self._read_texture_pool_metadata()
+        baked_index = int(texture_id) - 1
+        if baked_index < 0 or baked_index >= 64 or pool.baked_in_use[baked_index] == 0:
+            raise ValueError(f"Invalid baked texture id: {texture_id}")
+        slot = int(pool.baked_source_slot[baked_index]) + 1
+        return self.read_texture_slot(slot)
 
     def bind_galaxy_buffer(
         self,
@@ -2427,8 +3580,15 @@ class ModularRPNEngine:
         if self.d_galaxy_entries is not None:
             gpu_free(self.d_galaxy_entries)
             self.d_galaxy_entries = None
-        gpu_free(self.d_query_embeddings)
-        gpu_free(self.d_state)
+        if self._d_material_table is not None:
+            gpu_free(self._d_material_table)
+            self._d_material_table = None
+        if self.d_query_embeddings is not None:
+            gpu_free(self.d_query_embeddings)
+            self.d_query_embeddings = None
+        if self.d_state is not None:
+            gpu_free(self.d_state)
+            self.d_state = None
 
     def __del__(self):
         try:

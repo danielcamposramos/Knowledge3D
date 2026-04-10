@@ -88,7 +88,7 @@ class OllamaModelManager:
     def chat(
         self,
         model: str,
-        messages: list[dict[str, str]],
+        messages: list[dict[str, Any]],
         *,
         timeout: float | None = None,
         temperature: float = 0.3,
@@ -97,13 +97,19 @@ class OllamaModelManager:
     ) -> OllamaQueryResult:
         """Run a structured chat call through the Ollama HTTP API."""
         run_timeout = timeout if timeout is not None else self.default_timeout
-        safe_messages: list[dict[str, str]] = []
+        safe_messages: list[dict[str, Any]] = []
         for message in list(messages or []):
             if not isinstance(message, dict):
                 continue
             role = str(message.get("role") or "user").strip() or "user"
             content = self._sanitize_prompt(str(message.get("content") or ""))
-            safe_messages.append({"role": role, "content": content})
+            safe_message: dict[str, Any] = {"role": role, "content": content}
+            images = message.get("images")
+            if isinstance(images, list):
+                safe_images = [str(item).strip() for item in images if str(item or "").strip()]
+                if safe_images:
+                    safe_message["images"] = safe_images
+            safe_messages.append(safe_message)
 
         resolved_options = dict(options or {})
         # 'think' must be a top-level key in the Ollama API, not inside options

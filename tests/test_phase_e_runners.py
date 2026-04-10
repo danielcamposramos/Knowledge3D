@@ -1,33 +1,43 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from scripts import run_arc3_agent, run_full_benchmark
 
 
-class _FakeKnowledgeverse:
-    def __init__(self, storage_root=None) -> None:
-        self.storage_root = storage_root
-
-
-def _fake_native_suite(*, suite_name, count, knowledgeverse, **kwargs):
-    del kwargs
-    _fake_native_suite.seen_kv_ids.append(id(knowledgeverse))
-    return {
-        "suite": suite_name,
-        "total": count,
-        "correct": count,
-        "accuracy": 1.0,
-        "results": [{"suite": suite_name, "id": f"{suite_name}_{i}", "kv_id": id(knowledgeverse)} for i in range(count)],
+def _fake_tablet_suite(args):
+    log_dir = Path(args.log_dir)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    hardware = {"logical_cores": 8, "physical_cores": 4}
+    summary = {
+        "elapsed_seconds": 1.25,
+        "log_dir": str(log_dir),
+        "hardware_profile": hardware,
+        "sleep_consolidation": {"status": "completed"},
+        "execution_artifacts": {
+            "summary": str(log_dir / "summary.execution.json"),
+            "full_results": str(log_dir / "full_results.execution.json"),
+        },
+        "orchestrator": {"session_model": "one_live_knowledgeverse"},
     }
+    results = {
+        "mmlu": {"suite": "mmlu", "total": 4, "correct": 4, "accuracy": 1.0, "results": []},
+        "imo": {"suite": "imo", "total": 3, "correct": 3, "accuracy": 1.0, "results": []},
+        "gsm8k": {"suite": "gsm8k", "total": 2, "correct": 2, "accuracy": 1.0, "results": []},
+        "lhe": {"suite": "lhe", "total": 2, "correct": 2, "accuracy": 1.0, "results": []},
+        "arc2": {"suite": "arc2", "total": 2, "correct": 2, "accuracy": 1.0, "results": []},
+        "math": {"status": "skipped", "reason": "math_count<=0", "results": []},
+        "amc_aime": {"status": "skipped", "reason": "amc_aime_count<=0", "results": []},
+        "omni_math": {"status": "skipped", "reason": "omni_math_count<=0", "results": []},
+    }
+    for artifact in summary["execution_artifacts"].values():
+        Path(artifact).write_text("{}", encoding="utf-8")
+    return {"summary": summary, "results": results}
 
 
 def test_run_full_benchmark_writes_phase_e_logs(tmp_path, monkeypatch):
-    _fake_native_suite.seen_kv_ids = []
-    monkeypatch.setattr(run_full_benchmark, "_run_native_suite", _fake_native_suite)
-    monkeypatch.setattr(run_full_benchmark, "_write_jsonl", lambda path, rows: None)
-    monkeypatch.setattr(run_full_benchmark, "Knowledgeverse", _FakeKnowledgeverse)
-    monkeypatch.setattr(run_full_benchmark, "_ensure_full_benchmark_runtime", lambda: None)
+    monkeypatch.setattr(run_full_benchmark, "run_tablet_benchmark_suite", _fake_tablet_suite)
 
     payload = run_full_benchmark.run_full_benchmark(
         mmlu_count=4,
@@ -41,7 +51,7 @@ def test_run_full_benchmark_writes_phase_e_logs(tmp_path, monkeypatch):
     )
 
     summary = payload["summary"]
-    log_dir = tmp_path / "logs" / f"phase_e_{summary['timestamp']}"
+    log_dir = Path(summary["log_dir"])
     assert log_dir.exists()
     assert (log_dir / "summary.json").exists()
     assert (log_dir / "full_results.json").exists()
@@ -52,10 +62,10 @@ def test_run_full_benchmark_writes_phase_e_logs(tmp_path, monkeypatch):
     assert decoded["suites"]["gsm8k"]["correct"] == 2
     assert decoded["suites"]["lhe"]["correct"] == 2
     assert decoded["suites"]["arc2"]["correct"] == 2
-    assert decoded["suites"]["arc3_local"]["correct"] == 5
-    assert set(decoded["suites"]) == {"mmlu", "imo", "gsm8k", "lhe", "arc2", "arc3_local"}
+    assert set(decoded["suites"]) == {"mmlu", "imo", "gsm8k", "lhe", "arc2", "math", "amc_aime", "omni_math"}
+    assert decoded["archived_suites"]["arc3_local"]["requested_count"] == 5
+    assert decoded["archived_suites"]["arc3_local"]["status"] == "archived"
     assert decoded["hardware_profile"]["logical_cores"] >= 1
-    assert len(set(_fake_native_suite.seen_kv_ids)) == 1
 
 
 def test_run_arc3_agent_helpers_point_to_project_logs():

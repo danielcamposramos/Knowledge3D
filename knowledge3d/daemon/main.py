@@ -793,6 +793,15 @@ class K3DDaemon:
         spatial_mode = task_type == "GAME_2D"
         math_mode = task_type == "MATH"
         all_galaxies = self._all_default_galaxies()
+        route_policy = str(route.get("route_policy") or task.get("route_policy") or "").strip().lower()
+        preferred_galaxies = [
+            str(name)
+            for name in (route.get("galaxy_names") or task.get("galaxies") or [])
+            if str(name).strip()
+        ]
+        route_galaxies = list(all_galaxies) if route_policy == "all_live_galaxies" else (
+            preferred_galaxies or list(all_galaxies)
+        )
 
         if question_mode:
             return self._dispatch_question_task(route=route, task=task, use_enriched=use_enriched)
@@ -805,7 +814,8 @@ class K3DDaemon:
             arc_route = {
                 "specialist": "visual",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "visual"),
-                "galaxy_names": list(all_galaxies),
+                "galaxy_names": list(route_galaxies),
+                "route_policy": route_policy or None,
             }
             solved = self.kv.execute_task(
                 task=task,
@@ -865,7 +875,8 @@ class K3DDaemon:
             math_route = {
                 "specialist": "math",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "math"),
-                "galaxy_names": list(all_galaxies),
+                "galaxy_names": list(route_galaxies),
+                "route_policy": route_policy or None,
             }
             solved = self.kv.execute_task(
                 task={
@@ -910,7 +921,8 @@ class K3DDaemon:
                 math_route = {
                     "specialist": "math",
                     "domain_hint": "math",
-                    "galaxy_names": list(all_galaxies),
+                    "galaxy_names": list(route_galaxies),
+                    "route_policy": route_policy or None,
                 }
                 solved = self.kv.execute_task(
                     task={
@@ -932,7 +944,8 @@ class K3DDaemon:
             chat_route = {
                 "specialist": "chat",
                 "domain_hint": str(route.get("domain") or route.get("domain_hint") or "general"),
-                "galaxy_names": list(all_galaxies),
+                "galaxy_names": list(route_galaxies),
+                "route_policy": route_policy or None,
             }
             solved = self.kv.execute_task(
                 task={
@@ -1010,26 +1023,44 @@ class K3DDaemon:
                 return {"status": "error", "error": "missing_query_or_task"}
             use_enriched = bool(payload.get("use_enriched", True))
             all_galaxies = self._all_default_galaxies()
+            route_policy = str(
+                payload.get("route_policy") or (task_obj or {}).get("route_policy") or ""
+            ).strip().lower()
+            preferred_galaxies = [
+                str(name)
+                for name in (
+                    payload.get("galaxies")
+                    or (task_obj or {}).get("galaxies")
+                    or []
+                )
+                if str(name).strip()
+            ]
+            route_galaxies = list(all_galaxies) if route_policy == "all_live_galaxies" else (
+                preferred_galaxies or list(all_galaxies)
+            )
             if spatial_mode:
                 route = {
                     "specialist": "visual",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "visual"),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(all_galaxies),
+                    "galaxy_names": list(route_galaxies),
+                    "route_policy": route_policy or None,
                 }
             elif question_mode:
                 route = {
                     "specialist": str(payload.get("specialist", "auto") or "auto"),
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or ""),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(all_galaxies),
+                    "galaxy_names": list(route_galaxies),
+                    "route_policy": route_policy or None,
                 }
             elif math_mode:
                 route = {
                     "specialist": "math",
                     "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "math"),
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(all_galaxies),
+                    "galaxy_names": list(route_galaxies),
+                    "route_policy": route_policy or None,
                 }
             elif task_type in {"CHAT", "GENERAL", "GRAMMAR"}:
                 specialist = "math" if self._looks_like_math_prompt(query) else "chat"
@@ -1040,7 +1071,8 @@ class K3DDaemon:
                     "specialist": specialist,
                     "domain": domain,
                     "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(all_galaxies),
+                    "galaxy_names": list(route_galaxies),
+                    "route_policy": route_policy or None,
                 }
             else:
                 route = self.trm.route(

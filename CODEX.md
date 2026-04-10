@@ -1,7 +1,7 @@
 # CODEX.md -- Implementation Lead Guide
 
-**Last Updated:** March 30, 2026
-**Version:** 6.2 (Track A landed, Track C in progress, live ARC3 level-1 milestone recorded)
+**Last Updated:** April 8, 2026
+**Version:** 6.4 (April reconciliation + ARC R0 execution track)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read the latest briefing first for the full architecture; this file captures Codex's role, patterns, and backlog.
 
@@ -78,10 +78,17 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
    - [docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md](docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md) -- Form + Meaning for humans AND AI
 
 4. **Read the latest Claude directives:**
-   - [TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md](TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md) -- **Track C MMLU Galaxy + GSM8K audit (ACTIVE)**
+   - [TEMP/CODEX_SOVEREIGN_PHYSICS_SPEC_v2_2026-04-07.md](TEMP/CODEX_SOVEREIGN_PHYSICS_SPEC_v2_2026-04-07.md) -- sovereign physics v2 (authoritative April baseline)
+   - [TEMP/CODEX_REALITY_ENGINE_SPEC_2026-04-08.md](TEMP/CODEX_REALITY_ENGINE_SPEC_2026-04-08.md) -- reality engine steps 1-2
+   - [TEMP/CODEX_REALITY_ENGINE_STEP3_DIRECTIONS_2026-04-08.md](TEMP/CODEX_REALITY_ENGINE_STEP3_DIRECTIONS_2026-04-08.md) -- entity hot-path correction
+   - [TEMP/KIMI_IMPLEMENTATION_CORRECTNESS_SPEC.md](TEMP/KIMI_IMPLEMENTATION_CORRECTNESS_SPEC.md) -- implementation integrity audit
+   - [TEMP/KIMI_ZERO_COPY_MEMORY_ENHANCEMENT_SPEC.md](TEMP/KIMI_ZERO_COPY_MEMORY_ENHANCEMENT_SPEC.md) -- zero-copy control-plane repair targets
+   - [TEMP/ARC_PRIZE_2026_COMPETITIVE_ASSESSMENT.md](TEMP/ARC_PRIZE_2026_COMPETITIVE_ASSESSMENT.md) -- ARC prize track ordering
+   - [TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md](TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md) -- Track C MMLU Galaxy + GSM8K audit (ACTIVE)
    - [TEMP/CODEX_TRACK_A_PASS4_SEMANTIC_VERIFICATION_03.16.2026.md](TEMP/CODEX_TRACK_A_PASS4_SEMANTIC_VERIFICATION_03.16.2026.md) -- Track A Pass 4 (LANDED)
    - [TEMP/CLAUDE_PHASE_B_PLUS_ADVANCEMENT_03.16.2026.md](TEMP/CLAUDE_PHASE_B_PLUS_ADVANCEMENT_03.16.2026.md) -- Three-track steering (B reverted, A→C)
    - [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md) -- Phase D steering (queued after Track C)
+   - [TEMP/CODEX_TRACK_RECONCILIATION_AND_ARC_EXECUTION_LOG_2026-04-08_1503-0300.md](TEMP/CODEX_TRACK_RECONCILIATION_AND_ARC_EXECUTION_LOG_2026-04-08_1503-0300.md) -- active continuation log for this execution lane
 
 5. **Read the GPU environment policy:**
    - [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- critical GPU setup (CUDA_VISIBLE_DEVICES=0)
@@ -214,7 +221,42 @@ Answer (or iterate)
 
 ## Current Backlog (Codex-owned)
 
-### Priority 1: Track C — MMLU Galaxy Expansion (IN PROGRESS)
+### Priority 1: Infrastructure Closure + Canonical Sync (ACTIVE — April 8, 2026)
+
+**Why this is first:** April 6-8 landed major local implementation work, but the canonical backlog and several support surfaces lagged reality. The repo must describe the system we actually have, not the older planned-only picture.
+
+**Scope:**
+- reconcile the active TEMP families against the full `docs/vocabulary/` corpus
+- keep the live encyclopedias ingest protected while the rest of the stack is repaired
+- remove stale import debt and fake telemetry from zero-copy / CAS / drawing-adjacent surfaces
+- keep unsupported drawing runtime opcodes quarantined instead of claiming they are already live
+
+**Current landed baseline:**
+- sovereign physics P0 complete, PTX rebuilt, focused tests green
+- reality engine steps 1-3 landed locally (textures + entity hot-path projection)
+- proceduralizer / OCR retry / ordered PDF ingest live on the encyclopedias batch
+- zero-copy control-plane wrappers + kernel utility surface restored under `knowledge3d.cranium.kernels`
+
+### Priority 2: ARC Prize R0 Submission + Paper Track (ACTIVE — April 8, 2026)
+
+**R0 deliverables are now canonical backlog items, not side notes:**
+- `benchmarks/arc_submission_formatter.py`
+- `scripts/run_arc2_submission.py`
+- evidence bundle in `docs/paper-evidence/ARC_PRIZE_R0_EVIDENCE_BUNDLE_2026-04-08.md`
+- manuscript scaffold in `docs/reports/ARC_PRIZE_2026_MANUSCRIPT_SCAFFOLD_2026-04-08.md`
+
+**Execution order:** submitability + evidence first, score chasing second.
+
+### Priority 3: Post-Ingest Second Pass + Resident Knowledge Feed
+
+**Current live constraint:** the encyclopedias ingest is still running in the background through the canonical proceduralizer path.
+
+**After `01_encyclopedias` completes:**
+- rerun the second-pass rebuild over staged pages
+- repair OCR pages via the cloud-only retry path before resident ingestion
+- ingest only after the richer symlinkage and OCR repair pass is complete
+
+### Priority 4: Track C — MMLU Galaxy Expansion (IN PROGRESS)
 
 **Full spec:** [TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md](TEMP/CODEX_TRACK_C_MMLU_GALAXY_PLUS_GSM8K_AUDIT_03.16.2026.md)
 
@@ -226,7 +268,7 @@ Answer (or iterate)
 
 **Constraint:** All Galaxy entries via ingestion path (`foundational_operations_bootstrap.py`). NO live insertion during inference (exploratory grammar insertion caused MMLU regression — deferred to sleep-time only).
 
-### Priority 2: Phase D — TRM Game Loop Migration
+### Priority 5: Phase D — TRM Game Loop Migration
 
 **Full spec:** [TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md](TEMP/CLAUDE_PHASE_D_TRM_GAME_LOOP_STEERING_03.14.2026.md)
 
@@ -249,11 +291,28 @@ Answer (or iterate)
 **Quintet gate (must hold at every sub-step):**
 ARC 10/10, Math 20/20, GSM8K 2/10, LHE 6/10, MMLU 12+/50
 
-### Priority 3: Wire GRE Specialist Kernels (See table above)
+### Priority 6: Wire GRE Specialist Kernels (See table above)
 
 Concurrent with Phase D — wire GRE kernels into swarm worker dispatch as TRM takes over orchestration.
 
-### Priority 4: Fix Benchmark Gaps (Targeted by Audit)
+### Priority 7: Sovereign Physics + Reality + Entity Continuation
+**Authoritative specs:**  
+- [TEMP/CODEX_SOVEREIGN_PHYSICS_SPEC_v2_2026-04-07.md](TEMP/CODEX_SOVEREIGN_PHYSICS_SPEC_v2_2026-04-07.md)  
+- [TEMP/CODEX_REALITY_ENGINE_SPEC_2026-04-08.md](TEMP/CODEX_REALITY_ENGINE_SPEC_2026-04-08.md)  
+- [TEMP/CODEX_REALITY_ENGINE_STEP3_DIRECTIONS_2026-04-08.md](TEMP/CODEX_REALITY_ENGINE_STEP3_DIRECTIONS_2026-04-08.md)
+
+**Current truth:**
+- physics P0 surface is green
+- texture/reality step 2 is green
+- entity hot-path step 3 is green
+- `trm_step_fused` full launcher wiring remains intentionally deferred
+
+**Keep this lane honest:**
+- no external physics libs
+- no fake drawing/runtime claims
+- no Python fallback on the hot path
+
+### Priority 8: Fix Benchmark Gaps (Targeted by Audit)
 
 - GSM8K 5+/10 — Track A (Pass 4 semantic verification) landed; GSM8K failure audit will identify specific upstream parse/strategy fixes needed
 - LHE multi-hop — Track B REVERTED (pre-scoring crystallization destabilized). Deferred to Phase D (TRM game loop). Graph crystallizer stays post-hoc.

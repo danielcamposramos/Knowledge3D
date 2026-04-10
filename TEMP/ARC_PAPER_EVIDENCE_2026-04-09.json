@@ -1,0 +1,184 @@
+{
+  "generated_at": "2026-04-09T04:15:00-03:00",
+  "kaggle": {
+    "credentials_present": false,
+    "credentials_path": "/home/daniel/.kaggle/kaggle.json",
+    "credentials_mode": null,
+    "cli_installed_in_k3d_cranium": false,
+    "submission_ready": false,
+    "blocker": "missing_kaggle_credentials_and_cli"
+  },
+  "arc_agi_2": {
+    "dataset_root": "/K3D/K3D_llama_cpp/datasets/ARC-AGI-master/data/evaluation",
+    "offline_evaluation": {
+      "tasks": 20,
+      "correct": 0,
+      "total_inputs": 20,
+      "score": 0.0,
+      "summary_output": "/tmp/arc2_r2_summary.json",
+      "submission_output": "/tmp/arc2_r2_submission.json"
+    },
+    "kaggle_notebook_smoke": {
+      "tasks": 3,
+      "output_path": "/tmp/arc2_kaggle_smoke_submission.json",
+      "storage_root": "/K3D/Knowledge3D.local/runtime/arc_kaggle_smoke"
+    }
+  },
+  "arc_agi_3": {
+    "game_id": "ls20",
+    "steps": 200,
+    "levels_completed": 0,
+    "score": 0.0,
+    "sdk_available": true,
+    "game_surface_available": false,
+    "game_action_available": false,
+    "sdk_error": "arc_agi installed without Arcade/make runtime",
+    "policy_error": null,
+    "policy_warning": null,
+    "transport": "remote_api_compat"
+  },
+  "question_benchmarks": {
+    "one_boot": {
+      "session_model": "one_live_knowledgeverse",
+      "knowledgeverse_boot_count": 1,
+      "elapsed_seconds": 125.79,
+      "artifact": "/tmp/all_question_benchmarks_r1.json"
+    },
+    "suites": {
+      "mmlu": {
+        "total": 20,
+        "correct": 7,
+        "accuracy": 0.35,
+        "dataset_path": "/K3D/K3D_llama_cpp/datasets/MMLU/data",
+        "route_family_distribution": {
+          "MMLU": 20
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {
+          "count": 20,
+          "avg_task_s": 0.30115,
+          "avg_task_ms": 301.15,
+          "median_task_s": 0.295,
+          "median_task_ms": 295.0,
+          "min_task_s": 0.162,
+          "max_task_s": 0.584
+        },
+        "avg_elapsed_ms": 301.15
+      },
+      "gsm8k": {
+        "total": 20,
+        "correct": 1,
+        "accuracy": 0.05,
+        "dataset_path": "/K3D/K3D_llama_cpp/datasets/GSM8K/grade_school_math/data/test.jsonl",
+        "route_family_distribution": {
+          "MATH": 20
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {
+          "count": 20,
+          "avg_task_s": 1.5242,
+          "avg_task_ms": 1524.2,
+          "median_task_s": 1.0375,
+          "median_task_ms": 1037.5,
+          "min_task_s": 0.646,
+          "max_task_s": 8.901
+        },
+        "avg_elapsed_ms": 1524.2
+      },
+      "lhe": {
+        "total": 20,
+        "correct": 1,
+        "accuracy": 0.05,
+        "dataset_path": "/K3D/K3D_llama_cpp/datasets/last_humanity_exam",
+        "route_family_distribution": {
+          "LHE": 13,
+          "MMLU": 7
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {},
+        "avg_elapsed_ms": 485.7
+      },
+      "amc_aime": {
+        "total": 20,
+        "correct": 1,
+        "accuracy": 0.05,
+        "dataset_path": "/K3D/K3D_llama_cpp/datasets",
+        "route_family_distribution": {
+          "MATH": 20
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {},
+        "avg_elapsed_ms": 1118.15
+      },
+      "omni_math": {
+        "total": 20,
+        "correct": 0,
+        "accuracy": 0.0,
+        "dataset_path": "/K3D/K3D_llama_cpp/datasets",
+        "route_family_distribution": {
+          "MATH": 20
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {},
+        "avg_elapsed_ms": 1137.35
+      },
+      "imo": {
+        "total": 20,
+        "correct": 0,
+        "accuracy": 0.0,
+        "dataset_path": "/K3D/Knowledge3D.local/datasets/imo_bench/answerbench_v2.csv",
+        "route_family_distribution": {
+          "MATH": 20
+        },
+        "gpu_result_packets": {
+          "true": 20,
+          "total": 20
+        },
+        "timing_summary": {},
+        "avg_elapsed_ms": 1710.15
+      }
+    }
+  },
+  "architecture": {
+    "swarm_worker_count": 9,
+    "swarm_slots": {
+      "0": "gre_atomic_fission_fusion",
+      "1": "gre_resonance_field",
+      "2": "gre_vector_resonator",
+      "3": "gre_arc_reasoner",
+      "4": "gre_geometry_router",
+      "5": "gre_graph_crystallizer",
+      "6": "gre_temporal_reasoning",
+      "7": "gre_fractal_emitter",
+      "8": "gre_embedding_extractor"
+    },
+    "route_policy": "all_live_galaxies",
+    "canonical_ingress": "Tablet/WINE -> HeadlessTabletMPC.submit -> Knowledgeverse.execute_task",
+    "live_galaxy_count": null,
+    "vram_used_mib": null,
+    "notes": [
+      "ARC-2 and ARC-3 run through the sovereign GAME_2D tablet boundary.",
+      "Python in the ARC lane is limited to dataset I/O, task seeding, envelope construction, result decoding, and scoring.",
+      "Runtime-derived live galaxy count and VRAM usage were not sampled in this pass and remain null intentionally."
+    ]
+  },
+  "background": {
+    "echosys_ingest_tmux_session": "echosys_ingest",
+    "echosys_ingest_alive": true
+  }
+}

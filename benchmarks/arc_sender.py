@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope
+
 try:
     from benchmarks.daemon_client import DaemonClient
 except ModuleNotFoundError:  # Direct script execution.
@@ -88,18 +90,13 @@ def main() -> int:
     use_enriched = True
     enforce_gpu = not bool(args.allow_zero_gpu)
     for task in tasks:
-        payload = {
-            "command": "ROUTE",
-            "specialist": "visual",
-            "use_enriched": use_enriched,
-            "task": {
-                "task_id": task["task_id"],
-                "query": "solve arc transformation task",
-                "training_examples": task["training_examples"],
-                "input_grid": task["input_grid"],
-                "expected_output": task.get("expected_output"),
-            },
-        }
+        envelope = arc2_game_envelope(
+            task_id=str(task["task_id"]),
+            training_examples=list(task["training_examples"]),
+            input_grid=task["input_grid"],
+            expected_output=task.get("expected_output"),
+        )
+        payload = envelope.to_route_payload(use_enriched=use_enriched)
         response = client.send(payload)
         if enforce_gpu:
             client.assert_gpu_for_solved_command(

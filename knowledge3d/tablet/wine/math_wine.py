@@ -2,10 +2,21 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Sequence
 
-from knowledge3d.bridge.headless_tablet import TabletEnvelope, TabletIngest
+from knowledge3d.bridge.headless_tablet import (
+    ROUTE_POLICY_ALL_LIVE_GALAXIES,
+    TabletEnvelope,
+    TabletIngest,
+)
 
 
-MATH_ROUTE_GALAXIES: tuple[str, ...] = ()
+MATH_ROUTE_GALAXIES: tuple[str, ...] = (
+    "Math",
+    "Grammar",
+    "Number",
+    "Reality",
+    "Word",
+    "Character",
+)
 
 
 def build_math_route(
@@ -13,8 +24,12 @@ def build_math_route(
     specialist: str = "math",
     domain_hint: str | None = None,
     galaxies: Sequence[str] | None = None,
+    route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
 ) -> dict[str, Any]:
-    route: dict[str, Any] = {"specialist": str(specialist or "math")}
+    route: dict[str, Any] = {
+        "specialist": str(specialist or "math"),
+        "route_policy": str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+    }
     if domain_hint is not None and str(domain_hint).strip():
         route["domain_hint"] = str(domain_hint).strip()
     galaxy_names = [str(name) for name in (galaxies or MATH_ROUTE_GALAXIES) if str(name).strip()]
@@ -42,6 +57,7 @@ def build_math_task(
         specialist=envelope.specialist,
         domain_hint=envelope.domain_hint,
         galaxies=envelope.galaxies,
+        route_policy=envelope.route_policy,
     )
 
 

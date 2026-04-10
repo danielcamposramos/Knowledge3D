@@ -582,6 +582,24 @@ When updating a spec:
 
 ---
 
+## Implementation Integrity Rules
+
+**These rules apply to ALL agents (Claude, Codex, Gemini, specialists) working on K3D:**
+
+1. **No Python orchestration in hot path.** ALL reasoning, rule selection, strategy, and decision-making happens on GPU via PTX kernels, Galaxy (VRAM) star navigation, and RPN programs. Python is boot + I/O only (~200 lines target). See [THREE_BRAIN_SYSTEM_SPECIFICATION.md](THREE_BRAIN_SYSTEM_SPECIFICATION.md) §6b.4.
+
+2. **No stubs, fakes, or placeholders.** Every implementation must be real, functional code that leverages the K3D architecture. Test mocks are acceptable in test files only — never in production code paths. Galaxy stars must contain real knowledge, not placeholder data.
+
+3. **No simulated results.** Benchmark scores, learning signals, and route selections must come from actual GPU execution through the sovereign pipeline. Never synthesize or hardcode results.
+
+4. **No Python fallbacks. EVER.** If the GPU path fails, the system fails — and we fix the GPU path. No `except: return default`, no `if gpu_failed: use_python()`. See [SOVEREIGN_NSI_SPECIFICATION.md](SOVEREIGN_NSI_SPECIFICATION.md).
+
+5. **Ground all work in these specifications.** Every architectural decision, kernel composition, and Galaxy entry must trace back to a specification in this directory. If a spec doesn't cover a new capability, write the spec first, then implement.
+
+6. **Real knowledge leverages real architecture.** Galaxy entries must use the 4-layer structure (Form → Meaning → Rules → Meta-Rules) from [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md). RPN programs must use registered opcodes from [RPN_DOMAIN_OPCODE_REGISTRY.md](RPN_DOMAIN_OPCODE_REGISTRY.md). Route families must match [SOVEREIGN_NSI_SPECIFICATION.md](SOVEREIGN_NSI_SPECIFICATION.md).
+
+---
+
 ## Contributing
 
 When adding a new specification:

@@ -131,13 +131,29 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 
 ---
 
-## Current Active Phase: Phase E — ARC-AGI-3 Game-Loop + Python→PTX Sovereignty _(Status: Active, March 2026)_
+## Current Active Phase: Phase E — ARC-AGI-3 Game-Loop + Python→PTX Sovereignty _(Status: Active, reconciled April 2026)_
 
 > **Note (2026-03-27):** Phases A–D above reflect original roadmap structure. Current work is tracked via TEMP/ phase reports. The active workstream is Phase E below, which subsumes the sovereignty migration goals of the original Phase D.
+
+> **Reconciliation note (2026-04-08):** local repo reality has moved beyond the original March-only Phase E table. The live track now has a landed April baseline for physics, reality textures, entities, proceduralizer/OCR ingest, zero-copy control-plane repair, and ARC R0 scaffolding. The sections below distinguish landed baseline work from still-planned hot-path migration items.
 
 **Objective:** Integrate ARC-AGI-3 (interactive game-loop benchmark), eliminate remaining Python from the hot path, and proceduralize all grammar rules/meta-rules as sovereign Galaxy entries.
 
 **Context:** ARC-AGI-3 shifted from static grid I/O to a real-time interactive game (agents submit actions, receive frames). This matches K3D's TRM game-loop architecture exactly. See: [TEMP/CLAUDE_PHASE_E_ARC_AGI_3_SOVEREIGNTY_SPEC_03.27.2026.md](../TEMP/CLAUDE_PHASE_E_ARC_AGI_3_SOVEREIGNTY_SPEC_03.27.2026.md)
+
+### Phase E.0 — Reconciled April Baseline
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| Sovereign physics P0 surface | XPBD/body/material/runtime base on modular RPN path | ✅ Landed locally |
+| Reality engine Step 2 textures | procedural texture opcodes + kernel surface | ✅ Landed locally |
+| Reality engine Step 3 entities | MeaningCentricStar entity projection + hot-path struct | ✅ Landed locally |
+| Proceduralizer + OCR retry ingest | ordered PDF ingest, cloud OCR retry, staged second pass | ✅ Live |
+| Zero-copy import/control-plane repair | `knowledge3d.cranium.kernels` utility surface + honest tests | ✅ Landed locally |
+| ARC-AGI-2 submission formatter/runner | R0 competition artifact surface | ✅ Landed locally |
+| Paper-track scaffold | evidence bundle + manuscript scaffold | ✅ Landed locally |
+
+**Baseline gate:** focused slices for sovereign physics, procedural texture, entity surface, proceduralizer/ingest, drawing/quarantine honesty, and zero-copy control plane are green.
 
 ### Phase E.1 — Grid Perception (GPU-Native)
 
@@ -175,6 +191,11 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 | RPN composition enrichment | Replace text-append enrichment with RPN program composition | ⏳ Planned |
 
 **Quality gates (per sub-phase):** ARC-AGI-2 10/10 regression pinned, Math 20/20 pinned, GPU utilization increase, knowledgeverse.py line count decrease, zero Python fallbacks in hot path.
+
+**R0 competition order (current truth):**
+1. ARC-AGI-2 submission infrastructure
+2. paper-track evidence/manuscript assets
+3. score improvement on ARC-AGI-2 / ARC-AGI-3 / Track C
 
 **Exit criteria:** K3D plays ARC-AGI-3 games autonomously via TRM game loop. Grammar rules and meta-rules are sovereign Galaxy entries with bidirectional symlinks. `knowledgeverse.py` < 1,000 lines. GPU utilization > 30%.
 

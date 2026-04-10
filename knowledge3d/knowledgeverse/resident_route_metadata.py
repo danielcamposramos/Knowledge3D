@@ -561,6 +561,30 @@ ROUTE_CAPABLE_LEGACY_OVERRIDES.update(
 
 ROUTE_CAPABLE_LEGACY_OVERRIDES.update(
     {
+        "rule_math_core_tier_hierarchy": _router_override(
+            "MATH",
+            branch_topk=3,
+            executor_refs=[
+                "math_operation_chain_executor",
+                "math_unit_preserving_projection_executor",
+                "math_answer_materializer",
+            ],
+            validator_refs=[
+                "math_normalization_validator",
+                "math_unit_magnitude_validator",
+                "math_answer_validator",
+            ],
+            anti_pattern_refs=[
+                "anti_pattern_numeric_without_materialization",
+                "anti_pattern_unchecked_unit_transfer",
+                "anti_pattern_missing_validator_traversal",
+            ],
+        ),
+    }
+)
+
+ROUTE_CAPABLE_LEGACY_OVERRIDES.update(
+    {
         "meta_four_way_reading_strategy": _router_override(
             "MATH",
             branch_topk=3,

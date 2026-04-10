@@ -3,7 +3,7 @@ TRM ↦ RPN program builder.
 
 This helper encodes the Tiny Recursive Model (TRM) refinement loop as an
 RPN bytecode sequence that can be executed by a Tier‑3 RPN kernel once the
-new TRM opcodes (0x60–0x64) are active.  The goal is to let downstream
+new TRM opcodes (0x300–0x304) are active.  The goal is to let downstream
 components compile TRM updates into data rather than issuing bespoke kernel
 launches.
 
@@ -85,16 +85,16 @@ def build_trm_refine_program(n_steps: int = 6) -> RPNProgram:
     program = RPNProgram()
     for _ in range(n_steps):
         for opcode in template.opcodes:
-            program.u8(opcode)
+            program.u16(opcode)
     return program
 
 
 def expected_trm_opcode_sequence(n_steps: int) -> np.ndarray:
     """Convenience helper for tests to inspect the raw opcode order."""
     program = build_trm_refine_program(n_steps=n_steps)
-    raw = np.frombuffer(program.to_bytes(), dtype=np.uint8)
+    raw = np.frombuffer(program.to_bytes(), dtype=np.uint16)
     count = n_steps * len(_single_step_template().opcodes)
-    return raw[:count].astype(np.uint16)
+    return raw[:count]
 
 
 __all__ = ["TRMRPNTemplate", "build_trm_refine_program", "expected_trm_opcode_sequence"]

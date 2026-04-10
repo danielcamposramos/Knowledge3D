@@ -8,6 +8,12 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.ingestion import (
+    ingest_cas_grammar,
+    ingest_entity_bootstrap,
+    ingest_physics_bootstrap,
+    ingest_sas_bootstrap,
+)
 from knowledge3d.ingestion.proceduralizer_contract import PROCEDURALIZER_MODEL_PROFILES
 from knowledge3d.knowledgeverse.galaxy_manager import GalaxyManager
 
@@ -160,6 +166,16 @@ def ingest_manifest(
     output_dir.mkdir(parents=True, exist_ok=True)
     report_rows: list[dict[str, Any]] = []
     stars = []
+    physics_bootstrap_ingested = 0
+    entity_bootstrap_ingested = 0
+    cas_grammar_ingested = 0
+    sas_bootstrap_ingested = 0
+    if galaxy_manager is not None:
+        physics_bootstrap_ingested = ingest_physics_bootstrap(galaxy_manager)
+        entity_bootstrap_ingested = ingest_entity_bootstrap(galaxy_manager)
+        cas_grammar_ingested = ingest_cas_grammar(galaxy_manager)
+        _sas_values, _sas_star_ids, sas_stars = ingest_sas_bootstrap(galaxy_manager)
+        sas_bootstrap_ingested = len(sas_stars)
     stopped_due_to_plan_limit = False
     retry_after_utc = ""
     for entry in list(manifest.get("entries", []) or []):
@@ -188,6 +204,10 @@ def ingest_manifest(
         "provider": provider_name,
         "model_profile": model_profile,
         "model": model,
+        "physics_bootstrap_ingested": physics_bootstrap_ingested,
+        "entity_bootstrap_ingested": entity_bootstrap_ingested,
+        "cas_grammar_ingested": cas_grammar_ingested,
+        "sas_bootstrap_ingested": sas_bootstrap_ingested,
         "total_entries": len(report_rows),
         "ingested": sum(1 for row in report_rows if row.get("status") == "ingested"),
         "skipped": sum(1 for row in report_rows if row.get("status") == "skipped"),

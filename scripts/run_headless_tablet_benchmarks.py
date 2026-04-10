@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from collections import Counter
 from datetime import datetime
 import json
 import os
@@ -19,7 +20,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from benchmarks.arc3_local import run_local_arc3
 from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 from benchmarks.gsm8k import GSM8KBenchmark
 from benchmarks.imo_bench import IMOBenchmark
@@ -42,6 +42,14 @@ def _skip_summary(reason: str) -> dict[str, Any]:
     return {
         "status": "skipped",
         "reason": reason,
+    }
+
+
+def _archived_suite(reason: str, requested_count: int) -> dict[str, Any]:
+    return {
+        "status": "archived",
+        "reason": str(reason),
+        "requested_count": int(requested_count),
     }
 
 
@@ -155,6 +163,145 @@ def _progress_log_payload(suite_name: str, progress: dict[str, Any]) -> dict[str
     return payload
 
 
+def _normalize_route_family(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return "UNKNOWN"
+    if text.endswith("_TASK"):
+        text = text[:-5]
+    return text
+
+
+def _row_route_family(row: dict[str, Any]) -> str:
+    route = row.get("route", {})
+    if isinstance(route, dict):
+        family = str(route.get("route_family") or route.get("surface_kind") or "").strip()
+        if family:
+            return _normalize_route_family(family)
+    task_result = row.get("task_result", {})
+    if isinstance(task_result, dict):
+        direct = str(task_result.get("query_type") or "").strip()
+        if direct:
+            return _normalize_route_family(direct)
+        nested_route = task_result.get("route", {})
+        if isinstance(nested_route, dict):
+            family = str(nested_route.get("route_family") or nested_route.get("surface_kind") or "").strip()
+            if family:
+                return _normalize_route_family(family)
+        trm_dispatch = task_result.get("trm_dispatch", {})
+        if isinstance(trm_dispatch, dict):
+            family = str(trm_dispatch.get("task_type") or "").strip()
+            if family:
+                return _normalize_route_family(family)
+        nested_task_result = task_result.get("task_result", {})
+        if isinstance(nested_task_result, dict):
+            answer_kind_family = str(nested_task_result.get("answer_kind") or "").strip()
+            if answer_kind_family:
+                return _normalize_route_family(answer_kind_family)
+    return "UNKNOWN"
+
+
+def _row_trm_dispatch_type(row: dict[str, Any]) -> str:
+    task_result = row.get("task_result", {})
+    if isinstance(task_result, dict):
+        trm_dispatch = task_result.get("trm_dispatch", {})
+        if isinstance(trm_dispatch, dict):
+            task_type = str(trm_dispatch.get("task_type") or "").strip()
+            if task_type:
+                return _normalize_route_family(task_type)
+        query_type = str(task_result.get("query_type") or "").strip()
+        if query_type:
+            return _normalize_route_family(query_type)
+    return _row_route_family(row)
+
+
+def _row_elapsed_ms(row: dict[str, Any]) -> float | None:
+    if "elapsed_ms" in row:
+        try:
+            return float(row.get("elapsed_ms") or 0.0)
+        except Exception:
+            return None
+    if "elapsed_s" in row:
+        try:
+            return float(row.get("elapsed_s") or 0.0) * 1000.0
+        except Exception:
+            return None
+    return None
+
+
+def _row_gpu_execution(row: dict[str, Any]) -> bool:
+    if bool(row.get("gpu_execution", False)):
+        return True
+    task_result = row.get("task_result", {})
+    if isinstance(task_result, dict):
+        return bool(task_result.get("gpu_execution", False))
+    return False
+
+
+def _row_answer_format(row: dict[str, Any]) -> str:
+    explicit = str(row.get("answer_format") or "").strip()
+    if explicit:
+        return explicit
+    question_type = str(row.get("question_type") or "").strip().lower()
+    if question_type == "multiple_choice":
+        return "multiple_choice"
+    if question_type == "open_ended":
+        return "open_ended"
+    options = row.get("options")
+    predicted = str(row.get("predicted_answer") or "").strip()
+    if isinstance(options, list) and options:
+        normalized_options = {str(option).strip() for option in options if str(option).strip()}
+        if predicted and predicted in normalized_options:
+            return "option_text_exact"
+        return "multiple_choice"
+    task_result = row.get("task_result", {})
+    if isinstance(task_result, dict):
+        nested = task_result.get("task_result", {})
+        if isinstance(nested, dict):
+            answer_kind = str(nested.get("answer_kind") or "").strip().lower()
+            if answer_kind == "choice":
+                return "multiple_choice"
+    if predicted:
+        try:
+            float(predicted)
+            return "numeric"
+        except Exception:
+            return "open_ended"
+    return "empty"
+
+
+def _augment_suite_summary(result: dict[str, Any]) -> dict[str, Any]:
+    rows = [row for row in list(result.get("results") or []) if isinstance(row, dict)]
+    route_counts: Counter[str] = Counter()
+    trm_counts: Counter[str] = Counter()
+    answer_formats: Counter[str] = Counter()
+    gpu_true = 0
+    elapsed_values: list[float] = []
+    for row in rows:
+        route_counts[_row_route_family(row)] += 1
+        trm_counts[_row_trm_dispatch_type(row)] += 1
+        answer_formats[_row_answer_format(row)] += 1
+        if _row_gpu_execution(row):
+            gpu_true += 1
+        elapsed_ms = _row_elapsed_ms(row)
+        if elapsed_ms is not None and elapsed_ms >= 0.0:
+            elapsed_values.append(elapsed_ms)
+    total = int(result.get("total", len(rows)) or 0)
+    result.setdefault("route_family_distribution", {key: int(value) for key, value in sorted(route_counts.items())})
+    result.setdefault(
+        "trm_dispatch_task_type_distribution",
+        {key: int(value) for key, value in sorted(trm_counts.items())},
+    )
+    result.setdefault("gpu_result_packets", f"{gpu_true} / {total}")
+    avg_elapsed_ms = (sum(elapsed_values) / len(elapsed_values)) if elapsed_values else 0.0
+    result.setdefault("avg_elapsed_ms", round(avg_elapsed_ms, 3))
+    result.setdefault(
+        "answer_format_distribution",
+        {key: int(value) for key, value in sorted(answer_formats.items())},
+    )
+    return result
+
+
 def _normalize_native_result(suite_name: str, raw: dict[str, Any]) -> dict[str, Any]:
     total = raw.get("total")
     if total is None:
@@ -167,8 +314,13 @@ def _normalize_native_result(suite_name: str, raw: dict[str, Any]) -> dict[str, 
     result["suite"] = suite_name
     result["total"] = int(total)
     result["correct"] = int(raw.get("correct", raw.get("solved", 0)))
-    result["accuracy"] = float(raw.get("accuracy", 0.0))
-    return result
+    accuracy = raw.get("accuracy")
+    if accuracy is None and "overall_accuracy" in raw:
+        accuracy = raw.get("overall_accuracy")
+    if accuracy is None:
+        accuracy = (result["correct"] / result["total"]) if result["total"] else 0.0
+    result["accuracy"] = float(accuracy)
+    return _augment_suite_summary(result)
 
 
 def _detect_hardware_profile(storage_root: str | Path) -> dict[str, Any]:
@@ -320,18 +472,6 @@ def _run_suite(
             f"progress {suite_name}: {completed}/{total} correct={correct} elapsed={elapsed_s:.1f}s"
         )
 
-    if suite_name == "arc3_local":
-        return _normalize_native_result(
-            suite_name,
-            run_local_arc3(
-                count=max(1, int(count)),
-                knowledgeverse=kv,
-                log_path=row_log_path,
-                progress_cb=_progress_cb,
-                progress_every=1,
-            ),
-        )
-
     assert built_suite is not None
     raw = built_suite.run_benchmark(
         use_enriched=use_enriched,
@@ -368,7 +508,6 @@ def run_tablet_benchmark_suite(
 
     suite_order = [
         ("arc2", int(args.arc2_count)),
-        ("arc3_local", int(args.arc3_count)),
         ("mmlu", int(args.mmlu_count)),
         ("gsm8k", int(args.gsm8k_count)),
         ("lhe", int(args.lhe_count)),
@@ -377,7 +516,7 @@ def run_tablet_benchmark_suite(
         ("omni_math", int(args.omni_math_count)),
         ("imo", int(args.imo_count)),
     ]
-    selected_builders = [(name, count) for name, count in suite_order if count > 0 and name != "arc3_local"]
+    selected_builders = [(name, count) for name, count in suite_order if count > 0]
 
     preloaded: dict[str, Any] = {}
     if selected_builders:
@@ -390,6 +529,16 @@ def run_tablet_benchmark_suite(
                 name = future_map[future]
                 preloaded[name] = future.result()
                 _log_section(f"preloaded {name}")
+
+    archived_suites: dict[str, dict[str, Any]] = {}
+    if int(getattr(args, "arc3_count", 0) or 0) > 0:
+        archived_suites["arc3_local"] = _archived_suite(
+            "arc3_local_archived_use_arc3_sdk_agent_or_headless_tablet_runner",
+            int(getattr(args, "arc3_count", 0) or 0),
+        )
+        _log_section(
+            f"archived arc3_local requested_count={archived_suites['arc3_local']['requested_count']}"
+        )
 
     start = time.time()
     all_results: dict[str, dict[str, Any]] = {}
@@ -426,6 +575,8 @@ def run_tablet_benchmark_suite(
                     for name, suite_result in all_results.items()
                 },
             }
+            if archived_suites:
+                partial_summary["archived_suites"] = archived_suites
             (log_dir / "summary.partial.json").write_text(
                 json.dumps(partial_summary, indent=2, ensure_ascii=False, default=str),
                 encoding="utf-8",
@@ -458,6 +609,7 @@ def run_tablet_benchmark_suite(
             "session_model": "one_live_knowledgeverse",
             "feeder_workers": int(min(feeder_workers, len(selected_builders) or 1)),
             "mid_session_unload_allowed": False,
+            "knowledgeverse_boot_count": 1,
         },
         "execution_artifacts": {
             "summary": str(log_dir / "summary.execution.json"),
@@ -470,6 +622,8 @@ def run_tablet_benchmark_suite(
             for name, result in all_results.items()
         },
     }
+    if archived_suites:
+        summary["archived_suites"] = archived_suites
     (log_dir / "summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8",

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import urllib.request
 
+from knowledge3d.ingestion.ollama_manager import OllamaModelManager
 from knowledge3d.ingestion.proceduralizer_contract import (
     PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,
@@ -189,6 +191,43 @@ def test_wine_bridge_detects_plan_limit_and_sets_retry(tmp_path: Path) -> None:
 
     assert receipt.failure_code == "plan_limit_consumed"
     assert receipt.retry_after_utc
+
+
+def test_ollama_manager_chat_preserves_image_messages(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+        def read(self) -> bytes:
+            return b'{"message":{"content":"ok"}}'
+
+    def _fake_urlopen(request, timeout=0):
+        captured["body"] = json.loads(request.data.decode("utf-8"))
+        captured["timeout"] = timeout
+        return _Response()
+
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen)
+    manager = OllamaModelManager(default_timeout=12.0)
+
+    result = manager.chat(
+        model="qwen3-vl:235b-instruct-cloud",
+        messages=[
+            {
+                "role": "user",
+                "content": "Describe this page",
+                "images": ["YWJjMTIz"],
+            }
+        ],
+        response_format={"type": "object"},
+    )
+
+    assert result.returncode == 0
+    assert captured["body"]["messages"][0]["images"] == ["YWJjMTIz"]
 
 
 def test_wine_bridge_does_not_flag_timeout_words_inside_valid_json(tmp_path: Path) -> None:

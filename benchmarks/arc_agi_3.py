@@ -7,8 +7,11 @@ from collections import Counter, deque
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
+from knowledge3d.knowledgeverse.arc3_episode_galaxy import ARC3EpisodeGalaxy
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.tablet.wine.game2d_wine import build_game2d_route
+from knowledge3d.tablet.wine.game2d_wine import arc3_game_envelope
+from benchmarks.arc3_game_mechanics_seeder import seed_game_mechanics
 
 
 ACTION_NAMES = ["ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6", "ACTION7"]
@@ -16,9 +19,6 @@ ACTION_LABELS = ["Move Up", "Move Down", "Move Left", "Move Right", "Perform", "
 RESET_ACTION_NAME = "RESET"
 RESET_ACTION_LABEL = "Reset"
 ARC3_ROUTE_GALAXIES: list[str] = []
-SPATIAL_WALKABLE_COLORS = {0, 1, 3}
-
-
 def _normalize_grid(value: Any) -> list[list[int]]:
     if isinstance(value, list) and value and all(isinstance(row, list) for row in value):
         return [[int(cell) for cell in row] for row in value]
@@ -197,124 +197,190 @@ def _component_dimensions(component: dict[str, Any]) -> tuple[int, int]:
     return int(max_row) - int(min_row) + 1, int(max_col) - int(min_col) + 1
 
 
-def _door_components(grid: list[list[int]]) -> list[dict[str, Any]]:
+def _position_label(
+    rows: int,
+    cols: int,
+    centroid: tuple[float, float],
+) -> str:
+    row_ratio = float(centroid[0]) / float(max(1, rows - 1))
+    col_ratio = float(centroid[1]) / float(max(1, cols - 1))
+    if row_ratio <= 0.2:
+        vertical = "top"
+    elif row_ratio <= 0.4:
+        vertical = "upper"
+    elif row_ratio < 0.6:
+        vertical = "center"
+    elif row_ratio < 0.8:
+        vertical = "lower"
+    else:
+        vertical = "bottom"
+    if col_ratio <= 0.2:
+        horizontal = "left"
+    elif col_ratio < 0.8:
+        horizontal = "center"
+    else:
+        horizontal = "right"
+    return f"{vertical}_{horizontal}"
+
+
+def _monochrome_components(grid: list[list[int]]) -> list[dict[str, Any]]:
     gameplay = _gameplay_grid(grid)
-    components: list[dict[str, Any]] = []
-    for component in _components_for_colors(gameplay, {5, 9}):
-        height, width = _component_dimensions(component)
-        if not {5, 9}.issubset(set(component["colors"])):
-            continue
-        if int(component["size"]) < 20:
-            continue
-        if height < 5 or width < 5:
-            continue
-        if int(component["bbox"][1]) <= 4:
-            continue
-        components.append(component)
-    if not components:
+    if not gameplay or not gameplay[0]:
         return []
-    top_row = min(float(component["centroid"][0]) for component in components)
-    return [
-        component
-        for component in components
-        if float(component["centroid"][0]) <= top_row + 1.0
-    ]
-
-
-def _switch_components(grid: list[list[int]]) -> list[dict[str, Any]]:
-    gameplay = _gameplay_grid(grid)
-    direct_components: list[dict[str, Any]] = []
-    for component in _components_for_colors(gameplay, {11, 15}):
-        height, width = _component_dimensions(component)
-        if 4 <= int(component["size"]) <= 16 and height <= 4 and width <= 4:
-            direct_components.append(component)
-    if direct_components:
-        return direct_components
-
-    fallback_components: list[dict[str, Any]] = []
-    for component in _components_for_colors(gameplay, {9}):
-        height, width = _component_dimensions(component)
-        if not (5 <= int(component["size"]) <= 9):
-            continue
-        if height > 4 or width > 4:
-            continue
-        points = {(int(row), int(col)) for row, col in component["points"]}
-        if any(
-            sum(
-                1
-                for neighbor in (
-                    (row - 1, col),
-                    (row + 1, col),
-                    (row, col - 1),
-                    (row, col + 1),
-                )
-                if neighbor in points
-            )
-            >= 3
-            for row, col in points
-        ):
-            fallback_components.append(component)
-    return fallback_components
-
-
-def _recharge_components(grid: list[list[int]]) -> list[dict[str, Any]]:
-    gameplay = _gameplay_grid(grid)
+    rows = len(gameplay)
+    cols = len(gameplay[0])
+    background = _background_value(gameplay)
+    colors = sorted({int(value) for row in gameplay for value in row if int(value) != background})
     components: list[dict[str, Any]] = []
-    for component in _components_for_colors(gameplay, {12}):
-        height, width = _component_dimensions(component)
-        if not (4 <= int(component["size"]) <= 24):
-            continue
-        if height > 4 or width > 6:
-            continue
-        components.append(component)
+    for color in colors:
+        for component in _components_for_colors(gameplay, {int(color)}):
+            height, width = _component_dimensions(component)
+            payload = dict(component)
+            payload["primary_color"] = int(color)
+            payload["height"] = int(height)
+            payload["width"] = int(width)
+            payload["position_label"] = _position_label(rows, cols, payload["centroid"])
+            payload["approximate_position"] = str(payload["position_label"])
+            components.append(payload)
     return components
 
 
-def _target_components_for_label(label: str, grid: list[list[int]]) -> list[dict[str, Any]]:
-    if label == "switch":
-        return _switch_components(grid)
-    if label == "door":
-        return _door_components(grid)
-    if label == "recharge":
-        return _recharge_components(grid)
-    return []
+def _diagnose_frame_colors(grid: list[list[int]]) -> list[dict[str, Any]]:
+    gameplay = _gameplay_grid(grid)
+    if not gameplay or not gameplay[0]:
+        return []
+    background = _background_value(gameplay)
+    rows = len(gameplay)
+    cols = len(gameplay[0])
+    diagnostics: list[dict[str, Any]] = []
+    for component in _monochrome_components(gameplay):
+        color = int(component["primary_color"])
+        if color == background:
+            continue
+        diagnostics.append(
+            {
+                "color": int(color),
+                "pixels": int(component["size"]),
+                "centroid": (
+                    float(component["centroid"][0]),
+                    float(component["centroid"][1]),
+                ),
+                "position_label": str(component["position_label"]),
+                "bbox": tuple(int(value) for value in component["bbox"]),
+                "height": int(component["height"]),
+                "width": int(component["width"]),
+                "covers_ratio": float(component["size"]) / float(max(1, rows * cols)),
+            }
+        )
+    diagnostics.sort(
+        key=lambda row: (
+            float(row["centroid"][0]),
+            -int(row["pixels"]),
+            int(row["color"]),
+        )
+    )
+    return diagnostics
 
 
-def _select_mechanic_target(
+def _detect_static_objects(
     grid: list[list[int]],
     avatar_centroid: tuple[float, float] | None,
     *,
-    budget_snapshot: dict[str, Any] | None = None,
-) -> tuple[tuple[float, float] | None, str]:
-    if avatar_centroid is None:
-        return None, ""
-    avatar_row, avatar_col = avatar_centroid
-    target_specs = [
-        ("switch", 0),
-        ("door", 1),
-        ("recharge", 2),
-    ]
-    if budget_snapshot and str(budget_snapshot.get("bucket", "")) in {"low", "critical"}:
-        target_specs = [
-            ("recharge", 0),
-            ("switch", 1),
-            ("door", 2),
-        ]
-    candidates: list[tuple[int, float, float, tuple[float, float], str]] = []
-    for label, priority in target_specs:
-        components = _target_components_for_label(label, grid)
-        for component in components:
-            centroid = (
-                float(component["centroid"][0]),
-                float(component["centroid"][1]),
-            )
-            distance = abs(centroid[0] - avatar_row) + abs(centroid[1] - avatar_col)
-            size_penalty = abs(float(component["size"]) - 8.0)
-            candidates.append((int(priority), distance, size_penalty, centroid, label))
-    if not candidates:
-        return None, ""
-    _, _, _, centroid, label = min(candidates)
-    return centroid, label
+    known_objects: dict[tuple[int, str], dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    gameplay = _gameplay_grid(grid)
+    if not gameplay or not gameplay[0]:
+        return []
+    rows = len(gameplay)
+    cols = len(gameplay[0])
+    avatar_row = int(round(float(avatar_centroid[0]))) if avatar_centroid is not None else -999
+    avatar_col = int(round(float(avatar_centroid[1]))) if avatar_centroid is not None else -999
+    background = _background_value(gameplay)
+    discovered: list[dict[str, Any]] = []
+    for component in _monochrome_components(gameplay):
+        color = int(component["primary_color"])
+        if color == background:
+            continue
+        size = int(component["size"])
+        height = int(component["height"])
+        width = int(component["width"])
+        if size <= 1:
+            continue
+        if size > max(512, int(rows * cols * 0.2)):
+            continue
+        if height >= int(rows * 0.75) or width >= int(cols * 0.75):
+            continue
+        centroid = (
+            float(component["centroid"][0]),
+            float(component["centroid"][1]),
+        )
+        centroid_row = int(round(centroid[0]))
+        centroid_col = int(round(centroid[1]))
+        if abs(centroid_row - avatar_row) <= 1 and abs(centroid_col - avatar_col) <= 1 and color in {0, 1}:
+            continue
+        position_label = str(component["position_label"])
+        known = dict((known_objects or {}).get((color, position_label), {}))
+        semantic_hint = str(known.get("semantic_hint") or "").strip().lower()
+        if not semantic_hint:
+            if centroid[0] <= float(rows) * 0.45 and size >= 12 and height >= 4:
+                semantic_hint = "door"
+            elif size <= 20 and height <= 6 and width <= 6:
+                semantic_hint = "switch"
+            elif centroid[0] >= float(rows) * 0.6 and 4 <= size <= 36:
+                semantic_hint = "recharge"
+        discovered.append(
+            {
+                "type": "ARC3_OBJECT",
+                "color": int(color),
+                "centroid": centroid,
+                "size": int(size),
+                "height": int(height),
+                "width": int(width),
+                "position_label": position_label,
+                "approximate_position": position_label,
+                "semantic_hint": semantic_hint,
+                "behavior": str(known.get("behavior") or "unknown"),
+                "interaction_tested": bool(known.get("interaction_tested", False)),
+                "interaction_result": known.get("interaction_result"),
+                "moves_with_avatar": False,
+                "points": tuple(component["points"]),
+            }
+        )
+    discovered.sort(
+        key=lambda row: (
+            0 if str(row.get("semantic_hint", "")).strip() else 1,
+            float(abs(float(row["centroid"][0]) - float(avatar_centroid[0]))) + float(abs(float(row["centroid"][1]) - float(avatar_centroid[1])))
+            if avatar_centroid is not None
+            else float(row["size"]),
+        )
+    )
+    return discovered
+
+
+def _adjacent_colors(
+    grid: list[list[int]],
+    avatar_centroid: tuple[float, float] | None,
+) -> list[int]:
+    if avatar_centroid is None or not grid or not grid[0]:
+        return []
+    row = int(round(float(avatar_centroid[0])))
+    col = int(round(float(avatar_centroid[1])))
+    colors: list[int] = []
+    seen: set[int] = set()
+    for next_row, next_col in (
+        (row - 1, col),
+        (row + 1, col),
+        (row, col - 1),
+        (row, col + 1),
+    ):
+        if not (0 <= next_row < len(grid) and 0 <= next_col < len(grid[0])):
+            continue
+        color = int(grid[next_row][next_col])
+        if color in seen:
+            continue
+        seen.add(color)
+        colors.append(color)
+    return colors
 
 
 def _background_value(grid: list[list[int]]) -> int:
@@ -456,98 +522,6 @@ def _should_force_reset(
     return estimated_steps > max(1, remaining_units - 2)
 
 
-def _clamp_click_target(grid: list[list[int]], x: int, y: int) -> dict[str, int]:
-    if not grid or not grid[0]:
-        return {"x": 0, "y": 0}
-    height = len(grid)
-    width = len(grid[0])
-    return {
-        "x": max(0, min(int(x), width - 1)),
-        "y": max(0, min(int(y), height - 1)),
-    }
-
-
-def _salient_click_centers(grid: list[list[int]]) -> list[dict[str, int]]:
-    if not grid or not grid[0]:
-        return [{"x": 0, "y": 0}]
-
-    candidates: list[dict[str, int]] = []
-    seen: set[tuple[int, int]] = set()
-
-    def _add(x: int, y: int) -> None:
-        payload = _clamp_click_target(grid, x, y)
-        key = (int(payload["x"]), int(payload["y"]))
-        if key in seen:
-            return
-        seen.add(key)
-        candidates.append(payload)
-
-    height = len(grid)
-    width = len(grid[0])
-
-    # Live ARC3 start screens expose a unique color-6 focus cell inside the Start button cluster.
-    focus_cells = [
-        (row_index, col_index)
-        for row_index, row in enumerate(grid)
-        for col_index, value in enumerate(row)
-        if int(value) == 6
-    ]
-    if len(focus_cells) == 1:
-        row_index, col_index = focus_cells[0]
-        _add(col_index, row_index)
-
-    lower_magic_cells = [
-        (row_index, col_index)
-        for row_index, row in enumerate(grid)
-        for col_index, value in enumerate(row)
-        if int(value) in {6, 15} and row_index >= max(0, height // 2)
-    ]
-    if lower_magic_cells:
-        avg_row = sum(row_index for row_index, _ in lower_magic_cells) / float(len(lower_magic_cells))
-        avg_col = sum(col_index for _, col_index in lower_magic_cells) / float(len(lower_magic_cells))
-        _add(int(round(avg_col)), int(round(avg_row)))
-
-    background = _background_value(grid)
-    non_background_counts: Counter[int] = Counter(
-        int(value) for row in grid for value in row if int(value) != int(background)
-    )
-    if non_background_counts:
-        rarest = min(non_background_counts.values())
-        rare_colors = {color for color, count in non_background_counts.items() if count == rarest}
-        rare_cells = [
-            (row_index, col_index)
-            for row_index, row in enumerate(grid)
-            for col_index, value in enumerate(row)
-            if int(value) in rare_colors
-        ]
-        if rare_cells:
-            avg_row = sum(row_index for row_index, _ in rare_cells) / float(len(rare_cells))
-            avg_col = sum(col_index for _, col_index in rare_cells) / float(len(rare_cells))
-            _add(int(round(avg_col)), int(round(avg_row)))
-
-    preferred_colors = [3, 15, 1, 0]
-    for preferred in preferred_colors:
-        cells = [
-            (row_index, col_index)
-            for row_index, row in enumerate(grid)
-            for col_index, value in enumerate(row)
-            if int(value) == preferred
-        ]
-        if not cells:
-            continue
-        avg_row = sum(row_index for row_index, _ in cells) / float(len(cells))
-        avg_col = sum(col_index for _, col_index in cells) / float(len(cells))
-        _add(int(round(avg_col)), int(round(avg_row)))
-
-    _add(width // 2, height // 2)
-
-    return candidates or [{"x": 0, "y": 0}]
-
-
-def _tracked_click_target(grid: list[list[int]]) -> dict[str, int]:
-    return dict(_salient_click_centers(grid)[0])
-
-
 def _available_action_indices(available_actions: list[Any] | None) -> list[int]:
     if not isinstance(available_actions, list):
         return []
@@ -591,114 +565,6 @@ def _available_action_indices(available_actions: list[Any] | None) -> list[int]:
     return indices
 
 
-def _movement_action_indices(valid_action_indices: list[int] | None) -> list[int]:
-    if valid_action_indices is None:
-        return [0, 1, 2, 3]
-    movement = [int(index) for index in list(valid_action_indices) if 0 <= int(index) <= 3]
-    return movement
-
-
-def _exploration_order(last_action_index: int | None) -> list[int]:
-    if int(last_action_index or -1) == 0:
-        return [2, 3, 1]
-    if int(last_action_index or -1) == 1:
-        return [2, 3, 0]
-    if int(last_action_index or -1) == 2:
-        return [0, 1, 3]
-    if int(last_action_index or -1) == 3:
-        return [0, 1, 2]
-    return [0, 1, 2, 3]
-
-
-def _navigation_state_key(grid: list[list[int]], *, levels_completed: int) -> tuple[int, int, int]:
-    centroid = _avatar_centroid(grid) or _focus_centroid(grid)
-    if centroid is None:
-        return int(levels_completed), -1, -1
-    return (
-        int(levels_completed),
-        int(round(float(centroid[0]))),
-        int(round(float(centroid[1]))),
-    )
-
-
-def _walkable_cells(grid: list[list[int]]) -> list[tuple[int, int]]:
-    gameplay = _gameplay_grid(grid)
-    return [
-        (row_index, col_index)
-        for row_index, row in enumerate(gameplay)
-        for col_index, value in enumerate(row)
-        if int(value) in SPATIAL_WALKABLE_COLORS
-    ]
-
-
-def _nearest_cell(
-    point: tuple[float, float] | None,
-    cells: list[tuple[int, int]],
-) -> tuple[int, int] | None:
-    if point is None or not cells:
-        return None
-    row, col = float(point[0]), float(point[1])
-    return min(
-        cells,
-        key=lambda cell: abs(float(cell[0]) - row) + abs(float(cell[1]) - col),
-    )
-
-
-def _component_goal_cells(
-    component: dict[str, Any],
-    cell_to_index: dict[tuple[int, int], int],
-) -> list[tuple[int, int]]:
-    goals: list[tuple[int, int]] = []
-    seen: set[tuple[int, int]] = set()
-    for row_index, col_index in list(component.get("points") or []):
-        for candidate in (
-            (int(row_index), int(col_index)),
-            (int(row_index) - 1, int(col_index)),
-            (int(row_index) + 1, int(col_index)),
-            (int(row_index), int(col_index) - 1),
-            (int(row_index), int(col_index) + 1),
-        ):
-            if candidate in cell_to_index and candidate not in seen:
-                seen.add(candidate)
-                goals.append(candidate)
-    return goals
-
-
-def _decode_path_action(
-    path_indices: list[int],
-    cells_by_index: list[tuple[int, int]],
-) -> int | None:
-    if len(path_indices) < 2:
-        return None
-    start = cells_by_index[int(path_indices[0])]
-    nxt = cells_by_index[int(path_indices[1])]
-    delta_row = int(nxt[0]) - int(start[0])
-    delta_col = int(nxt[1]) - int(start[1])
-    if delta_row == -1 and delta_col == 0:
-        return 0
-    if delta_row == 1 and delta_col == 0:
-        return 1
-    if delta_row == 0 and delta_col == -1:
-        return 2
-    if delta_row == 0 and delta_col == 1:
-        return 3
-    return None
-
-
-def _spatial_target_specs(budget_snapshot: dict[str, Any] | None) -> list[tuple[str, int]]:
-    if budget_snapshot and str(budget_snapshot.get("bucket", "")) in {"low", "critical"}:
-        return [
-            ("recharge", 0),
-            ("switch", 1),
-            ("door", 2),
-        ]
-    return [
-        ("switch", 0),
-        ("door", 1),
-        ("recharge", 2),
-    ]
-
-
 def _frame_to_query_text(
     frame: list[list[int]],
     goal_frame: list[list[int]] | None,
@@ -710,26 +576,22 @@ def _frame_to_query_text(
     lives_remaining: int | None = None,
     reference_box_visible: bool = False,
     flash_semantics: str = "",
-    force_reset: bool = False,
-    spatial_plan: dict[str, Any] | None = None,
+    avatar_centroid: tuple[float, float] | None = None,
+    visible_objects: list[dict[str, Any]] | None = None,
+    episode_context: dict[str, Any] | None = None,
+    stuck_signal: bool = False,
+    centroid_drift: float = 0.0,
 ) -> str:
     normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
     rows = len(frame)
     cols = len(frame[0]) if rows and isinstance(frame[0], list) else 0
     goal_state = "goal present" if normalized_goal != [[]] else "goal absent"
-    position_tokens: list[str] = []
-    guidance_tokens: list[str] = []
-    state_tokens: list[str] = []
-    current_centroid = None if frame_state == "transition" else (_avatar_centroid(frame) or _focus_centroid(frame))
-    goal_centroid = _foreground_centroid(normalized_goal) if normalized_goal != [[]] else None
-    derived_target_centroid: tuple[float, float] | None = None
-    derived_target_label = ""
-    if goal_centroid is None and current_centroid is not None and frame_state != "transition":
-        derived_target_centroid, derived_target_label = _select_mechanic_target(
-            frame,
-            current_centroid,
-            budget_snapshot=budget_snapshot,
-        )
+    current_centroid = avatar_centroid
+    if current_centroid is None and frame_state != "transition":
+        current_centroid = _avatar_centroid(frame) or _focus_centroid(frame)
+    state_tokens: list[str] = [f"arc3 game frame {rows}x{cols}", goal_state]
+    background = _background_value(frame) if rows and cols else 0
+    state_tokens.append(f"background color {int(background)}")
     if frame_state == "transition":
         if flash_semantics == "failure":
             state_tokens.extend(
@@ -762,15 +624,16 @@ def _frame_to_query_text(
                 "new level gameplay",
             ]
         )
+    if current_centroid is not None and frame_state != "transition":
+        state_tokens.append(
+            f"avatar at row {int(round(float(current_centroid[0])))} col {int(round(float(current_centroid[1])))}"
+        )
     if budget_snapshot:
-        state_tokens.append("movement budget visual bar")
-        bucket = str(budget_snapshot.get("bucket", ""))
-        if bucket == "critical":
-            state_tokens.extend(["movement budget critical", "budget sufficiency check"])
-        elif bucket == "low":
-            state_tokens.extend(["movement budget low", "movement budget conservation"])
-        else:
-            state_tokens.append("movement budget healthy")
+        fraction = budget_snapshot.get("fraction")
+        try:
+            state_tokens.append(f"movement budget {float(fraction) * 100.0:.0f} percent remaining")
+        except Exception:
+            pass
     if lives_remaining is not None:
         lives_word = {0: "zero", 1: "one", 2: "two", 3: "three"}.get(int(lives_remaining), str(int(lives_remaining)))
         state_tokens.extend(
@@ -783,133 +646,90 @@ def _frame_to_query_text(
     if reference_box_visible:
         state_tokens.append("reference box current state visible")
     if current_centroid is not None and frame_state != "transition":
-        state_tokens.extend(["avatar identity", "walkable surface", "pathfind to target"])
-    if derived_target_label:
-        state_tokens.append(f"{derived_target_label} target visible")
-        if derived_target_label == "door":
-            state_tokens.extend(["target room visible", "door goal room"])
-        if derived_target_label == "switch":
-            state_tokens.append("switch actuator")
-        if derived_target_label == "recharge":
-            state_tokens.append("movement recharge block")
-    if budget_snapshot:
-        state_tokens.append("resource aware movement")
-    if spatial_plan:
-        hint_target = str(spatial_plan.get("target_label", "")).strip()
-        if hint_target:
-            state_tokens.append(f"spatial plan target {hint_target}")
-        path_length = int(spatial_plan.get("path_length", 0))
-        if path_length > 0:
-            state_tokens.append(f"spatial path length {path_length}")
-        hinted_action = int(spatial_plan.get("action_index", -1))
-        if 0 <= hinted_action < len(ACTION_LABELS):
-            guidance_tokens.append(f"spatial hint {ACTION_LABELS[hinted_action].lower()}")
-    if current_centroid is not None and rows > 0 and cols > 0:
-        avg_row, avg_col = current_centroid
-        center_row = (rows - 1) / 2.0
-        center_col = (cols - 1) / 2.0
-        row_margin = max(rows * 0.1, 0.5)
-        col_margin = max(cols * 0.1, 0.5)
-        primary_action: str | None = None
-        secondary_action: str | None = None
-        if force_reset:
-            state_tokens.extend(
-                [
-                    "strategic reset",
-                    "budget sufficiency check",
-                    "preserve life before depletion",
-                ]
+        state_tokens.extend(["avatar identity", "walkable surface"])
+    if centroid_drift >= 0.0:
+        state_tokens.append(f"centroid drift {float(centroid_drift):.1f}")
+    object_tokens: list[str] = []
+    for obj in list(visible_objects or [])[:8]:
+        color = int(obj.get("color", -1))
+        if color < 0:
+            continue
+        centroid = obj.get("centroid")
+        row = col = -1
+        if isinstance(centroid, (tuple, list)) and len(centroid) == 2:
+            row = int(round(float(centroid[0])))
+            col = int(round(float(centroid[1])))
+        size = int(obj.get("size", 0) or 0)
+        semantic_hint = str(obj.get("semantic_hint") or obj.get("behavior") or "").strip().lower()
+        tested = bool(obj.get("interaction_tested", False))
+        object_tokens.append(
+            " ".join(
+                token
+                for token in (
+                    "visible object",
+                    f"color {color}",
+                    f"row {row}" if row >= 0 else "",
+                    f"col {col}" if col >= 0 else "",
+                    f"size {size}" if size > 0 else "",
+                    semantic_hint,
+                    "tested" if tested else "untested",
+                )
+                if token
             )
-            position_tokens.append("budget insufficient reset now")
-            primary_action = "action reset"
-        target_centroid = goal_centroid or derived_target_centroid
-        if force_reset:
-            secondary_action = None
-        elif target_centroid is not None:
-            goal_row, goal_col = target_centroid
-            row_delta = float(goal_row - avg_row)
-            col_delta = float(goal_col - avg_col)
-            if row_delta > row_margin:
-                position_tokens.append("object above goal move down")
-                guidance_tokens.append("action move down")
-            elif row_delta < -row_margin:
-                position_tokens.append("object below goal move up")
-                guidance_tokens.append("action move up")
-            if col_delta > col_margin:
-                position_tokens.append("object left of goal move right")
-                guidance_tokens.append("action move right")
-            elif col_delta < -col_margin:
-                position_tokens.append("object right of goal move left")
-                guidance_tokens.append("action move left")
-            if guidance_tokens:
-                ordered_actions = list(guidance_tokens)
-                if len(ordered_actions) > 1 and abs(row_delta) >= abs(col_delta):
-                    if "action move down" in ordered_actions or "action move up" in ordered_actions:
-                        primary_action = (
-                            "action move down" if row_delta > row_margin else "action move up"
+        )
+    if current_centroid is not None and frame_state != "transition" and rows > 0 and cols > 0:
+        row = int(round(float(current_centroid[0])))
+        col = int(round(float(current_centroid[1])))
+        neighbors = {
+            "up": (row - 1, col),
+            "down": (row + 1, col),
+            "left": (row, col - 1),
+            "right": (row, col + 1),
+        }
+        adjacent_tokens: list[str] = []
+        adjacent_object_tokens: list[str] = []
+        known_objects = {
+            (int(obj.get("color", -1)), int(round(float(obj["centroid"][0]))), int(round(float(obj["centroid"][1])))): obj
+            for obj in list(visible_objects or [])
+            if isinstance(obj.get("centroid"), (tuple, list)) and len(obj["centroid"]) == 2
+        }
+        for direction, (next_row, next_col) in neighbors.items():
+            if not (0 <= next_row < rows and 0 <= next_col < cols):
+                continue
+            color = int(frame[next_row][next_col])
+            adjacent_tokens.append(f"{direction} {color}")
+            for obj in list(visible_objects or []):
+                centroid = obj.get("centroid")
+                if not (isinstance(centroid, (tuple, list)) and len(centroid) == 2):
+                    continue
+                obj_row = int(round(float(centroid[0])))
+                obj_col = int(round(float(centroid[1])))
+                distance = abs(obj_row - row) + abs(obj_col - col)
+                if distance != 1:
+                    continue
+                adjacent_object_tokens.append(
+                    " ".join(
+                        token
+                        for token in (
+                            "object adjacent to avatar",
+                            f"color {int(obj.get('color', -1))}",
+                            f"distance {distance}",
+                            "tested" if bool(obj.get("interaction_tested", False)) else "untested",
+                            str(obj.get("semantic_hint") or obj.get("behavior") or "").strip().lower(),
                         )
-                elif len(ordered_actions) > 1 and abs(col_delta) > abs(row_delta):
-                    if "action move right" in ordered_actions or "action move left" in ordered_actions:
-                        primary_action = (
-                            "action move right" if col_delta > col_margin else "action move left"
-                        )
-                if primary_action is None:
-                    primary_action = ordered_actions[0]
-                for action_token in ordered_actions:
-                    if action_token != primary_action:
-                        secondary_action = action_token
-                        break
-            else:
-                position_tokens.append("object at goal perform")
-                primary_action = "action perform"
-        else:
-            row_delta = float(center_row - avg_row)
-            col_delta = float(center_col - avg_col)
-            if row_delta > row_margin:
-                position_tokens.append("object above center top north")
-                guidance_tokens.append("action move down")
-            elif row_delta < -row_margin:
-                position_tokens.append("object below center bottom south")
-                guidance_tokens.append("action move up")
-            if col_delta > col_margin:
-                position_tokens.append("object left of center west")
-                guidance_tokens.append("action move right")
-            elif col_delta < -col_margin:
-                position_tokens.append("object right of center east")
-                guidance_tokens.append("action move left")
-            if guidance_tokens:
-                ordered_actions = list(guidance_tokens)
-                if len(ordered_actions) > 1 and abs(row_delta) >= abs(col_delta):
-                    if "action move down" in ordered_actions or "action move up" in ordered_actions:
-                        primary_action = (
-                            "action move down" if row_delta > row_margin else "action move up"
-                        )
-                elif len(ordered_actions) > 1 and abs(col_delta) > abs(row_delta):
-                    if "action move right" in ordered_actions or "action move left" in ordered_actions:
-                        primary_action = (
-                            "action move right" if col_delta > col_margin else "action move left"
-                        )
-                if primary_action is None:
-                    primary_action = ordered_actions[0]
-                for action_token in ordered_actions:
-                    if action_token != primary_action:
-                        secondary_action = action_token
-                        break
-            else:
-                position_tokens.append("object centered balanced")
-                primary_action = "action perform"
-        if primary_action:
-            guidance_tokens.insert(0, f"primary {primary_action}")
-        if secondary_action:
-            guidance_tokens.append(f"secondary {secondary_action}")
+                        if token
+                    )
+                )
+        if adjacent_tokens:
+            state_tokens.append("adjacent cells " + " ".join(adjacent_tokens))
+        state_tokens.extend(adjacent_object_tokens)
     action_tokens: list[str] = []
     for action_index in _available_action_indices(available_actions):
         action_tokens.append(ACTION_NAMES[int(action_index)].lower())
     actions_text = " ".join(action_tokens) if action_tokens else "actions unknown"
-    position_text = " ".join(state_tokens + position_tokens + guidance_tokens)
+    position_text = " ".join(state_tokens + object_tokens)
     return (
-        f"arc3 interactive game frame grid {rows}x{cols} "
-        f"{position_text} {goal_state} "
+        f"{position_text} "
         f"available actions {actions_text} "
         "levels navigation visual"
     ).strip()
@@ -920,15 +740,20 @@ def _result_has_direct_action(result: dict[str, Any] | None) -> bool:
     if not packet:
         return False
     raw_action_name = str(packet.get("action_name", "")).strip().upper()
-    if raw_action_name in {RESET_ACTION_NAME, *ACTION_NAMES}:
-        return True
-    raw_action_index = packet.get("action_index")
-    if isinstance(raw_action_index, int) and -1 <= int(raw_action_index) < len(ACTION_NAMES):
-        return True
+    has_click_payload = False
     action_input = packet.get("action_input")
     if isinstance(action_input, dict) and isinstance(action_input.get("x"), (int, float)) and isinstance(action_input.get("y"), (int, float)):
+        has_click_payload = True
+    elif isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float)):
+        has_click_payload = True
+    if raw_action_name == RESET_ACTION_NAME:
         return True
-    if isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float)):
+    if raw_action_name in ACTION_NAMES:
+        return raw_action_name != "ACTION6" or has_click_payload
+    raw_action_index = packet.get("action_index")
+    if isinstance(raw_action_index, int) and -1 <= int(raw_action_index) < len(ACTION_NAMES):
+        return int(raw_action_index) != 5 or has_click_payload
+    if has_click_payload:
         return True
     return _normalize_grid(packet.get("output_grid")) != [[]]
 
@@ -955,29 +780,44 @@ def _derive_action_from_result(
     result: dict[str, Any],
     *,
     goal_frame: list[list[int]] | None = None,
-) -> tuple[int | str, dict[str, int]]:
+) -> tuple[int | str | None, dict[str, int]]:
     packet = _normalized_runtime_result(result)
+    action_input = packet.get("action_input")
+    click_payload = (
+        {"x": int(action_input["x"]), "y": int(action_input["y"])}
+        if isinstance(action_input, dict)
+        and isinstance(action_input.get("x"), (int, float))
+        and isinstance(action_input.get("y"), (int, float))
+        else {}
+    )
     raw_action_name = str(packet.get("action_name", "")).strip().upper()
     if raw_action_name == RESET_ACTION_NAME:
         return RESET_ACTION_NAME, {}
     if raw_action_name in ACTION_NAMES:
-        return ACTION_NAMES.index(raw_action_name), {}
+        if raw_action_name == "ACTION6" and not click_payload and not (
+            isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float))
+        ):
+            return None, {}
+        return ACTION_NAMES.index(raw_action_name), dict(click_payload)
 
     raw_action_index = packet.get("action_index")
     if isinstance(raw_action_index, int):
         if int(raw_action_index) < 0:
             return RESET_ACTION_NAME, {}
         if int(raw_action_index) < len(ACTION_NAMES):
-            return int(raw_action_index), {}
+            if int(raw_action_index) == 5 and not click_payload and not (
+                isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float))
+            ):
+                return None, {}
+            return int(raw_action_index), dict(click_payload)
 
-    action_input = packet.get("action_input")
-    if isinstance(action_input, dict) and isinstance(action_input.get("x"), (int, float)) and isinstance(action_input.get("y"), (int, float)):
-        return 5, {"x": int(action_input["x"]), "y": int(action_input["y"])}
+    if click_payload:
+        return 5, dict(click_payload)
 
     if isinstance(packet.get("x"), (int, float)) and isinstance(packet.get("y"), (int, float)):
         return 5, {"x": int(packet["x"]), "y": int(packet["y"])}
 
-    return 0, {}
+    return None, {}
 
 
 class K3DARC3Agent:
@@ -985,176 +825,138 @@ class K3DARC3Agent:
 
     def __init__(
         self,
-        max_actions: int = 500,
+        max_actions: int = 10000,
         log_path: str | Path | None = None,
         knowledgeverse: Knowledgeverse | None = None,
     ) -> None:
         self.max_actions = int(max_actions)
         self.log_path = Path(log_path) if log_path else None
         self.kv = knowledgeverse or Knowledgeverse()
+        self.tablet_boundary = self._build_tablet_boundary()
         self.action_history: list[dict[str, Any]] = []
         self._last_levels_completed = 0
         self._last_frame: list[list[int]] | None = None
-        self._last_click_focus: tuple[int, int] | None = None
-        self._click_focus_streak = 0
-        self._click_probe_index = 1
         self._needs_reperceive = False
         self._attempt_actions = 0
-        self._blocked_actions_by_state: dict[tuple[int, int, int], set[int]] = {}
-        self._last_blocked_action: int | None = None
-        self._blocked_repeat_count = 0
-        self._frame_morton = None
+        self._step_count = 0
+        self._visited_cells: set[tuple[int, int]] = set()
+        self._known_objects: dict[tuple[int, str], dict[str, Any]] = {}
+        self._frame_color_diagnostics: list[dict[str, Any]] = []
+        self._color_diagnostics_games: set[str] = set()
+        self._game_id = "unknown"
+        self._episode_galaxy = ARC3EpisodeGalaxy(game_id=self._game_id, knowledgeverse=self.kv)
+        if isinstance(self.kv, Knowledgeverse):
+            self.kv.ensure_default_galaxies_loaded()
+        self._game_mechanics_star_count = int(seed_game_mechanics(self.kv))
 
-    def _next_click_payload(self, grid: list[list[int]]) -> tuple[dict[str, int], str]:
-        candidates = _salient_click_centers(grid)
-        focus = candidates[0]
-        focus_key = (int(focus["x"]), int(focus["y"]))
-        if self._last_click_focus == focus_key:
-            self._click_focus_streak += 1
-        else:
-            self._last_click_focus = focus_key
-            self._click_focus_streak = 0
-            self._click_probe_index = 1
+    def _build_tablet_boundary(self) -> HeadlessTabletMPC:
+        if isinstance(self.kv, Knowledgeverse):
+            return HeadlessTabletMPC(knowledgeverse=self.kv)
 
-        if self._click_focus_streak <= 1 or len(candidates) == 1:
-            self._click_probe_index = 1
-            return dict(focus), "tracked_focus"
+        def _handler(payload: dict[str, Any]) -> dict[str, Any]:
+            task = dict(payload.get("task") or {})
+            route: dict[str, Any] = {
+                "specialist": str(payload.get("specialist") or "visual"),
+                "domain_hint": str(payload.get("domain_hint") or task.get("domain_hint") or "game_2d"),
+            }
+            solved = self.kv.execute_task(
+                task=task,
+                route=route,
+                specialist=str(route["specialist"]),
+                domain_hint=str(route["domain_hint"]),
+                use_enriched=bool(payload.get("use_enriched", True)),
+            )
+            return {"status": "ok", "route": route, "task_result": dict(solved or {})}
 
-        candidate_index = min(self._click_probe_index, len(candidates) - 1)
-        payload = dict(candidates[candidate_index])
-        if candidate_index < len(candidates) - 1:
-            self._click_probe_index += 1
-        return payload, f"tracked_focus_probe_{candidate_index}"
+        return HeadlessTabletMPC(command_handler=_handler)
 
-    def _exploration_fallback(
-        self,
-        *,
-        valid_action_indices: list[int],
-        blocked_actions: set[int],
-        repeated_action: int | None,
-    ) -> int:
-        movement_candidates = _movement_action_indices(valid_action_indices)
-        recent_actions = [
-            int(row.get("action_index"))
-            for row in self.action_history[-3:]
-            if isinstance(row.get("action_index"), int) and 0 <= int(row.get("action_index")) <= 3
-        ]
-        ordered: list[int] = []
-        for candidate in _exploration_order(repeated_action):
-            if candidate in movement_candidates and candidate not in ordered:
-                ordered.append(candidate)
-        for candidate in movement_candidates:
-            if candidate not in ordered:
-                ordered.append(candidate)
-        for candidate in ordered:
-            if candidate in blocked_actions:
+    def reset_attempt_state(self) -> None:
+        """Reset per-attempt shell state while keeping episode memory intact."""
+        self._last_levels_completed = 0
+        self._last_frame = None
+        self._needs_reperceive = False
+        self._attempt_actions = 0
+
+    def _record_visited_cell(self, avatar_centroid: tuple[float, float] | None) -> None:
+        if avatar_centroid is None:
+            return
+        self._visited_cells.add(
+            (
+                int(round(float(avatar_centroid[0]))),
+                int(round(float(avatar_centroid[1]))),
+            )
+        )
+
+    def _diagnose_frame_colors_once(self, grid: list[list[int]], *, game_id: str) -> None:
+        game_key = str(game_id or "unknown")
+        if game_key in self._color_diagnostics_games:
+            return
+        diagnostics = _diagnose_frame_colors(grid)
+        if not diagnostics:
+            return
+        self._color_diagnostics_games.add(game_key)
+        self._frame_color_diagnostics = list(diagnostics)
+        print(f"[ARC3] gameplay color diagnostics for {game_key}:")
+        for row in diagnostics:
+            centroid = row["centroid"]
+            print(
+                "[ARC3] "
+                f"color={int(row['color'])} pixels={int(row['pixels'])} "
+                f"centroid=({float(centroid[0]):.1f}, {float(centroid[1]):.1f}) "
+                f"position={row['position_label']} bbox={tuple(row['bbox'])}"
+            )
+
+    def _merge_visible_objects(self, objects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        merged: list[dict[str, Any]] = []
+        for obj in list(objects or []):
+            color = int(obj.get("color", -1))
+            position = str(obj.get("approximate_position") or obj.get("position_label") or "").strip()
+            if color < 0 or not position:
                 continue
-            if recent_actions[-3:] == [candidate, candidate, candidate]:
-                continue
-            return int(candidate)
-        return int(ordered[0]) if ordered else int(valid_action_indices[0] if valid_action_indices else 0)
+            key = (color, position)
+            record = self._known_objects.setdefault(
+                key,
+                {
+                    "color": int(color),
+                    "approximate_position": position,
+                    "position_label": position,
+                    "interaction_tested": False,
+                    "semantic_hint": str(obj.get("semantic_hint") or ""),
+                    "behavior": str(obj.get("behavior") or "unknown"),
+                },
+            )
+            record["color"] = int(color)
+            record["position_label"] = str(obj.get("position_label") or position)
+            record["approximate_position"] = position
+            if str(obj.get("semantic_hint") or "").strip():
+                record["semantic_hint"] = str(obj.get("semantic_hint") or "").strip()
+            if str(obj.get("behavior") or "").strip():
+                record["behavior"] = str(obj.get("behavior") or "").strip()
+            if "centroid" in obj:
+                record["centroid"] = tuple(obj.get("centroid") or ())
+            if "size" in obj:
+                record["size"] = int(obj.get("size", 0) or 0)
+            if "height" in obj:
+                record["height"] = int(obj.get("height", 0) or 0)
+            if "width" in obj:
+                record["width"] = int(obj.get("width", 0) or 0)
+            if "points" in obj:
+                record["points"] = tuple(obj.get("points") or ())
+            if "interaction_result" in obj and obj.get("interaction_result") is not None:
+                record["interaction_result"] = obj.get("interaction_result")
+            if "interaction_tested" in obj:
+                record["interaction_tested"] = bool(obj.get("interaction_tested"))
+            merged_obj = dict(record)
+            merged_obj["moves_with_avatar"] = bool(obj.get("moves_with_avatar", False))
+            merged.append(merged_obj)
+            self._episode_galaxy.seed_object(merged_obj)
+        return merged
 
-    def _spatial_path_plan(
-        self,
-        grid: list[list[int]],
-        *,
-        avatar_centroid: tuple[float, float] | None,
-        budget_snapshot: dict[str, Any] | None,
-        valid_action_indices: list[int],
-    ) -> dict[str, Any] | None:
-        if avatar_centroid is None or not hasattr(self.kv, "get_led_pathfinder"):
-            return None
-        pathfinder = self.kv.get_led_pathfinder()
-        if not pathfinder:
-            return None
-        walkable_cells = _walkable_cells(grid)
-        if not walkable_cells or len(walkable_cells) > 4096:
-            return None
-        ordered_cells = list(walkable_cells)
-        try:
-            if self._frame_morton is None:
-                from knowledge3d.cranium.spatial_sovereign.morton_octree import MortonOctreeSovereign
+    def get_episode_context(self) -> dict[str, Any]:
+        return self._episode_galaxy.get_episode_context(last_n=10)
 
-                self._frame_morton = MortonOctreeSovereign()
-            morton_points = [(float(col), float(row), 0.0) for row, col in walkable_cells]
-            morton_codes = self._frame_morton.encode(morton_points)
-            _, morton_order = self._frame_morton.sort(morton_codes, return_indices=True)
-            ordered_cells = [walkable_cells[int(index)] for index in morton_order]
-        except Exception:
-            ordered_cells = list(walkable_cells)
-        cell_to_index = {cell: index for index, cell in enumerate(ordered_cells)}
-        start_cell = _nearest_cell(avatar_centroid, ordered_cells)
-        if start_cell is None or start_cell not in cell_to_index:
-            return None
-
-        row_offsets = [0]
-        col_indices: list[int] = []
-        packed_costs: list[int] = []
-        for row_index, col_index in ordered_cells:
-            for neighbor in (
-                (row_index - 1, col_index),
-                (row_index + 1, col_index),
-                (row_index, col_index - 1),
-                (row_index, col_index + 1),
-            ):
-                neighbor_index = cell_to_index.get(neighbor)
-                if neighbor_index is None:
-                    continue
-                col_indices.append(int(neighbor_index))
-                packed_costs.append(1)
-            row_offsets.append(len(col_indices))
-
-        best_plan: dict[str, Any] | None = None
-        gameplay = _gameplay_grid(grid)
-        for label, priority in _spatial_target_specs(budget_snapshot):
-            components = _target_components_for_label(label, grid)
-            for component in components:
-                goal_cells = _component_goal_cells(component, cell_to_index)
-                if not goal_cells:
-                    continue
-                ranked_goals = sorted(
-                    goal_cells,
-                    key=lambda cell: abs(int(cell[0]) - int(start_cell[0])) + abs(int(cell[1]) - int(start_cell[1])),
-                )[:4]
-                for goal_cell in ranked_goals:
-                    try:
-                        path = pathfinder.navigate_csr(
-                            row_offsets,
-                            col_indices,
-                            packed_costs,
-                            start=int(cell_to_index[start_cell]),
-                            goal=int(cell_to_index[goal_cell]),
-                            max_path_length=256,
-                        )
-                    except Exception:
-                        continue
-                    path_indices = [int(index) for index in path]
-                    action_index = _decode_path_action(path_indices, ordered_cells)
-                    if action_index is None:
-                        continue
-                    if valid_action_indices and action_index not in set(valid_action_indices):
-                        continue
-                    plan = {
-                        "action_index": int(action_index),
-                        "confidence": float(1.0 / (1.0 + 0.08 * max(1, len(path_indices) - 1))),
-                        "target_label": label,
-                        "path_length": max(0, len(path_indices) - 1),
-                        "program_type": "spatial_frame_pathfinder",
-                        "solver": "spatial_frame_led_pathfinder",
-                    }
-                    if best_plan is None or (
-                        int(priority),
-                        int(plan["path_length"]),
-                    ) < (
-                        int(best_plan["priority"]),
-                        int(best_plan["path_length"]),
-                    ):
-                        plan["priority"] = int(priority)
-                        best_plan = plan
-        if best_plan is None:
-            return None
-        best_plan.pop("priority", None)
-        return best_plan
+    def run_deep_consolidation(self) -> dict[str, Any]:
+        return self._episode_galaxy.run_deep_consolidation()
 
     def choose_action(
         self,
@@ -1165,8 +967,9 @@ class K3DARC3Agent:
         available_actions: list[Any] | None = None,
         game_id: str | None = None,
         levels_completed: int = 0,
+        episode_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Translate frame → generic 2D game payload → kv.execute_task() → game action dict."""
+        """Translate ARC-3 state through the canonical GAME_2D tablet/WINE boundary."""
         normalized_frame = _normalize_grid(frame)
         normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
         frame_state = _frame_state(normalized_frame)
@@ -1174,104 +977,57 @@ class K3DARC3Agent:
         budget_snapshot = _movement_budget_snapshot(normalized_frame)
         lives_remaining = _lives_remaining(normalized_frame)
         reference_box_visible = _reference_box_visible(normalized_frame)
+        task_context = dict(task_data or {}) if isinstance(task_data, dict) else {}
+        resolved_game_id = str(game_id or self._game_id or "unknown")
+        self._game_id = resolved_game_id
+        if self._episode_galaxy.game_id != resolved_game_id:
+            self._episode_galaxy.game_id = resolved_game_id
+        world_model = task_context.get("world_model")
         avatar_centroid = None if frame_state == "transition" else (_avatar_centroid(normalized_frame) or _focus_centroid(normalized_frame))
-        goal_centroid = _foreground_centroid(normalized_goal) if normalized_goal != [[]] else None
-        derived_target_centroid: tuple[float, float] | None = None
-        derived_target_label = ""
-        if goal_centroid is None and avatar_centroid is not None and frame_state != "transition":
-            derived_target_centroid, derived_target_label = _select_mechanic_target(
-                normalized_frame,
-                avatar_centroid,
-                budget_snapshot=budget_snapshot,
+        self._record_visited_cell(avatar_centroid)
+        if frame_state == "gameplay":
+            self._diagnose_frame_colors_once(normalized_frame, game_id=resolved_game_id)
+        visible_objects = (
+            self._merge_visible_objects(
+                _detect_static_objects(
+                    normalized_frame,
+                    avatar_centroid,
+                    known_objects=self._known_objects,
+                )
             )
-        target_centroid = goal_centroid or derived_target_centroid
-        target_label = "goal" if goal_centroid is not None else derived_target_label
-        valid_action_indices = _available_action_indices(available_actions)
-        state_key = _navigation_state_key(normalized_frame, levels_completed=levels_completed)
-        blocked_actions = set(self._blocked_actions_by_state.get(state_key, set()))
-        previous_action_index = None
-        previous_frame_blocked = False
-        if self.action_history and self._last_frame is not None:
-            last_action_index = self.action_history[-1].get("action_index")
-            if isinstance(last_action_index, int) and 0 <= int(last_action_index) <= 3:
-                previous_action_index = int(last_action_index)
-                if _same_gameplay_state(normalized_frame, self._last_frame):
-                    previous_frame_blocked = True
-                    blocked_actions.add(previous_action_index)
-                    self._blocked_actions_by_state[state_key] = set(blocked_actions)
-                    if self._last_blocked_action == previous_action_index:
-                        self._blocked_repeat_count += 1
-                    else:
-                        self._last_blocked_action = previous_action_index
-                        self._blocked_repeat_count = 1
-                else:
-                    self._last_blocked_action = None
-                    self._blocked_repeat_count = 0
-            else:
-                self._last_blocked_action = None
-                self._blocked_repeat_count = 0
-        force_reset = bool(valid_action_indices) and _should_force_reset(
-            budget_snapshot=budget_snapshot,
-            avatar_centroid=avatar_centroid,
-            target_centroid=target_centroid,
-            target_label=target_label,
+            if frame_state == "gameplay"
+            else []
         )
-        if int(levels_completed) >= 1:
-            force_reset = False
+        valid_action_indices = _available_action_indices(available_actions)
+        centroid_drift = 0.0
+        recent_centroids: list[tuple[float, float]] = []
+        if avatar_centroid is not None and len(self.action_history) >= 5:
+            for previous_record in self.action_history[-5:]:
+                rc = previous_record.get("avatar_centroid")
+                if isinstance(rc, (tuple, list)) and len(rc) == 2:
+                    recent_centroids.append((float(rc[0]), float(rc[1])))
+            if len(recent_centroids) >= 3:
+                centroid_drift = max(
+                    abs(float(rc[0]) - float(avatar_centroid[0])) + abs(float(rc[1]) - float(avatar_centroid[1]))
+                    for rc in recent_centroids
+                )
+        stuck_signal = bool(avatar_centroid is not None and len(self.action_history) >= 5 and centroid_drift < 2.0)
         fresh_context = False
         if self._needs_reperceive:
-            self._last_click_focus = None
-            self._click_focus_streak = 0
-            self._click_probe_index = 1
-            self._blocked_actions_by_state.clear()
-            self._last_blocked_action = None
-            self._blocked_repeat_count = 0
             if frame_state != "transition":
                 fresh_context = True
-        task_context = dict(task_data or {}) if isinstance(task_data, dict) else {}
-        if self._needs_reperceive and frame_state == "transition":
-            action_index = int(valid_action_indices[0]) if valid_action_indices else 0
-            record = {
-                "action": ACTION_NAMES[action_index],
-                "action_index": action_index,
-                "label": ACTION_LABELS[action_index],
-                "confidence": 0.0,
-                "converged": 0,
-                "iterations_used": 0,
-                "frame_number": len(self.action_history) + 1,
-                "gpu_execution": False,
-                "solver": "arc3_transition_reperceive_bridge",
-                "task_result": {"program_type": "transition_anim_bridge"},
-                "available_actions": list(available_actions or []),
-                "click_reason": "transition_anim_neutral",
-                "frame_state": frame_state,
-                "fresh_context": False,
-                "game_id": str(game_id or ""),
-                "levels_completed": int(levels_completed),
-                "movement_budget": dict(budget_snapshot or {}),
-                "lives_remaining": lives_remaining,
-                "target_label": target_label,
-                "attempt_actions": int(self._attempt_actions),
-            }
-            self.action_history.append(record)
-            self._last_frame = _clone_grid(normalized_frame)
-            return record
-        spatial_plan = None
-        if frame_state != "transition" and not force_reset and _movement_action_indices(valid_action_indices):
-            spatial_plan = self._spatial_path_plan(
-                normalized_frame,
-                avatar_centroid=avatar_centroid,
-                budget_snapshot=budget_snapshot,
-                valid_action_indices=valid_action_indices,
-            )
-        gpu_task = {
-            "surface_kind": "GAME_2D",
-            "task_id": str(
+        envelope = arc3_game_envelope(
+            task_id=str(
                 task_context.get("task_id")
                 or task_context.get("id")
                 or f"arc3_live_{len(self.action_history) + 1:04d}"
             ),
-            "query": _frame_to_query_text(
+            frame=normalized_frame,
+            goal_frame=normalized_goal if normalized_goal != [[]] else None,
+            available_actions=list(available_actions or []),
+            action_options=list(ACTION_NAMES),
+            training_examples=list(task_context.get("train") or []),
+            query=_frame_to_query_text(
                 normalized_frame,
                 normalized_goal,
                 available_actions=available_actions,
@@ -1281,185 +1037,155 @@ class K3DARC3Agent:
                 lives_remaining=lives_remaining,
                 reference_box_visible=reference_box_visible,
                 flash_semantics=flash_semantics,
-                force_reset=force_reset,
-                spatial_plan=spatial_plan,
+                avatar_centroid=avatar_centroid,
+                visible_objects=visible_objects,
+                episode_context=dict(episode_context or {}),
+                stuck_signal=stuck_signal,
+                centroid_drift=centroid_drift,
             ),
-            "input_grid": normalized_frame,
-            "expected_output": normalized_goal if normalized_goal != [[]] else [],
-            "training_examples": list(task_context.get("train") or []),
-            "available_actions": list(available_actions or []),
-            "action_options": list(ACTION_NAMES),
-            "options": list(ACTION_NAMES),
-        }
-        if spatial_plan is not None:
-            gpu_task["spatial_plan_hint"] = dict(spatial_plan)
-            gpu_task["spatial_plan_target"] = str(spatial_plan.get("target_label", ""))
-            gpu_task["spatial_plan_action_index"] = int(spatial_plan.get("action_index", 0))
-            gpu_task["spatial_plan_path_length"] = int(spatial_plan.get("path_length", 0))
-        route = build_game2d_route(
-            specialist="visual",
-            domain_hint="game_2d",
+            step_count=int(self._step_count),
+            game_id=resolved_game_id,
+            levels_completed=int(levels_completed),
+            world_model=dict(world_model or {}) if isinstance(world_model, dict) else {},
+            episode_context=dict(episode_context or {}),
+            task_context_extras={
+                "stuck_signal": bool(stuck_signal),
+                "centroid_drift": float(centroid_drift),
+            },
+            metadata={
+                "task_data": task_context,
+                "game_id": resolved_game_id,
+                "levels_completed": int(levels_completed),
+            },
         )
-        result = self.kv.execute_task(
-            task=gpu_task,
-            route=route,
-            specialist="visual",
-            domain_hint="game_2d",
+        try:
+            raw_tablet_result = self.tablet_boundary.submit(envelope, use_enriched=True)
+            tablet_result = dict(raw_tablet_result or {})
+            response_packet = dict(tablet_result.get("response") or {})
+            emitted = dict(tablet_result.get("emitted") or response_packet or {})
+            task_result = dict(emitted.get("task_result") or response_packet.get("task_result") or {})
+        except Exception as exc:
+            raise RuntimeError(f"arc3_tablet_boundary_failed:{exc}") from exc
+        game_action = dict(emitted.get("game_action") or {}) if isinstance(emitted.get("game_action"), dict) else {}
+        action_input = dict(game_action.get("action_input") or {}) if isinstance(game_action.get("action_input"), dict) else {}
+        runtime_result = _normalized_runtime_result(
+            {
+                **dict(response_packet or {}),
+                **{key: value for key, value in dict(emitted or {}).items() if key != "task_result"},
+                **(
+                    {"action_input": dict(action_input)}
+                    if action_input
+                    else {}
+                ),
+                **(
+                    {"action_index": game_action.get("action_index")}
+                    if game_action.get("action_index") is not None
+                    else {}
+                ),
+                **(
+                    {"action_name": game_action.get("action_name")}
+                    if str(game_action.get("action_name") or "").strip()
+                    else {}
+                ),
+                "task_result": dict(task_result or {}),
+            }
         )
-        result = _normalized_runtime_result(dict(result or {}))
-        if spatial_plan is not None and not _result_has_direct_action(result):
-            fallback_result = dict(result or {})
-            fallback_result["action_index"] = int(spatial_plan["action_index"])
-            fallback_result["action_name"] = ACTION_NAMES[int(spatial_plan["action_index"])]
-            fallback_result["answer_kind"] = "action"
-            fallback_result["answer_materialized"] = True
-            fallback_result["confidence"] = max(
-                float(fallback_result.get("confidence", 0.0) or 0.0),
-                float(spatial_plan["confidence"]),
-            )
-            fallback_result["convergence_signal"] = int(fallback_result.get("convergence_signal", 1) or 1)
-            fallback_result["iterations_used"] = max(
-                int(fallback_result.get("iterations_used", 0) or 0),
-                int(spatial_plan["path_length"]),
-            )
-            fallback_result["gpu_execution"] = bool(fallback_result.get("gpu_execution", True))
-            fallback_result.setdefault("solver", str(spatial_plan["solver"]))
-            fallback_result.setdefault("program_type", "spatial_plan_hint_fallback")
-            fallback_result["spatial_plan_hint"] = dict(spatial_plan)
-            fallback_result["spatial_plan_fallback"] = True
-            fallback_result["target_label"] = str(spatial_plan["target_label"])
-            result = fallback_result
-        elif spatial_plan is not None:
-            result = dict(result or {})
-            result["spatial_plan_hint"] = dict(spatial_plan)
-            result["spatial_plan_fallback"] = False
-        click_reason = ""
         action_choice, payload = _derive_action_from_result(
             normalized_frame,
-            dict(result or {}),
+            dict(runtime_result or {}),
             goal_frame=normalized_goal,
         )
-        click_only_state = bool(valid_action_indices) and set(valid_action_indices) == {5}
-        exploration_reason = ""
-        if action_choice == RESET_ACTION_NAME and int(levels_completed) >= 1:
-            action_choice = self._exploration_fallback(
-                valid_action_indices=valid_action_indices,
-                blocked_actions=blocked_actions,
-                repeated_action=previous_action_index,
-            )
-            payload = {}
-            exploration_reason = "preserve_progress_no_reset"
-        elif isinstance(action_choice, int):
-            if previous_frame_blocked and previous_action_index is not None and int(action_choice) == previous_action_index:
-                action_choice = self._exploration_fallback(
-                    valid_action_indices=valid_action_indices,
-                    blocked_actions=blocked_actions,
-                    repeated_action=previous_action_index,
-                )
-                payload = {}
-                exploration_reason = "blocked_direction_explore"
-            elif previous_action_index is not None and self._blocked_repeat_count >= 2 and int(action_choice) == previous_action_index:
-                action_choice = self._exploration_fallback(
-                    valid_action_indices=valid_action_indices,
-                    blocked_actions=blocked_actions,
-                    repeated_action=previous_action_index,
-                )
-                payload = {}
-                exploration_reason = "repeat_loop_explore"
-            elif int(action_choice) in blocked_actions:
-                action_choice = self._exploration_fallback(
-                    valid_action_indices=valid_action_indices,
-                    blocked_actions=blocked_actions,
-                    repeated_action=previous_action_index,
-                )
-                payload = {}
-                exploration_reason = "blocked_direction_avoid"
+        if action_choice is None:
+            raise RuntimeError("arc3_sovereign_action_not_materialized")
+        click_reason = ""
+        strategic_reset = False
         if action_choice == RESET_ACTION_NAME:
+            if valid_action_indices and 6 not in set(valid_action_indices):
+                raise RuntimeError("arc3_reset_not_available")
             payload = {}
-            click_reason = click_reason or exploration_reason or "strategic_reset"
+            click_reason = "tablet_boundary_reset"
             self._needs_reperceive = True
-            self._last_click_focus = None
-            self._click_focus_streak = 0
-            self._click_probe_index = 1
-            self._blocked_actions_by_state.clear()
-            self._last_blocked_action = None
-            self._blocked_repeat_count = 0
-            action_name = RESET_ACTION_NAME
-            action_index = -1
-            action_label = RESET_ACTION_LABEL
+            strategic_reset = True
+            action_index = 6
+            action_name = ACTION_NAMES[action_index]
+            action_label = ACTION_LABELS[action_index]
         else:
             action_index = int(action_choice)
             if valid_action_indices and action_index not in set(valid_action_indices):
-                action_index = int(valid_action_indices[0])
+                raise RuntimeError(f"arc3_action_not_available:{action_index}")
             action_name = ACTION_NAMES[action_index]
             action_label = ACTION_LABELS[action_index]
-            if exploration_reason:
-                click_reason = exploration_reason
-        if action_name == "ACTION6" and not {"x", "y"} <= set(payload):
-            payload, click_reason = self._next_click_payload(normalized_frame)
-        elif action_name != "ACTION6":
+        if action_name == "ACTION6":
+            if not {"x", "y"} <= set(payload):
+                raise RuntimeError("arc3_click_payload_missing")
+            click_reason = "tablet_boundary_click"
+        else:
             payload = {}
-            self._last_click_focus = None
-            self._click_focus_streak = 0
-            self._click_probe_index = 1
-        elif not click_only_state:
-            self._last_click_focus = None
-            self._click_focus_streak = 0
-            self._click_probe_index = 1
-        if not click_reason and spatial_plan is not None:
-            suffix = ":fallback" if bool((result or {}).get("spatial_plan_fallback")) else ""
-            click_reason = f"spatial_path:{spatial_plan['target_label']}{suffix}"
-        match = (result or {}).get("match") if isinstance((result or {}).get("match"), dict) else {}
+        match = (runtime_result or {}).get("match") if isinstance((runtime_result or {}).get("match"), dict) else {}
         jarvis_brief = (
-            (result or {}).get("jarvis_brief")
-            if isinstance((result or {}).get("jarvis_brief"), dict)
+            (runtime_result or {}).get("jarvis_brief")
+            if isinstance((runtime_result or {}).get("jarvis_brief"), dict)
             else {}
         )
         record = {
             "action": action_name,
-            "action_index": action_index,
+            "action_index": int(action_index),
             "label": action_label,
-            "confidence": float((result or {}).get("confidence", (result or {}).get("similarity", 0.0))),
-            "converged": int((result or {}).get("convergence_signal", (result or {}).get("converged", 0))),
-            "iterations_used": int((result or {}).get("iterations_used", 0)),
+            "confidence": float((runtime_result or {}).get("confidence", (runtime_result or {}).get("similarity", 0.0))),
+            "converged": int((runtime_result or {}).get("convergence_signal", (runtime_result or {}).get("converged", 0))),
+            "iterations_used": int((runtime_result or {}).get("iterations_used", 0)),
             "frame_number": len(self.action_history) + 1,
-            "gpu_execution": bool((result or {}).get("gpu_execution", False)),
-            "solver": str((result or {}).get("solver", "knowledgeverse_gpu_query")),
-            "task_result": dict(result or {}),
+            "gpu_execution": bool((runtime_result or {}).get("gpu_execution", False)),
+            "solver": str((runtime_result or {}).get("solver", "tablet_boundary")),
+            "task_result": dict(runtime_result or {}),
             "available_actions": list(available_actions or []),
             "click_reason": click_reason,
             "frame_state": frame_state,
             "fresh_context": fresh_context,
-            "game_id": str(game_id or ""),
+            "game_id": resolved_game_id,
             "levels_completed": int(levels_completed),
             "movement_budget": dict(budget_snapshot or {}),
             "lives_remaining": lives_remaining,
             "reference_box_visible": bool(reference_box_visible),
             "flash_semantics": flash_semantics,
-            "target_label": target_label,
             "attempt_actions": int(self._attempt_actions),
-            "frame_unchanged": bool(previous_frame_blocked),
-            "blocked_actions": sorted(int(index) for index in blocked_actions),
+            "frame_unchanged": bool(self._last_frame is not None and _same_gameplay_state(normalized_frame, self._last_frame)),
+            "blocked_actions": [],
             "matched_star_id": str(match.get("id", "")),
             "matched_star_galaxy": str(match.get("galaxy", "")),
-            "teacher_route_galaxies": list((result or {}).get("teacher_route_galaxies") or []),
-            "winning_program_id": str((result or {}).get("winning_program_id", "")),
-            "galaxy_contribution": dict((result or {}).get("galaxy_contribution") or {}),
+            "teacher_route_galaxies": list((runtime_result or {}).get("teacher_route_galaxies") or []),
+            "winning_program_id": str((runtime_result or {}).get("winning_program_id", "")),
+            "galaxy_contribution": dict((runtime_result or {}).get("galaxy_contribution") or {}),
             "jarvis_worker_count": int(jarvis_brief.get("worker_count", 0) or 0),
             "jarvis_planned_swarm_groups": int(jarvis_brief.get("planned_swarm_groups", 0) or 0),
-            "spatial_plan_target": str((spatial_plan or {}).get("target_label", "")),
-            "spatial_plan_path_length": int((spatial_plan or {}).get("path_length", 0) or 0),
-            "spatial_plan_fallback": bool((result or {}).get("spatial_plan_fallback", False)),
+            "spatial_plan_target": "",
+            "spatial_plan_path_length": 0,
+            "spatial_plan_fallback": False,
+            "visible_object_count": len(list(visible_objects or [])),
+            "visited_cells_count": len(self._visited_cells),
+            "frame_color_diagnostics": list(self._frame_color_diagnostics),
+            "route_family": str((runtime_result or {}).get("route_family") or emitted.get("route_family") or ""),
+            "failure_code": str((runtime_result or {}).get("failure_code") or emitted.get("failure_code") or ""),
+            "actual_result_kind": str((runtime_result or {}).get("actual_result_kind") or emitted.get("actual_result_kind") or ""),
+            "tablet_contract": tablet_result.get("tablet_contract"),
+            "step_count": int(self._step_count),
+            "episode_object_count": len(dict((episode_context or {}).get("objects") or {})),
+            "strategic_reset": bool(strategic_reset),
+            "avatar_centroid": avatar_centroid,
+            "stuck_signal": bool(stuck_signal),
+            "centroid_drift": float(centroid_drift),
+            "direct_action_materialized": True,
             **payload,
         }
         self.action_history.append(record)
         self._last_frame = _clone_grid(normalized_frame)
         if fresh_context:
             self._needs_reperceive = False
-        if action_name == RESET_ACTION_NAME:
+        if strategic_reset:
             self._attempt_actions = 0
         else:
             self._attempt_actions += 1
+        self._step_count += 1
         return record
 
     def learn_from_outcome(
@@ -1467,30 +1193,88 @@ class K3DARC3Agent:
         *,
         levels_completed: int = 0,
         frame: list[list[int]] | None = None,
+        action: str = "",
+        prev_frame: list[list[int]] | None = None,
+        reward: float = 0.0,
+        lives_delta: int = 0,
+        levels_delta: int = 0,
     ) -> int:
         """Record lightweight outcome metadata; Knowledgeverse owns consolidation."""
         current = max(0, int(levels_completed))
         normalized_frame = _normalize_grid(frame) if frame is not None else None
+        normalized_prev = _normalize_grid(prev_frame) if prev_frame is not None else None
         if current > self._last_levels_completed:
             outcome = 1
             self._needs_reperceive = True
             self._attempt_actions = 0
-            self._blocked_actions_by_state.clear()
-            self._last_blocked_action = None
-            self._blocked_repeat_count = 0
         elif normalized_frame is not None and self._last_frame is not None and not _same_gameplay_state(normalized_frame, self._last_frame):
             outcome = 0
         else:
             outcome = -1
+        if normalized_frame is not None and normalized_prev is not None:
+            avatar_centroid = _avatar_centroid(normalized_frame) or _focus_centroid(normalized_frame)
+            prev_avatar_centroid = _avatar_centroid(normalized_prev) or _focus_centroid(normalized_prev)
+            self._record_visited_cell(avatar_centroid)
+            for obj in _detect_static_objects(
+                normalized_frame,
+                avatar_centroid,
+                known_objects=self._known_objects,
+            ):
+                self._merge_visible_objects([obj])
+            self._episode_galaxy.seed_outcome(
+                step_count=max(0, int(self._step_count) - 1),
+                action=str(action or ""),
+                prev_grid=normalized_prev,
+                next_grid=normalized_frame,
+                reward=float(reward),
+                lives_delta=int(lives_delta),
+                levels_delta=int(levels_delta),
+            )
+            action_name = str(action or "").strip().upper()
+            if (
+                action_name == "ACTION5"
+                and not _same_gameplay_state(normalized_prev, normalized_frame)
+            ):
+                reference_centroid = prev_avatar_centroid or avatar_centroid
+                if reference_centroid is not None:
+                    for obj_key, obj in self._known_objects.items():
+                        if bool(obj.get("interaction_tested", False)):
+                            continue
+                        centroid = obj.get("centroid")
+                        if not (isinstance(centroid, (tuple, list)) and len(centroid) == 2):
+                            continue
+                        distance = (
+                            abs(float(centroid[0]) - float(reference_centroid[0]))
+                            + abs(float(centroid[1]) - float(reference_centroid[1]))
+                        )
+                        if distance > 4.0:
+                            continue
+                        obj["interaction_tested"] = True
+                        obj["interaction_result"] = "frame_changed"
+                        self._episode_galaxy.seed_object(dict(obj))
+                        self._episode_galaxy.seed_rule(
+                            state=f"agent_near_color_{int(obj['color'])}_object",
+                            action=4,
+                            outcome="frame_changed",
+                            confidence=0.9,
+                            evidence_count=3,
+                        )
+                        break
+            self._episode_galaxy.run_micro_sleeptime()
         if hasattr(self.kv, "record_outcome"):
             self.kv.record_outcome(outcome)
         self._last_levels_completed = current
         if self.action_history:
             self.action_history[-1]["outcome_signal"] = int(outcome)
             self.action_history[-1]["levels_completed"] = current
+            self.action_history[-1]["reward"] = float(reward)
+            self.action_history[-1]["lives_delta"] = int(lives_delta)
+            self.action_history[-1]["levels_delta"] = int(levels_delta)
+            self.action_history[-1]["micro_sleeptime_scheduled"] = normalized_frame is not None and normalized_prev is not None
         return int(outcome)
 
     def close(self) -> None:
+        self._episode_galaxy.close()
         if self.log_path and self.action_history:
             self.log_path.parent.mkdir(parents=True, exist_ok=True)
             with self.log_path.open("a", encoding="utf-8") as handle:

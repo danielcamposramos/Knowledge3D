@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import time
+from collections import Counter
 from pathlib import Path
+from statistics import median
 from typing import Any, Callable
 
 from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.tablet.wine.question_wine import mmlu_question_envelope
+from knowledge3d.tablet.wine.question_wine import QUESTION_ROUTE_GALAXIES, mmlu_question_envelope
 
 
 class MMLUBenchmark:
@@ -39,6 +42,7 @@ class MMLUBenchmark:
         self.used_synthetic_fallback = False
         self.questions = self._load_questions()
         self.results: list[dict[str, Any]] = []
+        self.last_summary: dict[str, Any] = {}
 
         self.dataset_source = "MMLU"
         self.dataset_file = str(self.dataset_path) if self.dataset_path.exists() else "not_found"
@@ -69,13 +73,11 @@ class MMLUBenchmark:
 
     def _load_questions(self) -> list[dict[str, Any]]:
         if not self.dataset_path or not self.dataset_path.exists():
-            self.used_synthetic_fallback = True
-            return self._synthetic_questions()
+            raise FileNotFoundError("mmlu_dataset_missing: MMLU runtime requires the real dataset at the canonical roots")
 
         split_dir = self.dataset_path / self.split
         if not split_dir.exists():
-            self.used_synthetic_fallback = True
-            return self._synthetic_questions()
+            raise FileNotFoundError(f"mmlu_split_missing: expected split '{self.split}' under {self.dataset_path}")
 
         questions: list[dict[str, Any]] = []
         for csv_file in sorted(split_dir.glob("*_test.csv")):
@@ -112,8 +114,7 @@ class MMLUBenchmark:
 
         if questions:
             return stratified_sample(questions, self.max_questions)
-        self.used_synthetic_fallback = True
-        return stratified_sample(self._synthetic_questions(), self.max_questions)
+        raise FileNotFoundError(f"mmlu_dataset_empty: no valid MMLU questions found under {split_dir}")
 
     def _subject_to_domain(self, subject: str) -> str:
         stem_subjects = {
@@ -216,6 +217,7 @@ class MMLUBenchmark:
             row_start = time.monotonic()
             result = self._solve_question(question=question, use_enriched=use_enriched)
             result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
+            result["elapsed_ms"] = round(float(result["elapsed_s"]) * 1000.0, 3)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
@@ -233,7 +235,7 @@ class MMLUBenchmark:
                     }
                 )
 
-        return {
+        summary = {
             "benchmark": "MMLU",
             "total_questions": total,
             "correct": correct,
@@ -244,28 +246,36 @@ class MMLUBenchmark:
             "synthetic_fallback": self.synthetic_fallback,
             "subjects_tested": len({q["subject"] for q in self.questions}),
             "domain_breakdown": self._compute_domain_stats(),
+            "timing_summary": self._timing_summary(),
+            "answer_format_counts": self._answer_format_counts(),
             "results": self.results,
         }
+        self.last_summary = dict(summary)
+        return summary
 
     def _solve_question(self, *, question: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
         if self.tablet_boundary is not None:
             return self._solve_question_via_tablet(question=question, use_enriched=use_enriched)
-        if use_enriched and self.runtime_seed_knowledge:
-            self._seed_subject_knowledge(question)
         route = self._apply_query_scope(
             {
                 "specialist": "chat",
                 "domain_hint": question["subject"],
-                "galaxy_names": list(Knowledgeverse.GPU_QUESTION_TARGET_GALAXIES),
+                "galaxy_names": list(QUESTION_ROUTE_GALAXIES),
             }
         )
         task_result = self.kv.execute_task(
             task={
+                "type": "QUESTION_TASK",
+                "surface_kind": "QUESTION",
                 "task_id": question["id"],
                 "query": question["question_text"],
+                "question": question["question_text"],
                 "prompt": question["question_text"],
                 "messages": [{"role": "user", "content": question["question_text"]}],
                 "options": list(question["options"]),
+                "choices": list(question["options"]),
+                "benchmark": "mmlu",
+                "dataset": "mmlu",
                 "subject": question["subject"],
                 "expected_answer": question["correct_answer"],
             },
@@ -274,8 +284,9 @@ class MMLUBenchmark:
             domain_hint=question["subject"],
             use_enriched=use_enriched,
         )
+        raw_answer = task_result.get("response", task_result.get("answer", task_result.get("result")))
         predicted = self._normalize_option_prediction(
-            raw_answer=task_result.get("response", task_result.get("answer", task_result.get("result"))),
+            raw_answer=raw_answer,
             options=question["options"],
         )
         correct = predicted == question["correct_answer"]
@@ -286,7 +297,14 @@ class MMLUBenchmark:
             "question_text": question["question_text"],
             "options": list(question["options"]),
             "correct_answer": question["correct_answer"],
+            "raw_answer": "" if raw_answer is None else str(raw_answer).strip(),
             "predicted_answer": predicted,
+            "predicted_matches_option_text": bool(predicted and predicted in question["options"]),
+            "answer_format": self._classify_answer_format(
+                raw_answer=raw_answer,
+                predicted_answer=predicted,
+                options=question["options"],
+            ),
             "correct": correct,
             "reasoning_trace": list(task_result.get("reasoning_trace", [])),
             "route": task_result.get("route", route),
@@ -315,6 +333,13 @@ class MMLUBenchmark:
         route = emitted.get("route", {})
         predicted = str(emitted.get("answer_choice") or emitted.get("answer_text") or "").strip()
         correct = bool(emitted.get("correct", False))
+        raw_answer = str(
+            emitted.get("answer_choice")
+            or emitted.get("answer_text")
+            or emitted.get("task_result", {}).get("response")
+            or emitted.get("task_result", {}).get("answer")
+            or ""
+        ).strip()
         return {
             "id": question["id"],
             "subject": question["subject"],
@@ -322,7 +347,14 @@ class MMLUBenchmark:
             "question_text": question["question_text"],
             "options": list(question["options"]),
             "correct_answer": question["correct_answer"],
+            "raw_answer": raw_answer,
             "predicted_answer": predicted,
+            "predicted_matches_option_text": bool(predicted and predicted in question["options"]),
+            "answer_format": self._classify_answer_format(
+                raw_answer=raw_answer,
+                predicted_answer=predicted,
+                options=question["options"],
+            ),
             "correct": correct,
             "reasoning_trace": emitted.get("task_result", {}).get("reasoning_trace", []),
             "route": route,
@@ -347,15 +379,59 @@ class MMLUBenchmark:
             bucket["accuracy"] = (int(bucket["correct"]) / total) if total else 0.0
         return stats
 
-    def _seed_subject_knowledge(self, question: dict[str, Any]) -> None:
-        self.kv.galaxy_manager.add_entry(
-            "Grammar",
-            {
-                "domain": "reasoning",
-                "subject": question["subject"],
-                "kind": "mmlu_subject_anchor",
-            },
+    def _timing_summary(self) -> dict[str, float | int]:
+        timings = [
+            float(row.get("elapsed_s", 0.0) or 0.0)
+            for row in self.results
+            if float(row.get("elapsed_s", 0.0) or 0.0) >= 0.0
+        ]
+        if not timings:
+            return {
+                "count": 0,
+                "avg_task_s": 0.0,
+                "avg_task_ms": 0.0,
+                "median_task_s": 0.0,
+                "median_task_ms": 0.0,
+                "min_task_s": 0.0,
+                "max_task_s": 0.0,
+            }
+        avg_s = sum(timings) / len(timings)
+        return {
+            "count": len(timings),
+            "avg_task_s": round(avg_s, 6),
+            "avg_task_ms": round(avg_s * 1000.0, 3),
+            "median_task_s": round(float(median(timings)), 6),
+            "median_task_ms": round(float(median(timings)) * 1000.0, 3),
+            "min_task_s": round(min(timings), 6),
+            "max_task_s": round(max(timings), 6),
+        }
+
+    def _answer_format_counts(self) -> dict[str, int]:
+        counts: Counter[str] = Counter(
+            str(row.get("answer_format") or "unknown")
+            for row in self.results
         )
+        return {key: int(count) for key, count in sorted(counts.items())}
+
+    @staticmethod
+    def _classify_answer_format(
+        *,
+        raw_answer: Any,
+        predicted_answer: Any,
+        options: list[str],
+    ) -> str:
+        raw_text = str(raw_answer or "").strip()
+        predicted_text = str(predicted_answer or "").strip()
+        option_set = {str(option).strip() for option in options if str(option).strip()}
+        if not raw_text:
+            return "empty"
+        if raw_text.upper() in {"A", "B", "C", "D"} and raw_text not in option_set:
+            return "single_letter_code"
+        if raw_text in option_set:
+            return "option_text_exact"
+        if predicted_text and predicted_text in option_set:
+            return "normalized_to_option_text"
+        return "free_text"
 
     @staticmethod
     def _normalize_option_prediction(raw_answer: Any, options: list[str]) -> str:
@@ -407,15 +483,49 @@ class MMLUBenchmark:
     def save_results(self, output_path: str | Path) -> None:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
+        payload = dict(self.last_summary) if self.last_summary else {
             "benchmark": "MMLU",
-            "total": len(self.results),
+            "total_questions": len(self.results),
             "correct": sum(1 for row in self.results if row.get("correct")),
             "accuracy": (
                 sum(1 for row in self.results if row.get("correct")) / len(self.results)
                 if self.results
                 else 0.0
             ),
+            "timing_summary": self._timing_summary(),
+            "answer_format_counts": self._answer_format_counts(),
             "results": self.results,
         }
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the sovereign MMLU benchmark through the tablet boundary.")
+    parser.add_argument("--dataset-path", type=str, default=None)
+    parser.add_argument("--max-tasks", type=int, default=20)
+    parser.add_argument("--query-scope-galaxies", type=str, default=None)
+    parser.add_argument("--subjects", type=str, default="all")
+    parser.add_argument("--split", type=str, default="test")
+    parser.add_argument("--summary-output", type=str, default=None)
+    parser.add_argument("--use-enriched", action="store_true", default=False)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    benchmark = MMLUBenchmark(
+        dataset_path=args.dataset_path,
+        max_questions=args.max_tasks,
+        query_scope_galaxies=args.query_scope_galaxies,
+        subjects=args.subjects,
+        split=args.split,
+    )
+    summary = benchmark.run_benchmark(use_enriched=bool(args.use_enriched))
+    if args.summary_output:
+        benchmark.save_results(args.summary_output)
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

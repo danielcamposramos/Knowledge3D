@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+import pytest
 
-from benchmarks.arc_agi_3 import (
-    ACTION_LABELS,
-    ACTION_NAMES,
-    ARC3_ROUTE_GALAXIES,
-    K3DARC3Agent,
-    _select_mechanic_target,
-)
-from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from benchmarks.arc_agi_3 import ACTION_LABELS, ACTION_NAMES, K3DARC3Agent
 
 
 class _FakeKnowledgeverse:
@@ -29,59 +23,8 @@ class _FakeKnowledgeverse:
         )
         return dict(self.result)
 
-
-class _FakeSpatialPathfinder:
-    def navigate_csr(
-        self,
-        row_offsets,
-        col_indices,
-        packed_costs,
-        *,
-        start,
-        goal,
-        **kwargs,
-    ):
-        from collections import deque
-
-        rows = [int(value) for value in row_offsets]
-        cols = [int(value) for value in col_indices]
-        queue = deque([int(start)])
-        parents = {int(start): None}
-        while queue:
-            node = queue.popleft()
-            if node == int(goal):
-                break
-            for edge_index in range(rows[node], rows[node + 1]):
-                neighbor = int(cols[edge_index])
-                if neighbor in parents:
-                    continue
-                parents[neighbor] = node
-                queue.append(neighbor)
-        if int(goal) not in parents:
-            raise RuntimeError("no path")
-        path: list[int] = []
-        current = int(goal)
-        while current is not None:
-            path.append(current)
-            current = parents[current]
-        return list(reversed(path))
-
-
-class _FakeSpatialKnowledgeverse(_FakeKnowledgeverse):
-    def __init__(self) -> None:
-        super().__init__({})
-        self.pathfinder = _FakeSpatialPathfinder()
-
     def get_led_pathfinder(self):
-        return self.pathfinder
-
-
-class _AnswerIndexHarness:
-    def _build_gpu_thinking_trace(self, **kwargs):
-        return ["gpu answer_index path"]
-
-    def _render_thinking_xml(self, thinking_trace, answer):
-        return "<thinking>gpu answer_index path</thinking>"
+        return None
 
 
 def test_arc3_agent_routes_through_execute_task():
@@ -92,6 +35,7 @@ def test_arc3_agent_routes_through_execute_task():
             "confidence": 0.8,
             "convergence_signal": 1,
             "iterations_used": 6,
+            "gpu_execution": True,
         }
     )
     agent = K3DARC3Agent(knowledgeverse=kv)
@@ -104,6 +48,9 @@ def test_arc3_agent_routes_through_execute_task():
         goal_frame=goal,
         task_data={"train": train},
         available_actions=[1, 2, 3],
+        game_id="ls20",
+        levels_completed=1,
+        episode_context={"objects": {5: "goal"}, "recent_outcomes": [{"action": "ACTION1"}]},
     )
 
     assert len(kv.calls) == 1
@@ -113,66 +60,113 @@ def test_arc3_agent_routes_through_execute_task():
     assert call["task"]["expected_output"] == goal
     assert call["task"]["training_examples"] == train
     assert call["task"]["task_id"] == "arc3_live_0001"
-    assert call["task"]["available_actions"] == [1, 2, 3]
-    assert "arc3 interactive game frame" in call["task"]["query"]
+    assert call["task"]["query"].startswith("arc3 game frame")
+    assert "adjacent cells" in call["task"]["query"]
+    assert "action1" in call["task"]["query"]
+    assert "levels" in call["task"]["query"]
+    assert "primary action" not in call["task"]["query"]
+    assert "action move" not in call["task"]["query"]
     assert call["task"]["options"] == ACTION_NAMES
+    assert call["task"]["step_count"] == 0
+    assert call["task"]["game_id"] == "ls20"
+    assert call["task"]["levels_completed"] == 1
+    assert call["task"]["known_objects"] == {5: "goal"}
     assert call["route"]["specialist"] == "visual"
     assert call["route"]["domain_hint"] == "game_2d"
-    assert "galaxy_names" not in call["route"]
-    assert action["action_index"] == 2
+    assert call["specialist"] == "visual"
+    assert call["domain_hint"] == "game_2d"
+    assert action["action"] == "ACTION3"
     assert action["label"] == ACTION_LABELS[2]
+    assert action["gpu_execution"] is True
+    assert action["actual_result_kind"] == "control"
+    assert action["game_id"] == "ls20"
+    assert action["levels_completed"] == 1
 
 
-def test_arc3_agent_query_text_includes_corrected_spatial_position_tokens():
-    kv = _FakeKnowledgeverse({"answer_index": 0})
+def test_arc3_agent_uses_emitted_action_payload_and_metadata():
+    kv = _FakeKnowledgeverse(
+        {
+            "action_name": "ACTION6",
+            "action_input": {"x": 4, "y": 7},
+            "confidence": 0.42,
+            "gpu_execution": True,
+            "route_family": "game2d_reasoning",
+            "failure_code": "policy_warning:spatial_only",
+        }
+    )
     agent = K3DARC3Agent(knowledgeverse=kv)
 
-    frame = [[5] * 8 for _ in range(8)]
-    for row_index in range(1, 3):
-        for col_index in range(5, 7):
-            frame[row_index][col_index] = 4
+    action = agent.choose_action([[0, 1], [0, 0]], available_actions=[6])
 
-    agent.choose_action(frame, available_actions=[0, 3, 4])
-
-    query_text = kv.calls[0]["task"]["query"]
-    assert "object above center top north" in query_text
-    assert "object right of center east" in query_text
-    assert "primary action move down" in query_text
+    assert action["action"] == "ACTION6"
+    assert action["x"] == 4
+    assert action["y"] == 7
+    assert action["click_reason"] == "tablet_boundary_click"
+    assert action["confidence"] == 0.42
+    assert action["route_family"] == "game2d_reasoning"
+    assert action["failure_code"] == "policy_warning:spatial_only"
 
 
-def test_arc3_agent_query_text_uses_goal_relative_direction():
-    kv = _FakeKnowledgeverse({"answer_index": 1})
+def test_arc3_agent_requires_click_payload_for_action6():
+    kv = _FakeKnowledgeverse({"action_name": "ACTION6", "gpu_execution": True})
     agent = K3DARC3Agent(knowledgeverse=kv)
 
-    frame = [[0] * 8 for _ in range(8)]
-    goal = [[0] * 8 for _ in range(8)]
-    frame[1][4] = 3
-    goal[6][4] = 3
-
-    agent.choose_action(frame, goal_frame=goal)
-
-    query_text = kv.calls[0]["task"]["query"]
-    assert "object above goal move down" in query_text
-    assert "primary action move down" in query_text
+    with pytest.raises(RuntimeError, match="arc3_sovereign_action_not_materialized|arc3_click_payload_missing"):
+        agent.choose_action([[5, 5, 5], [5, 6, 5], [5, 5, 5]], available_actions=[6])
 
 
-def test_arc3_agent_encodes_budget_lives_reference_and_reset():
-    kv = _FakeKnowledgeverse({"action_name": "RESET", "gpu_execution": True})
+def test_arc3_agent_fails_when_result_is_not_actionable():
+    kv = _FakeKnowledgeverse({"status": "ok"})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    with pytest.raises(RuntimeError, match="arc3_sovereign_action_not_materialized"):
+        agent.choose_action([[0, 1], [0, 0]], available_actions=[0, 3, 4])
+
+
+def test_arc3_agent_does_not_use_spatial_plan_fallback(monkeypatch):
+    kv = _FakeKnowledgeverse({"status": "ok"})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+    monkeypatch.setattr(agent.tablet_boundary, "submit", lambda envelope, use_enriched=True: {})
+
+    with pytest.raises(RuntimeError, match="arc3_sovereign_action_not_materialized"):
+        agent.choose_action([[0, 1], [0, 0]], available_actions=[0, 1, 2, 3])
+
+
+def test_arc3_agent_surfaces_tablet_submit_exception(monkeypatch):
+    kv = _FakeKnowledgeverse({"status": "ok"})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+
+    def _boom(envelope, use_enriched=True):
+        raise RuntimeError("tablet boundary exploded")
+
+    monkeypatch.setattr(agent.tablet_boundary, "submit", _boom)
+    with pytest.raises(RuntimeError, match="arc3_tablet_boundary_failed"):
+        agent.choose_action([[0, 1], [0, 0]], available_actions=[0, 1, 2, 3])
+
+
+def test_arc3_agent_does_not_query_episode_rule_dict(monkeypatch):
+    kv = _FakeKnowledgeverse({"action_index": 1, "action_name": "ACTION2", "gpu_execution": True})
+    agent = K3DARC3Agent(knowledgeverse=kv)
+    monkeypatch.setattr(
+        agent._episode_galaxy,
+        "query_rule_for_state",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("episode dict fallback should not run")),
+    )
+    action = agent.choose_action(
+        [[0, 5], [0, 0]],
+        available_actions=[0, 1, 2, 3],
+        episode_context={"objects": {5: "goal"}},
+    )
+
+    assert action["action"] == "ACTION2"
+    assert action["direct_action_materialized"] is True
+
+
+def test_arc3_agent_tracks_budget_and_lives_from_frame():
+    kv = _FakeKnowledgeverse({"action_index": 0, "gpu_execution": True})
     agent = K3DARC3Agent(knowledgeverse=kv)
 
     frame = [[4] * 64 for _ in range(64)]
-    frame[48][32] = 0
-    frame[49][31] = 1
-    frame[49][32] = 0
-    frame[49][33] = 0
-    frame[50][32] = 1
-    for row in range(6, 9):
-        for col in range(50, 53):
-            if row == 7 or col == 51:
-                frame[row][col] = 11
-    for row in range(56, 61):
-        for col in range(0, 10):
-            frame[row][col] = 9
     for row in (61, 62):
         for col in range(12, 52):
             frame[row][col] = 3
@@ -185,473 +179,50 @@ def test_arc3_agent_encodes_budget_lives_reference_and_reset():
 
     action = agent.choose_action(frame, available_actions=[1, 2, 3, 4])
 
-    query_text = kv.calls[-1]["task"]["query"]
-    assert "movement budget visual bar" in query_text
-    assert "movement budget critical" in query_text
-    assert "lives system" in query_text
-    assert "reference box current state visible" in query_text
-    assert "strategic reset" in query_text
-    assert "primary action reset" in query_text
-    assert action["action"] == "RESET"
-    assert action["label"] == "Reset"
     assert action["movement_budget"]["bucket"] == "critical"
     assert action["lives_remaining"] == 2
-    assert action["reference_box_visible"] is True
-
-
-def test_arc3_agent_uses_neutral_bridge_for_transition_frame_after_level_completion():
-    kv = _FakeKnowledgeverse({"answer_index": 0, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    gameplay_frame = [[0] * 8 for _ in range(8)]
-    gameplay_frame[1][1] = 1
-    agent.choose_action(gameplay_frame, levels_completed=0, available_actions=[1, 2, 3, 4])
-    agent.learn_from_outcome(levels_completed=1, frame=gameplay_frame)
-
-    frame = [[9] * 64 for _ in range(64)]
-    for row in range(31, 33):
-        for col in range(31, 33):
-            frame[row][col] = 4
-
-    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    assert action["frame_state"] == "transition"
-    assert action["action"] == "ACTION1"
-    assert action["click_reason"] == "transition_anim_neutral"
-    assert action["task_result"]["program_type"] == "transition_anim_bridge"
-    assert len(kv.calls) == 1
-
-
-def test_arc3_agent_reperceives_fresh_context_after_level_completion():
-    kv = _FakeKnowledgeverse({"answer_index": 1, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [[0] * 8 for _ in range(8)]
-    frame[1][1] = 1
-    agent.choose_action(frame, levels_completed=0, available_actions=[1, 2, 3, 4])
-    agent.learn_from_outcome(levels_completed=1, frame=frame)
-
-    next_frame = [[4] * 8 for _ in range(8)]
-    next_frame[6][1] = 11
-    next_frame[6][2] = 11
-    next_frame[6][3] = 11
-    action = agent.choose_action(next_frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    query_text = kv.calls[-1]["task"]["query"]
-    assert "post transition new context" in query_text
-    assert "re perceive fresh layout" in query_text
-    assert action["frame_state"] == "gameplay"
-    assert action["fresh_context"] is True
-    assert action["action"] in {"ACTION1", "ACTION2", "ACTION3", "ACTION4"}
-
-
-def test_arc3_agent_targets_switch_from_avatar_cluster_after_level_completion():
-    kv = _FakeKnowledgeverse({"answer_index": 2, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    prior_frame = [[0] * 8 for _ in range(8)]
-    prior_frame[1][1] = 1
-    agent.choose_action(prior_frame, levels_completed=0, available_actions=[1, 2, 3, 4])
-    agent.learn_from_outcome(levels_completed=1, frame=prior_frame)
-
-    frame = [[4] * 64 for _ in range(64)]
-    frame[46][51] = 0
-    frame[47][51] = 0
-    frame[47][52] = 0
-    frame[47][50] = 1
-    frame[48][51] = 1
-    for row in range(51, 54):
-        for col in range(40, 43):
-            if row == 52 or col == 41:
-                frame[row][col] = 11
-
-    agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    query_text = kv.calls[-1]["task"]["query"]
-    assert "post transition new context" in query_text
-    assert "switch target visible" in query_text
-    assert "object right of goal move left" in query_text
-    assert "primary action move left" in query_text
-
-
-def test_arc3_agent_prefers_topmost_door_room_over_nearest_reference_box():
-    frame = [[4] * 64 for _ in range(64)]
-    for row in range(55):
-        for col in range(64):
-            if row >= 8 and col >= 14:
-                frame[row][col] = 3
-
-    for row in range(9, 16):
-        for col in range(33, 40):
-            frame[row][col] = 5
-    for row, col in [(11, 35), (11, 36), (11, 37), (12, 37), (13, 35), (13, 37)]:
-        frame[row][col] = 9
-
-    for row in range(45, 50):
-        for col in range(29, 34):
-            frame[row][col] = 9
-    for row in range(45, 47):
-        for col in range(29, 34):
-            frame[row][col] = 12
-
-    target, label = _select_mechanic_target(frame, (32.0, 20.0))
-
-    assert label == "door"
-    assert target is not None
-    assert target[0] < 20.0
-    assert target[1] > 30.0
-
-
-def test_arc3_agent_uses_typed_action_index_from_nested_task_result():
-    kv = _FakeKnowledgeverse(
-        {
-            "status": "ok",
-            "task_result": {
-                "status": "ok",
-                "action_kind": "action",
-                "action_index": 0,
-                "action_name": "ACTION1",
-                "confidence": 0.42,
-                "gpu_execution": True,
-            },
-        }
-    )
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [
-        [0, 0, 0],
-        [0, 4, 0],
-        [0, 0, 0],
-    ]
-    action = agent.choose_action(frame)
-
-    assert action["action"] == "ACTION1"
-    assert action["confidence"] == 0.42
-    assert action["gpu_execution"] is True
-
-
-def test_arc3_agent_returns_neutral_zero_when_gpu_has_no_answer():
-    kv = _FakeKnowledgeverse(
-        {
-            "gpu_execution": True,
-            "error": "gpu_arc_no_output_grid",
-        }
-    )
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    action = agent.choose_action([[0, 1], [0, 0]], available_actions=[6])
-
-    assert action["action"] == "ACTION6"
-    assert action["action_index"] == 5
-    assert action["available_actions"] == [6]
-    assert action["x"] == 1
-    assert action["y"] == 0
-    assert action["task_result"]["error"] == "gpu_arc_no_output_grid"
-
-
-def test_arc3_agent_clamps_to_available_action_names():
-    kv = _FakeKnowledgeverse({"answer_index": 1, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    action = agent.choose_action([[0, 1], [0, 0]], available_actions=["ACTION4"])
-
-    assert action["action"] == "ACTION4"
-    assert action["action_index"] == 3
-
-
-def test_arc3_agent_preserves_zero_based_available_actions_for_local_benchmark():
-    kv = _FakeKnowledgeverse({"answer_index": 1, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    action = agent.choose_action([[0, 1], [0, 0]], available_actions=[0, 3, 4])
-
-    assert action["action"] == "ACTION1"
-    assert action["action_index"] == 0
-
-
-def test_arc3_agent_tracks_live_click_focus_in_click_only_state():
-    kv = _FakeKnowledgeverse({"gpu_execution": True, "error": "gpu_arc_no_output_grid"})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame_a = [
-        [5, 5, 5],
-        [5, 6, 5],
-        [5, 5, 5],
-    ]
-    frame_b = [
-        [5, 5, 5],
-        [5, 5, 5],
-        [5, 5, 6],
-    ]
-
-    first = agent.choose_action(frame_a, available_actions=[6])
-    second = agent.choose_action(frame_b, available_actions=[6])
-
-    assert first["action"] == "ACTION6"
-    assert (first["x"], first["y"]) == (1, 1)
-    assert second["action"] == "ACTION6"
-    assert (second["x"], second["y"]) == (2, 2)
-
-
-def test_arc3_agent_probes_secondary_click_target_when_focus_stalls():
-    kv = _FakeKnowledgeverse({"gpu_execution": True, "error": "gpu_arc_no_output_grid"})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [
-        [5, 5, 5, 5],
-        [5, 6, 5, 5],
-        [5, 5, 3, 5],
-        [5, 5, 5, 5],
-    ]
-
-    first = agent.choose_action(frame, available_actions=[6])
-    second = agent.choose_action(frame, available_actions=[6])
-    third = agent.choose_action(frame, available_actions=[6])
-
-    assert (first["x"], first["y"]) == (1, 1)
-    assert (second["x"], second["y"]) == (1, 1)
-    assert third["action"] == "ACTION6"
-    assert (third["x"], third["y"]) == (2, 2)
-    assert third["click_reason"].startswith("tracked_focus_probe_")
-
-
-def test_arc3_agent_no_longer_contains_verified_ls20_live_script():
-    source = Path("benchmarks/arc_agi_3.py").read_text(encoding="utf-8")
-
-    assert "LIVE_TRANSITIONAL_ACTION_SCRIPTS" not in source
-
-
-def test_arc3_agent_preserves_local_zero_based_actions_when_no_live_script_matches():
-    kv = _FakeKnowledgeverse({"answer_index": 1, "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    action = agent.choose_action(
-        [[0, 1], [0, 0]],
-        available_actions=[0, 3, 4],
-        game_id="arc3_local_000",
-        levels_completed=0,
-    )
-
-    assert action["action"] == "ACTION1"
-    assert action["click_reason"] == ""
-
-
-def test_arc3_agent_uses_spatial_frame_pathfinder_before_query_text_fallback():
-    kv = _FakeSpatialKnowledgeverse()
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [[4] * 16 for _ in range(16)]
-    for col_index in range(1, 10):
-        frame[6][col_index] = 3
-    frame[6][2] = 0
-    frame[5][2] = 1
-    frame[6][1] = 0
-    frame[6][3] = 0
-    frame[7][2] = 1
-    frame[5][8] = 11
-    frame[6][7] = 11
-    frame[6][8] = 11
-    frame[6][9] = 11
-    frame[7][8] = 11
-
-    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    assert action["action"] == "ACTION4"
-    assert len(kv.calls) == 1
-    assert kv.calls[0]["route"]["specialist"] == "visual"
-    assert kv.calls[0]["route"]["domain_hint"] == "game_2d"
-    assert kv.calls[0]["task"]["spatial_plan_hint"]["target_label"] == "switch"
-    assert "spatial plan target switch" in kv.calls[0]["task"]["query"]
-    assert action["task_result"]["spatial_plan_hint"]["target_label"] == "switch"
-    assert action["spatial_plan_target"] == "switch"
-    assert action["click_reason"].startswith("spatial_path:switch")
-
-
-def test_arc3_agent_forbids_reset_after_level_progress():
-    kv = _FakeKnowledgeverse({"action_name": "RESET", "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [[4] * 8 for _ in range(8)]
-    frame[3][3] = 0
-    frame[4][2] = 1
-    frame[4][3] = 0
-    frame[4][4] = 0
-    frame[5][3] = 1
-
-    action = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    assert action["action"] != "RESET"
-    assert action["click_reason"] == "preserve_progress_no_reset"
-    assert action["action_index"] in {0, 1, 2, 3}
-
-
-def test_arc3_agent_explores_after_blocked_repeat_direction():
-    kv = _FakeKnowledgeverse({"action_index": 2, "action_name": "ACTION3", "gpu_execution": True})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-
-    frame = [[4] * 8 for _ in range(8)]
-    frame[3][3] = 0
-    frame[4][2] = 1
-    frame[4][3] = 0
-    frame[4][4] = 0
-    frame[5][3] = 1
-
-    first = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-    second = agent.choose_action(frame, levels_completed=1, available_actions=[1, 2, 3, 4])
-
-    assert first["action"] == "ACTION3"
-    assert second["action"] != "ACTION3"
-    assert second["frame_unchanged"] is True
-    assert second["click_reason"] == "blocked_direction_explore"
-
-
-def test_answer_arc_query_returns_answer_index_from_metadata():
-    harness = _AnswerIndexHarness()
-
-    result = Knowledgeverse._answer_arc_query(
-        harness,
-        task={"type": "ARC_TASK", "input_grid": [[0]]},
-        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
-        reasoning_program={"id": "arc3_program"},
-        route_galaxies=["Grammar", "Tool", "Reality"],
-        match={"id": "grammar_spatial_move_toward_below", "metadata": {"action_index": 1}},
-        similarity=0.91,
-        route={"specialist": "visual"},
-        specialist="visual",
-        domain_hint="arc3_interactive",
-        query_text="arc3 interactive game frame",
-        use_enriched=False,
-        query_type="ARC_TASK",
-        selection_steps=["gpu composed head selected grammar_spatial_move_toward_below"],
-    )
-
-    assert result["status"] == "ok"
-    assert result["answer_index"] == 1
-    assert result["gpu_execution"] is True
-    assert result["program_type"] == "gpu_spatial_navigation_rule"
-
-
-def test_answer_arc_query_transitional_decode_uses_goal_relative_action():
-    harness = _AnswerIndexHarness()
-
-    result = Knowledgeverse._answer_arc_query(
-        harness,
-        task={"type": "ARC_TASK", "input_grid": [[0]]},
-        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
-        reasoning_program={"id": "arc3_program"},
-        route_galaxies=["Grammar", "Tool", "Reality"],
-        match={"id": "reasoning_arc_grid_transform_top1"},
-        similarity=0.42,
-        route={"specialist": "visual"},
-        specialist="visual",
-        domain_hint="arc3_interactive",
-        query_text="arc3 interactive game frame object above goal move down primary action move down",
-        use_enriched=False,
-        query_type="ARC_TASK",
-        selection_steps=["arc3 transitional decode"],
-    )
-
-    assert result["status"] == "ok"
-    assert result["answer_index"] == 1
-    assert result["program_type"] == "transitional_io_decode"
-
-
-def test_answer_arc_query_transitional_decode_handles_transition_dismiss():
-    harness = _AnswerIndexHarness()
-
-    result = Knowledgeverse._answer_arc_query(
-        harness,
-        task={"type": "ARC_TASK", "input_grid": [[0]]},
-        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
-        reasoning_program={"id": "arc3_program"},
-        route_galaxies=["Grammar", "Tool", "Reality"],
-        match={"id": "reasoning_arc_grid_transform_top1"},
-        similarity=0.55,
-        route={"specialist": "visual"},
-        specialist="visual",
-        domain_hint="arc3_interactive",
-        query_text="arc3 interactive game frame screen transition uniform color screen transition dismiss primary action perform",
-        use_enriched=False,
-        query_type="ARC_TASK",
-        selection_steps=["arc3 transitional decode"],
-    )
-
-    assert result["status"] == "ok"
-    assert result["answer_index"] == 4
-    assert result["program_type"] == "transitional_io_decode"
-
-
-def test_answer_arc_query_transitional_decode_handles_strategic_reset():
-    harness = _AnswerIndexHarness()
-
-    result = Knowledgeverse._answer_arc_query(
-        harness,
-        task={"type": "ARC_TASK", "input_grid": [[0]]},
-        binding={"galaxies": ["Grammar", "Tool", "Reality"]},
-        reasoning_program={"id": "arc3_program"},
-        route_galaxies=["Grammar", "Tool", "Reality"],
-        match={"id": "reasoning_arc_grid_transform_top1"},
-        similarity=0.55,
-        route={"specialist": "visual"},
-        specialist="visual",
-        domain_hint="arc3_interactive",
-        query_text="arc3 interactive game frame movement budget critical strategic reset primary action reset",
-        use_enriched=False,
-        query_type="ARC_TASK",
-        selection_steps=["arc3 transitional decode"],
-    )
-
-    assert result["status"] == "ok"
-    assert result["action_name"] == "RESET"
-    assert result["program_type"] == "transitional_io_decode"
-
-
-def test_language_is_in_default_galaxy_boot_set():
-    assert "Language" in Knowledgeverse.DEFAULT_GALAXIES
-
-
-def test_knowledgeverse_no_longer_bootstraps_action_atoms_in_init():
-    source = Path("knowledge3d/knowledgeverse/knowledgeverse.py").read_text(encoding="utf-8")
-
-    assert "bootstrap_spatial_actions" not in source
-    assert "RealityGalaxy" not in source
 
 
 def test_learn_from_outcome_tracks_completion_and_stall(tmp_path):
-    kv = _FakeKnowledgeverse({"answer_index": 0})
+    kv = _FakeKnowledgeverse({"action_index": 0})
     agent = K3DARC3Agent(knowledgeverse=kv, log_path=tmp_path / "arc3_agent.jsonl")
     frame = [[0, 1], [0, 0]]
 
     agent.choose_action(frame)
-    improved = agent.learn_from_outcome(levels_completed=1, frame=[[1, 0], [0, 0]])
+    improved = agent.learn_from_outcome(
+        levels_completed=1,
+        frame=[[1, 0], [0, 0]],
+        action="ACTION1",
+        prev_frame=frame,
+        reward=1.0,
+        lives_delta=0,
+        levels_delta=1,
+    )
     agent.choose_action(frame)
-    stalled = agent.learn_from_outcome(levels_completed=1, frame=frame)
+    stalled = agent.learn_from_outcome(
+        levels_completed=1,
+        frame=frame,
+        action="ACTION1",
+        prev_frame=frame,
+        reward=0.0,
+        lives_delta=0,
+        levels_delta=0,
+    )
     agent.close()
 
     assert improved == 1
     assert stalled == -1
     assert agent.action_history[0]["levels_completed"] == 1
+    assert agent.action_history[0]["reward"] == 1.0
+    assert agent.action_history[0]["micro_sleeptime_scheduled"] is True
+    assert agent._step_count == 2
     assert Path(tmp_path / "arc3_agent.jsonl").exists()
 
 
-def test_learn_from_outcome_ignores_status_only_changes_for_stall_detection():
-    kv = _FakeKnowledgeverse({"answer_index": 0})
-    agent = K3DARC3Agent(knowledgeverse=kv)
-    frame = [[4] * 64 for _ in range(64)]
-    frame[30][30] = 1
-    agent.choose_action(frame)
-
-    status_only = [list(row) for row in frame]
-    status_only[-1][0] = 3
-    stalled = agent.learn_from_outcome(levels_completed=0, frame=status_only)
-
-    assert stalled == -1
-
-
-def test_no_private_gpu_stack_in_arc3():
+def test_arc3_agent_source_has_no_transitional_local_runner_shortcuts():
     source = Path("benchmarks/arc_agi_3.py").read_text(encoding="utf-8")
 
-    assert "GPUTaskDispatch" not in source
-    assert "GalaxyVRAMTable" not in source
-    assert "PersistentBrainState" not in source
-    assert "SleepTimeMicro" not in source
+    assert "benchmarks.arc3_local" not in source
+    assert "arc_transform_inferrer" not in source
+    assert "ARCRPNExecutor" not in source
+    assert source.count("def choose_action(") == 1

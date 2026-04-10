@@ -150,26 +150,9 @@ class ARCAGI2Benchmark:
                 )
             if tasks:
                 return stratified_sample(tasks, self.max_tasks)
-
-        # Fallback synthetic set keeps benchmark infrastructure runnable.
-        return stratified_sample([
-            {
-                "id": "synthetic_flip_h",
-                "train": [
-                    {"input": [[1, 2], [3, 4]], "output": [[2, 1], [4, 3]]},
-                    {"input": [[5, 6], [7, 8]], "output": [[6, 5], [8, 7]]},
-                ],
-                "test": [{"input": [[9, 0], [1, 2]], "output": [[0, 9], [2, 1]]}],
-            },
-            {
-                "id": "synthetic_color_map",
-                "train": [
-                    {"input": [[1, 1], [2, 2]], "output": [[3, 3], [4, 4]]},
-                    {"input": [[2, 1], [1, 2]], "output": [[4, 3], [3, 4]]},
-                ],
-                "test": [{"input": [[1, 2], [2, 1]], "output": [[3, 4], [4, 3]]}],
-            },
-        ], self.max_tasks)
+        raise FileNotFoundError(
+            "arc_dataset_missing: ARC benchmark runtime requires real evaluation tasks at the canonical dataset roots"
+        )
 
     def run_benchmark(
         self,
@@ -219,6 +202,7 @@ class ARCAGI2Benchmark:
                 palette_penalty_weight=self.palette_penalty_weight,
                 object_penalty_weight=self.object_penalty_weight,
                 query_scope_galaxies=self.query_scope_galaxies,
+                tablet_boundary=self.tablet_boundary,
             )
         else:
             self.adapter = None
@@ -274,19 +258,18 @@ class ARCAGI2Benchmark:
         task: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        if use_enriched and self.runtime_seed_knowledge:
-            self._seed_visual_knowledge(task)
         try:
             if self.tablet_boundary is not None:
                 result = self._solve_task_via_tablet(task=task, use_enriched=use_enriched)
             else:
                 assert self.adapter is not None
-                result = self.adapter.solve_task(task, fallback_solver=self._solve_task_fallback)
+                result = self.adapter.solve_task(task)
         except Exception as exc:
             route = {
                 "specialist": "visual",
                 "domain_hint": "visual",
-                "galaxy_names": list(Knowledgeverse.GPU_SPATIAL_TARGET_GALAXIES),
+                "route_policy": "all_live_galaxies",
+                "galaxy_names": list(self.kv.ensure_default_galaxies_loaded().keys()),
             }
             failure_trace = [f"arc_gpu_exception: {type(exc).__name__}: {exc}"]
             self.kv.log_event(
@@ -426,43 +409,8 @@ class ARCAGI2Benchmark:
         }
 
     def _solve_task_fallback(self, task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        """Fallback solver keeps benchmark operable when legacy path cannot execute."""
-        navigator = TRMNavigator(knowledgeverse=self.kv)
-        route = navigator.route(
-            query="visual pattern transformation",
-            specialist="auto",
-            domain_hint="visual",
-            galaxy_names=self.query_scope_galaxies,
-        )
-        patterns = navigator.query(
-            query="visual pattern transformation",
-            galaxy_names=route["galaxy_names"],
-            top_k=20 if use_enriched else 5,
-            specialist=route["specialist"],
-            domain_hint=route["domain"],
-        )
-        composed = navigator.compose(
-            task_examples=task["train"],
-            patterns=patterns,
-            specialist=route["specialist"],
-            use_enriched=use_enriched,
-        )
-        test_sample = task["test"][0]
-        predicted = navigator.execute(composed, test_sample["input"])
-        expected = test_sample.get("output")
-        return {
-            "task_id": task["id"],
-            "correct": self._grids_match(predicted, expected),
-            "exact_match": self._grids_match(predicted, expected),
-            "predicted": predicted,
-            "expected": expected,
-            "transform": composed.get("transform"),
-            "patterns_used": len(patterns),
-            "reasoning_trace": navigator.get_reasoning_trace(),
-            "route": route,
-            "score": 1.0 if self._grids_match(predicted, expected) else 0.0,
-            "fuzzy_score": 1.0 if self._grids_match(predicted, expected) else 0.0,
-        }
+        del task, use_enriched
+        raise RuntimeError("arc2_python_fallback_archived: live ARC runtime must use the tablet/WINE path only")
 
     def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
         if isinstance(value, list):

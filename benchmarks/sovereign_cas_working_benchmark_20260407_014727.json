@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-04-07T01:47:26.456726",
+  "system_info": {
+    "cuda_available": false,
+    "gpu_info": null,
+    "cpu_info": {
+      "brand": "AMD Ryzen 5 5600G with Radeon Graphics",
+      "cores": 12,
+      "hz": "3.8629 GHz"
+    },
+    "memory_info": {
+      "total_gb": 93.419189453125,
+      "available_gb": 51.725608825683594,
+      "percent": 44.6
+    }
+  },
+  "kernel_loading": {
+    "kernel_loading": {
+      "load_time_ms": 18.465832981746644,
+      "kernel_name": "modular_rpn_geometric_kernel",
+      "status": "success"
+    }
+  },
+  "memory_operations": {
+    "gpu_memory_alloc": {
+      "alloc_time_ms": 0.0247000134550035,
+      "size_bytes": 1024,
+      "status": "success"
+    },
+    "gpu_memcpy_h2d": {
+      "memcpy_time_ms": 0.055470969527959824,
+      "size_bytes": 1024,
+      "status": "success"
+    },
+    "gpu_memcpy_d2h": {
+      "memcpy_time_ms": 0.03433995880186558,
+      "size_bytes": 1024,
+      "status": "success"
+    }
+  },
+  "working_status": true,
+  "rpn_operations": {
+    "addition": {
+      "opcodes": [
+        10,
+        11
+      ],
+      "scalars": [
+        5.0,
+        3.0
+      ],
+      "avg_time_ms": 0.1442396896891296,
+      "min_time_ms": 0.022569962311536074,
+      "max_time_ms": 1.2165959924459457,
+      "iterations": 10,
+      "success_rate": 1.0
+    },
+    "subtraction": {
+      "opcodes": [
+        11,
+        13
+      ],
+      "scalars": [
+        10.0,
+        4.0
+      ],
+      "avg_time_ms": 0.023253198014572263,
+      "min_time_ms": 0.02082000719383359,
+      "max_time_ms": 0.031490984838455915,
+      "iterations": 10,
+      "success_rate": 1.0
+    },
+    "multiplication": {
+      "opcodes": [
+        12
+      ],
+      "scalars": [
+        7.0
+      ],
+      "avg_time_ms": 0.024132017279043794,
+      "min_time_ms": 0.02117000985890627,
+      "max_time_ms": 0.03793003270402551,
+      "iterations": 10,
+      "success_rate": 1.0
+    },
+    "division": {
+      "opcodes": [
+        13
+      ],
+      "scalars": [
+        2.0
+      ],
+      "avg_time_ms": 0.02652019029483199,
+      "min_time_ms": 0.021979969460517168,
+      "max_time_ms": 0.056120974477380514,
+      "iterations": 10,
+      "success_rate": 1.0
+    }
+  },
+  "benchmark_duration": 1.225622,
+  "summary": {
+    "kernel_found": true,
+    "gpu_available": false,
+    "total_tests": 8,
+    "successful_tests": 7,
+    "avg_kernel_load_time_ms": 0,
+    "avg_memory_alloc_time_ms": 0.0247000134550035,
+    "rpn_operations_success": true,
+    "avg_rpn_op_time_ms": 0.05453627381939441
+  }
+}

@@ -105,12 +105,17 @@ OP_CSG_INTERSECT = 0x88
 OP_EXTRUDE = 0x89
 OP_LATHE = 0x8A
 
-# Phase 1A – TRM integration opcodes (Tier-3 execution surface)
-OP_TRM_MATVEC_512x1024 = 0x60
-OP_TRM_MATVEC_1024x512 = 0x61
-OP_TRM_VEC_ADD3_512 = 0x62
-OP_TRM_SWIGLU_512 = 0x63
-OP_TRM_SWIGLU_1024 = 0x64
+# Phase 1A – TRM integration opcodes (TRM internal execution surface)
+OP_TRM_MATVEC_512x1024 = 0x300
+OP_TRM_MATVEC_1024x512 = 0x301
+OP_TRM_VEC_ADD3_512 = 0x302
+OP_TRM_SWIGLU_512 = 0x303
+OP_TRM_SWIGLU_1024 = 0x304
+
+# Sovereign stack checkpoint ops (live modular kernel owners)
+OP_CHECKPOINT = 0x60
+OP_ROLLBACK = 0x61
+OP_VERIFY = 0x62
 
 # Phase 2: Bitwise Logic (Tier-1)
 OP_AND = 0x80
@@ -213,24 +218,159 @@ OP_TEMPORAL_COHERENCE = 0xF0
 OP_TEMPORAL_MASK = 0xF1
 OP_TEMPORAL_AGGREGATE = 0xF2
 
-# Procedural drawing primitives (GPU rasterization surface)
-OP_DRAW_MOVE = 0x64
-OP_DRAW_LINE = 0x65
-OP_DRAW_QUAD = 0x66
-OP_DRAW_CUBIC = 0x67
-OP_DRAW_ARC = 0x68
-OP_DRAW_CLOSE = 0x69
-OP_DRAW_STROKE = 0x6A
-OP_DRAW_FILL = 0x6B
-OP_DRAW_PUSH_STATE = 0x70
-OP_DRAW_POP_STATE = 0x71
-OP_DRAW_TRANSLATE = 0x72
-OP_DRAW_ROTATE = 0x73
-OP_DRAW_SCALE = 0x74
-OP_DRAW_SET_STROKE_COLOR = 0x75
-OP_DRAW_SET_FILL_COLOR = 0x76
-OP_DRAW_SET_LINE_WIDTH = 0x77
-OP_DRAW_SET_TERNARY_HINT = 0x78
+# Temporal/trit opcodes are the live modular-kernel owners of 0x70-0x76.
+OP_TADD = 0x70
+OP_TMUL = 0x71
+OP_TNOT = 0x72
+OP_TCOMP = 0x73
+OP_TQUANT = 0x74
+OP_TPACK = 0x75
+OP_TUNPACK = 0x76
+
+# Entity behavior opcodes (Reality Engine Step 3)
+OP_BH_PERCEIVE = 0x180
+OP_BH_SEEK = 0x181
+OP_BH_FLEE = 0x182
+OP_BH_ARRIVE = 0x183
+OP_BH_SEPARATE = 0x184
+OP_BH_APPLY_FORCE = 0x185
+OP_BH_BT_TICK = 0x186
+OP_BH_GOAP_PLAN = 0x188
+OP_BH_SLEEP_CHECK = 0x189
+OP_BH_BLACKBOARD_READ = 0x18A
+OP_BH_BLACKBOARD_WRITE = 0x18B
+OP_BH_PATHFIND = 0x18C
+
+# ── Sovereign CAS opcodes (0x220-0x237) ──────────────────────
+# Polynomial algebra layer (feeds the existing 0xB5-0xBE calculus stubs)
+OP_POLY_COEFF = 0x220
+OP_POLY_BUILD = 0x221
+OP_POLY_ADD = 0x222
+OP_POLY_MUL = 0x223
+OP_POLY_DIV = 0x224
+OP_POLY_REM = 0x225
+OP_POLY_GCD = 0x226
+OP_POLY_FACTOR = 0x227
+# Simplification and transformation
+OP_SIMPLIFY = 0x228
+OP_SUBSTITUTE = 0x229
+OP_COLLECT = 0x22A
+OP_RATIONALIZE = 0x22B
+OP_TRIG_SIMPLIFY = 0x22C
+OP_LOG_SIMPLIFY = 0x22D
+# Solving
+OP_SOLVE_LINEAR = 0x22E
+OP_SOLVE_QUADRATIC = 0x22F
+OP_LINSOLVE = 0x230
+# Pattern and rule application
+OP_PATTERN_MATCH = 0x231
+OP_RULE_APPLY = 0x232
+OP_COEFF_EXTRACT = 0x233
+# Expression construction helpers
+OP_CAS_PUSH_SYM = 0x234
+OP_CAS_PUSH_CONST = 0x235
+OP_CAS_BUILD = 0x236
+OP_CAS_EVAL = 0x237
+
+# ── Sovereign Algebraic System (SAS) extension (0x238-0x25F) ─────────────
+# Semantic layer on top of the CAS substrate (0x220-0x237)
+OP_CANONICALIZE = 0x238
+OP_CAS_HASH = 0x239
+OP_SEMANTIC_RESOLVE = 0x23A
+OP_RULE_SELECT = 0x23B
+OP_CONTEXTUAL_REWRITE = 0x23C
+OP_SEMANTIC_EQUIV = 0x23D
+
+# Procedural drawing primitives (rpn_executor / pixel_genesis surface).
+# These bytecodes are intentionally kept separate from modular_rpn_kernel.cu.
+OP_DRAW_MOVE = 0x200
+OP_DRAW_LINE = 0x201
+OP_DRAW_QUAD = 0x202
+OP_DRAW_CUBIC = 0x203
+OP_DRAW_ARC = 0x204
+OP_DRAW_CLOSE = 0x205
+OP_DRAW_STROKE = 0x206
+OP_DRAW_FILL = 0x207
+OP_DRAW_PUSH_STATE = 0x208
+OP_DRAW_POP_STATE = 0x209
+OP_DRAW_TRANSLATE = 0x20A
+OP_DRAW_ROTATE = 0x20B
+OP_DRAW_SCALE = 0x20C
+OP_DRAW_SET_STROKE_COLOR = 0x20D
+OP_DRAW_SET_FILL_COLOR = 0x20E
+OP_DRAW_SET_LINE_WIDTH = 0x20F
+OP_DRAW_SET_TERNARY_HINT = 0x210
+
+# Phase 2 — Advanced Drawing Primitives (new RPN opcodes)
+OP_BEZIER_EVAL      = 0x6C  # t p0x p0y p1x p1y p2x p2y p3x p3y → x y
+OP_SHAPE_UNION      = 0x6D  # shape_a shape_b → result
+OP_SHAPE_INTERSECT  = 0x6E
+OP_SHAPE_SUBTRACT   = 0x6F
+OP_DRAW_REL_LINE = 0x211  # x y dx dy → relative line segment
+OP_DRAW_FIELD_COEF = 0x212  # dot neighborhood → coefficient update
+OP_DRAW_DOT_EMIT = 0x213  # x y field → emit dot
+
+# Phase 3 — VectorDotMap Codec
+OP_DRAW_VECTORDOTMAP_ENCODE = 0x214  # pixels → field_coeffs
+OP_DRAW_VECTORDOTMAP_DECODE = 0x215  # field_coeffs → pixels
+
+# Phase 4 — Lighting and Layer Ops
+OP_DRAW_LAYER_NEW   = 0x216
+OP_LAYER_BLEND      = 0x79
+OP_BLEND_MULTIPLY   = 0x7A
+OP_BLEND_SCREEN     = 0x7B
+OP_BLEND_OVERLAY    = 0x7C
+OP_ATMOSPHERE_FOG   = 0x7D
+OP_VIGNETTE         = 0x7E
+
+# Phase 5 — 3D Technique Suite
+OP_NURBS_EVAL       = 0x80
+OP_MARCHING_CUBES   = 0x81
+OP_LSYSTEM_GENERATE = 0x82
+OP_PARAMETRIC_SURFACE = 0x83
+OP_CSG_UNION_3D     = 0x84
+OP_CSG_INTERSECT_3D = 0x85
+OP_CSG_SUBTRACT_3D  = 0x86
+OP_CROSS_MODAL_LINK = 0x87
+OP_PROCEDURAL_TEXTURE = 0x88
+
+# Sovereign rigid-body physics meta-dispatch surface (Tier-3 composed phase).
+# These opcodes bridge the scalar/vector RPN stack to the body-indexed physics
+# SOA, mirroring the GALAXY_SCAN meta-op pattern used elsewhere in the hot path.
+OP_PH_BROAD_PHASE = 0x150
+OP_PH_NARROW_PHASE = 0x151
+OP_PH_CONSTRAINT_GENERATE = 0x152
+OP_PH_XPBD_SOLVE = 0x153
+OP_PH_INTEGRATE = 0x154
+OP_PH_SLEEP_CHECK = 0x155
+OP_PH_GALAXY_WRITE = 0x156
+OP_PH_MATERIAL_FETCH = 0x157
+OP_PH_PREDICT_POS = 0x158
+OP_PH_CONSTRAINT_COLOR = 0x159
+OP_PH_IMPULSE_PROPAGATE = 0x15A
+OP_PH_RESTITUTION_APPLY = 0x15B
+OP_PH_FRICTION_APPLY = 0x15C
+OP_PH_ISLAND_WAKE = 0x15D
+OP_PH_BODY_SPAWN = 0x15E
+OP_PH_BODY_DESPAWN = 0x15F
+OP_PH_GRAVITY_APPLY = 0x160
+OP_PH_COLLISION_QUERY = 0x161
+OP_PH_TERNARY_CLASSIFY = 0x162
+
+# Sovereign procedural texture synthesis surface (Reality Engine Step 2).
+OP_TEX_PERLIN_NOISE = 0x1C0
+OP_TEX_VORONOI = 0x1C1
+OP_TEX_VALUE_NOISE = 0x1C2
+OP_TEX_GRID_NOISE = 0x1C3
+OP_TEX_FFT_BLUR = 0x1C4
+OP_TEX_WARP = 0x1C5
+OP_TEX_BLEND = 0x1C6
+OP_TEX_NORMAL_MAP = 0x1C7
+OP_TEX_COLOR_RAMP = 0x1C8
+OP_TEX_TURBULENCE = 0x1C9
+OP_TEX_MARBLE = 0x1CA
+OP_TEX_TRANSFORM = 0x1CB
+OP_TEX_BAKE = 0x1CF
 
 # Drawing Galaxy Layers 4-7 (gradients, filters, lighting, scenes)
 OP_GRADIENT_LINEAR = 0xF3     # x1 y1 x2 y2 GRADIENT_LINEAR
@@ -316,6 +456,10 @@ __all__ = [
     "OP_TRM_VEC_ADD3_512",
     "OP_TRM_SWIGLU_512",
     "OP_TRM_SWIGLU_1024",
+    # Sovereign stack checkpoint ops
+    "OP_CHECKPOINT",
+    "OP_ROLLBACK",
+    "OP_VERIFY",
     # Phase 2: Bitwise Logic
     "OP_AND",
     "OP_OR",
@@ -409,6 +553,59 @@ __all__ = [
     "OP_TEMPORAL_COHERENCE",
     "OP_TEMPORAL_MASK",
     "OP_TEMPORAL_AGGREGATE",
+    # Temporal / trit surface
+    "OP_TADD",
+    "OP_TMUL",
+    "OP_TNOT",
+    "OP_TCOMP",
+    "OP_TQUANT",
+    "OP_TPACK",
+    "OP_TUNPACK",
+    # Entity behavior
+    "OP_BH_PERCEIVE",
+    "OP_BH_SEEK",
+    "OP_BH_FLEE",
+    "OP_BH_ARRIVE",
+    "OP_BH_SEPARATE",
+    "OP_BH_APPLY_FORCE",
+    "OP_BH_BT_TICK",
+    "OP_BH_GOAP_PLAN",
+    "OP_BH_SLEEP_CHECK",
+    "OP_BH_BLACKBOARD_READ",
+    "OP_BH_BLACKBOARD_WRITE",
+    "OP_BH_PATHFIND",
+    # Sovereign CAS
+    "OP_POLY_COEFF",
+    "OP_POLY_BUILD",
+    "OP_POLY_ADD",
+    "OP_POLY_MUL",
+    "OP_POLY_DIV",
+    "OP_POLY_REM",
+    "OP_POLY_GCD",
+    "OP_POLY_FACTOR",
+    "OP_SIMPLIFY",
+    "OP_SUBSTITUTE",
+    "OP_COLLECT",
+    "OP_RATIONALIZE",
+    "OP_TRIG_SIMPLIFY",
+    "OP_LOG_SIMPLIFY",
+    "OP_SOLVE_LINEAR",
+    "OP_SOLVE_QUADRATIC",
+    "OP_LINSOLVE",
+    "OP_PATTERN_MATCH",
+    "OP_RULE_APPLY",
+    "OP_COEFF_EXTRACT",
+    "OP_CAS_PUSH_SYM",
+    "OP_CAS_PUSH_CONST",
+    "OP_CAS_BUILD",
+    "OP_CAS_EVAL",
+    # SAS semantic layer
+    "OP_CANONICALIZE",
+    "OP_CAS_HASH",
+    "OP_SEMANTIC_RESOLVE",
+    "OP_RULE_SELECT",
+    "OP_CONTEXTUAL_REWRITE",
+    "OP_SEMANTIC_EQUIV",
     # Procedural drawing
     "OP_DRAW_MOVE",
     "OP_DRAW_LINE",
@@ -440,6 +637,69 @@ __all__ = [
     "OP_LAYER_PUSH",
     "OP_LAYER_POP",
     "OP_BLEND_MODE",
+    # Phase 2 — Advanced Drawing Primitives
+    "OP_BEZIER_EVAL",
+    "OP_SHAPE_UNION",
+    "OP_SHAPE_INTERSECT",
+    "OP_SHAPE_SUBTRACT",
+    "OP_DRAW_REL_LINE",
+    "OP_DRAW_FIELD_COEF",
+    "OP_DRAW_DOT_EMIT",
+    # Phase 3 — VectorDotMap Codec
+    "OP_DRAW_VECTORDOTMAP_ENCODE",
+    "OP_DRAW_VECTORDOTMAP_DECODE",
+    # Phase 4 — Lighting and Layer Ops
+    "OP_DRAW_LAYER_NEW",
+    "OP_LAYER_BLEND",
+    "OP_BLEND_MULTIPLY",
+    "OP_BLEND_SCREEN",
+    "OP_BLEND_OVERLAY",
+    "OP_ATMOSPHERE_FOG",
+    "OP_VIGNETTE",
+    # Phase 5 — 3D Technique Suite
+    "OP_NURBS_EVAL",
+    "OP_MARCHING_CUBES",
+    "OP_LSYSTEM_GENERATE",
+    "OP_PARAMETRIC_SURFACE",
+    "OP_CSG_UNION_3D",
+    "OP_CSG_INTERSECT_3D",
+    "OP_CSG_SUBTRACT_3D",
+    "OP_CROSS_MODAL_LINK",
+    "OP_PROCEDURAL_TEXTURE",
+    # Sovereign physics meta-dispatch
+    "OP_PH_BROAD_PHASE",
+    "OP_PH_NARROW_PHASE",
+    "OP_PH_CONSTRAINT_GENERATE",
+    "OP_PH_XPBD_SOLVE",
+    "OP_PH_INTEGRATE",
+    "OP_PH_SLEEP_CHECK",
+    "OP_PH_GALAXY_WRITE",
+    "OP_PH_MATERIAL_FETCH",
+    "OP_PH_PREDICT_POS",
+    "OP_PH_CONSTRAINT_COLOR",
+    "OP_PH_IMPULSE_PROPAGATE",
+    "OP_PH_RESTITUTION_APPLY",
+    "OP_PH_FRICTION_APPLY",
+    "OP_PH_ISLAND_WAKE",
+    "OP_PH_BODY_SPAWN",
+    "OP_PH_BODY_DESPAWN",
+    "OP_PH_GRAVITY_APPLY",
+    "OP_PH_COLLISION_QUERY",
+    "OP_PH_TERNARY_CLASSIFY",
+    # Procedural textures
+    "OP_TEX_PERLIN_NOISE",
+    "OP_TEX_VORONOI",
+    "OP_TEX_VALUE_NOISE",
+    "OP_TEX_GRID_NOISE",
+    "OP_TEX_FFT_BLUR",
+    "OP_TEX_WARP",
+    "OP_TEX_BLEND",
+    "OP_TEX_NORMAL_MAP",
+    "OP_TEX_COLOR_RAMP",
+    "OP_TEX_TURBULENCE",
+    "OP_TEX_MARBLE",
+    "OP_TEX_TRANSFORM",
+    "OP_TEX_BAKE",
 ]
 
 __all__ += [

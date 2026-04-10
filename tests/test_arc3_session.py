@@ -9,7 +9,9 @@ def test_inter_game_consolidation_runs_three_passes():
         def __init__(self) -> None:
             self.calls = 0
 
-        def jarvis_sleep_consolidation(self):
+        def jarvis_sleep_consolidation(self, *, persist: bool = True, trigger: str = "service"):
+            assert persist is True
+            assert trigger == "inter_game"
             self.calls += 1
             return {"updated": True, "pass": self.calls}
 
@@ -35,7 +37,9 @@ def test_run_arc3_session_reuses_one_knowledgeverse(tmp_path, monkeypatch):
         def __init__(self, *args, **kwargs) -> None:
             created_kv.append(self)
 
-        def jarvis_sleep_consolidation(self):
+        def jarvis_sleep_consolidation(self, *, persist: bool = True, trigger: str = "service"):
+            assert persist is True
+            assert trigger == "inter_game"
             return {"updated": True}
 
     class _Agent:

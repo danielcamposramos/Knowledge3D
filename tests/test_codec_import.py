@@ -4,11 +4,11 @@
 def main() -> int:
     import os
     import sys
+    from pathlib import Path
 
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    sys.path.insert(
-        0, "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
-    )
+    _root = Path(__file__).parent.parent
+    sys.path.insert(0, str(_root))
 
     print("Step 1: Import numpy")
     import numpy as np
@@ -17,7 +17,7 @@ def main() -> int:
 
     print("\nStep 2: Try importing TernaryQuantizer directly")
     try:
-        sys.path.insert(0, "knowledge3d/cranium/codecs/ptx_bindings")
+        sys.path.insert(0, str(_root / "knowledge3d/cranium/codecs/ptx_bindings"))
         from ternary_quant_binding import TernaryQuantizer
 
         print("  ✓ Direct import works")

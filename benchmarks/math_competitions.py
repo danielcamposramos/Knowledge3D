@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import ast
 import json
 import math
@@ -334,6 +335,15 @@ class UnifiedMathBenchmark:
         return any(candidate.exists() for candidate in candidates)
 
     def _load_problems(self) -> list[dict[str, Any]]:
+        max_problems = None if self.max_problems is None else int(self.max_problems)
+        max_math_questions = None if self.max_math_questions is None else int(self.max_math_questions)
+        if (
+            max_problems is not None
+            and max_math_questions is not None
+            and max_problems <= 0
+            and max_math_questions <= 0
+        ):
+            return []
         problems: list[dict[str, Any]] = []
         if "math" in self.source_filter:
             problems.extend(self._load_competition_math_problems())
@@ -409,8 +419,10 @@ class UnifiedMathBenchmark:
     def _load_omni_math_dataset(self) -> list[dict[str, Any]]:
         root = self.dataset_path if self.dataset_path and self.dataset_path.exists() else self._resolve_dataset_path(None)
         candidates = [
+            root / "Omni-Math.jsonl",
             root / "Omni-MATH" / "Omni-Math.jsonl",
             root / "Omni-MATH" / "Omni-MATH.jsonl",
+            Path("/K3D/K3D_llama_cpp/datasets/Omni-Math.jsonl"),
             Path("/K3D/K3D_llama_cpp/datasets/Omni-MATH/Omni-Math.jsonl"),
             Path("../K3D_llama_cpp/datasets/Omni-MATH/Omni-Math.jsonl"),
         ]
@@ -460,9 +472,9 @@ class UnifiedMathBenchmark:
                 self.dataset_mode = "present"
                 self.dataset_path = present_root
         if self.dataset_mode == "synthetic":
-            self.used_synthetic_math_fallback = True
-            synthetic = self._synthetic_guard_problems()
-            return stratified_sample(synthetic, self.max_problems)
+            raise FileNotFoundError(
+                "math_dataset_missing: unified math runtime requires the real dataset roots, not synthetic fallback"
+            )
         if self.dataset_mode == "present" and self.dataset_path and self.dataset_path.exists():
             staged = self._load_from_present_datasets(self.dataset_path, limit=None)
             if staged:
@@ -470,9 +482,9 @@ class UnifiedMathBenchmark:
         fallback = self._load_from_calculus_microbench()
         if fallback:
             return stratified_sample(fallback, self.max_problems)
-        self.used_synthetic_math_fallback = True
-        synthetic = self._synthetic_problems()
-        return stratified_sample(synthetic, self.max_problems)
+        raise FileNotFoundError(
+            f"math_dataset_empty: no valid competition math records found under {self.dataset_path or self._resolve_dataset_path(None)}"
+        )
 
     def _load_word_math_problems(self) -> list[dict[str, Any]]:
         limit = self.max_math_questions
@@ -504,9 +516,9 @@ class UnifiedMathBenchmark:
             if out:
                 self.dataset_sources.append(str(self.gsm8k_dataset_path))
                 return stratified_sample(out, limit)
-        self.used_synthetic_word_math_fallback = True
-        synthetic = self._synthetic_word_math_questions()
-        return stratified_sample(synthetic, limit)
+        raise FileNotFoundError(
+            f"gsm8k_dataset_missing: no valid GSM8K records found at {self.gsm8k_dataset_path or 'canonical roots'}"
+        )
 
     def _load_from_present_datasets(self, root: Path, limit: int | None = None) -> list[dict[str, Any]]:
         batches: list[list[dict[str, Any]]] = []
@@ -1238,3 +1250,33 @@ class MathCompetitionBenchmark(UnifiedMathBenchmark):
             runtime_seed_knowledge=runtime_seed_knowledge,
             tablet_boundary=tablet_boundary,
         )
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the sovereign math benchmark through the tablet boundary.")
+    parser.add_argument("--dataset-path", type=str, default=None)
+    parser.add_argument("--dataset-mode", type=str, default=None)
+    parser.add_argument("--max-tasks", type=int, default=20)
+    parser.add_argument("--query-scope-galaxies", type=str, default=None)
+    parser.add_argument("--summary-output", type=str, default=None)
+    parser.add_argument("--use-enriched", action="store_true", default=False)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = _parse_args()
+    benchmark = MathCompetitionBenchmark(
+        dataset_path=args.dataset_path,
+        dataset_mode=args.dataset_mode,
+        max_problems=args.max_tasks,
+        query_scope_galaxies=args.query_scope_galaxies,
+    )
+    summary = benchmark.run_benchmark(use_enriched=bool(args.use_enriched))
+    if args.summary_output:
+        benchmark.save_results(args.summary_output)
+    print(json.dumps(summary, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

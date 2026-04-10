@@ -4,6 +4,7 @@ from pathlib import Path
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletEmit, TabletIngest
 from knowledge3d.cranium.actions import ActionType
+from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
 class _FakeDaemon:
@@ -59,6 +60,7 @@ def test_tablet_ingest_arc_builds_standard_route_payload_and_action_buffer():
     payload = envelope.to_route_payload(use_enriched=True)
     assert payload["command"] == "ROUTE"
     assert payload["specialist"] == "visual"
+    assert payload["task"]["type"] == "ARC_TASK"
     assert payload["task"]["surface_kind"] == "GAME_2D"
 
     buf = envelope.to_action_buffer()
@@ -80,6 +82,7 @@ def test_headless_tablet_mpc_routes_math_through_standard_contract(tmp_path: Pat
     result = boundary.submit(envelope, use_enriched=True)
 
     assert result["response"]["status"] == "ok"
+    assert result["route_payload"]["task"]["type"] == "MATH_TASK"
     assert result["emitted"]["status"] == "success"
     assert result["emitted"]["numeric_answer"] == 4.0
     assert result["emitted"]["answer_text"] == "4"
@@ -111,6 +114,7 @@ def test_tablet_emit_lhe_uses_typed_option_answer_from_task_result():
     assert emitted["status"] == "success"
     assert emitted["predicted_answer"] == "B"
     assert emitted["correct"] is True
+    assert envelope.task["type"] == "QUESTION_TASK"
 
 
 def test_tablet_emit_flattens_nested_route_response_and_blocks_internal_answer_labels():
@@ -200,3 +204,41 @@ def test_tablet_emit_prefers_task_specific_route_when_present():
 
     emitted = TabletEmit.lhe_result(envelope, response)
     assert emitted["route"]["galaxy_names"] == ["Grammar", "Reality", "Tool"]
+
+
+def test_dispatch_sovereign_task_preserves_typed_question_mode():
+    class _FakeRuntime:
+        def __init__(self) -> None:
+            self.last_task: dict[str, object] | None = None
+
+        def dispatch_task(self, task: dict[str, object]) -> dict[str, object]:
+            self.last_task = dict(task)
+            return {"status": "ok", "route": {"route_family": "QUESTION"}}
+
+    kv = Knowledgeverse.__new__(Knowledgeverse)
+    runtime = _FakeRuntime()
+    kv._enter_query_activity = lambda: None
+    kv._mark_runtime_activity = lambda: None
+    kv._leave_query_activity = lambda: None
+    kv._get_sovereign_hot_path = lambda: runtime
+    kv._query_sequence = 0
+
+    result = Knowledgeverse._dispatch_sovereign_task(
+        kv,
+        task={
+            "type": "QUESTION_TASK",
+            "surface_kind": "QUESTION",
+            "task_id": "q_demo",
+            "query": "Which element has atomic number 6?",
+            "options": ["H", "C", "O", "N"],
+        },
+        route={"specialist": "auto"},
+        specialist="auto",
+        domain_hint="chemistry",
+        use_enriched=False,
+    )
+
+    assert runtime.last_task is not None
+    assert runtime.last_task["type"] == "QUESTION_TASK"
+    assert runtime.last_task["surface_kind"] == "QUESTION"
+    assert result["query_id"] == "kvq_00000001"

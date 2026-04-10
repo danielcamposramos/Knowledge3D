@@ -12,7 +12,7 @@ from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
-from knowledge3d.tablet.wine.question_wine import lhe_question_envelope
+from knowledge3d.tablet.wine.question_wine import QUESTION_ROUTE_GALAXIES, lhe_question_envelope
 
 
 class LastHumanityExamBenchmark:
@@ -74,13 +74,13 @@ class LastHumanityExamBenchmark:
                 self.dataset_source = "file"
                 self.synthetic_fallback = False
                 return stratified_sample(loaded, self.max_questions)
-            self.dataset_source = "synthetic_fallback_no_supported_file"
-            self.synthetic_fallback = True
+            raise FileNotFoundError(
+                f"lhe_dataset_empty: no supported Last Humanity Exam records found under {self.dataset_path}"
+            )
         else:
-            self.dataset_source = "synthetic_fallback_missing_path"
-            self.synthetic_fallback = True
-        fallback = self._synthetic_questions()
-        return stratified_sample(fallback, self.max_questions)
+            raise FileNotFoundError(
+                "lhe_dataset_missing: Last Humanity Exam runtime requires the real dataset at the canonical roots"
+            )
 
     def _load_from_known_files(self, root: Path) -> list[dict[str, Any]]:
         if root.is_file():
@@ -274,12 +274,10 @@ class LastHumanityExamBenchmark:
         route = {
             "specialist": "math" if math_like_domain else "chat",
             "domain_hint": domain,
-            "galaxy_names": list(Knowledgeverse.GPU_QUESTION_TARGET_GALAXIES),
+            "galaxy_names": list(QUESTION_ROUTE_GALAXIES),
         }
         route = self._apply_query_scope(route)
         specialist = str(route.get("specialist", "chat"))
-        if use_enriched and self.runtime_seed_knowledge:
-            self._seed_domain_knowledge(question, route=route)
         task_result = self.kv.execute_task(
             task={
                 "task_id": str(question["id"]),
@@ -524,18 +522,6 @@ class LastHumanityExamBenchmark:
     def _empty_mind_reasoning(self, question: dict[str, Any]) -> Any:
         # Empty mind baseline: simple first-option bias.
         return str(question["options"][0])
-
-    def _seed_domain_knowledge(self, question: dict[str, Any], *, route: dict[str, Any]) -> None:
-        domain = str(question.get("domain", "multi"))
-        for galaxy in route.get("galaxy_names", ["Grammar"]):
-            self.kv.galaxy_manager.add_entry(
-                str(galaxy),
-                {
-                    "domain": domain,
-                    "question_id": question["id"],
-                    "kind": "benchmark_knowledge",
-                },
-            )
 
     def _summarize_by_domain(self, rows: Sequence[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         summary: dict[str, dict[str, Any]] = {}

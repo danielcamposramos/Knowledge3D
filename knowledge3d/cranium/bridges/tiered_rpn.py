@@ -41,6 +41,12 @@ _CODEC_TOKEN_MAP = {
     "TERNARY_MUL": "tmul",
 }
 
+_CAS_TIER2_RANGE = range(0x220, 0x238)
+_SAS_TIER1_OPS = {0x239}
+_SAS_TIER2_OPS = {0x23A, 0x23B, 0x23D}
+_SAS_TIER3_OPS = {0x238, 0x23C}
+_CAS_SAS_GPU_KERNEL_OPS = set(_CAS_TIER2_RANGE) | _SAS_TIER1_OPS | _SAS_TIER2_OPS | _SAS_TIER3_OPS
+
 
 class TieredRPNEngine:
     """Dispatch RPN programs across Tier-1/2/3 engines."""
@@ -476,6 +482,20 @@ class TieredRPNEngine:
             self._tier3.reset_instance(instance_id)
         self._last_tier[instance_id] = 2
 
+    def bind_cas_pool(self):
+        """Expose the sovereign CAS pool through the canonical tiered surface."""
+        return self._tier2.bind_cas_pool()
+
+    def bind_sas_symbol_table(self, values: list[float], star_ids: list[int]) -> None:
+        """Expose SAS symbol upload through the canonical tiered surface."""
+        self._tier2.bind_sas_symbol_table(values, star_ids)
+
+    def read_cas_node(self, node_idx: int):
+        return self._tier2.read_cas_node(node_idx)
+
+    def read_cas_pool_top(self) -> int:
+        return self._tier2.read_cas_pool_top()
+
     # ------------------------------------------------------------------ #
     # Dispatch heuristics
     # ------------------------------------------------------------------ #
@@ -496,9 +516,31 @@ class TieredRPNEngine:
         if key == self._tier_cache_key:
             return self._tier_cache_value
 
+        tier = self._select_tier(set(iterable), iterable)
+
+        self._tier_cache_key = key
+        self._tier_cache_value = tier
+        return tier
+
+    def select_tier(self, op_codes: Sequence[int]) -> int:
+        """Public tier query used by higher-level math-core allocation code."""
+        return self._determine_tier(op_codes)
+
+    def _select_tier(self, op_set: set[int], iterable: Sequence[int]) -> int:
+        """Return 1/2/3 using explicit CAS/SAS routing before generic thresholds."""
+        if op_set & _SAS_TIER3_OPS:
+            return 3
+        if (op_set & _SAS_TIER2_OPS) or any(op in _CAS_TIER2_RANGE for op in iterable):
+            return 2
+        if op_set & _SAS_TIER1_OPS:
+            return 1
+        return self._select_tier_base(op_set, iterable)
+
+    def _select_tier_base(self, op_set: set[int], iterable: Sequence[int]) -> int:
+        """Legacy tier heuristic for the non-CAS/SAS opcode surface."""
+
         ternary_ops = {0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76}
         tier2_forced_ops = {0xE0, 0xE1, 0xE2}
-        op_set = set(iterable)
         has_tier3 = any(
             (op not in ternary_ops)
             and (op not in tier2_forced_ops)
@@ -522,9 +564,6 @@ class TieredRPNEngine:
                 tier = 2  # Route stack-heavy to Tier-2 for stability
             else:
                 tier = 1  # Simple arithmetic tries Tier-1 (with fallback)
-
-        self._tier_cache_key = key
-        self._tier_cache_value = tier
         return tier
 
     def _execute_on_tier(
@@ -536,6 +575,10 @@ class TieredRPNEngine:
         vectors: Sequence[Sequence[float]],
         matrices: Sequence[float] | None,
     ) -> float:
+        if tier == 3 and any(int(op) in _CAS_SAS_GPU_KERNEL_OPS for op in op_codes):
+            # CAS/SAS currently executes on the sovereign modular kernel surface.
+            # Tier selection still reserves the caller on the Tier-3 math-core lane.
+            return float(self._tier2.execute_single(instance_id, list(op_codes), list(scalars), list(vectors)))
         if tier == 1:
             return float(self._tier1.execute_single(instance_id, op_codes, scalars, vectors))
         if tier == 2:

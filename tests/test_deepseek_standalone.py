@@ -5,8 +5,8 @@ import sys
 import numpy as np
 from pathlib import Path
 
-# Add current directory to path
-sys.path.append('.')
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import the standalone analyzer directly
 from knowledge3d.ingestion.deepseek_ocr_standalone import StandaloneDeepSeekAnalyzer

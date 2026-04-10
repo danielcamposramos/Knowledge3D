@@ -5,9 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 from pathlib import Path
 from typing import Any
+
+from knowledge3d.tablet.wine.math_wine import math_dataset_envelope
 
 try:
     from benchmarks.daemon_client import DaemonClient
@@ -120,17 +121,12 @@ def main() -> int:
     use_enriched = True
     enforce_gpu = not bool(args.allow_zero_gpu)
     for row in questions:
-        payload = {
-            "command": "ROUTE",
-            "specialist": "math",
-            "use_enriched": use_enriched,
-            "task": {
-                "task_id": row["task_id"],
-                "query": row["question"],
-                "question": row["question"],
-                "competition": row.get("competition"),
-            },
-        }
+        envelope = math_dataset_envelope(
+            task_id=str(row["task_id"]),
+            question=str(row["question"]),
+            competition=str(row.get("competition") or ""),
+        )
+        payload = envelope.to_route_payload(use_enriched=use_enriched)
         response = client.send(payload)
         if enforce_gpu:
             client.assert_gpu_for_solved_command(

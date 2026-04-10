@@ -38,6 +38,8 @@ def test_math_benchmark_uses_gpu_math_path(tmp_path: Path) -> None:
     assert result["total_questions"] == 1
     assert result["results"][0]["gpu_execution"] is True
     assert result["results"][0]["runtime"] == "knowledgeverse_gpu_query"
+    assert result["timing_summary"]["count"] == 1
+    assert sum(result["answer_format_counts"].values()) == 1
 
 
 def test_mmlu_benchmark_uses_gpu_chat_path(tmp_path: Path) -> None:
@@ -63,6 +65,8 @@ def test_mmlu_benchmark_uses_gpu_chat_path(tmp_path: Path) -> None:
     assert result["total_questions"] == 1
     assert result["results"][0]["gpu_execution"] is True
     assert result["results"][0]["runtime"] == "knowledgeverse_gpu_query"
+    assert result["timing_summary"]["count"] == 1
+    assert sum(result["answer_format_counts"].values()) == 1
 
 
 def test_mmlu_benchmark_supports_resume_offset_and_row_callback(tmp_path: Path) -> None:
@@ -106,3 +110,43 @@ def test_mmlu_benchmark_supports_resume_offset_and_row_callback(tmp_path: Path) 
     assert result["correct"] == 2
     assert len(captured) == 1
     assert captured[0][0] == "mmlu_college_physics_1"
+    assert result["timing_summary"]["count"] == 1
+    assert result["answer_format_counts"] == {"option_text_exact": 1}
+
+
+def test_mmlu_save_results_persists_timing_and_answer_formats(tmp_path: Path) -> None:
+    dataset_path = tmp_path / "MMLU" / "data" / "test"
+    dataset_path.mkdir(parents=True, exist_ok=True)
+    (dataset_path / "college_physics_test.csv").write_text(
+        (
+            "An object at rest remains at rest unless acted on by which quantity?,"
+            "Force,Mass,Time,Temperature,A\n"
+        ),
+        encoding="utf-8",
+    )
+
+    class _FakeKnowledgeverse:
+        def execute_task(self, task, **_kwargs):
+            return {
+                "response": task["expected_answer"],
+                "gpu_execution": True,
+                "runtime": "knowledgeverse_gpu_query",
+                "solver": "knowledgeverse_gpu_query",
+                "program_id": Knowledgeverse.GPU_CHAT_REASONING_PROGRAM_ID,
+                "route": {"specialist": "chat", "galaxy_names": ["Reality", "Grammar"]},
+            }
+
+    benchmark = MMLUBenchmark(
+        knowledgeverse=_FakeKnowledgeverse(),
+        dataset_path=dataset_path.parent,
+        max_questions=1,
+    )
+    result = benchmark.run_benchmark(use_enriched=True)
+    output_path = tmp_path / "mmlu_summary.json"
+    benchmark.save_results(output_path)
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert result["answer_format_counts"] == {"option_text_exact": 1}
+    assert payload["timing_summary"]["count"] == 1
+    assert payload["answer_format_counts"] == {"option_text_exact": 1}
+    assert payload["results"][0]["raw_answer"] == "Force"

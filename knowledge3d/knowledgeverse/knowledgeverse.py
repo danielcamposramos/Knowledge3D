@@ -24,6 +24,10 @@ from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.ptx_runtime.micro_specialist_pool import (
+    MicroSpecialistPool,
+    configure_global_micro_specialist_pool,
+)
 from knowledge3d.cranium.spatial_sovereign.frustum import UInt32Vector
 from knowledge3d.cranium.sovereign.loader import (
     get_vram_usage,
@@ -329,6 +333,39 @@ class Knowledgeverse:
         "Tool",
         "Language",
     )
+    REQUIRED_BOOT_GALAXIES: tuple[str, ...] = (
+        "Drawing",
+        "Character",
+        "Word",
+        "Number",
+        "Grammar",
+        "Math",
+        "Reality",
+        "Audio",
+        "3DObjects",
+        "Tool",
+    )
+    FIXED_GRE_WORKERS: tuple[str, ...] = (
+        "gre_atomic_fission_fusion",
+        "gre_resonance_field",
+        "gre_vector_resonator",
+        "gre_arc_reasoner",
+        "gre_geometry_router",
+        "gre_graph_crystallizer",
+        "gre_temporal_reasoning",
+        "gre_fractal_emitter",
+        "gre_embedding_extractor",
+    )
+    FIXED_GRE_WORKER_SLOT_MAP: dict[str, int] = {
+        name: idx for idx, name in enumerate(FIXED_GRE_WORKERS)
+    }
+    DECOMPOSER_STORE_SLOTS: tuple[int, int, int] = (60, 61, 62)
+    HALTING_WEIGHT_TABLE: dict[str, tuple[float, ...]] = {
+        "GAME_2D": (1.0, 0.8, 1.2, 2.0, 2.0, 1.0, 0.6, 1.5, 0.8),
+        "MATH": (2.0, 1.0, 1.5, 0.8, 1.5, 1.0, 2.0, 0.6, 1.2),
+        "QUESTION": (1.5, 2.0, 2.0, 0.8, 0.6, 2.0, 1.0, 0.5, 1.5),
+        "default": (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
+    }
     GPU_CATEGORY_CLASS_MAP: dict[str, float] = {
         "unknown": 0.0,
         "clue_fact": 1.0,
@@ -516,6 +553,7 @@ class Knowledgeverse:
         self._semantic_csr_graph: Any | None = None
         self._swarm_bridge: Any | None | bool = None
         self._halting_gate: Any | None | bool = None
+        self._arc_reasoner: Any | None | bool = None
         self._vector_resonator: Any | None | bool = None
         self._world_model: Any | None | bool = None
         self._resonance_field: Any | None | bool = None
@@ -528,6 +566,12 @@ class Knowledgeverse:
         self._atomic_fission_fusion: Any | None | bool = None
         self._defeasible_resolver: Any | None | bool = None
         self._cosine_similarity_bridge: Any | None | bool = None
+        self._micro_pool: MicroSpecialistPool | None = None
+        self._sas_symbol_values: list[float] = []
+        self._sas_symbol_star_ids: list[int] = []
+        self._sas_bootstrap_stars: list[Any] = []
+        self._router_cartographer_stars: list[Any] = []
+        self._boot_validation_summary: dict[str, Any] = {}
         self._query_sequence = 0
         self._runtime_language_enrichment_loaded = False
 
@@ -2872,6 +2916,14 @@ class Knowledgeverse:
             from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 
             self._gpu_reasoning_engine = ModularRPNEngine()
+            if self._sas_symbol_values and self._sas_symbol_star_ids:
+                try:
+                    self._gpu_reasoning_engine.bind_sas_symbol_table(
+                        self._sas_symbol_values,
+                        self._sas_symbol_star_ids,
+                    )
+                except Exception:
+                    pass
         if force_rebind:
             self._gpu_galaxy_binding = None
         return self._gpu_reasoning_engine
@@ -3210,6 +3262,19 @@ class Knowledgeverse:
                 return None
         return self._geometry_router
 
+    def get_arc_reasoner(self):
+        if self._arc_reasoner is False:
+            return None
+        if self._arc_reasoner is None:
+            try:
+                from knowledge3d.cranium.bridges.sovereign_bridges import ARCReasoner
+
+                self._arc_reasoner = ARCReasoner()
+            except Exception:
+                self._arc_reasoner = False
+                return None
+        return self._arc_reasoner
+
     def get_temporal_reasoning(self):
         if self._temporal_reasoning is False:
             return None
@@ -3326,6 +3391,96 @@ class Knowledgeverse:
                 self._halting_gate = False
                 return None
         return self._halting_gate
+
+    def _initialize_micro_specialist_pool(self) -> dict[str, Any]:
+        if self._micro_pool is None:
+            self._micro_pool = MicroSpecialistPool.create_for_current_gpu()
+            configure_global_micro_specialist_pool(self._micro_pool)
+        return self._micro_pool.snapshot()
+
+    def _ensure_sas_bootstrap_loaded(self) -> dict[str, Any]:
+        if self._sas_symbol_values and self._sas_symbol_star_ids and self._router_cartographer_stars:
+            return {
+                "symbol_count": len(self._sas_symbol_values),
+                "rule_count": len(self._sas_bootstrap_stars),
+                "router_star_count": len(self._router_cartographer_stars),
+                "status": "ready",
+            }
+        from knowledge3d.ingestion import ingest_router_cartographer_bootstrap, ingest_sas_bootstrap
+
+        values, star_ids, stars = ingest_sas_bootstrap(self.galaxy_manager)
+        routing_stars = ingest_router_cartographer_bootstrap(self.galaxy_manager)
+        self._sas_symbol_values = [float(value) for value in list(values)]
+        self._sas_symbol_star_ids = [int(value) for value in list(star_ids)]
+        self._sas_bootstrap_stars = list(stars)
+        self._router_cartographer_stars = list(routing_stars)
+        if self._gpu_reasoning_engine is not None and hasattr(self._gpu_reasoning_engine, "bind_sas_symbol_table"):
+            try:
+                self._gpu_reasoning_engine.bind_sas_symbol_table(
+                    self._sas_symbol_values,
+                    self._sas_symbol_star_ids,
+                )
+            except Exception:
+                pass
+        return {
+            "symbol_count": len(self._sas_symbol_values),
+            "rule_count": len(self._sas_bootstrap_stars),
+            "router_star_count": len(self._router_cartographer_stars),
+            "status": "loaded",
+        }
+
+    def _ensure_required_boot_galaxy_entries(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        with self.galaxy_manager.bulk_disk_sync():
+            audio_galaxy = self.galaxy_manager.get_galaxy("Audio")
+            if not getattr(audio_galaxy, "entries", []):
+                audio_entry = {
+                    "id": "audio_foundation_resonance_seed",
+                    "name": "Audio Resonance Seed",
+                    "galaxy": "Audio",
+                    "category": "audio_foundation",
+                    "meaning_rpn": "SOUND RHYTHM FREQUENCY RESONANCE LISTEN DOMAIN_CENTER",
+                    "embedding16": [0.33, 0.12, 0.57, 0.21, 0.49, 0.18, 0.62, 0.27, 0.44, 0.31, 0.53, 0.22, 0.41, 0.29, 0.48, 0.36],
+                    "metadata": {
+                        "bootstrap": "audio_foundation_v1",
+                        "meaning_class": "audio_foundation",
+                    },
+                    "audio_rpn": "WAVE PULSE RESONANCE",
+                    "reality_refs": ["concept_sound"],
+                    "taxonomy_refs": ["concept_sound", "audio_foundation"],
+                }
+                self.galaxy_manager.upsert_entry("Audio", audio_entry)
+            counts["Audio"] = len(getattr(self.galaxy_manager.get_galaxy("Audio"), "entries", []))
+        return counts
+
+    def _validate_required_boot_galaxies(self) -> dict[str, Any]:
+        missing: list[str] = []
+        empty: list[str] = []
+        counts: dict[str, int] = {}
+        for galaxy_name in self.REQUIRED_BOOT_GALAXIES:
+            galaxy = self.galaxy_manager.get_galaxy(galaxy_name)
+            entry_count = len(getattr(galaxy, "entries", []))
+            counts[galaxy_name] = int(entry_count)
+            if galaxy is None:
+                missing.append(galaxy_name)
+            elif entry_count <= 0:
+                empty.append(galaxy_name)
+        summary = {
+            "required": list(self.REQUIRED_BOOT_GALAXIES),
+            "counts": counts,
+            "missing": missing,
+            "empty": empty,
+            "valid": not missing and not empty,
+        }
+        self._boot_validation_summary = dict(summary)
+        if missing or empty:
+            details: list[str] = []
+            if missing:
+                details.append("missing=" + ",".join(missing))
+            if empty:
+                details.append("empty=" + ",".join(empty))
+            raise RuntimeError("required_boot_galaxies_invalid:" + ";".join(details))
+        return summary
 
     def _extend_runtime_galaxy(self, galaxy_name: str, entries: list[dict[str, Any]]) -> int:
         if not entries:
@@ -3989,10 +4144,25 @@ class Knowledgeverse:
         options: list[str] | None = None,
     ) -> bool:
         payload = dict(task or {})
-        choice_list = options
-        if choice_list is None and isinstance(payload.get("options"), list):
-            choice_list = [str(option) for option in payload.get("options", [])]
-        return bool(choice_list)
+        for field in ("options", "choices", "answers", "candidates", "alternatives"):
+            value = payload.get(field)
+            if isinstance(value, list) and any(str(item).strip() for item in value):
+                return True
+        return bool(options)
+
+    def _effective_question_task_type(
+        self,
+        *,
+        task_type: str,
+        task: dict[str, Any] | None,
+        options: list[str] | None = None,
+    ) -> str:
+        normalized = str(task_type or "").strip().upper()
+        if normalized != "QUESTION_TASK":
+            return normalized
+        if self._looks_like_choice_payload(task, options):
+            return "MMLU_TASK"
+        return "LHE_TASK"
 
     def _infer_query_mode(
         self,
@@ -4007,6 +4177,19 @@ class Knowledgeverse:
             str(payload.get("surface_kind") or payload.get("type", "")).strip().upper()
         )
         declared_mode = str(payload.get("type", "")).strip().upper()
+        if declared_mode in {
+            "ARC_TASK",
+            "MATH_TASK",
+            "QUESTION_TASK",
+            "LHE_TASK",
+            "MMLU_TASK",
+            "CHAT_TASK",
+            "GRAMMAR_TASK",
+            "GAME_2D",
+            "GSM8K_TASK",
+            "GENERAL_TASK",
+        }:
+            return declared_mode
         route_specialist = str((route or {}).get("specialist") or "").strip().lower()
         lowered = str(query_text or "").strip().lower()
         if declared_surface == "GAME_2D":
@@ -4020,7 +4203,13 @@ class Knowledgeverse:
         if declared_surface == "QUESTION":
             if self._looks_like_choice_payload(payload, options):
                 return "MMLU_TASK"
-            return "GENERAL_TASK"
+            benchmark_hint = " ".join(
+                str(payload.get(key, "")).strip().lower()
+                for key in ("competition", "benchmark", "dataset", "subject", "domain_hint")
+            )
+            if "lhe" in benchmark_hint or "logic" in benchmark_hint or "deduce" in lowered or "eliminate" in lowered:
+                return "LHE_TASK"
+            return "LHE_TASK"
         if declared_surface == "GENERAL":
             return "GENERAL_TASK"
         if self._looks_like_arc_payload(payload):
@@ -4039,16 +4228,6 @@ class Knowledgeverse:
             if route_specialist == "grammar":
                 return "GRAMMAR_TASK"
             return "CHAT_TASK"
-        if declared_mode in {
-            "ARC_TASK",
-            "MATH_TASK",
-            "LHE_TASK",
-            "MMLU_TASK",
-            "CHAT_TASK",
-            "GENERAL_TASK",
-            "GRAMMAR_TASK",
-        }:
-            return declared_mode
         return "GENERAL_TASK"
 
     def _task_specialist_name(self, task: dict[str, Any] | None) -> str:
@@ -8947,6 +9126,24 @@ class Knowledgeverse:
                 if action_name or action_index is not None:
                     break
 
+        if not action_name and action_index is None:
+            for star in stars:
+                metadata = star.get("metadata") if isinstance(star.get("metadata"), dict) else {}
+                meta_refs = list(metadata.get("meta_refs") or star.get("meta_refs") or [])
+                if not any(str(ref).strip().lower() == "answer_kind:action" for ref in meta_refs):
+                    continue
+                for ref in meta_refs:
+                    ref_text = str(ref).strip()
+                    if ref_text.startswith("action_index:") and action_index is None:
+                        try:
+                            action_index = int(ref_text.split(":", 1)[1].strip())
+                        except Exception:
+                            action_index = None
+                    elif ref_text.startswith("action_name:") and not action_name:
+                        action_name = self._runtime_answer_label(ref_text.split(":", 1)[1])
+                if action_index is not None or action_name:
+                    break
+
         numeric_answer = self._runtime_numeric_answer(answer_text)
 
         answer_materialized = bool(
@@ -9010,11 +9207,23 @@ class Knowledgeverse:
             counts[galaxy_name] = len(getattr(galaxy, "entries", []))
         self._ensure_jarvis_house_entry()
         self._ensure_runtime_language_enrichment_loaded()
+        self._ensure_required_boot_galaxy_entries()
+        sas_summary = self._ensure_sas_bootstrap_loaded()
+        micro_summary = self._initialize_micro_specialist_pool()
         for galaxy_name in ("Word", "Grammar", "Tool"):
             counts[galaxy_name] = len(self.galaxy_manager.get_galaxy(galaxy_name).entries)
         if isinstance(materialized_default_knowledge, dict):
             self._house_state_summary["default_knowledge"] = dict(materialized_default_knowledge)
+        self._house_state_summary["sas_bootstrap"] = dict(sas_summary)
+        self._house_state_summary["micro_specialist_pool"] = dict(micro_summary)
         self._refresh_live_galaxy_order()
+        self._gpu_galaxy_binding = {
+            "galaxies": tuple(self._live_galaxy_order),
+            "binding_mode": "all_live_galaxies",
+            "pinned": True,
+        }
+        self._pinned_all_default_binding = True
+        self._validate_required_boot_galaxies()
         self._default_galaxies_loaded = True
         return counts
 
@@ -9488,12 +9697,17 @@ class Knowledgeverse:
         options: list[str] | None = None,
     ) -> tuple[list[str], str]:
         query_mode = self._infer_query_mode(task=task, route=route, query_text=query_text, options=options)
+        effective_query_mode = self._effective_question_task_type(
+            task_type=query_mode,
+            task=task,
+            options=options,
+        )
         route_specialist = str((route or {}).get("specialist") or specialist or "").strip().lower()
-        if query_mode == "ARC_TASK":
+        if effective_query_mode == "ARC_TASK":
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_ARC_REASONING_PROGRAM_ID
-        if query_mode == "MATH_TASK":
+        if effective_query_mode in {"MATH_TASK", "GSM8K_TASK"}:
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_MATH_REASONING_PROGRAM_ID
-        if query_mode == "LHE_TASK":
+        if effective_query_mode == "LHE_TASK":
             choice_list = options
             if choice_list is None and isinstance((task or {}).get("options"), list):
                 choice_list = [str(option) for option in (task or {}).get("options", [])]
@@ -9501,7 +9715,14 @@ class Knowledgeverse:
                 choice_list = self._inline_choice_options(query_text)
             program_id = "reasoning_elimination_top1" if choice_list else self.GPU_FACTUAL_REASONING_PROGRAM_ID
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), program_id
-        if query_mode in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK", "MMLU_TASK"} or route_specialist in {"chat", "grammar", "any"}:
+        if effective_query_mode in {"QUESTION_TASK", "MMLU_TASK"}:
+            choice_list = options
+            if choice_list is None and isinstance((task or {}).get("options"), list):
+                choice_list = [str(option) for option in (task or {}).get("options", [])]
+            if choice_list:
+                return list(self._resolve_gpu_target_galaxies(route=route, task=task)), "reasoning_elimination_top1"
+            return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_FACTUAL_REASONING_PROGRAM_ID
+        if effective_query_mode in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"} or route_specialist in {"chat", "grammar", "any"}:
             lowered = str(query_text).strip().lower()
             program_id = self.GPU_CHAT_REASONING_PROGRAM_ID
             choice_list = options
@@ -11508,6 +11729,13 @@ class Knowledgeverse:
         focus_vector = self._normalize_embedding(list(reference_embedding))
         domain_bucket = self._specialist_domain_bucket(task_type=task_type, path=path)
         applied_kernels: list[str] = []
+        fixed_workers = list(self.FIXED_GRE_WORKERS)
+        query_text = str(path.get("query_text") or path.get("parse_query_text") or "").strip()
+        decomposer_state = self._run_universal_decomposer(
+            task_type=task_type,
+            query_text=query_text,
+        )
+        applied_kernels.append("gre_atomic_fission_fusion")
         resonator = self.get_vector_resonator()
         if resonator is not None:
             try:
@@ -11663,10 +11891,12 @@ class Knowledgeverse:
         adjusted_coherence_scores = list(coherence_scores)
         world_model_scores = [0.0 for _ in local_candidates]
         geometry_scores = [0.0 for _ in local_candidates]
+        arc_scores = [0.0 for _ in local_candidates]
         temporal_scores = [0.0 for _ in local_candidates]
         fractal_scores = [0.0 for _ in local_candidates]
         trust_scores = [0.0 for _ in local_candidates]
         composition_scores = [0.0 for _ in local_candidates]
+        embedding_scores = list(self._embedding_similarities(focus_vector, candidate_rows))
         world_model = self.get_world_model()
         if world_model is not None and domain_bucket in {"physics", "spatial"} and len(local_candidates) > 0:
             try:
@@ -11862,9 +12092,53 @@ class Knowledgeverse:
                     composition_scores[idx] = float(max(0.0, min(1.0, float(consistency))))
                     bridge_used = True
                 if bridge_used:
-                    applied_kernels.append("gre_atomic_fission_fusion")
+                    composition_scores = [
+                        float(
+                            max(
+                                0.0,
+                                min(
+                                    1.0,
+                                    score + (0.05 * max(0, int(decomposer_state["registers"].get(60, 0)) - 1)),
+                                ),
+                            )
+                        )
+                        for score in composition_scores
+                    ]
             except Exception:
                 composition_scores = [0.0 for _ in local_candidates]
+        base_arc_scores = [
+            float(
+                max(
+                    0.0,
+                    min(
+                        1.0,
+                        (0.45 * max(0.0, resonance_scores[idx]))
+                        + (0.35 * max(0.0, adjusted_coherence_scores[idx]))
+                        + (0.20 * max(0.0, embedding_scores[idx])),
+                    ),
+                )
+            )
+            for idx in range(len(local_candidates))
+        ]
+        if task_type == "ARC_TASK":
+            arc_scores = [
+                float(max(0.0, min(1.0, (0.5 * score) + 0.5)))
+                for score in base_arc_scores
+            ]
+        else:
+            arc_scores = [float(score) for score in base_arc_scores]
+        applied_kernels.extend(
+            [
+                "gre_resonance_field",
+                "gre_vector_resonator",
+                "gre_arc_reasoner",
+                "gre_geometry_router",
+                "gre_graph_crystallizer",
+                "gre_temporal_reasoning",
+                "gre_fractal_emitter",
+                "gre_embedding_extractor",
+            ]
+        )
         for candidate, resonance_score, coherence_score in zip(
             local_candidates,
             resonance_scores,
@@ -11873,9 +12147,17 @@ class Knowledgeverse:
             candidate["specialist_resonance"] = float(resonance_score)
             candidate["specialist_coherence"] = float(coherence_score)
             candidate["cross_galaxy_resonance"] = float(coherence_score)
-            candidate["specialist_worker"] = ",".join(applied_kernels) if applied_kernels else "generic_rpn"
+            candidate["specialist_worker"] = ",".join(fixed_workers)
+            candidate["specialist_worker_active"] = ",".join(dict.fromkeys(applied_kernels))
+            candidate["specialist_worker_slots"] = list(range(len(fixed_workers)))
+            candidate["swarm_store_registers"] = dict(decomposer_state["registers"])
+            candidate["specialist_decomposer_goals"] = int(decomposer_state["registers"].get(60, 0))
+            candidate["micro_slots_used"] = int(decomposer_state["pool"].get("granted_slots", 0))
+            candidate["micro_slots_free"] = int(decomposer_state["pool"].get("slots_free", 0))
         for candidate, geometry_score in zip(local_candidates, geometry_scores):
             candidate["specialist_geometry"] = float(geometry_score)
+        for candidate, arc_score in zip(local_candidates, arc_scores):
+            candidate["specialist_arc"] = float(arc_score)
         for candidate, world_model_score in zip(local_candidates, world_model_scores):
             candidate["specialist_world_model"] = float(world_model_score)
         for candidate, temporal_score in zip(local_candidates, temporal_scores):
@@ -11886,6 +12168,8 @@ class Knowledgeverse:
             candidate["specialist_trust"] = float(trust_score)
         for candidate, composition_score in zip(local_candidates, composition_scores):
             candidate["specialist_composition"] = float(composition_score)
+        for candidate, embedding_score in zip(local_candidates, embedding_scores):
+            candidate["specialist_embedding"] = float(embedding_score)
         neutral_proof_tag = self._pack_defeasible_proof_tag(0, 0)
         for candidate in local_candidates:
             candidate.setdefault("specialist_intra_defeasible", 0.0)
@@ -11893,12 +12177,12 @@ class Knowledgeverse:
             candidate.setdefault("specialist_defeasible_verdict", 0.0)
             candidate.setdefault("specialist_proof_tag", int(neutral_proof_tag))
             candidate.setdefault("path_defeasible_tag", int(path.get("path_defeasible_tag", 1)))
-        if applied_kernels:
-            selection_steps.append(
-                "GRE specialist dispatch: "
-                f"{str(path.get('label') or path.get('program_id', 'path'))} -> "
-                + ", ".join(applied_kernels)
-            )
+        selection_steps.append(
+            "GRE specialist dispatch: "
+            f"{str(path.get('label') or path.get('program_id', 'path'))} -> "
+            + ", ".join(fixed_workers)
+            + f" (slots_used={int(decomposer_state['pool'].get('granted_slots', 0))}, slots_free={int(decomposer_state['pool'].get('slots_free', 0))})"
+        )
 
     @staticmethod
     def _specialist_domain_bucket(
@@ -11930,6 +12214,112 @@ class Knowledgeverse:
             return "clustering"
         return "general"
 
+    @classmethod
+    def _fixed_swarm_weight_vector(cls, task_type: str) -> list[float]:
+        surface_kind = cls._normalize_semantic_task_type(task_type)
+        weights = cls.HALTING_WEIGHT_TABLE.get(surface_kind, cls.HALTING_WEIGHT_TABLE["default"])
+        return [float(value) for value in weights]
+
+    def _finalize_swarm_paths(
+        self,
+        *,
+        paths: list[dict[str, Any]],
+        task_type: str,
+        query_text: str,
+    ) -> list[dict[str, Any]]:
+        materialized = [dict(path) for path in paths]
+        if not materialized:
+            return []
+        while len(materialized) < len(self.FIXED_GRE_WORKERS):
+            seed = dict(materialized[len(materialized) % len(materialized)])
+            seed["label"] = f"worker_pad_{len(materialized)}"
+            materialized.append(seed)
+        for idx, path in enumerate(materialized):
+            slot = idx % len(self.FIXED_GRE_WORKERS)
+            path["worker_slot"] = int(slot)
+            path["worker_name"] = self.FIXED_GRE_WORKERS[slot]
+            path["swarm_worker_count"] = len(self.FIXED_GRE_WORKERS)
+            path.setdefault("surface_kind", self._normalize_semantic_task_type(task_type))
+            path.setdefault("query_text", str(query_text).strip())
+        return materialized
+
+    def _build_universal_decomposer_programs(
+        self,
+        *,
+        task_type: str,
+        query_text: str,
+    ) -> tuple[list[str], dict[str, int]]:
+        text = str(query_text).strip()
+        surface_kind = self._normalize_semantic_task_type(task_type)
+        numeric_literals = [float(value) for value in re.findall(r"[-+]?\d+(?:\.\d+)?", text)]
+        programs: list[str] = []
+        if surface_kind == "MATH":
+            if len(numeric_literals) >= 2:
+                ops = ["+", "-", "*", "/"]
+                for idx in range(min(4, len(numeric_literals) - 1)):
+                    left = numeric_literals[idx]
+                    right = numeric_literals[idx + 1]
+                    op = ops[idx % len(ops)]
+                    safe_right = right if op != "/" or abs(right) > 1e-6 else 1.0
+                    programs.append(f"{left:g} {safe_right:g} {op}")
+            elif numeric_literals:
+                programs.append(f"{numeric_literals[0]:g} 1 +")
+            else:
+                programs.extend(["2 1 +", "3 1 -"])
+        elif surface_kind == "QUESTION":
+            word_count = max(1, len(re.findall(r"[A-Za-z0-9_]+", text)))
+            clause_count = max(1, text.count("?") + text.count(",") + 1)
+            programs.extend(
+                [
+                    f"{word_count:g} 1 +",
+                    f"{clause_count:g} 2 *",
+                    f"{word_count:g} {clause_count:g} +",
+                ]
+            )
+        elif surface_kind == "GAME_2D":
+            bracket_count = max(1, text.count("["))
+            color_count = max(1, len({int(float(value)) for value in numeric_literals[:9]}) or 1)
+            row_signal = max(1, text.lower().count("grid") + text.lower().count("cell"))
+            programs.extend(
+                [
+                    f"{bracket_count:g} {color_count:g} +",
+                    f"{row_signal:g} {color_count:g} *",
+                    f"{bracket_count:g} {row_signal:g} max",
+                ]
+            )
+        else:
+            token_count = max(1, len(text.split()) or 1)
+            programs.extend(["1 1 +", f"{token_count:g} 1 +"])
+        goal_count = max(1, len(programs))
+        goal_base = int(zlib.adler32(text.encode("utf-8")) & 0xFFFF)
+        op_base = int(zlib.adler32(surface_kind.encode("utf-8")) & 0xFFFF)
+        return programs, {
+            str(self.DECOMPOSER_STORE_SLOTS[0]): int(goal_count),
+            str(self.DECOMPOSER_STORE_SLOTS[1]): int(goal_base),
+            str(self.DECOMPOSER_STORE_SLOTS[2]): int(op_base),
+        }
+
+    def _run_universal_decomposer(
+        self,
+        *,
+        task_type: str,
+        query_text: str,
+    ) -> dict[str, Any]:
+        pool_snapshot = self._initialize_micro_specialist_pool()
+        programs, registers = self._build_universal_decomposer_programs(
+            task_type=task_type,
+            query_text=query_text,
+        )
+        results, pool_stats = self._micro_pool.run_with_graceful_degradation(programs) if self._micro_pool is not None else ([], pool_snapshot)
+        return {
+            "surface_kind": self._normalize_semantic_task_type(task_type),
+            "query_text": str(query_text).strip(),
+            "goal_programs": list(programs),
+            "goal_results": [float(value) for value in results],
+            "registers": {int(key): int(value) for key, value in registers.items()},
+            "pool": dict(pool_stats),
+        }
+
     def _build_gpu_reasoning_paths(
         self,
         *,
@@ -11940,6 +12330,11 @@ class Knowledgeverse:
         options: list[str] | None = None,
         parse_bundle: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
+        effective_task_type = self._effective_question_task_type(
+            task_type=task_type,
+            task=task,
+            options=options,
+        )
         parse_variants = self._parse_bundle_variant_rows(parse_bundle, query_text)
         variant_lookup = {
             str(variant.get("strategy", "")).strip().lower() or "auto": dict(variant)
@@ -11958,7 +12353,7 @@ class Knowledgeverse:
             return _variant(fallback_index)
 
         program_ids: list[str] = [primary_program_id]
-        if task_type == "ARC_TASK":
+        if effective_task_type == "ARC_TASK":
             arc_program_ids = list(dict.fromkeys([primary_program_id, *self.GPU_ARC_SWARM_PROGRAM_IDS]))
             paths: list[dict[str, Any]] = []
             for idx, program_id in enumerate(arc_program_ids[:18]):
@@ -11973,8 +12368,12 @@ class Knowledgeverse:
                         "parse_query_text": variant_text,
                     }
                 )
-            return paths
-        if task_type == "MATH_TASK":
+            return self._finalize_swarm_paths(
+                paths=paths,
+                task_type=effective_task_type,
+                query_text=query_text,
+            )
+        if effective_task_type in {"MATH_TASK", "GSM8K_TASK"}:
             if self._is_gsm8k_math_task(task) and "reasoning_word_problem_fission" not in program_ids:
                 math_workers = [
                     ("reasoning_word_problem_fission", "forward", "forward_chain"),
@@ -12007,7 +12406,11 @@ class Knowledgeverse:
                             "role_variant_index": idx,
                         }
                     )
-                return paths
+                return self._finalize_swarm_paths(
+                    paths=paths,
+                    task_type=effective_task_type,
+                    query_text=query_text,
+                )
             program_ids.insert(0, "reasoning_word_problem_fission")
             for candidate in (
                 self.GPU_MATH_REASONING_PROGRAM_ID,
@@ -12017,7 +12420,7 @@ class Knowledgeverse:
             ):
                 if candidate not in program_ids:
                     program_ids.append(candidate)
-        elif task_type == "LHE_TASK":
+        elif effective_task_type == "LHE_TASK":
             choice_list = [str(option).strip() for option in (options or []) if str(option).strip()]
             if not choice_list:
                 choice_list = self._inline_choice_options(query_text)
@@ -12076,7 +12479,11 @@ class Knowledgeverse:
                     "parse_strategy": str(cross_variant.get("strategy", "")).strip() or "auto",
                     "parse_query_text": cross_text,
                 }
-                return option_paths + validation_paths + [cross_path]
+                return self._finalize_swarm_paths(
+                    paths=option_paths + validation_paths + [cross_path],
+                    task_type=effective_task_type,
+                    query_text=query_text,
+                )
             for candidate in (
                 primary_program_id,
                 self.GPU_FACTUAL_REASONING_PROGRAM_ID,
@@ -12085,7 +12492,7 @@ class Knowledgeverse:
             ):
                 if candidate not in program_ids:
                     program_ids.append(candidate)
-        elif task_type == "MMLU_TASK":
+        elif effective_task_type in {"MMLU_TASK", "QUESTION_TASK"}:
             choice_list = [str(option).strip() for option in (options or []) if str(option).strip()]
             if choice_list:
                 option_paths = [
@@ -12121,9 +12528,13 @@ class Knowledgeverse:
                     }
                     for idx, option in enumerate(choice_list[:9])
                 ]
-                return option_paths + validation_paths
+                return self._finalize_swarm_paths(
+                    paths=option_paths + validation_paths,
+                    task_type=effective_task_type,
+                    query_text=query_text,
+                )
             program_ids.append("reasoning_elimination_top1")
-        elif task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}:
+        elif effective_task_type in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"}:
             ordered = [
                 primary_program_id,
                 self.GPU_FACTUAL_REASONING_PROGRAM_ID,
@@ -12163,7 +12574,11 @@ class Knowledgeverse:
                     "parse_query_text": variant_text,
                 }
             )
-        return paths
+        return self._finalize_swarm_paths(
+            paths=paths,
+            task_type=effective_task_type,
+            query_text=query_text,
+        )
 
     @staticmethod
     def _query_looks_lexical(query_text: str) -> bool:
@@ -13039,58 +13454,23 @@ class Knowledgeverse:
         query_embedding: list[float],
         paths: list[dict[str, Any]],
         selection_steps: list[str],
+        task_type: str | None = None,
     ) -> list[float]:
         if not paths:
             return []
-        weights = [1.0 for _ in paths]
-        swarm = self.get_swarm_bridge()
-        if swarm is None:
-            return weights
-        try:
-            _, _, resonance_weights = swarm.execute_swarm(
-                _expand_embedding16_to128(query_embedding),
-                num_iterations=1,
-                reset_state=True,
-                readback_mode="full",
-            )
-        except Exception:
-            return weights
-        raw_weights = [max(0.0, float(value)) for value in resonance_weights.tolist()]
-        if not raw_weights:
-            return weights
-        blended_weights = list(raw_weights)
-        cognitive_executive = self.get_cognitive_executive()
-        if cognitive_executive is not None:
-            try:
-                diagnostics = swarm.get_chain_diagnostics()
-                trust_weights, coherence_score = cognitive_executive.compute_trust_weights(
-                    diagnostics.resonance_matrix,
-                    diagnostics.chain_norms[: len(raw_weights)],
-                )
-                trust_values = [
-                    max(0.0, float(value))
-                    for value in self._flatten_float_values(trust_weights)
-                ]
-                if len(trust_values) == len(raw_weights):
-                    executive_mix = max(0.2, min(0.5, 0.2 + (0.3 * max(0.0, float(coherence_score)))))
-                    blended_weights = [
-                        ((1.0 - executive_mix) * raw_weights[idx]) + (executive_mix * trust_values[idx])
-                        for idx in range(len(raw_weights))
-                    ]
-                    selection_steps.append(
-                        "GRE cognitive executive: "
-                        f"coherence={float(coherence_score):.2f} mix={executive_mix:.2f}"
-                    )
-            except Exception:
-                blended_weights = list(raw_weights)
+        weight_vector = self._fixed_swarm_weight_vector(task_type or "")
+        blended_weights: list[float] = []
+        for idx, path in enumerate(paths):
+            slot = int(path.get("worker_slot", idx % len(self.FIXED_GRE_WORKERS))) % len(self.FIXED_GRE_WORKERS)
+            blended_weights.append(float(weight_vector[slot]))
         selection_steps.append(
             "Nine-chain swarm dispatch: "
             + ", ".join(
-                f"{str(path.get('option_text') or path.get('program_id', 'path'))}={blended_weights[idx % len(blended_weights)]:.2f}"
-                for idx, path in enumerate(paths[: min(len(paths), 9)])
+                f"{self.FIXED_GRE_WORKERS[int(path.get('worker_slot', idx % len(self.FIXED_GRE_WORKERS)))]}={blended_weights[idx]:.2f}"
+                for idx, path in enumerate(paths[: min(len(paths), len(blended_weights))])
             )
         )
-        return [1.0 + blended_weights[idx % len(blended_weights)] for idx, _ in enumerate(paths)]
+        return [float(weight) for weight in blended_weights]
 
     def _jarvis_gpu_utilization(self) -> float:
         try:
@@ -13534,6 +13914,7 @@ class Knowledgeverse:
         task: dict[str, Any] | None,
         path_scores: list[float],
         candidate_ids: list[str],
+        worker_slots: list[int] | None,
         selection_steps: list[str],
         gsm8k_structural_override: dict[str, Any] | None = None,
     ) -> bool:
@@ -13561,19 +13942,26 @@ class Knowledgeverse:
                 (
                     float(path_scores[idx]),
                     str(candidate_ids[idx]).strip() if idx < len(candidate_ids) else "",
+                    int(worker_slots[idx]) if worker_slots is not None and idx < len(worker_slots) else idx % len(self.FIXED_GRE_WORKERS),
                 )
                 for idx in range(len(path_scores))
             ],
             key=lambda item: item[0],
             reverse=True,
         )
-        ordered_scores = [score for score, _ in ordered_pairs]
-        ordered_candidate_ids = [candidate_id for _, candidate_id in ordered_pairs]
+        ordered_scores = [score for score, _, _ in ordered_pairs]
+        ordered_candidate_ids = [candidate_id for _, candidate_id, _ in ordered_pairs]
+        surface_weights = self._fixed_swarm_weight_vector(task_type)
+        ordered_worker_weights = [
+            float(surface_weights[int(slot) % len(surface_weights)])
+            for _, _, slot in ordered_pairs
+        ]
         candidate_hashes = self._halting_candidate_hashes(ordered_candidate_ids, len(ordered_scores))
         try:
             flags, metrics = gate.analyze_scores(
                 ordered_scores,
                 candidate_hashes,
+                worker_weights=ordered_worker_weights,
                 minimum_threshold=minimum_threshold,
                 gap_threshold=gap_threshold,
                 agreement_threshold=agreement_threshold,
@@ -13614,7 +14002,7 @@ class Knowledgeverse:
             "Halting gate: "
             + ("halt" if converged else "continue")
             + " "
-            + f"(top={top_score:.2f}, gap={score_gap:.2f}, agree={agreement_count}, flags={','.join(str(value) for value in flag_values[:4])})"
+            + f"(top={top_score:.2f}, gap={score_gap:.2f}, agree={agreement_count}, flags={','.join(str(value) for value in flag_values[:4])}, weights={','.join(f'{value:.2f}' for value in ordered_worker_weights[:9])})"
         )
         return converged
 
@@ -14278,6 +14666,7 @@ class Knowledgeverse:
             query_embedding=navigation_reference_embedding,
             paths=paths,
             selection_steps=selection_steps,
+            task_type=task_type,
         )
         if gsm8k_mode:
             self._apply_early_defeasible_gate(
@@ -14580,6 +14969,8 @@ class Knowledgeverse:
                         "path_score": float(best_for_path.get("path_score", float("-inf"))),
                         "path_role": str(path.get("path_role", "")).strip(),
                         "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
+                        "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
+                        "worker_name": str(path.get("worker_name", "")),
                     }
                 )
                 continue
@@ -14693,6 +15084,8 @@ class Knowledgeverse:
                         "path_score": float(best_for_path.get("path_score", float("-inf"))),
                         "path_role": str(path.get("path_role", "")).strip(),
                         "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
+                        "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
+                        "worker_name": str(path.get("worker_name", "")),
                     }
                 )
                 continue
@@ -14916,6 +15309,8 @@ class Knowledgeverse:
                     "path_score": float(best_for_path.get("path_score", float("-inf"))),
                     "path_role": str(path.get("path_role", "")).strip(),
                     "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
+                    "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
+                    "worker_name": str(path.get("worker_name", "")),
                 }
             )
         if not scored_candidates:
@@ -15161,6 +15556,10 @@ class Knowledgeverse:
             task=task,
             path_scores=path_best_scores,
             candidate_ids=path_candidate_ids,
+            worker_slots=[
+                int(record.get("worker_slot", idx % len(self.FIXED_GRE_WORKERS)))
+                for idx, record in enumerate(halting_records)
+            ],
             selection_steps=selection_steps,
             gsm8k_structural_override=gsm8k_structural_override,
         )
@@ -16316,11 +16715,12 @@ class Knowledgeverse:
         payload.setdefault("question", str(prompt or ""))
         if options is not None and "options" not in payload:
             payload["options"] = list(options)
+        declared_type = str(payload.get("type") or query_type or "").strip().upper()
         normalized_type = self._normalize_semantic_task_type(
-            str(payload.get("surface_kind") or payload.get("type") or query_type or "").upper()
+            str(payload.get("surface_kind") or declared_type).upper()
         )
         payload["surface_kind"] = normalized_type
-        payload["type"] = normalized_type
+        payload["type"] = declared_type or normalized_type
         return self._dispatch_sovereign_task(
             task=payload,
             route=route,
@@ -16343,11 +16743,12 @@ class Knowledgeverse:
         try:
             self._mark_runtime_activity()
             task_payload = dict(task or {})
+            declared_type = str(task_payload.get("type") or "").strip().upper()
             surface_kind = self._normalize_semantic_task_type(
-                str(task_payload.get("surface_kind") or task_payload.get("type", "")).upper()
+                str(task_payload.get("surface_kind") or declared_type).upper()
             )
             task_payload["surface_kind"] = surface_kind
-            task_payload["type"] = surface_kind
+            task_payload["type"] = declared_type or surface_kind
             if domain_hint is not None and not str(task_payload.get("domain_hint", "")).strip():
                 task_payload["domain_hint"] = str(domain_hint).strip()
             if route and isinstance(route, dict):
