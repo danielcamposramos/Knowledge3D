@@ -17,6 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.cranium.sovereign import loader
+from knowledge3d.ingestion.star_crafter import (
+    ProgramTableLayout,
+    build_default_star_crafter_program_table,
+)
 
 from . import route_contract
 from .galaxy_vram_table import (
@@ -48,17 +52,17 @@ from .star_materializer_bridge import (
     RAW_CATALOG_INPUT_ENTRY_BYTES,
     StarMaterializerBridge,
 )
-from .vram_task_buffer import VRAMTaskBuffer
+from .vram_task_buffer import EMBEDDING_DIMS, VRAMTaskBuffer
 
-RAW_CATALOG_INPUT_STRUCT = struct.Struct("<16f6Ii5f7IQ2f20x")
+RAW_CATALOG_INPUT_STRUCT = struct.Struct("<64f6Ii5f11IQ2f20x")
 REF_TUPLE_STRUCT = struct.Struct("<4I")
 BUILD_REF_HASH_STRUCT = struct.Struct("<IIQ")
 FEED_SOURCE_REF_STRUCT = struct.Struct("<IIQI4x")
 GPU_BUILD_CHUNK_SIZE = 4096
 GPU_BUILD_PROGRESS_EVERY = 8
 BUILD_BACKEND = "gpu_build_feed_v2"
-BUILD_FEED_VERSION = 3
-FEED_SOURCE_VERSION = 2
+BUILD_FEED_VERSION = 8
+FEED_SOURCE_VERSION = 7
 ROLE_TYPE_BY_KEY = {
     "router_refs": 0,
     "executor_refs": 1,
@@ -98,6 +102,37 @@ ROUTE_FAMILY_FLAG_MASK = 0xFF << ROUTE_FAMILY_FLAG_SHIFT
 DEFAULT_FEED_SOURCE_CHUNK_SIZE = 4096
 DEFAULT_FEED_SOURCE_MAX_WORKERS = 8
 _FEED_SOURCE_PARALLEL_STATE: dict[str, Any] = {}
+
+
+class SovereignProgramTable:
+    """VRAM-resident immutable program table for native math program linkage."""
+
+    def __init__(self, layout: ProgramTableLayout | None = None) -> None:
+        self.layout = layout or build_default_star_crafter_program_table()
+        self.gpu_ptr = None
+        self.size_bytes = 0
+        self.offsets = dict(self.layout.offsets)
+        self.lengths = dict(self.layout.lengths)
+        self.opcode_counts = dict(self.layout.opcode_counts)
+        self._upload(self.layout.payload)
+
+    def _upload(self, payload: bytes) -> None:
+        self.close()
+        data = bytes(payload or b"")
+        self.size_bytes = len(data)
+        if self.size_bytes <= 0:
+            return
+        self.gpu_ptr = loader.gpu_malloc(self.size_bytes)
+        host = (ctypes.c_ubyte * self.size_bytes).from_buffer_copy(data)
+        loader.memcpy_htod(self.gpu_ptr, ctypes.cast(host, ctypes.c_void_p), self.size_bytes)
+
+    def close(self) -> None:
+        if self.gpu_ptr:
+            try:
+                loader.gpu_free(self.gpu_ptr)
+            finally:
+                self.gpu_ptr = None
+        self.size_bytes = 0
 
 
 def _fnv1a64(text: str) -> int:
@@ -258,6 +293,7 @@ class SovereignHotPath:
         self.task_buffer = VRAMTaskBuffer(max_tasks=2048)
         self.brain = PersistentBrainState()
         self.star_table = GalaxyVRAMTable(max_stars=350_000)
+        self.program_table = SovereignProgramTable()
         self.dispatch = GPUTaskDispatch()
         self.materializer = StarMaterializerBridge()
         self.lesson_ring = VRAMLessonRing(capacity=262_144)
@@ -273,6 +309,7 @@ class SovereignHotPath:
             self.lesson_ring.load_stats(jarvis_state.get("sovereign_learning"))
         self._last_load_summary: dict[str, Any] = {}
         self._last_runtime_manifest: dict[str, Any] = self._read_runtime_manifest()
+        self._notify_program_table_updated()
 
     def close(self, *, profile: str = "service") -> dict[str, Any]:
         normalized_profile = str(profile or "service").strip().lower() or "service"
@@ -285,6 +322,7 @@ class SovereignHotPath:
         self.task_buffer.close()
         self.brain.close()
         self.star_table.close()
+        self.program_table.close()
         self.lesson_ring.close()
         return {
             "status": "completed",
@@ -591,7 +629,11 @@ class SovereignHotPath:
         }
 
     def _expected_house_signature_base(self) -> str:
-        return str(self.knowledgeverse._house_state_summary.get("gpu_buffer_signature_base") or "").strip()
+        base = str(self.knowledgeverse._house_state_summary.get("gpu_buffer_signature_base") or "").strip()
+        version = str(getattr(self.knowledgeverse, "GPU_BUFFER_SIGNATURE_VERSION", "") or "").strip()
+        if base and version and not base.endswith(f":{version}"):
+            return f"{base}:{version}"
+        return base
 
     def _read_runtime_manifest(self) -> dict[str, Any]:
         path = self._artifact_manifest_path()
@@ -607,6 +649,29 @@ class SovereignHotPath:
         if isinstance(self._last_runtime_manifest, dict) and self._last_runtime_manifest:
             return dict(self._last_runtime_manifest)
         return self._read_runtime_manifest()
+
+    def _notify_galaxy_table_updated(self) -> None:
+        kv = self.knowledgeverse
+        launcher = getattr(kv, "_trm", None)
+        bridge = getattr(launcher, "_step_fused_bridge", None)
+        if bridge is None or not hasattr(bridge, "bind_galaxy_table"):
+            return
+        bridge.bind_galaxy_table(
+            self.star_table.gpu_ptr,
+            self.star_table.star_count,
+            embedding_dims=64,
+            host_stars=[dict(star) for star in self._host_stars[: self.star_table.star_count]],
+        )
+
+    def _notify_program_table_updated(self) -> None:
+        kv = self.knowledgeverse
+        launcher = getattr(kv, "_trm", None)
+        bridge = getattr(launcher, "_step_fused_bridge", None)
+        if bridge is None or not hasattr(bridge, "bind_program_table"):
+            return
+        if self.program_table.gpu_ptr is None or self.program_table.size_bytes <= 0:
+            return
+        bridge.bind_program_table(self.program_table.gpu_ptr, self.program_table.size_bytes)
 
     def invalidate_loaded_state(self) -> None:
         self._host_stars = []
@@ -750,6 +815,7 @@ class SovereignHotPath:
             self._last_load_summary = summary
             return False
         self._host_stars = [dict(star) for star in host_stars[: self.star_table.star_count]]
+        self._notify_galaxy_table_updated()
         self._catalog_signature = str(payload.get("catalog_signature") or "")
         self._build_feed_signature = str(payload.get("build_feed_signature") or manifest.get("build_feed_signature") or "")
         self._feed_source_signature = str(payload.get("feed_source_signature") or manifest.get("feed_source_signature") or "")
@@ -932,6 +998,7 @@ class SovereignHotPath:
         star_build_s = float(time.perf_counter() - star_build_t0)
         self._build_feed_signature = str(build_feed_signature)
         self._catalog_signature = str(build_feed.get("manifest", {}).get("catalog_signature") or build_feed_signature)
+        print(f"[ARC3-VRAM] Rebuilt star table: {int(self.star_table.star_count)} stars")
         artifact_save_t0 = time.perf_counter()
         manifest = self.save_runtime_artifacts()
         artifact_save_s = float(time.perf_counter() - artifact_save_t0)
@@ -1142,11 +1209,21 @@ class SovereignHotPath:
         layer_id = self._infer_layer_id(galaxy_name, metadata, source)
         selection_role = self._infer_selection_role(galaxy_name, metadata, source, layer_id)
         answer_eligible = self._infer_answer_eligible(selection_role, metadata, source)
-        embedding16 = [float(value) for value in list(catalog_row.get("embedding16") or source.get("embedding16") or [])[:16]]
-        if len(embedding16) < 16:
-            embedding16.extend([0.0] * (16 - len(embedding16)))
-        if not any(abs(float(value)) > 0.0 for value in embedding16):
-            metadata_errors.append(f"{star_id}:missing_precomputed_embedding16")
+        embedding = self.knowledgeverse._precomputed_entry_embedding64_raw(source)
+        if not embedding:
+            embedding = self.knowledgeverse._precomputed_entry_embedding64_raw(catalog_row)
+        if not embedding:
+            authoritative = dict(source)
+            if not authoritative.get("id"):
+                authoritative["id"] = star_id
+            if not authoritative.get("metadata") and isinstance(metadata, dict):
+                authoritative["metadata"] = dict(metadata)
+            embedding = self.knowledgeverse._entry_embedding64(authoritative)
+        if len(embedding) < EMBEDDING_DIMS:
+            embedding.extend([0.0] * (EMBEDDING_DIMS - len(embedding)))
+        embedding = [float(value) for value in embedding[:EMBEDDING_DIMS]]
+        if not any(abs(float(value)) > 0.0 for value in embedding):
+            metadata_errors.append(f"{star_id}:missing_precomputed_embedding64")
             return None, {}, metadata_errors
         route_policy = metadata.get("route_policy")
         if not isinstance(route_policy, dict):
@@ -1156,12 +1233,22 @@ class SovereignHotPath:
             for container in (source, metadata)
             for key in ("router_refs", "executor_refs", "validator_refs", "anti_pattern_refs")
         )
+        explicit_selection_role = str(metadata.get("selection_role") or source.get("selection_role") or "").strip().lower()
+        source_domain = str(source.get("domain") or catalog_row.get("domain") or "").strip().lower()
+        source_category = str(source.get("category") or catalog_row.get("category") or "").strip().lower()
+        observer_memory_entry = explicit_selection_role == "observer" or source_domain in {
+            "arc3_object",
+            "arc3_observation",
+        } or source_category in {
+            "live_object",
+            "live_observation",
+        }
         sovereign_route_exempt = bool(
             metadata.get(
                 "sovereign_route_exempt",
                 source.get("sovereign_route_exempt", catalog_row.get("sovereign_route_exempt", False)),
             )
-        )
+        ) or observer_memory_entry
         routing_refs = {
             "router_refs": self._top_level_or_metadata_list(
                 source,
@@ -1196,18 +1283,6 @@ class SovereignHotPath:
                 "superior_to",
             ),
         }
-        if sovereign_route_exempt:
-            layer_id = 0
-            selection_role = "unknown"
-            answer_eligible = False
-            route_policy = {}
-            explicit_role_refs_present = False
-            routing_refs = {
-                "router_refs": [],
-                "executor_refs": [],
-                "validator_refs": [],
-                "anti_pattern_refs": [],
-            }
         route_active = (not sovereign_route_exempt) and (
             selection_role != "unknown" or explicit_role_refs_present or bool(route_policy)
         )
@@ -1290,7 +1365,39 @@ class SovereignHotPath:
             "route_policy_branch_topk": int(route_policy.get("branch_topk", 0) or 0),
             "explicit_mask": int(explicit_mask),
             "star_hash": _fnv1a64(star_id),
-            "embedding16": list(embedding16),
+            "meta_rule_addr": int(
+                source.get(
+                    "meta_rule_addr",
+                    metadata.get("meta_rule_addr", catalog_row.get("meta_rule_addr", 0)),
+                )
+                or 0
+            ),
+            "program_flags": int(
+                source.get(
+                    "program_flags",
+                    metadata.get("program_flags", catalog_row.get("program_flags", 0)),
+                )
+                or 0
+            ),
+            "program_length": int(
+                source.get(
+                    "program_length",
+                    metadata.get("program_length", catalog_row.get("program_length", 0)),
+                )
+                or 0
+            ),
+            "program_opcode_count": int(
+                source.get(
+                    "program_opcode_count",
+                    metadata.get(
+                        "program_opcode_count",
+                        catalog_row.get("program_opcode_count", 0),
+                    ),
+                )
+                or 0
+            ),
+            "embedding": list(embedding),
+            "embedding64": list(embedding),
             "domain_hash": float(domain_hash),
             "subject_hash": float(subject_hash),
             "route_policy": dict(route_policy or {}),
@@ -1304,6 +1411,8 @@ class SovereignHotPath:
     def _validate_route_link_coverage(self, stars: list[dict[str, Any]]) -> None:
         route_errors: list[str] = []
         for star in stars:
+            if bool(star.get("sovereign_route_exempt")):
+                continue
             role = str(star.get("selection_role") or "unknown")
             if role == "router":
                 if not list(star.get("executor_refs") or []):
@@ -1319,6 +1428,80 @@ class SovereignHotPath:
             if len(route_errors) > 12:
                 sample += f", ... (+{len(route_errors) - 12} more)"
             raise ValueError(f"sovereign_build_route_invalid:{sample}")
+
+    @staticmethod
+    def _symlink_targets_for_exempt_star(star: dict[str, Any]) -> list[tuple[str, str]]:
+        refs: list[tuple[str, str]] = []
+        for field in (
+            "taxonomy_refs",
+            "component_refs",
+            "composite_of",
+            "grammar_refs",
+            "meta_refs",
+            "visual_refs",
+            "audio_refs",
+            "reality_refs",
+        ):
+            for ref in list(star.get(field) or []):
+                target_id = str(ref.get("star_id") if isinstance(ref, dict) else ref).strip()
+                if target_id:
+                    refs.append((field, target_id))
+
+        for language, raw_value in dict(star.get("surface_forms") or {}).items():
+            if isinstance(raw_value, dict):
+                word_ref = str(raw_value.get("word_ref") or "").strip()
+                if word_ref:
+                    refs.append((f"surface_forms.{language}.word_ref", word_ref))
+                for char_ref in list(raw_value.get("char_refs") or []):
+                    target_id = str(char_ref).strip()
+                    if target_id:
+                        refs.append((f"surface_forms.{language}.char_refs", target_id))
+            else:
+                target_id = str(raw_value or "").strip()
+                if target_id:
+                    refs.append((f"surface_forms.{language}.word_ref", target_id))
+
+        meaning_star = dict(dict(star.get("metadata") or {}).get("meaning_star") or {})
+        for field in (
+            "taxonomy_refs",
+            "component_refs",
+            "composite_of",
+            "grammar_refs",
+            "meta_refs",
+            "visual_refs",
+            "audio_refs",
+            "reality_refs",
+        ):
+            for ref in list(meaning_star.get(field) or []):
+                target_id = str(ref.get("star_id") if isinstance(ref, dict) else ref).strip()
+                if target_id:
+                    refs.append((f"metadata.meaning_star.{field}", target_id))
+        for language, raw_value in dict(meaning_star.get("surface_forms") or {}).items():
+            form = dict(raw_value or {}) if isinstance(raw_value, dict) else {}
+            word_ref = str(form.get("word_ref") or "").strip()
+            if word_ref:
+                refs.append((f"metadata.meaning_star.surface_forms.{language}.word_ref", word_ref))
+            for char_ref in list(form.get("char_refs") or []):
+                target_id = str(char_ref).strip()
+                if target_id:
+                    refs.append((f"metadata.meaning_star.surface_forms.{language}.char_refs", target_id))
+        return refs
+
+    def _validate_symlink_closure(self, stars: list[dict[str, Any]]) -> None:
+        star_ids = {str(star.get("id")).strip() for star in stars if str(star.get("id") or "").strip()}
+        closure_errors: list[str] = []
+        for star in stars:
+            if not bool(star.get("sovereign_route_exempt")):
+                continue
+            star_id = str(star.get("id") or "").strip()
+            for field, target_id in self._symlink_targets_for_exempt_star(star):
+                if target_id not in star_ids:
+                    closure_errors.append(f"{star_id}:{field}:missing_target:{target_id}")
+        if closure_errors:
+            sample = ", ".join(closure_errors[:12])
+            if len(closure_errors) > 12:
+                sample += f", ... (+{len(closure_errors) - 12} more)"
+            raise ValueError(f"sovereign_build_symlink_closure_invalid:{sample}")
 
     def _compile_feed_source_chunk(
         self,
@@ -1403,6 +1586,7 @@ class SovereignHotPath:
                     f"resolve-refs {index + 1}/{len(pending_refs)}"
                 )
         self._validate_route_link_coverage(stars)
+        self._validate_symlink_closure(stars)
         if apply_bidirectional_symlinkage:
             self._ensure_bidirectional_symlinkage(stars)
         ref_tuples: list[tuple[int, int, int, int]] = []
@@ -1996,8 +2180,7 @@ class SovereignHotPath:
                 chunk_size = min(GPU_BUILD_CHUNK_SIZE, int(star_count) - chunk_start)
                 bytes_to_copy = int(chunk_size) * RAW_CATALOG_INPUT_ENTRY_BYTES
                 chunk = rows[chunk_start * RAW_CATALOG_INPUT_ENTRY_BYTES : (chunk_start * RAW_CATALOG_INPUT_ENTRY_BYTES) + bytes_to_copy]
-                target_view = pinned_buffers[buffer_index].view().cast("B")[:bytes_to_copy]
-                target_view[:] = chunk
+                ctypes.memmove(pinned_buffers[buffer_index].ptr, chunk, bytes_to_copy)
                 if getattr(pinned_buffers[buffer_index], "pinned", False):
                     loader.memcpy_htod_async(
                         input_buffers[buffer_index],
@@ -2450,6 +2633,7 @@ class SovereignHotPath:
                     f"feed-source-extract refs {pending_index}/{len(pending_refs)} packed={ref_index}"
                 )
         self._validate_route_link_coverage(source_host_stars)
+        self._validate_symlink_closure(source_host_stars)
         source_host_stars = self._finalize_component_refs(source_host_stars)
         feed_source_extract_s = float(time.perf_counter() - extract_t0)
         self._emit_rebuild_progress(
@@ -3030,6 +3214,7 @@ class SovereignHotPath:
         self.star_table.star_count = int(star_count)
         self.star_table._host_stars = [dict(star) for star in host_stars]
         self._host_stars = [dict(star) for star in host_stars]
+        self._notify_galaxy_table_updated()
         self._build_feed_signature = str(manifest.get("build_feed_signature") or "")
         self._feed_source_signature = str(manifest.get("feed_source_signature") or "")
         self._last_build_feed_manifest = dict(manifest)
@@ -3068,13 +3253,13 @@ class SovereignHotPath:
         target: memoryview,
         local_index: int,
     ) -> None:
-        embedding16 = [float(value) for value in list(row.get("embedding16") or [])[:16]]
-        if len(embedding16) < 16:
-            embedding16.extend([0.0] * (16 - len(embedding16)))
+        embedding = [float(value) for value in list(row.get("embedding") or row.get("embedding64") or row.get("embedding16") or [])[:EMBEDDING_DIMS]]
+        if len(embedding) < EMBEDDING_DIMS:
+            embedding.extend([0.0] * (EMBEDDING_DIMS - len(embedding)))
         RAW_CATALOG_INPUT_STRUCT.pack_into(
             target,
             int(local_index) * RAW_CATALOG_INPUT_ENTRY_BYTES,
-            *embedding16,
+            *embedding,
             int(row.get("galaxy_id_u32") or _fnv1a32(str(row.get("galaxy_id") or "reality"))),
             int(row.get("star_type", 0) or 0),
             int(row.get("selection_role_id") or ROLE_ID_BY_NAME.get(str(row.get("selection_role") or ""), 0)),
@@ -3097,6 +3282,10 @@ class SovereignHotPath:
             len(list(row.get("executor_refs") or [])),
             len(list(row.get("validator_refs") or [])),
             len(list(row.get("anti_pattern_refs") or [])),
+            int(row.get("meta_rule_addr", 0) or 0),
+            int(row.get("program_flags", 0) or 0),
+            int(row.get("program_length", 0) or 0),
+            int(row.get("program_opcode_count", 0) or 0),
             int(row.get("star_hash", 0) or 0),
             float(row.get("domain_hash", 0.0) or 0.0),
             float(row.get("subject_hash", 0.0) or 0.0),
@@ -3304,6 +3493,7 @@ class SovereignHotPath:
             readback_stars.append(merged)
         self.star_table._host_stars = [dict(star) for star in readback_stars]
         self._host_stars = [dict(star) for star in readback_stars]
+        self._notify_galaxy_table_updated()
         validation_summary = self._validate_build_summary_with_math_core(readback_stars)
         self._emit_rebuild_progress(
             f"device build complete stars={star_count} refs={ref_count} "
@@ -3400,10 +3590,27 @@ class SovereignHotPath:
         if not raw_options and family == "GAME_2D":
             raw_options = list(task.get("action_options") or [])
         options = [str(option) for option in raw_options if str(option).strip()]
-        option_embeddings = [
-            list(self.knowledgeverse._embed_query_gpu(option))
-            for option in options[:7]
-        ]
+        action_star_ids = {
+            "ACTION1": "game2d_action_move_up",
+            "ACTION2": "game2d_action_move_down",
+            "ACTION3": "game2d_action_move_left",
+            "ACTION4": "game2d_action_move_right",
+            "ACTION5": "game2d_action_perform",
+            "ACTION6": "game2d_action_click",
+            "ACTION7": "game2d_action_undo",
+        }
+        host_stars_by_id = {
+            str(star.get("id") or ""): dict(star)
+            for star in list(self._host_stars or [])
+            if isinstance(star, dict) and str(star.get("id") or "").strip()
+        }
+        option_embeddings: list[list[float]] = []
+        for option in options[:7]:
+            star_id = action_star_ids.get(str(option).strip().upper())
+            if family == "GAME_2D" and star_id and star_id in host_stars_by_id:
+                option_embeddings.append(list(host_stars_by_id[star_id].get("embedding") or []))
+            else:
+                option_embeddings.append(list(self.knowledgeverse._embed_query_gpu(option)))
         option_hashes = [_stable_hash(option) for option in options[:7]]
         expected_answer = task.get("expected_answer")
         expected_hash = int(task.get("expected_hash") or _stable_hash(expected_answer if expected_answer is not None else task.get("expected_output")))

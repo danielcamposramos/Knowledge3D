@@ -31,9 +31,33 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 
 ---
 
+## MCP Infrastructure — USE THIS FIRST (Save Tokens)
+
+**Two MCP servers are running locally. Query them BEFORE reading spec files from disk.**
+
+### `k3d-knowledge` (Qdrant semantic search over all 35 specs)
+- **Tool**: `mcp__k3d-knowledge__qdrant-find`
+- **Use when**: You need to know what the specs say about any K3D concept (Galaxy Universe, House, TRM, sovereignty, RPN, Three Brain System, composed head, sleeptime, etc.)
+- **Contains**: All `docs/vocabulary/*.md` chunked by section (1319 points, 384-dim embeddings)
+- **Returns**: Relevant spec excerpts with source file paths — read the file only if you need more context
+- **Pattern**: `qdrant-find("What is the composed head pipeline?")` → get the answer without burning 10K tokens reading the full spec
+
+### `ollama-specialists` (delegate heavy thinking to local models)
+- **Tools**: `kimi_swarm`, `ask_coder`, `ask_cloud`, `plan_task`, `flesh_out_code`, `extract_facts`, `summarize`, `route_specialist`, `web_search`, `memory_harvest`, `mvcic`
+- **Use when**: You need implementation help, multi-angle analysis, code drafting, planning, or research — instead of burning your own context
+- **Standing directive from Daniel**: "Always dispatch ollama specialists instead of burning your tokens"
+- **Pattern**: Use `plan_task` before non-trivial implementation; use `kimi_swarm` for deep multi-angle analysis; use `ask_coder` for code drafts
+
+### Rule of Thumb
+1. **First**: `qdrant-find` to check what the specs already say
+2. **Second**: Delegate implementation/research to ollama specialists
+3. **Last resort**: Read full spec files from disk (only if MCP results are insufficient)
+
+---
+
 ## CRITICAL: Read Latest Documentation FIRST
 
-**BEFORE doing ANY work:**
+**BEFORE doing ANY work (after querying MCP):**
 
 1. **Read the architectural briefing:**
    - [docs/briefings/ARCHITECTURE_BRIEFING.md](docs/briefings/ARCHITECTURE_BRIEFING.md) (phase-agnostic, kernel inventory)
@@ -41,7 +65,7 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 
 2. **Read COMPLETELY** — Do NOT rely on IDE selections or snippets
 
-3. **THEN read these key specifications:**
+3. **THEN query specs via MCP or read directly if needed:**
    - [docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md](docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md) (runtime memory architecture)
    - [docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md](docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md) (foundational architecture)
    - [docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md) (SGI paradigm)
@@ -51,7 +75,7 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 4. **Check latest plans:**
    - TEMP/ for latest phase-specific specs (latest: `CLAUDE_COMPOSED_HEAD_CONVERGENCE_PLAN_03.10.2026.md`)
 
-**Why:** Partial reads cause sovereignty violations, architecture misunderstandings, and wasted work.
+**Why:** Partial reads cause sovereignty violations, architecture misunderstandings, and wasted work. The MCP layer exists so you don't burn tokens re-reading specs every session.
 
 ---
 

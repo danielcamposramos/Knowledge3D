@@ -60,6 +60,8 @@ def test_arc3_agent_routes_through_execute_task():
     assert call["task"]["expected_output"] == goal
     assert call["task"]["training_examples"] == train
     assert call["task"]["task_id"] == "arc3_live_0001"
+    assert len(call["task"]["query_embedding"]) == 64
+    assert any(abs(float(value)) > 1.0e-6 for value in call["task"]["query_embedding"][32:])
     assert call["task"]["query"].startswith("arc3 game frame")
     assert "adjacent cells" in call["task"]["query"]
     assert "action1" in call["task"]["query"]
@@ -67,6 +69,7 @@ def test_arc3_agent_routes_through_execute_task():
     assert "primary action" not in call["task"]["query"]
     assert "action move" not in call["task"]["query"]
     assert call["task"]["options"] == ACTION_NAMES
+    assert len(call["task"]["goal_embedding"]) == 64
     assert call["task"]["step_count"] == 0
     assert call["task"]["game_id"] == "ls20"
     assert call["task"]["levels_completed"] == 1

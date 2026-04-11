@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define BUILD_ROW_BYTES 176u
+#define BUILD_ROW_BYTES 384u
 
 extern "C" __global__ void catalog_build_decode(
     const unsigned char* __restrict__ build_rows,

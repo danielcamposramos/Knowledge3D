@@ -158,6 +158,8 @@ def test_seed_rule_upserts_live_route_capable_entry() -> None:
     assert live_entry["answer_eligible"] is True
     assert live_entry["metadata"]["action_index"] == 4
     assert live_entry["metadata"]["action_name"] == "ACTION5"
+    assert live_entry["metadata"]["query_anchor"] == "interact grey state shifted transformed"
+    assert live_entry["content"] == "interact state shifted transformed at grey surface"
     episode.close()
 
 
@@ -178,6 +180,29 @@ def test_seed_object_upserts_live_object_star() -> None:
     object_entries = [entry for entry in grammar_entries if str(entry.get("id", "")).startswith("arc3_object:ls20:color_7")]
     assert object_entries
     assert object_entries[-1]["metadata"]["behavior"] == "door"
+    assert object_entries[-1]["metadata"]["query_anchor"] == "orange door object terrain"
+    assert object_entries[-1]["content"] == "orange door object surface"
+    episode.close()
+
+
+def test_rule_anchor_uses_direction_color_and_valence() -> None:
+    kv = _FakeKnowledgeverse()
+    episode = ARC3EpisodeGalaxy("ls20", kv)
+
+    episode.seed_rule(
+        state="agent_adjacent_to_color_5",
+        action=1,
+        outcome="blocked",
+        confidence=0.8,
+        evidence_count=2,
+    )
+
+    grammar_entries = [entry for galaxy, entry in kv.galaxy_manager.entries if galaxy == "Grammar"]
+    rule_entries = [entry for entry in grammar_entries if str(entry.get("id", "")).startswith("arc3_rule:ls20:agent_adjacent_to_color_5:ACTION2")]
+    assert rule_entries
+    latest = rule_entries[-1]
+    assert latest["metadata"]["query_anchor"] == "south grey collision barrier impassable"
+    assert latest["content"] == "south collision barrier impassable at grey surface"
     episode.close()
 
 

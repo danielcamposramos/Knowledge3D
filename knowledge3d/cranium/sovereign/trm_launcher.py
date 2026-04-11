@@ -27,6 +27,8 @@ from .loader import (
     synchronize,
 )
 from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
+from knowledge3d.cranium.bridges.trm_step_fused_bridge import TRMStepFusedBridge
+from knowledge3d.cranium.kernels.ptx_compiler import compile_cuda_file
 
 
 def _ptr_value(ptr) -> int:
@@ -164,7 +166,7 @@ class TRMLauncher:
 
         if not self.use_rpn and not self.use_fused:
             if ptx_path is None:
-                ptx_path = str(Path(__file__).parent.parent / "ptx" / "trm_extensions.ptx")
+                ptx_path = str(self._ensure_legacy_ptx())
             self.ptx_path = ptx_path
             print(f"🔥 TRM Launcher: Loading sovereign PTX kernels from {ptx_path}")
             self._load_ptx_kernels()
@@ -214,8 +216,10 @@ class TRMLauncher:
         # Fused kernel
         self.kernel_fused = None
         self.kernel_recursive_fused = None
+        self._step_fused_bridge = None
         self.d_workspace = None
         if self.use_fused:
+            self._step_fused_bridge = TRMStepFusedBridge()
             fused_ptx = self._ensure_fused_ptx("trm_recursive_fused")
             if not fused_ptx.exists():
                 raise FileNotFoundError(f"Recursive fused TRM PTX not found: {fused_ptx}")
@@ -234,11 +238,13 @@ class TRMLauncher:
         source = ptx_dir / f"{stem}.cu"
         target = ptx_dir / f"{stem}.ptx"
         helper = cuda_dir / "trm_recursive_core.cuh"
+        launcher_file = Path(__file__).resolve()
         if target.exists():
             target_mtime = target.stat().st_mtime
             newest_source = max(
                 source.stat().st_mtime if source.exists() else 0.0,
                 helper.stat().st_mtime if helper.exists() else 0.0,
+                launcher_file.stat().st_mtime if launcher_file.exists() else 0.0,
             )
             if target_mtime >= newest_source:
                 return target
@@ -250,6 +256,8 @@ class TRMLauncher:
                 nvcc,
                 "-ptx",
                 "-arch=sm_86",
+                "-O3",
+                "-allow-unsupported-compiler",
                 "--compiler-bindir",
                 "/usr/bin/gcc-13",
                 "-o",
@@ -258,6 +266,26 @@ class TRMLauncher:
             ],
             check=True,
         )
+        return target
+
+    @staticmethod
+    def _ensure_legacy_ptx() -> Path:
+        ptx_dir = Path(__file__).parent.parent / "ptx"
+        source = ptx_dir / "trm_extensions.cu"
+        target = ptx_dir / "trm_extensions.ptx"
+        launcher_file = Path(__file__).resolve()
+        compiler_file = Path(__file__).resolve().parent.parent / "kernels" / "ptx_compiler.py"
+        if target.exists():
+            target_mtime = target.stat().st_mtime
+            newest_source = max(
+                source.stat().st_mtime if source.exists() else 0.0,
+                launcher_file.stat().st_mtime if launcher_file.exists() else 0.0,
+                compiler_file.stat().st_mtime if compiler_file.exists() else 0.0,
+            )
+            if target_mtime >= newest_source:
+                return target
+        ptx_text = compile_cuda_file(source, arch="sm_86", use_fast_math=False)
+        target.write_text(ptx_text, encoding="utf-8")
         return target
 
     # ------------------------------------------------------------------ #
@@ -335,16 +363,27 @@ class TRMLauncher:
             gpu_free(d_y_new)
 
     def cleanup(self) -> None:
-        gpu_free(self.d_temp)
-        gpu_free(self.d_hidden)
-        gpu_free(self.d_temp2)
-        gpu_free(self.d_hidden2)
+        if self.d_temp is not None:
+            gpu_free(self.d_temp)
+            self.d_temp = None
+        if self.d_hidden is not None:
+            gpu_free(self.d_hidden)
+            self.d_hidden = None
+        if self.d_temp2 is not None:
+            gpu_free(self.d_temp2)
+            self.d_temp2 = None
+        if self.d_hidden2 is not None:
+            gpu_free(self.d_hidden2)
+            self.d_hidden2 = None
         if self.d_zero_512 is not None:
             gpu_free(self.d_zero_512)
             self.d_zero_512 = None
         if self.d_workspace is not None:
             gpu_free(self.d_workspace)
             self.d_workspace = None
+        if self._step_fused_bridge is not None:
+            self._step_fused_bridge.cleanup()
+            self._step_fused_bridge = None
         if self._d_rpn_opcodes is not None:
             gpu_free(self._d_rpn_opcodes)
             self._d_rpn_opcodes = None
@@ -652,42 +691,68 @@ class TRMLauncher:
         n_steps: int,
         eps: float,
     ) -> Tuple[TRMVector, TRMVector]:
-        if self.kernel_recursive_fused is None or self.d_workspace is None:
+        if self._step_fused_bridge is None or self.d_workspace is None:
             raise RuntimeError("Fused backend not initialized")
+        self._step_fused_bridge.run_query_tick(
+            q_ptr=d_q,
+            y_ptr=d_y,
+            z_ptr=d_z,
+            W1_ptr=d_W1,
+            W2_ptr=d_W2,
+            W3_ptr=d_W3,
+            W4_ptr=d_W4,
+            z_new_ptr=d_z_new,
+            y_new_ptr=d_y_new,
+            workspace_ptr=self.d_workspace,
+            max_steps=n_steps,
+            epsilon=eps,
+            reset_runtime=True,
+        )
 
-        d_steps = gpu_malloc(ctypes.sizeof(ctypes.c_int32))
-        d_drift = gpu_malloc(ctypes.sizeof(ctypes.c_float))
+        y_final = HostTensorF32.zeros(512, 1)
+        z_final = HostTensorF32.zeros(512, 1)
+        _copy_device_to_host(y_final, d_y_new)
+        _copy_device_to_host(z_final, d_z_new)
+        return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_final)
 
-        try:
-            launch(
-                self.kernel_recursive_fused,
-                grid=(1, 1, 1),
-                block=(256, 1, 1),
-                params=[
-                    ctypes.c_uint64(d_q.value),
-                    ctypes.c_uint64(d_y.value),
-                    ctypes.c_uint64(d_z.value),
-                    ctypes.c_uint64(d_W1.value),
-                    ctypes.c_uint64(d_W2.value),
-                    ctypes.c_uint64(d_W3.value),
-                    ctypes.c_uint64(d_W4.value),
-                    ctypes.c_uint64(self.d_workspace.value),
-                    ctypes.c_uint64(d_steps.value),
-                    ctypes.c_uint64(d_drift.value),
-                    ctypes.c_int32(int(n_steps)),
-                    ctypes.c_float(float(eps)),
-                ],
-            )
-            synchronize()
-
-            y_final = HostTensorF32.zeros(512, 1)
-            z_final = HostTensorF32.zeros(512, 1)
-            _copy_device_to_host(y_final, d_y)
-            _copy_device_to_host(z_final, d_z)
-            return TRMVector.from_tensor(y_final), TRMVector.from_tensor(z_final)
-        finally:
-            gpu_free(d_steps)
-            gpu_free(d_drift)
+    def run_query_tick(
+        self,
+        *,
+        q_ptr,
+        y_ptr,
+        z_ptr,
+        W1_ptr,
+        W2_ptr,
+        W3_ptr,
+        W4_ptr,
+        z_new_ptr,
+        y_new_ptr,
+        workspace_ptr,
+        delta_time: float = 0.02,
+        tick: int | None = None,
+        max_steps: int = 6,
+        epsilon: float = 1e-4,
+        reset_runtime: bool = False,
+    ) -> dict[str, float | int]:
+        if self._step_fused_bridge is None:
+            raise RuntimeError("Fused backend not initialized")
+        return self._step_fused_bridge.run_query_tick(
+            q_ptr=q_ptr,
+            y_ptr=y_ptr,
+            z_ptr=z_ptr,
+            W1_ptr=W1_ptr,
+            W2_ptr=W2_ptr,
+            W3_ptr=W3_ptr,
+            W4_ptr=W4_ptr,
+            z_new_ptr=z_new_ptr,
+            y_new_ptr=y_new_ptr,
+            workspace_ptr=workspace_ptr,
+            delta_time=delta_time,
+            tick=tick,
+            max_steps=max_steps,
+            epsilon=epsilon,
+            reset_runtime=reset_runtime,
+        )
 
     def _init_rpn_buffers(self) -> None:
         pointer_layout: List[tuple[str, int, int]] = []

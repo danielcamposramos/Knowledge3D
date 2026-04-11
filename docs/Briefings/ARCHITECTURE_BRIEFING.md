@@ -6,6 +6,19 @@
 
 ---
 
+## For AI Agents: Query MCP Before Reading This File
+
+**Before burning context on the full briefing**, try querying the MCP infrastructure:
+
+- **`mcp__k3d-knowledge__qdrant-find`** — Semantic search over all 35 `docs/vocabulary/*.md` specs (1319 chunks). Returns relevant excerpts + source file paths for any K3D concept.
+- **`ollama-specialists`** — Delegate planning, code drafting, multi-angle review, and research to local Ollama models (`plan_task`, `ask_coder`, `kimi_swarm`, `flesh_out_code`, `summarize`, `extract_facts`, `web_search`, `route_specialist`, `ask_cloud`, `mvcic`, `memory_harvest`).
+
+**Standing directive from Daniel**: "Always dispatch ollama specialists instead of burning your tokens."
+
+Both servers run via streamable-http (ports 8501/8502) and are available to Claude Code, Codex, and Cline simultaneously. The briefing below remains the authoritative reference when MCP results are insufficient.
+
+---
+
 ## ===---===
 
 **Daniel's Message**:

@@ -10,31 +10,36 @@ from knowledge3d.cranium.sovereign import loader
 from knowledge3d.knowledgeverse.foundational_galaxy_builder import build_foundational_galaxy_table
 
 
-STAR_RECORD_BYTES = 256
+EMBEDDING_DIMS = 64
+STAR_RECORD_BYTES = 400
 STAR_EMBEDDING_OFFSET = 0
-STAR_GALAXY_ID_OFFSET = 128
-STAR_TYPE_OFFSET = 132
-STAR_SELECTION_ROLE_OFFSET = 136
-STAR_LAYER_ID_OFFSET = 140
-STAR_FLAGS_OFFSET = 144
-STAR_ANSWER_ELIGIBLE_OFFSET = 148
-STAR_SEMANTIC_POLARITY_OFFSET = 152
-STAR_SEMANTIC_FOCUS_OFFSET = 156
-STAR_SEMANTIC_MASS_OFFSET = 160
-STAR_ATTRACTIVE_PRIOR_OFFSET = 164
-STAR_REPULSIVE_PRIOR_OFFSET = 168
-STAR_ROUTE_POLICY_OFFSET = 172
-STAR_STAR_HASH_OFFSET = 176
-STAR_ROUTER_REF_COUNT_OFFSET = 184
-STAR_ROUTER_REFS_OFFSET = 188
-STAR_EXECUTOR_REF_COUNT_OFFSET = 196
-STAR_EXECUTOR_REFS_OFFSET = 200
-STAR_VALIDATOR_REF_COUNT_OFFSET = 208
-STAR_VALIDATOR_REFS_OFFSET = 212
-STAR_ANTI_PATTERN_REF_COUNT_OFFSET = 220
-STAR_ANTI_PATTERN_REFS_OFFSET = 224
-STAR_POSITION_OFFSET = 232
-STAR_VELOCITY_OFFSET = 244
+STAR_GALAXY_ID_OFFSET = 256
+STAR_TYPE_OFFSET = 260
+STAR_SELECTION_ROLE_OFFSET = 264
+STAR_LAYER_ID_OFFSET = 268
+STAR_FLAGS_OFFSET = 272
+STAR_ANSWER_ELIGIBLE_OFFSET = 276
+STAR_SEMANTIC_POLARITY_OFFSET = 280
+STAR_SEMANTIC_FOCUS_OFFSET = 284
+STAR_SEMANTIC_MASS_OFFSET = 288
+STAR_ATTRACTIVE_PRIOR_OFFSET = 292
+STAR_REPULSIVE_PRIOR_OFFSET = 296
+STAR_ROUTE_POLICY_OFFSET = 300
+STAR_STAR_HASH_OFFSET = 304
+STAR_ROUTER_REF_COUNT_OFFSET = 312
+STAR_ROUTER_REFS_OFFSET = 316
+STAR_EXECUTOR_REF_COUNT_OFFSET = 324
+STAR_EXECUTOR_REFS_OFFSET = 328
+STAR_VALIDATOR_REF_COUNT_OFFSET = 336
+STAR_VALIDATOR_REFS_OFFSET = 340
+STAR_ANTI_PATTERN_REF_COUNT_OFFSET = 348
+STAR_ANTI_PATTERN_REFS_OFFSET = 352
+STAR_POSITION_OFFSET = 360
+STAR_VELOCITY_OFFSET = 372
+STAR_META_RULE_ADDR_OFFSET = 384
+STAR_PROGRAM_FLAGS_OFFSET = 388
+STAR_PROGRAM_LENGTH_OFFSET = 392
+STAR_PROGRAM_OPCODE_COUNT_OFFSET = 396
 
 STAR_FLAG_ACTIVE = 0x01
 STAR_FLAG_LEARNABLE = 0x02
@@ -139,15 +144,22 @@ def _ref_slots(star: dict[str, Any], key: str) -> tuple[int, list[int]]:
     return min(ROLE_REF_LIMIT, len(list(star.get(key) or []))), refs[:ROLE_REF_LIMIT]
 
 
-def _embedding32(values: list[float] | tuple[float, ...] | Any) -> list[float]:
-    row = [float(value) for value in list(values or [])[:32]]
-    if len(row) < 32:
-        row.extend([0.0] * (32 - len(row)))
-    row = row[:32]
+def _embedding64(values: list[float] | tuple[float, ...] | Any) -> list[float]:
+    source = [float(value) for value in list(values or [])[:EMBEDDING_DIMS]]
+    row = list(source)
+    if 0 < len(source) < EMBEDDING_DIMS:
+        for index in range(len(source), EMBEDDING_DIMS):
+            a = source[index % len(source)]
+            b = source[(index * 7 + 3) % len(source)]
+            c = source[(index * 13 + 1) % len(source)]
+            row.append((0.60 * a) + (0.30 * b) - (0.10 * c))
+    if len(row) < EMBEDDING_DIMS:
+        row.extend([0.0] * (EMBEDDING_DIMS - len(row)))
+    row = row[:EMBEDDING_DIMS]
     norm = sum(value * value for value in row) ** 0.5
     if norm > 1.0e-6:
         row = [value / norm for value in row]
-    return row[:32]
+    return row[:EMBEDDING_DIMS]
 
 
 def _vector3(values: list[float] | tuple[float, ...] | Any) -> list[float]:
@@ -167,7 +179,7 @@ def _role_refs_for_embedding(star: dict[str, Any]) -> list[int]:
     return refs[:16]
 
 
-def compose_star_embedding(stars: list[dict[str, Any]], star_index: int, dim: int = 32) -> list[float]:
+def compose_star_embedding(stars: list[dict[str, Any]], star_index: int, dim: int = EMBEDDING_DIMS) -> list[float]:
     if star_index < 0 or star_index >= len(stars):
         return [0.0] * dim
     star = stars[star_index]
@@ -356,7 +368,12 @@ class GalaxyVRAMTable:
         self._load_role_array(self.anti_pattern_offsets_ptr, role_offsets["anti_pattern_refs"])
         self._load_role_array(self.anti_pattern_counts_ptr, role_counts["anti_pattern_refs"])
         self.star_count = count
-        self._host_stars = [dict(star) for star in stars[:count]]
+        normalized_host_stars: list[dict[str, Any]] = []
+        for star in stars[:count]:
+            record = dict(star)
+            record["embedding"] = _embedding64(record.get("embedding") or [])
+            normalized_host_stars.append(record)
+        self._host_stars = normalized_host_stars
         return count
 
     def _load_role_array(self, ptr, values: list[int]) -> None:
@@ -463,7 +480,7 @@ class GalaxyVRAMTable:
 
     def _pack_star(self, payload: bytearray, star_index: int, star: dict[str, Any]) -> None:
         base = int(star_index) * STAR_RECORD_BYTES
-        embedding = _embedding32(star.get("embedding") or [])
+        embedding = _embedding64(star.get("embedding") or [])
         router_count, router_refs = _ref_slots(star, "router_refs")
         executor_count, executor_refs = _ref_slots(star, "executor_refs")
         validator_count, validator_refs = _ref_slots(star, "validator_refs")
@@ -474,7 +491,7 @@ class GalaxyVRAMTable:
         star_hash = int(star.get("star_hash") or _fnv1a64(str(star.get("id") or star.get("name") or star_index)))
         position = _vector3(star.get("semantic_position") or [])
         velocity = _vector3(star.get("semantic_velocity") or [])
-        struct.pack_into("<32f", payload, base + STAR_EMBEDDING_OFFSET, *embedding)
+        struct.pack_into(f"<{EMBEDDING_DIMS}f", payload, base + STAR_EMBEDDING_OFFSET, *embedding)
         struct.pack_into("<I", payload, base + STAR_GALAXY_ID_OFFSET, int(galaxy_id) & 0xFFFFFFFF)
         struct.pack_into("<I", payload, base + STAR_TYPE_OFFSET, int(star.get("star_type", 0)))
         struct.pack_into("<I", payload, base + STAR_SELECTION_ROLE_OFFSET, _role_id(star.get("selection_role", 0)))
@@ -498,10 +515,14 @@ class GalaxyVRAMTable:
         struct.pack_into("<2I", payload, base + STAR_ANTI_PATTERN_REFS_OFFSET, *[int(value) & 0xFFFFFFFF for value in anti_refs])
         struct.pack_into("<3f", payload, base + STAR_POSITION_OFFSET, *position)
         struct.pack_into("<3f", payload, base + STAR_VELOCITY_OFFSET, *velocity)
+        struct.pack_into("<I", payload, base + STAR_META_RULE_ADDR_OFFSET, int(star.get("meta_rule_addr", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + STAR_PROGRAM_FLAGS_OFFSET, int(star.get("program_flags", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + STAR_PROGRAM_LENGTH_OFFSET, int(star.get("program_length", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + STAR_PROGRAM_OPCODE_COUNT_OFFSET, int(star.get("program_opcode_count", 0)) & 0xFFFFFFFF)
 
     def _unpack_star(self, payload: bytearray, star_index: int) -> dict[str, Any]:
         base = int(star_index) * STAR_RECORD_BYTES
-        embedding = list(struct.unpack_from("<32f", payload, base + STAR_EMBEDDING_OFFSET))
+        embedding = list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", payload, base + STAR_EMBEDDING_OFFSET))
         galaxy_id = struct.unpack_from("<I", payload, base + STAR_GALAXY_ID_OFFSET)[0]
         star_type = struct.unpack_from("<I", payload, base + STAR_TYPE_OFFSET)[0]
         selection_role_id = struct.unpack_from("<I", payload, base + STAR_SELECTION_ROLE_OFFSET)[0]
@@ -525,6 +546,10 @@ class GalaxyVRAMTable:
         anti_refs_raw = list(struct.unpack_from("<2I", payload, base + STAR_ANTI_PATTERN_REFS_OFFSET))
         semantic_position = list(struct.unpack_from("<3f", payload, base + STAR_POSITION_OFFSET))
         semantic_velocity = list(struct.unpack_from("<3f", payload, base + STAR_VELOCITY_OFFSET))
+        meta_rule_addr = struct.unpack_from("<I", payload, base + STAR_META_RULE_ADDR_OFFSET)[0]
+        program_flags = struct.unpack_from("<I", payload, base + STAR_PROGRAM_FLAGS_OFFSET)[0]
+        program_length = struct.unpack_from("<I", payload, base + STAR_PROGRAM_LENGTH_OFFSET)[0]
+        program_opcode_count = struct.unpack_from("<I", payload, base + STAR_PROGRAM_OPCODE_COUNT_OFFSET)[0]
         router_refs = [int(value) for value in router_refs_raw[:router_count] if value != STAR_NULL_REF]
         executor_refs = [int(value) for value in executor_refs_raw[:executor_count] if value != STAR_NULL_REF]
         validator_refs = [int(value) for value in validator_refs_raw[:validator_count] if value != STAR_NULL_REF]
@@ -554,6 +579,10 @@ class GalaxyVRAMTable:
             "component_refs": component_refs,
             "semantic_position": semantic_position,
             "semantic_velocity": semantic_velocity,
+            "meta_rule_addr": int(meta_rule_addr),
+            "program_flags": int(program_flags),
+            "program_length": int(program_length),
+            "program_opcode_count": int(program_opcode_count),
         }
 
 
@@ -573,7 +602,11 @@ __all__ = [
     "STAR_FLAG_LEARNABLE",
     "STAR_GALAXY_ID_OFFSET",
     "STAR_LAYER_ID_OFFSET",
+    "STAR_META_RULE_ADDR_OFFSET",
     "STAR_NULL_REF",
+    "STAR_PROGRAM_FLAGS_OFFSET",
+    "STAR_PROGRAM_LENGTH_OFFSET",
+    "STAR_PROGRAM_OPCODE_COUNT_OFFSET",
     "STAR_RECORD_BYTES",
     "STAR_ROUTE_POLICY_OFFSET",
     "STAR_REPULSIVE_PRIOR_OFFSET",

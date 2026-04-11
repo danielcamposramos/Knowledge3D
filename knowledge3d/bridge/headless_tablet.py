@@ -1,16 +1,29 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import re
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 import numpy as np
 
-from knowledge3d.cranium.actions import ACTION_BUFFER_DTYPE, ActionBuffer, ActionType
-
 from .memory_tablet import MemoryTablet
+
+_ACTION_TYPES_PATH = Path(__file__).resolve().parent.parent / "cranium" / "actions" / "action_types.py"
+_ACTION_TYPES_SPEC = importlib.util.spec_from_file_location("_k3d_action_types_direct", _ACTION_TYPES_PATH)
+if _ACTION_TYPES_SPEC is None or _ACTION_TYPES_SPEC.loader is None:
+    raise ImportError(f"unable_to_load_action_types:{_ACTION_TYPES_PATH}")
+_ACTION_TYPES_MODULE = sys.modules.get(str(_ACTION_TYPES_SPEC.name))
+if _ACTION_TYPES_MODULE is None:
+    _ACTION_TYPES_MODULE = importlib.util.module_from_spec(_ACTION_TYPES_SPEC)
+    sys.modules[str(_ACTION_TYPES_SPEC.name)] = _ACTION_TYPES_MODULE
+    _ACTION_TYPES_SPEC.loader.exec_module(_ACTION_TYPES_MODULE)
+ACTION_BUFFER_DTYPE = _ACTION_TYPES_MODULE.ACTION_BUFFER_DTYPE
+ActionBuffer = _ACTION_TYPES_MODULE.ActionBuffer
+ActionType = _ACTION_TYPES_MODULE.ActionType
 
 
 class CommandHandler(Protocol):
@@ -42,6 +55,38 @@ _SPECIALIST_CODES = {
     "grammar": 4,
     "any": 5,
 }
+
+TABLET_WORD_OFFSET_MUTATION_TYPE = 60
+TABLET_WORD_OFFSET_DATA = 61
+TABLET_WORD_OFFSET_RESERVED = 67
+TABLET_MUTATION_MATH_RESULT = 2
+
+
+@dataclass(frozen=True)
+class _MathOperands:
+    left: int = 0
+    right: int = 0
+    count: int = 0
+    operator_hint: int = 0
+
+
+def _extract_math_operands(query: str) -> _MathOperands:
+    text = str(query or "").strip()
+    match = re.search(r"(-?\d+)\s*([+\-*/^])\s*(-?\d+)", text)
+    if match is None:
+        return _MathOperands()
+    try:
+        left = int(match.group(1))
+        right = int(match.group(3))
+    except Exception:
+        return _MathOperands()
+    operator = str(match.group(2) or "")[:1]
+    return _MathOperands(
+        left=left,
+        right=right,
+        count=2,
+        operator_hint=ord(operator) if operator else 0,
+    )
 
 
 def _normalize_surface_kind(value: Any) -> str:
@@ -356,6 +401,17 @@ class TabletEnvelope:
             dtype=np.uint32,
         )
         buf.buffer["tablet_data"][0][:] = payload
+        if surface_kind == SURFACE_KIND_MATH:
+            operands = _extract_math_operands(self.query)
+            buf.buffer["tablet_reserved"][0][:] = np.array(
+                [
+                    operands.left & 0xFFFFFFFF,
+                    operands.right & 0xFFFFFFFF,
+                    operands.count & 0xFFFFFFFF,
+                    operands.operator_hint & 0xFFFFFFFF,
+                ],
+                dtype=np.uint32,
+            )
         return buf
 
 
@@ -760,15 +816,20 @@ class HeadlessTabletMPC:
         *,
         command_handler: CommandHandler | Callable[[dict[str, Any]], dict[str, Any]] | None = None,
         knowledgeverse: Any | None = None,
+        bridge: Any | None = None,
         storage_root: str | Path | None = None,
         tablet: MemoryTablet | None = None,
         enable_sublex: bool = False,
     ) -> None:
         self.tablet = tablet or MemoryTablet(enable_sublex=enable_sublex)
+        self._knowledgeverse = knowledgeverse
+        self._bridge = bridge
+        self._tick_seq = 0
         self._handler = command_handler or self._build_local_daemon_handler(
             knowledgeverse=knowledgeverse,
             storage_root=storage_root,
         )
+        self._resolve_sovereign_bridge()
 
     def _build_local_daemon_handler(
         self,
@@ -789,6 +850,298 @@ class HeadlessTabletMPC:
             return handler.handle_command(payload)  # type: ignore[return-value]
         return handler(payload)  # type: ignore[misc]
 
+    def _resolve_sovereign_bridge(self) -> Any | None:
+        if self._bridge is not None:
+            self._bind_bridge_query_runtime()
+            return self._bridge
+        kv = self._knowledgeverse
+        launcher = getattr(kv, "_trm", None)
+        bridge = getattr(launcher, "_step_fused_bridge", None)
+        if bridge is not None:
+            self._bridge = bridge
+            self._bind_bridge_query_runtime()
+        return self._bridge
+
+    def _bind_bridge_query_runtime(self) -> None:
+        bridge = self._bridge
+        kv = self._knowledgeverse
+        if bridge is None or kv is None or not hasattr(bridge, "bind_query_runtime_buffers"):
+            return
+        state_buffers = getattr(kv, "_trm_state_buffers", {}) or {}
+        weight_buffers = getattr(kv, "_trm_weight_buffers", {}) or {}
+        required_state = ("d_q", "d_y", "d_z", "d_z_new", "d_y_new", "d_workspace")
+        required_weights = ("W1", "W2", "W3", "W4")
+        if not all(name in state_buffers for name in required_state):
+            return
+        if not all(name in weight_buffers for name in required_weights):
+            return
+        bridge.bind_query_runtime_buffers(
+            q_ptr=state_buffers["d_q"],
+            y_ptr=state_buffers["d_y"],
+            z_ptr=state_buffers["d_z"],
+            W1_ptr=weight_buffers["W1"],
+            W2_ptr=weight_buffers["W2"],
+            W3_ptr=weight_buffers["W3"],
+            W4_ptr=weight_buffers["W4"],
+            z_new_ptr=state_buffers["d_z_new"],
+            y_new_ptr=state_buffers["d_y_new"],
+            workspace_ptr=state_buffers["d_workspace"],
+            q_input_ptr=state_buffers.get("d_q_input"),
+            matryoshka_bridge=getattr(kv, "_matryoshka_bridge", None),
+            matryoshka_weight_ptr=getattr(kv, "_trm_matryoshka_weight_buffer", None),
+        )
+        if hasattr(bridge, "bind_galaxy_table"):
+            runtime = getattr(kv, "_sovereign_hot_path", None)
+            star_table = getattr(runtime, "star_table", None)
+            star_count = int(getattr(star_table, "star_count", 0) or 0) if star_table is not None else 0
+            gpu_ptr = getattr(star_table, "gpu_ptr", None) if star_table is not None else None
+            if gpu_ptr is not None and star_count > 0:
+                host_stars = list(getattr(runtime, "_host_stars", None) or getattr(star_table, "_host_stars", []) or [])
+                bridge.bind_galaxy_table(
+                    gpu_ptr,
+                    star_count,
+                    embedding_dims=64,
+                    host_stars=[dict(star) for star in host_stars if isinstance(star, Mapping)],
+                )
+            program_table = getattr(runtime, "program_table", None)
+            program_ptr = getattr(program_table, "gpu_ptr", None) if program_table is not None else None
+            program_size = int(getattr(program_table, "size_bytes", 0) or 0) if program_table is not None else 0
+            if hasattr(bridge, "bind_program_table") and program_ptr is not None and program_size > 0:
+                bridge.bind_program_table(program_ptr, program_size)
+
+    @staticmethod
+    def _action_buffer_words(action_buffer: ActionBuffer) -> list[int]:
+        host = np.asarray(action_buffer.buffer)
+        return [int(value) for value in host.view(np.uint32).reshape(-1)[:72]]
+
+    @staticmethod
+    def _fallback_query_embedding(envelope: TabletEnvelope) -> list[float]:
+        digest = hashlib.sha512(
+            "|".join(
+                [
+                    _normalize_surface_kind(envelope.surface_kind),
+                    str(envelope.specialist),
+                    str(envelope.query),
+                ]
+            ).encode("utf-8")
+        ).digest()
+        values: list[float] = []
+        while len(values) < 512:
+            for byte in digest:
+                values.append((float(byte) / 127.5) - 1.0)
+                if len(values) >= 512:
+                    break
+            digest = hashlib.sha512(digest).digest()
+        return values
+
+    def _query_embedding_for_envelope(self, envelope: TabletEnvelope) -> list[float]:
+        for key in ("query_embedding_512", "query_embedding", "embedding"):
+            value = envelope.metadata.get(key)
+            if value is not None:
+                return [float(item) for item in list(value)]
+        kv = self._knowledgeverse
+        embed = getattr(kv, "_embed_query_gpu", None)
+        if callable(embed):
+            return [float(value) for value in list(embed(envelope.query, task=dict(envelope.task)))]
+        return self._fallback_query_embedding(envelope)
+
+    def _decode_bridge_top_galaxies(self, y_new_vector: list[float]) -> dict[str, Any]:
+        kv = self._knowledgeverse
+        decoder = getattr(kv, "_decode_trm_galaxy_distribution", None)
+        order_fn = getattr(kv, "_current_live_galaxy_order", None)
+        if not callable(decoder) or not callable(order_fn) or not y_new_vector:
+            return {}
+        try:
+            logits, distribution, decoder_source = decoder(y_new_vector)
+            galaxy_order = list(order_fn())
+        except Exception:
+            return {}
+        top_indexes = sorted(
+            range(min(len(distribution), len(galaxy_order))),
+            key=lambda index: float(distribution[index]),
+            reverse=True,
+        )[:3]
+        return {
+            "decoder_source": str(decoder_source),
+            "y_new_top3_galaxies": [
+                {
+                    "galaxy": str(galaxy_order[index]),
+                    "weight": float(distribution[index]),
+                    "logit": float(logits[index]) if index < len(logits) else 0.0,
+                }
+                for index in top_indexes
+            ],
+        }
+
+    def _materialized_answer_from_star(
+        self,
+        bridge_result: Mapping[str, Any],
+        envelope: TabletEnvelope,
+    ) -> dict[str, Any]:
+        if not bool(bridge_result.get("answer_materialized")):
+            return {
+                "answer_materialized": False,
+                "failure_code": str(bridge_result.get("failure_code") or "not_materialized_from_y_new_yet"),
+            }
+        star = bridge_result.get("top_star")
+        star_payload = dict(star) if isinstance(star, Mapping) else {}
+        metadata = star_payload.get("metadata") if isinstance(star_payload.get("metadata"), Mapping) else {}
+
+        answer_text = ""
+        for value in (
+            metadata.get("answer_text"),
+            metadata.get("resolved_answer"),
+            metadata.get("boxed_answer"),
+            metadata.get("definition"),
+            star_payload.get("answer_text"),
+            star_payload.get("answer"),
+            star_payload.get("response"),
+            star_payload.get("definition"),
+            star_payload.get("content"),
+            star_payload.get("name"),
+            star_payload.get("id"),
+        ):
+            text = _normalise_text_answer(value)
+            if text and not _looks_like_internal_route_label(text):
+                answer_text = text
+                break
+
+        options = [str(option) for option in list(envelope.metadata.get("options") or []) if str(option).strip()]
+        answer_choice = ""
+        if options and answer_text:
+            for option in options:
+                if _normalise_text_answer(option) == answer_text:
+                    answer_choice = option
+                    break
+
+        output_grid = metadata.get("output_grid", star_payload.get("output_grid"))
+        if not isinstance(output_grid, list):
+            output_grid = None
+
+        action_index = None
+        action_name = ""
+        raw_index = metadata.get("action_index", star_payload.get("action_index"))
+        try:
+            if raw_index is not None:
+                action_index = int(raw_index)
+        except Exception:
+            action_index = None
+        action_name = _normalise_text_answer(metadata.get("action_name", star_payload.get("action_name")))
+        numeric_answer = _numeric_form(answer_text)
+        answer_materialized = bool(answer_text or answer_choice or output_grid is not None or action_index is not None or action_name)
+        return {
+            "answer_materialized": answer_materialized,
+            "failure_code": "" if answer_materialized else "top_star_has_no_materialized_answer",
+            "answer_text": answer_text,
+            "numeric_answer": numeric_answer,
+            "answer_choice": answer_choice,
+            "output_grid": output_grid,
+            "action_index": action_index,
+            "action_name": action_name,
+            "top_star": star_payload,
+        }
+
+    def _materialize_from_action_buffer(
+        self,
+        *,
+        bridge_result: Mapping[str, Any],
+        action_words: list[list[int]],
+        envelope: TabletEnvelope,
+    ) -> dict[str, Any]:
+        first_words = list(action_words[0]) if action_words else []
+        action_type_value = int(first_words[0]) if first_words else int(ActionType.NO_ACTION.value)
+        try:
+            action_type_name = ActionType(action_type_value).name
+        except ValueError:
+            action_type_name = ActionType.NO_ACTION.name
+        y_new = [float(value) for value in list(bridge_result.get("y_new_vector_512") or [])]
+        decode_meta = self._decode_bridge_top_galaxies(y_new)
+        action_buffer_numeric_answer = None
+        action_buffer_top_star = {}
+        action_buffer_answer_materialized = False
+        if (
+            action_type_value == int(ActionType.UPDATE_TABLET.value)
+            and len(first_words) >= (TABLET_WORD_OFFSET_DATA + 6)
+            and int(first_words[TABLET_WORD_OFFSET_DATA + 5]) == 1
+        ):
+            action_buffer_numeric_answer = int(np.int32(first_words[TABLET_WORD_OFFSET_DATA]))
+            action_buffer_answer_materialized = True
+            top_star_idx = int(first_words[TABLET_WORD_OFFSET_DATA + 1])
+            if 0 <= top_star_idx:
+                top_star = bridge_result.get("top_star")
+                if isinstance(top_star, Mapping):
+                    action_buffer_top_star = dict(top_star)
+        answer_packet = self._materialized_answer_from_star(bridge_result, envelope)
+        if action_buffer_answer_materialized:
+            answer_packet = {
+                "answer_materialized": True,
+                "failure_code": "",
+                "answer_text": str(action_buffer_numeric_answer),
+                "numeric_answer": int(action_buffer_numeric_answer),
+                "answer_choice": "",
+                "output_grid": None,
+                "action_index": None,
+                "action_name": "",
+                "top_star": dict(action_buffer_top_star),
+            }
+        route_payload = envelope.to_route_payload(use_enriched=True)
+        route = {
+            "specialist": str(envelope.specialist),
+            "domain": str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+            "galaxy_names": list(envelope.galaxies),
+            "route_family": _normalize_surface_kind(envelope.surface_kind),
+            "runtime": "tablet_bridge_ring",
+        }
+        task_result = {
+            "status": "ok",
+            "runtime": "tablet_bridge_ring_query",
+            "program_type": "trm_step_fused_submit_query",
+            "gpu_execution": True,
+            "answer_kind": "embedding",
+            "answer_materialized": bool(answer_packet.get("answer_materialized")),
+            "answer_text": str(answer_packet.get("answer_text") or ""),
+            "numeric_answer": answer_packet.get("numeric_answer"),
+            "answer_choice": str(answer_packet.get("answer_choice") or ""),
+            "output_grid": answer_packet.get("output_grid"),
+            "action_index": answer_packet.get("action_index"),
+            "action_name": str(answer_packet.get("action_name") or ""),
+            "failure_code": str(answer_packet.get("failure_code") or ""),
+            "trm_recursion_steps": int(bridge_result.get("steps", 0) or 0),
+            "trm_drift": float(bridge_result.get("drift", 0.0) or 0.0),
+            "trm_latency_us": float(bridge_result.get("trm_latency_us", 0.0) or 0.0),
+            "query_embedding_512": list(bridge_result.get("query_embedding_512") or []),
+            "y_new_vector_512": y_new,
+            "action_type": action_type_name,
+            "action_buffer_words": first_words,
+            "ring_event_payload": int(bridge_result.get("ring_event_payload", 0) or 0),
+            "top_star_idx": int(bridge_result.get("top_star_idx", -1) or -1),
+            "top_star_score": float(bridge_result.get("top_star_score", 0.0) or 0.0),
+            "top_star_galaxy_id": int(bridge_result.get("top_star_galaxy_id", 0) or 0),
+            "top_star_role": int(bridge_result.get("top_star_role", 0) or 0),
+            "top_star_hash": int(bridge_result.get("top_star_hash", 0) or 0),
+            "top_star": dict(answer_packet.get("top_star") or {}),
+            "route": route,
+            **decode_meta,
+        }
+        if task_result["answer_materialized"]:
+            if task_result["output_grid"] is not None:
+                task_result["answer_kind"] = "grid"
+            elif task_result["action_index"] is not None or task_result["action_name"]:
+                task_result["answer_kind"] = "action"
+            elif task_result["answer_choice"]:
+                task_result["answer_kind"] = "choice"
+            elif task_result["numeric_answer"] is not None:
+                task_result["answer_kind"] = "numeric"
+            else:
+                task_result["answer_kind"] = "text"
+        return {
+            "status": "ok",
+            "route": route,
+            "route_payload": route_payload,
+            "task_result": task_result,
+            "bridge_result": dict(bridge_result),
+        }
+
     def submit(self, envelope: TabletEnvelope, *, use_enriched: bool = True) -> dict[str, Any]:
         self.tablet.prepare_headless_context(
             user_lang=envelope.user_lang,
@@ -797,6 +1150,38 @@ class HeadlessTabletMPC:
         route_payload = envelope.to_route_payload(use_enriched=use_enriched)
         action_buffer = envelope.to_action_buffer()
         mutation_type, payload_words = action_buffer.extract_tablet_mutation()
+        bridge = self._resolve_sovereign_bridge()
+        if bridge is not None and hasattr(bridge, "submit_query"):
+            self._tick_seq += 1
+            action_words = self._action_buffer_words(action_buffer)
+            bridge_result = bridge.submit_query(
+                self._query_embedding_for_envelope(envelope),
+                action_buffer_words=action_words,
+                delta_time=0.02,
+                tick=self._tick_seq,
+            )
+            action_buffer_words = bridge_result.get("action_buffers") or []
+            response = self._materialize_from_action_buffer(
+                bridge_result=bridge_result,
+                action_words=action_buffer_words,
+                envelope=envelope,
+            )
+            emitted = TabletEmit.emit(envelope, response)
+            return {
+                "envelope": envelope,
+                "route_payload": route_payload,
+                "response": response,
+                "raw_response": response,
+                "emitted": emitted,
+                "tablet_contract": {
+                    "action_type": action_buffer.get_action_type().name,
+                    "mutation_type": int(mutation_type),
+                    "payload_words": payload_words.tolist(),
+                    "surface_kind": _normalize_surface_kind(envelope.surface_kind),
+                    "sovereign_path": "tablet_bridge_ring",
+                    "output_action_type": response["task_result"]["action_type"],
+                },
+            }
         raw_response = self._handle_command(route_payload)
         response = _flatten_route_response(raw_response)
         emitted = TabletEmit.emit(envelope, response)

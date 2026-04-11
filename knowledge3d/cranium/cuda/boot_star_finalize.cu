@@ -2,48 +2,56 @@
 
 #include "device_functions.cuh"
 
-#define RAW_CATALOG_INPUT_ENTRY_BYTES        176
-#define FINAL_CATALOG_INPUT_ENTRY_BYTES      152
+#define RAW_CATALOG_INPUT_ENTRY_BYTES        384
+#define FINAL_CATALOG_INPUT_ENTRY_BYTES      360
 
-#define FINAL_STAR_EMBEDDING16_OFFSET          0
-#define FINAL_STAR_GALAXY_ID_OFFSET           64
-#define FINAL_STAR_TYPE_OFFSET                68
-#define FINAL_STAR_SELECTION_ROLE_OFFSET      72
-#define FINAL_STAR_LAYER_ID_OFFSET            76
-#define FINAL_STAR_FLAGS_OFFSET               80
-#define FINAL_STAR_ANSWER_ELIGIBLE_OFFSET     84
-#define FINAL_STAR_SEMANTIC_POLARITY_OFFSET   88
-#define FINAL_STAR_SEMANTIC_FOCUS_OFFSET      92
-#define FINAL_STAR_SEMANTIC_MASS_OFFSET       96
-#define FINAL_STAR_ATTRACTIVE_PRIOR_OFFSET   100
-#define FINAL_STAR_REPULSIVE_PRIOR_OFFSET    104
-#define FINAL_STAR_ROUTE_POLICY_OFFSET       108
-#define FINAL_STAR_HASH_OFFSET               112
-#define FINAL_STAR_POSITION_OFFSET           120
+#define FINAL_STAR_EMBEDDING64_OFFSET          0
+#define FINAL_STAR_GALAXY_ID_OFFSET          256
+#define FINAL_STAR_TYPE_OFFSET               260
+#define FINAL_STAR_SELECTION_ROLE_OFFSET     264
+#define FINAL_STAR_LAYER_ID_OFFSET           268
+#define FINAL_STAR_FLAGS_OFFSET              272
+#define FINAL_STAR_ANSWER_ELIGIBLE_OFFSET    276
+#define FINAL_STAR_SEMANTIC_POLARITY_OFFSET  280
+#define FINAL_STAR_SEMANTIC_FOCUS_OFFSET     284
+#define FINAL_STAR_SEMANTIC_MASS_OFFSET      288
+#define FINAL_STAR_ATTRACTIVE_PRIOR_OFFSET   292
+#define FINAL_STAR_REPULSIVE_PRIOR_OFFSET    296
+#define FINAL_STAR_ROUTE_POLICY_OFFSET       300
+#define FINAL_STAR_HASH_OFFSET               304
+#define FINAL_STAR_POSITION_OFFSET           312
+#define FINAL_STAR_META_RULE_ADDR_OFFSET     324
+#define FINAL_STAR_PROGRAM_FLAGS_OFFSET      328
+#define FINAL_STAR_PROGRAM_LENGTH_OFFSET     332
+#define FINAL_STAR_PROGRAM_OPCODE_COUNT_OFFSET 336
 
-#define RAW_EMBEDDING16_OFFSET                 0
-#define RAW_GALAXY_ID_OFFSET                  64
-#define RAW_TYPE_OFFSET                       68
-#define RAW_SELECTION_ROLE_OFFSET             72
-#define RAW_LAYER_ID_OFFSET                   76
-#define RAW_FLAGS_OFFSET                      80
-#define RAW_ANSWER_ELIGIBLE_OFFSET            84
-#define RAW_SEMANTIC_POLARITY_OFFSET          88
-#define RAW_SEMANTIC_FOCUS_OFFSET             92
-#define RAW_SEMANTIC_MASS_OFFSET              96
-#define RAW_ATTRACTIVE_PRIOR_OFFSET          100
-#define RAW_REPULSIVE_PRIOR_OFFSET           104
-#define RAW_CONFIDENCE_OFFSET                108
-#define RAW_ROUTE_POLICY_FLAGS_OFFSET        112
-#define RAW_BRANCH_TOPK_OFFSET               116
-#define RAW_EXPLICIT_MASK_OFFSET             120
-#define RAW_ROUTER_REF_HINT_COUNT_OFFSET     124
-#define RAW_EXECUTOR_REF_HINT_COUNT_OFFSET   128
-#define RAW_VALIDATOR_REF_HINT_COUNT_OFFSET  132
-#define RAW_ANTI_REF_HINT_COUNT_OFFSET       136
-#define RAW_STAR_HASH_OFFSET                 140
-#define RAW_DOMAIN_HASH_OFFSET               148
-#define RAW_SUBJECT_HASH_OFFSET              152
+#define RAW_EMBEDDING64_OFFSET                 0
+#define RAW_GALAXY_ID_OFFSET                 256
+#define RAW_TYPE_OFFSET                      260
+#define RAW_SELECTION_ROLE_OFFSET            264
+#define RAW_LAYER_ID_OFFSET                  268
+#define RAW_FLAGS_OFFSET                     272
+#define RAW_ANSWER_ELIGIBLE_OFFSET           276
+#define RAW_SEMANTIC_POLARITY_OFFSET         280
+#define RAW_SEMANTIC_FOCUS_OFFSET            284
+#define RAW_SEMANTIC_MASS_OFFSET             288
+#define RAW_ATTRACTIVE_PRIOR_OFFSET          292
+#define RAW_REPULSIVE_PRIOR_OFFSET           296
+#define RAW_CONFIDENCE_OFFSET                300
+#define RAW_ROUTE_POLICY_FLAGS_OFFSET        304
+#define RAW_BRANCH_TOPK_OFFSET               308
+#define RAW_EXPLICIT_MASK_OFFSET             312
+#define RAW_ROUTER_REF_HINT_COUNT_OFFSET     316
+#define RAW_EXECUTOR_REF_HINT_COUNT_OFFSET   320
+#define RAW_VALIDATOR_REF_HINT_COUNT_OFFSET  324
+#define RAW_ANTI_REF_HINT_COUNT_OFFSET       328
+#define RAW_META_RULE_ADDR_OFFSET            332
+#define RAW_PROGRAM_FLAGS_OFFSET             336
+#define RAW_PROGRAM_LENGTH_OFFSET            340
+#define RAW_PROGRAM_OPCODE_COUNT_OFFSET      344
+#define RAW_STAR_HASH_OFFSET                 348
+#define RAW_DOMAIN_HASH_OFFSET               356
+#define RAW_SUBJECT_HASH_OFFSET              360
 
 #define RAW_EXPLICIT_POLARITY_BIT   0x01u
 #define RAW_EXPLICIT_FOCUS_BIT      0x02u
@@ -99,8 +107,8 @@ extern "C" __global__ void boot_star_finalize(
     unsigned char* dst = finalized_input + (i * FINAL_CATALOG_INPUT_ENTRY_BYTES);
 
     #pragma unroll
-    for (int d = 0; d < 16; ++d) {
-        write_f32(dst, FINAL_STAR_EMBEDDING16_OFFSET + (d * 4), raw_f32(src, RAW_EMBEDDING16_OFFSET + (d * 4)));
+    for (int d = 0; d < GPU_TASK_EMBED_DIMS; ++d) {
+        write_f32(dst, FINAL_STAR_EMBEDDING64_OFFSET + (d * 4), raw_f32(src, RAW_EMBEDDING64_OFFSET + (d * 4)));
     }
 
     const unsigned int role_id = raw_u32(src, RAW_SELECTION_ROLE_OFFSET);
@@ -167,4 +175,8 @@ extern "C" __global__ void boot_star_finalize(
     write_f32(dst, FINAL_STAR_POSITION_OFFSET + 0u, device_finite_or_default(raw_f32(src, RAW_DOMAIN_HASH_OFFSET), 0.0f));
     write_f32(dst, FINAL_STAR_POSITION_OFFSET + 4u, device_finite_or_default(raw_f32(src, RAW_SUBJECT_HASH_OFFSET), 0.0f));
     write_f32(dst, FINAL_STAR_POSITION_OFFSET + 8u, position_z);
+    write_u32(dst, FINAL_STAR_META_RULE_ADDR_OFFSET, raw_u32(src, RAW_META_RULE_ADDR_OFFSET));
+    write_u32(dst, FINAL_STAR_PROGRAM_FLAGS_OFFSET, raw_u32(src, RAW_PROGRAM_FLAGS_OFFSET));
+    write_u32(dst, FINAL_STAR_PROGRAM_LENGTH_OFFSET, raw_u32(src, RAW_PROGRAM_LENGTH_OFFSET));
+    write_u32(dst, FINAL_STAR_PROGRAM_OPCODE_COUNT_OFFSET, raw_u32(src, RAW_PROGRAM_OPCODE_COUNT_OFFSET));
 }

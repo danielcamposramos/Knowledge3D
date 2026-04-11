@@ -28,7 +28,13 @@ def _resolve_host_compiler() -> str | None:
     return None
 
 
-def compile_cuda_file(file_path: str | Path, *, arch: str = "sm_86") -> str:
+def compile_cuda_file(
+    file_path: str | Path,
+    *,
+    arch: str = "sm_86",
+    use_fast_math: bool = True,
+    extra_nvcc_flags: list[str] | None = None,
+) -> str:
     """Compile a CUDA source file to PTX text.
 
     Host-control `.cu` sources without device entrypoints are returned as source
@@ -54,9 +60,12 @@ def compile_cuda_file(file_path: str | Path, *, arch: str = "sm_86") -> str:
             "--ptx",
             f"-arch={arch}",
             "-O3",
-            "--use_fast_math",
             "-allow-unsupported-compiler",
         ]
+        if use_fast_math:
+            cmd.append("--use_fast_math")
+        if extra_nvcc_flags:
+            cmd.extend(extra_nvcc_flags)
         if host_compiler:
             cmd.extend(["-ccbin", host_compiler])
         cmd.extend([

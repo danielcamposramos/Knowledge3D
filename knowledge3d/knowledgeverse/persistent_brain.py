@@ -14,9 +14,11 @@ from typing import Any
 from knowledge3d.cranium.sovereign import loader
 
 
-BRAIN_REASONING_STATE_BYTES = 32 * 4
-BRAIN_CHAIN_STATES_BYTES = 9 * 32 * 4
-BRAIN_PREV_FRAME_BYTES = 32 * 4
+EMBEDDING_DIMS = 64
+
+BRAIN_REASONING_STATE_BYTES = EMBEDDING_DIMS * 4
+BRAIN_CHAIN_STATES_BYTES = 9 * EMBEDDING_DIMS * 4
+BRAIN_PREV_FRAME_BYTES = EMBEDDING_DIMS * 4
 BRAIN_ACTION_RING_BYTES = 7
 BRAIN_ACTION_RING_LEN_BYTES = 1
 BRAIN_TERNARY_SIGNAL_BYTES = 1
@@ -97,12 +99,12 @@ class PersistentBrainState:
 
     def read_state(self) -> dict[str, Any]:
         data = self.read_raw()
-        reasoning = list(struct.unpack_from("<32f", data, BRAIN_REASONING_OFFSET))
+        reasoning = list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", data, BRAIN_REASONING_OFFSET))
         chains = [
-            list(struct.unpack_from("<32f", data, BRAIN_CHAINS_OFFSET + (chain * BRAIN_REASONING_STATE_BYTES)))
+            list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", data, BRAIN_CHAINS_OFFSET + (chain * BRAIN_REASONING_STATE_BYTES)))
             for chain in range(9)
         ]
-        prev_frame = list(struct.unpack_from("<32f", data, BRAIN_PREV_FRAME_OFFSET))
+        prev_frame = list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", data, BRAIN_PREV_FRAME_OFFSET))
         specialist_trace = list(struct.unpack_from("<9f", data, BRAIN_SPECIALIST_TRACE_OFFSET))
         trm_q = list(struct.unpack_from("<512f", data, BRAIN_TRM_Q_OFFSET))
         trm_y = list(struct.unpack_from("<512f", data, BRAIN_TRM_Y_OFFSET))

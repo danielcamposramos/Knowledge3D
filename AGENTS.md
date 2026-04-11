@@ -2,14 +2,29 @@
 
 This repository uses AI partners (both external AI assistants and internal Synthetic Users) to collaborate on development tasks. All contributors, both human and AI, must align their work with the official project plan.
 
+## MCP Infrastructure — USE THIS FIRST (All Agents)
+
+**Two MCP servers run locally. Query them BEFORE reading spec files from disk — save your context.**
+
+- **`k3d-knowledge`** — Qdrant semantic search over all 35 `docs/vocabulary/*.md` specs (1319 chunked points). Tool: `mcp__k3d-knowledge__qdrant-find`. Pattern: `qdrant-find("What does the spec say about X?")` → returns relevant excerpts + source paths.
+- **`ollama-specialists`** — Delegate implementation, planning, research, and multi-angle analysis to local Ollama models. Tools include `kimi_swarm`, `ask_coder`, `plan_task`, `flesh_out_code`, `extract_facts`, `summarize`, `web_search`, `route_specialist`, `ask_cloud`, `mvcic`, `memory_harvest`.
+- **Standing directive from Daniel**: "Always dispatch ollama specialists instead of burning your tokens."
+
+**Workflow**: `qdrant-find` spec lookups → `plan_task` / `ask_coder` for implementation → read full files only if MCP results are insufficient.
+
+Both MCP servers are available to Claude Code, Codex, and Cline via streamable-http transport (ports 8501/8502). Config lives in `/home/daniel/.claude/settings.json`, `/home/daniel/.codex/config.toml`, and Cline's `cline_mcp_settings.json`. Launch script: `/home/daniel/.claude/launch_mcp_containers.sh`.
+
+---
+
 ## Quick Start for AI Assistants
 
 If you're an AI assistant joining this project:
 
-1. **Read First**: [docs/briefings/ARCHITECTURE_BRIEFING.md](docs/briefings/ARCHITECTURE_BRIEFING.md) -- Phase-agnostic architectural overview with kernel inventory
-2. **Architecture role**: [CLAUDE.md](CLAUDE.md) -- Architecture partner guide (design, specs, reviews)
-3. **Implementation role**: [CODEX.md](CODEX.md) -- Implementation lead guide (code, tests, benchmarks)
-4. **Environment-Specific**: [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- GPU setup, conda envs, CUDA_VISIBLE_DEVICES
+1. **Query MCP first**: `qdrant-find` is faster and cheaper than reading files. Use it before opening any spec.
+2. **Read First**: [docs/briefings/ARCHITECTURE_BRIEFING.md](docs/briefings/ARCHITECTURE_BRIEFING.md) -- Phase-agnostic architectural overview with kernel inventory
+3. **Architecture role**: [CLAUDE.md](CLAUDE.md) -- Architecture partner guide (design, specs, reviews)
+4. **Implementation role**: [CODEX.md](CODEX.md) -- Implementation lead guide (code, tests, benchmarks)
+5. **Environment-Specific**: [docs/ENV_POLICY.md](docs/ENV_POLICY.md) -- GPU setup, conda envs, CUDA_VISIBLE_DEVICES
 
 These documents provide the foundational understanding of:
 - **Memory Palace paradigm**: House = external shared reality (Method of Loci), Galaxy = internal AI brain

@@ -151,6 +151,82 @@ def _detect_gpu_count() -> int:
         return 0
 
 
+_ACTION_DIRECTION = {
+    "ACTION1": "north",
+    "ACTION2": "south",
+    "ACTION3": "west",
+    "ACTION4": "east",
+    "ACTION5": "interact",
+    "ACTION6": "reset",
+    "ACTION7": "wait",
+}
+
+_OUTCOME_VALENCE = {
+    "blocked": "collision barrier impassable",
+    "death": "hazard lethal destroyed",
+    "moved": "traversal clear passage",
+    "neutral": "stationary unchanged",
+    "level_complete": "goal reached victory",
+    "avoid_blocked": "alternative bypass redirect",
+    "avoid_death": "escape survival retreat",
+    "interact_probe": "probe interact inspect",
+    "frame_changed": "state shifted transformed",
+}
+
+_COLOR_SEMANTIC = {
+    0: "black",
+    1: "blue",
+    2: "red",
+    3: "green",
+    4: "yellow",
+    5: "grey",
+    6: "magenta",
+    7: "orange",
+    8: "cyan",
+    9: "maroon",
+    10: "lime",
+    11: "pink",
+    12: "teal",
+}
+
+
+def _semantic_color_name(color: int | None) -> str:
+    if not isinstance(color, int):
+        return "unknown"
+    return _COLOR_SEMANTIC.get(int(color), f"color{int(color)}")
+
+
+def _condition_color_value(condition: str) -> int | None:
+    marker = "color_"
+    text = str(condition or "").strip().lower()
+    if marker not in text:
+        return None
+    suffix = text.split(marker, 1)[1]
+    token: list[str] = []
+    for char in suffix:
+        if char.isdigit() or (char == "-" and not token):
+            token.append(char)
+            continue
+        break
+    if not token:
+        return None
+    try:
+        return int("".join(token))
+    except Exception:
+        return None
+
+
+def _semantic_direction(action_name: str) -> str:
+    return _ACTION_DIRECTION.get(str(action_name or "").strip().upper(), str(action_name or "").strip().lower())
+
+
+def _semantic_valence(predicted_outcome: str) -> str:
+    normalized = str(predicted_outcome or "").strip().lower()
+    if not normalized:
+        return "stationary unchanged"
+    return _OUTCOME_VALENCE.get(normalized, normalized.replace("_", " "))
+
+
 class ARC3EpisodeGalaxy:
     """VRAM-era episodic memory controller for ARC-3 sessions."""
 
@@ -197,19 +273,16 @@ class ARC3EpisodeGalaxy:
             return None
         condition_tokens = condition.replace("_", " ").strip()
         action_label = action_name
-        query_anchor = (
-            f"arc3 game rule {condition_tokens} {action_name.lower()} {predicted_outcome} "
-            f"answer action episode rule live gameplay"
-        ).strip()
+        direction = _semantic_direction(action_name)
+        color_name = _semantic_color_name(_condition_color_value(condition))
+        valence = _semantic_valence(predicted_outcome)
+        query_anchor = f"{direction} {color_name} {valence}".strip()
         entry = {
             "id": f"arc3_rule:{self.game_id}:{condition}:{action_name}",
             "name": f"ARC3 Rule {condition_tokens} -> {action_name}",
             "domain": "arc3_game_rule",
             "category": "game_rule",
-            "content": (
-                f"arc3 game rule when {condition_tokens} then {action_name.lower()} "
-                f"predicts {predicted_outcome}"
-            ).strip(),
+            "content": f"{direction} {valence} at {color_name} surface".strip(),
             "description": (
                 f"Live ARC-3 episode rule for {self.game_id}: {condition_tokens} -> {action_name}"
             ).strip(),
@@ -360,10 +433,10 @@ class ARC3EpisodeGalaxy:
         evidence = max(1, int(record.get("evidence_count", 0) or 0))
         confidence = float(record.get("confidence", 0.0) or 0.0)
         name = f"ARC3 Object color {int(color)}"
-        content = (
-            f"arc3 object color {int(color)} behaves as {behavior} "
-            f"evidence {int(evidence)} confidence {float(confidence):.3f}"
-        )
+        color_name = _semantic_color_name(int(color))
+        behavior_tokens = behavior.replace("_", " ").strip()
+        query_anchor = f"{color_name} {behavior_tokens} object terrain".strip()
+        content = f"{color_name} {behavior_tokens} object surface".strip()
         entry = {
             "id": f"arc3_object:{self.game_id}:color_{int(color)}",
             "name": name,
@@ -392,6 +465,7 @@ class ARC3EpisodeGalaxy:
                 "death_count": int(record.get("death_count", 0) or 0),
                 "reward_count": int(record.get("reward_count", 0) or 0),
                 "confidence": float(confidence),
+                "query_anchor": query_anchor,
                 "answer_kind": "state",
             },
         }
@@ -399,10 +473,10 @@ class ARC3EpisodeGalaxy:
             entry,
             {
                 "route_family": "GAME_2D",
-                "selection_role": "observer",
-                "layer_id": 4,
+                "selection_role": "unknown",
+                "layer_id": 0,
                 "answer_eligible": False,
-                "route_policy": {"branch_topk": 0},
+                "sovereign_route_exempt": True,
             },
         )
 
@@ -466,10 +540,10 @@ class ARC3EpisodeGalaxy:
             entry,
             {
                 "route_family": "GAME_2D",
-                "selection_role": "observer",
-                "layer_id": 4,
+                "selection_role": "unknown",
+                "layer_id": 0,
                 "answer_eligible": False,
-                "route_policy": {"branch_topk": 0},
+                "sovereign_route_exempt": True,
             },
         )
 

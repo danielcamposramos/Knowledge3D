@@ -3,31 +3,6 @@
 #include "device_functions.cuh"
 
 #define ARC3_MAX_COLORS 16
-#define ARC3_TOKEN_BUCKET_START 8
-
-__device__ __forceinline__ unsigned int fnv1a32_arc3_device(const char* text, int len) {
-    unsigned int value = 2166136261u;
-    for (int index = 0; index < len; ++index) {
-        value ^= static_cast<unsigned int>(static_cast<unsigned char>(text[index]));
-        value *= 16777619u;
-    }
-    return value;
-}
-
-__device__ __forceinline__ void hash_token_into_embedding_arc3(
-    float* embedding,
-    const char* token,
-    int token_len,
-    float magnitude
-) {
-    const unsigned int token_hash = fnv1a32_arc3_device(token, token_len);
-    const int bucket =
-        ARC3_TOKEN_BUCKET_START +
-        static_cast<int>(token_hash % static_cast<unsigned int>(GPU_TASK_EMBED_DIMS - ARC3_TOKEN_BUCKET_START));
-    const float sign = ((token_hash >> 16) & 1u) ? 1.0f : -1.0f;
-    const float hash_magnitude = 1.0f + (0.25f * (static_cast<float>((token_hash >> 8) & 0xFFu) / 255.0f));
-    embedding[bucket] += sign * magnitude * hash_magnitude;
-}
 
 extern "C" __global__ void arc3_encode_frame(
     const unsigned char* __restrict__ frame,
@@ -48,9 +23,19 @@ extern "C" __global__ void arc3_encode_frame(
         return;
     }
 
-    float hist[ARC3_MAX_COLORS];
-    for (int color = 0; color < ARC3_MAX_COLORS; ++color) {
-        hist[color] = 0.0f;
+    float color_mass[ARC3_MAX_COLORS];
+    float color_row_moment[ARC3_MAX_COLORS];
+    float color_col_moment[ARC3_MAX_COLORS];
+    float row_energy[4];
+    float col_energy[4];
+    for (int index = 0; index < ARC3_MAX_COLORS; ++index) {
+        color_mass[index] = 0.0f;
+        color_row_moment[index] = 0.0f;
+        color_col_moment[index] = 0.0f;
+    }
+    for (int index = 0; index < 4; ++index) {
+        row_energy[index] = 0.0f;
+        col_energy[index] = 0.0f;
     }
 
     float centroid_x = 0.0f;
@@ -64,10 +49,13 @@ extern "C" __global__ void arc3_encode_frame(
     for (unsigned int y = 0u; y < height; ++y) {
         for (unsigned int x = 0u; x < width; ++x) {
             const unsigned int index = (y * width) + x;
-            const unsigned int color = static_cast<unsigned int>(frame[index]);
-            if (color < ARC3_MAX_COLORS) {
-                hist[color] += 1.0f;
-            }
+            const unsigned int color = static_cast<unsigned int>(frame[index]) & 0x0Fu;
+            const float color_f = static_cast<float>(color);
+            color_mass[color] += 1.0f;
+            color_row_moment[color] += static_cast<float>(y);
+            color_col_moment[color] += static_cast<float>(x);
+            row_energy[y & 3u] += color_f;
+            col_energy[x & 3u] += color_f;
             if (color > 0u) {
                 centroid_x += static_cast<float>(x);
                 centroid_y += static_cast<float>(y);
@@ -86,6 +74,8 @@ extern "C" __global__ void arc3_encode_frame(
     float normalized_row = 0.5f;
     float spread_x = 0.0f;
     float spread_y = 0.0f;
+    float bbox_width = 0.0f;
+    float bbox_height = 0.0f;
 
     if (nonzero_count > 0u) {
         const float nonzero_f = static_cast<float>(nonzero_count);
@@ -93,12 +83,14 @@ extern "C" __global__ void arc3_encode_frame(
         centroid_y /= nonzero_f;
         normalized_col = centroid_x / static_cast<float>(width);
         normalized_row = centroid_y / static_cast<float>(height);
+        bbox_width = (max_x - min_x + 1.0f) / static_cast<float>(width);
+        bbox_height = (max_y - min_y + 1.0f) / static_cast<float>(height);
 
         float variance_x = 0.0f;
         float variance_y = 0.0f;
         for (unsigned int y = 0u; y < height; ++y) {
             for (unsigned int x = 0u; x < width; ++x) {
-                if (frame[(y * width) + x] == 0u) {
+                if ((static_cast<unsigned int>(frame[(y * width) + x]) & 0x0Fu) == 0u) {
                     continue;
                 }
                 const float dx = static_cast<float>(x) - centroid_x;
@@ -140,130 +132,124 @@ extern "C" __global__ void arc3_encode_frame(
     const float centeredness = 1.0f - device_clamp01((device_absf(cx) + device_absf(cy)) * 1.25f);
     const float movement_need =
         device_clamp01((device_absf(cx) + device_absf(cy)) * 1.6f + (0.35f * spread_mag));
-    const float interaction_readiness =
-        device_clamp01(centeredness * occupancy * (0.45f + (0.55f * boundary_density)));
+    const float interaction_density =
+        device_clamp01((0.50f * occupancy) + (0.25f * boundary_density) + (0.25f * centeredness));
     const float click_readiness =
-        device_clamp01(interaction_readiness * (1.0f - spread_mag) * boundary_density);
+        device_clamp01(interaction_density * (1.0f - spread_mag) * boundary_density);
     const float structural_density = device_clamp01((0.60f * occupancy) + (0.40f * boundary_density));
+    const float north_open = device_clamp01(normalized_row);
+    const float south_open = device_clamp01(1.0f - normalized_row);
+    const float west_open = device_clamp01(normalized_col);
+    const float east_open = device_clamp01(1.0f - normalized_col);
 
     unsigned int dominant_color = 0u;
+    unsigned int secondary_color = 0u;
     float dominant_mass = 0.0f;
-    for (unsigned int color = 1u; color < ARC3_MAX_COLORS; ++color) {
-        if (hist[color] > dominant_mass) {
+    float secondary_mass = 0.0f;
+    float color_entropy = 0.0f;
+    for (unsigned int color = 0u; color < ARC3_MAX_COLORS; ++color) {
+        const float mass = color_mass[color] / total_f;
+        if (mass > dominant_mass) {
+            secondary_mass = dominant_mass;
+            secondary_color = dominant_color;
+            dominant_mass = mass;
             dominant_color = color;
-            dominant_mass = hist[color];
+        } else if (mass > secondary_mass) {
+            secondary_mass = mass;
+            secondary_color = color;
+        }
+        if (mass > 1.0e-6f) {
+            color_entropy -= mass * log2f(mass);
         }
     }
+    color_entropy = device_clamp01(color_entropy / 4.0f);
 
-    float semantic[GPU_TASK_EMBED_DIMS];
-    for (int dim = 0; dim < GPU_TASK_EMBED_DIMS; ++dim) {
-        semantic[dim] = 0.0f;
-    }
-
-    semantic[0] = nonzero_count > 0u ? 0.35f : 0.15f;
-    semantic[1] = device_maxf(-1.0f, device_minf(1.0f, cy * 2.0f));
-    semantic[2] = 0.0f;
-    semantic[3] = nonzero_count > 0u ? 0.65f : 0.0f;
-    semantic[4] = 0.0f;
-    semantic[5] = nonzero_count > 0u ? 0.35f : 0.0f;
-    semantic[6] = 0.0f;
-    semantic[7] = 0.0f;
-
-    if (nonzero_count > 0u) {
-        semantic[2] = device_clamp01(0.45f + (0.55f * movement_need));
-        semantic[4] = device_clamp01(0.25f + (0.75f * movement_need));
-        semantic[6] = device_maxf(-1.0f, device_minf(1.0f, cy >= 0.0f ? movement_need : -movement_need));
-        semantic[7] = 1.0f;
-    }
-
-    hash_token_into_embedding_arc3(semantic, "spatial", 7, 0.30f);
-    hash_token_into_embedding_arc3(semantic, "grid", 4, 0.40f);
-    hash_token_into_embedding_arc3(semantic, "navigate", 8, 0.25f);
-    hash_token_into_embedding_arc3(semantic, "translate", 9, 0.25f);
-
-    if (nonzero_count > 0u) {
-        hash_token_into_embedding_arc3(semantic, "object", 6, 0.30f);
-        hash_token_into_embedding_arc3(semantic, "color", 5, 0.25f + (0.15f * occupancy));
-        hash_token_into_embedding_arc3(semantic, "cell", 4, 0.25f + (0.15f * occupancy));
-        hash_token_into_embedding_arc3(semantic, "grid_cell", 9, 0.55f + (0.35f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "translate_2d", 12, 0.85f + (0.85f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "translation_concept", 19, 0.75f + (0.85f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "vec2_add", 8, 0.70f + (0.70f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "occupied", 8, 0.20f + (0.20f * occupancy));
-        if (nonzero_count == 1u) {
-            hash_token_into_embedding_arc3(semantic, "single", 6, 0.55f);
-        } else {
-            hash_token_into_embedding_arc3(semantic, "cluster", 7, 0.55f + (0.25f * occupancy));
+    float row_harmonic = 0.0f;
+    float col_harmonic = 0.0f;
+    float diag_trace = 0.0f;
+    float anti_diag_trace = 0.0f;
+    for (unsigned int y = 0u; y < height; ++y) {
+        for (unsigned int x = 0u; x < width; ++x) {
+            const float value = static_cast<float>(static_cast<unsigned int>(frame[(y * width) + x]) & 0x0Fu) / 15.0f;
+            const float row_phase = 6.28318530718f * static_cast<float>(y & 3u) / 4.0f;
+            const float col_phase = 6.28318530718f * static_cast<float>(x & 3u) / 4.0f;
+            row_harmonic += value * cosf(row_phase);
+            col_harmonic += value * cosf(col_phase);
+            if (x == y) {
+                diag_trace += value;
+            }
+            if ((x + y + 1u) == width) {
+                anti_diag_trace += value;
+            }
         }
-        if (dominant_color > 0u) {
-            hash_token_into_embedding_arc3(semantic, "filled", 6, 0.30f + (0.05f * static_cast<float>(dominant_color)));
-        }
-    } else {
-        hash_token_into_embedding_arc3(semantic, "empty", 5, 0.60f);
-        hash_token_into_embedding_arc3(semantic, "center", 6, 0.35f);
+    }
+    row_harmonic = 0.5f + (0.5f * device_clamp_range(row_harmonic / total_f, -1.0f, 1.0f));
+    col_harmonic = 0.5f + (0.5f * device_clamp_range(col_harmonic / total_f, -1.0f, 1.0f));
+    diag_trace = device_clamp01(diag_trace / device_maxf(1.0f, static_cast<float>(width)));
+    anti_diag_trace = device_clamp01(anti_diag_trace / device_maxf(1.0f, static_cast<float>(width)));
+
+    embedding[0] = nonzero_count > 0u ? 1.0f : 0.0f;
+    embedding[1] = centeredness;
+    embedding[2] = movement_need;
+    embedding[3] = interaction_density;
+    embedding[4] = click_readiness;
+    embedding[5] = device_clamp01(0.5f + (0.5f * device_clamp_range(cx * 2.0f, -1.0f, 1.0f)));
+    embedding[6] = device_clamp01(0.5f + (0.5f * device_clamp_range(cy * 2.0f, -1.0f, 1.0f)));
+    embedding[7] = color_entropy;
+    embedding[8] = north_open;
+    embedding[9] = south_open;
+    embedding[10] = normalized_col;
+    embedding[11] = normalized_row;
+    embedding[12] = spread_x;
+    embedding[13] = spread_y;
+    embedding[14] = west_open;
+    embedding[15] = east_open;
+    embedding[16] = bbox_width;
+    embedding[17] = bbox_height;
+    embedding[18] = dominant_mass;
+    embedding[19] = secondary_mass;
+    embedding[20] = static_cast<float>(dominant_color) / 15.0f;
+    embedding[21] = static_cast<float>(secondary_color) / 15.0f;
+    embedding[22] = transition_h;
+    embedding[23] = transition_v;
+    embedding[24] = row_harmonic;
+    embedding[25] = col_harmonic;
+    embedding[26] = diag_trace;
+    embedding[27] = anti_diag_trace;
+    embedding[28] = occupancy;
+    embedding[29] = boundary_density;
+    embedding[30] = interaction_density;
+    embedding[31] = structural_density;
+
+    for (unsigned int color = 0u; color < ARC3_MAX_COLORS; ++color) {
+        const float mass = color_mass[color] / total_f;
+        const unsigned int lane = 32u + color;
+        embedding[lane] = mass;
     }
 
-    if (cy < -0.12f) {
-        const float strength = 1.0f + (2.2f * (-cy));
-        hash_token_into_embedding_arc3(semantic, "up", 2, strength);
-        hash_token_into_embedding_arc3(semantic, "north", 5, 0.85f + (0.65f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "move_up", 7, 0.75f + (0.65f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "above", 5, 0.65f + (0.45f * movement_need));
-    }
-    if (cy > 0.12f) {
-        const float strength = 1.0f + (2.2f * cy);
-        hash_token_into_embedding_arc3(semantic, "down", 4, strength);
-        hash_token_into_embedding_arc3(semantic, "south", 5, 0.85f + (0.65f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "move_down", 9, 0.75f + (0.65f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "below", 5, 0.65f + (0.45f * movement_need));
-    }
-    if (cx < -0.12f) {
-        const float strength = 1.0f + (2.2f * (-cx));
-        hash_token_into_embedding_arc3(semantic, "left", 4, strength);
-        hash_token_into_embedding_arc3(semantic, "west", 4, 0.85f + (0.55f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "move_left", 9, 0.75f + (0.55f * movement_need));
-    }
-    if (cx > 0.12f) {
-        const float strength = 1.0f + (2.2f * cx);
-        hash_token_into_embedding_arc3(semantic, "right", 5, strength);
-        hash_token_into_embedding_arc3(semantic, "east", 4, 0.85f + (0.55f * movement_need));
-        hash_token_into_embedding_arc3(semantic, "move_right", 10, 0.75f + (0.55f * movement_need));
-    }
-    if (device_absf(cx) < 0.15f && device_absf(cy) < 0.15f) {
-        hash_token_into_embedding_arc3(semantic, "center", 6, 0.90f);
-        hash_token_into_embedding_arc3(semantic, "centered", 8, 0.75f);
-        hash_token_into_embedding_arc3(semantic, "balanced", 8, 0.65f);
-    }
-    if (interaction_readiness > 0.10f) {
-        hash_token_into_embedding_arc3(semantic, "interact", 8, 0.55f + interaction_readiness);
-        hash_token_into_embedding_arc3(semantic, "click", 5, 0.45f + click_readiness);
-    }
-    if (boundary_density > 0.12f) {
-        hash_token_into_embedding_arc3(semantic, "delta", 5, 0.35f + boundary_density);
-        hash_token_into_embedding_arc3(semantic, "changed", 7, 0.30f + boundary_density);
-        hash_token_into_embedding_arc3(semantic, "moved", 5, 0.25f + movement_need);
-        hash_token_into_embedding_arc3(semantic, "boundary", 8, 0.30f + boundary_density);
-    }
-    if (spread_x > (spread_y * 1.25f) && spread_x > 1.0e-4f) {
-        hash_token_into_embedding_arc3(semantic, "horizontal", 10, 0.45f + spread_x);
-        hash_token_into_embedding_arc3(semantic, "wide", 4, 0.35f + spread_x);
-    }
-    if (spread_y > (spread_x * 1.25f) && spread_y > 1.0e-4f) {
-        hash_token_into_embedding_arc3(semantic, "vertical", 8, 0.45f + spread_y);
-        hash_token_into_embedding_arc3(semantic, "tall", 4, 0.35f + spread_y);
+    for (unsigned int color = 0u; color < 8u; ++color) {
+        const float mass = color_mass[color] / total_f;
+        const float row_center = color_mass[color] > 0.0f
+            ? (color_row_moment[color] / color_mass[color]) / static_cast<float>(height)
+            : 0.5f;
+        const float col_center = color_mass[color] > 0.0f
+            ? (color_col_moment[color] / color_mass[color]) / static_cast<float>(width)
+            : 0.5f;
+        embedding[48u + color] = device_clamp01((0.55f * mass) + (0.45f * row_center));
+        embedding[56u + color] = device_clamp01((0.55f * mass) + (0.45f * col_center));
     }
 
     float norm = 0.0f;
     for (int dim = 0; dim < GPU_TASK_EMBED_DIMS; ++dim) {
-        norm += semantic[dim] * semantic[dim];
+        norm += embedding[dim] * embedding[dim];
     }
     norm = sqrtf(norm + 1.0e-12f);
     const float inv_norm = norm > 1.0e-6f ? (1.0f / norm) : 1.0f;
     for (int dim = 0; dim < GPU_TASK_EMBED_DIMS; ++dim) {
-        embedding[dim] = semantic[dim] * inv_norm;
+        embedding[dim] *= inv_norm;
     }
 
-    // Preserve the direct action-control lanes consumed by arc3_action_select_device.
+    // Keep the dispatch-consumed control lanes stable after normalization.
     embedding[10] = normalized_col;
     embedding[11] = normalized_row;
     embedding[12] = spread_x;

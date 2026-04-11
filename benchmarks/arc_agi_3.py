@@ -9,6 +9,7 @@ from typing import Any
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.arc3_episode_galaxy import ARC3EpisodeGalaxy
+from knowledge3d.knowledgeverse.arc3_frame_encoder import ARC3FrameEncoder
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.tablet.wine.game2d_wine import arc3_game_envelope
 from benchmarks.arc3_game_mechanics_seeder import seed_game_mechanics
@@ -844,6 +845,7 @@ class K3DARC3Agent:
         self._frame_color_diagnostics: list[dict[str, Any]] = []
         self._color_diagnostics_games: set[str] = set()
         self._game_id = "unknown"
+        self._frame_encoder = ARC3FrameEncoder()
         self._episode_galaxy = ARC3EpisodeGalaxy(game_id=self._game_id, knowledgeverse=self.kv)
         if isinstance(self.kv, Knowledgeverse):
             self.kv.ensure_default_galaxies_loaded()
@@ -972,6 +974,8 @@ class K3DARC3Agent:
         """Translate ARC-3 state through the canonical GAME_2D tablet/WINE boundary."""
         normalized_frame = _normalize_grid(frame)
         normalized_goal = _normalize_grid(goal_frame) if goal_frame is not None else [[]]
+        gameplay_frame = _gameplay_grid(normalized_frame)
+        gameplay_goal = _gameplay_grid(normalized_goal) if normalized_goal != [[]] else [[]]
         frame_state = _frame_state(normalized_frame)
         flash_semantics = _flash_semantics(normalized_frame)
         budget_snapshot = _movement_budget_snapshot(normalized_frame)
@@ -1042,6 +1046,12 @@ class K3DARC3Agent:
                 episode_context=dict(episode_context or {}),
                 stuck_signal=stuck_signal,
                 centroid_drift=centroid_drift,
+            ),
+            query_embedding=self._frame_encoder.encode(gameplay_frame),
+            goal_embedding=(
+                self._frame_encoder.encode(gameplay_goal)
+                if gameplay_goal != [[]]
+                else None
             ),
             step_count=int(self._step_count),
             game_id=resolved_game_id,

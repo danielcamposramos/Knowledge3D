@@ -61,9 +61,40 @@ class _FakeKnowledgeverse:
         return 8 * 1024 * 1024 * 1024
 
 
-def test_trm_game_loop_buffers_and_dispatch_ticket():
+class _FakeFusedBridge:
+    def __init__(self) -> None:
+        self.background_calls = 0
+        self.query_calls = 0
+        self.start_calls = 0
+        self.stop_calls = 0
+
+    def start_tick_loop(self):
+        self.start_calls += 1
+        return self.tick_loop_status()
+
+    def stop_tick_loop(self):
+        self.stop_calls += 1
+        return self.tick_loop_status()
+
+    def tick_loop_status(self):
+        return {"ticking": self.start_calls > self.stop_calls, "tick_count": self.background_calls}
+
+    def launch_tick(self, **_kwargs):
+        self.background_calls += 1
+        return {"tick": self.background_calls + self.query_calls, "current_state": 1, "steps": 0, "drift": 0.0}
+
+    def run_query_tick(self, **_kwargs):
+        self.query_calls += 1
+        return {"tick": self.background_calls + self.query_calls, "current_state": 1, "steps": 1, "drift": 0.0}
+
+    def read_action_buffers_words(self):
+        return [[0xFF] + [0] * 71]
+
+
+def test_trm_game_loop_buffers_and_bridge_query_ticket():
     kv = _FakeKnowledgeverse()
-    loop = TRMGameLoop(kv, input_size_mb=1, output_size_mb=1)
+    bridge = _FakeFusedBridge()
+    loop = TRMGameLoop(kv, bridge=bridge, input_size_mb=1, output_size_mb=1)
     loop.start()
 
     request_id = loop.enqueue_task(
@@ -78,22 +109,33 @@ def test_trm_game_loop_buffers_and_dispatch_ticket():
     result = loop.wait_output(request_id, max_ticks=0)
 
     assert result is not None
-    assert result["answer"] == "2+2=?"
+    assert result["mode"] == "query_tick"
     assert result["trm_io"]["request_id"] == request_id
+    assert result["trm_tick"]["steps"] == 1
+    assert result["action_buffers"][0][0] == 0xFF
     input_packet = loop.read_input_packet(request_id)
     output_packet = loop.read_output_packet(request_id)
     assert input_packet is not None
     assert output_packet is not None
     assert input_packet["task"]["query"] == "2+2=?"
-    assert output_packet["result"]["answer"] == "2+2=?"
-    dispatch = result["trm_dispatch"]
-    assert dispatch["planned_swarm_groups"] == 4
-    assert dispatch["recommended_swarm_groups"] == 0
-    assert len(dispatch["worker_slots"]) == 36
-    assert dispatch["resonance_weights"][:3] == [0.8999999761581421, 0.699999988079071, 0.5]
-    assert dispatch["gpu_utilization"] >= 0.0
-    assert dispatch["vram_free_bytes"] >= 0
+    assert output_packet["result"]["mode"] == "query_tick"
+    assert bridge.query_calls == 1
+    assert bridge.background_calls == 0
+    assert kv.calls == []
     assert loop.snapshot()["completed_outputs"] == 1
+
+
+def test_trm_game_loop_idle_tick_routes_to_bridge_not_dispatch():
+    kv = _FakeKnowledgeverse()
+    bridge = _FakeFusedBridge()
+    loop = TRMGameLoop(kv, bridge=bridge, input_size_mb=1, output_size_mb=1)
+    loop.start()
+
+    assert loop.tick(max_tasks=1) == 1
+
+    assert bridge.background_calls == 1
+    assert bridge.query_calls == 0
+    assert kv.calls == []
 
 
 def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypatch):
@@ -114,6 +156,9 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
         return {"status": "ok", "answer": "loop-shell"}
 
     monkeypatch.setattr(kv, "_dispatch_sovereign_task", _fake_dispatch)
+    fake_bridge = _FakeFusedBridge()
+    kv._trm_game_loop.bridge = fake_bridge
+    kv._trm_game_loop.start()
 
     result = kv.execute_task(
         task={"type": "CHAT_TASK", "query": "hello"},
@@ -122,13 +167,28 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
         use_enriched=False,
     )
 
-    assert result["answer"] == "loop-shell"
+    assert result["mode"] == "query_tick"
     assert result["trm_io"]["request_id"].startswith("trmio_")
     assert kv.trm_game_loop_status()["tick"] >= 1
-    assert called and called[0]["specialist"] == "chat"
+    assert called == []
+    assert fake_bridge.query_calls == 1
     raw_packet = kv._trm_game_loop.read_output_packet(result["trm_io"]["request_id"])
     assert raw_packet is not None
-    assert raw_packet["result"]["answer"] == "loop-shell"
+    assert raw_packet["result"]["mode"] == "query_tick"
+
+
+def test_knowledgeverse_start_stop_trm_game_loop_delegates_bridge_clock(tmp_path: Path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_loop_clock", eager_load_default_galaxies=False)
+    fake_bridge = _FakeFusedBridge()
+    kv._trm_game_loop.bridge = fake_bridge
+
+    started = kv.start_trm_game_loop()
+    stopped = kv.stop_trm_game_loop()
+
+    assert fake_bridge.start_calls == 1
+    assert fake_bridge.stop_calls == 1
+    assert started["bridge"]["ticking"] is True
+    assert stopped["bridge"]["ticking"] is False
 
 
 def test_knowledgeverse_eager_boot_is_sovereign_only(tmp_path: Path, monkeypatch):

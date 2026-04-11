@@ -155,6 +155,19 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 
 **Baseline gate:** focused slices for sovereign physics, procedural texture, entity surface, proceduralizer/ingest, drawing/quarantine honesty, and zero-copy control plane are green.
 
+### Phase E.0.5 — Embodied Tick Unification / Clockwork (April 10, 2026)
+
+| Deliverable | Purpose | Status |
+|-------------|---------|--------|
+| GPU event ring buffer | VRAM-resident 4096-slot event queue for I/O, wakeup, collision, timer, and internal signals | ✅ Landed locally |
+| `TRMStateMachine` lifecycle surface | Parallel 32-byte VRAM state array with query preemption stack and 30s idle → sleep transition | ✅ Landed locally |
+| Unified fused tick bridge | Route `TRMLauncher` and `Knowledgeverse` through one `trm_step_fused` entrypoint with fixed `delta_time=0.02` and `tick` | ✅ Landed locally |
+| State-gated embodied dispatch | Live `SLEEP`, `IDLE`, `REASONING`, `HANDLING_QUERY`, plus early `PERCEIVING`, `NAVIGATING`, `ACTING`, and GPU physics/collision emission | ✅ Landed locally |
+| 96-byte entity hot path + multi-entity dispatch | `EntityHotPath` widened for gaze/attention/motor/goal state; `blockIdx.x` now indexes entity state in the fused tick/state machine | ✅ Landed locally |
+| Event batch drain + Phase 2 transitions | Bounded 8-event drain, per-entity owner filtering, and perception → navigation → acting transitions | ✅ Landed locally |
+| ActionBuffer emission | `trm_step_fused` writes one sovereign 288-byte ActionBuffer slot per entity after physics | ✅ Landed locally |
+| Continuous daemon loop | Bridge-owned 50 Hz clock pumps `trm_step_fused`; query ticks share the same launch lock and preempt background ticks without host orchestration | ✅ Landed locally |
+
 ### Phase E.1 — Grid Perception (GPU-Native)
 
 | Deliverable | Purpose | Status |
@@ -171,7 +184,7 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 |-------------|---------|--------|
 | Replace `_select_composed_head_candidate()` | 1,157 lines Python → GPU scoring in composed head chain | ⏳ Planned |
 | Wire all 15 GRE specialist kernels | All loaded kernels callable by swarm workers | ⏳ Planned |
-| Action output protocol | TRM tick output → GameAction mapping | ⏳ Planned |
+| Action output protocol adapter | Read sovereign ActionBuffer frames and adapt them to ARC/GameAction clients without reintroducing Python tick orchestration | ⏳ Planned |
 
 ### Phase E.3 — Grammar Sovereignty
 
@@ -190,7 +203,7 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 | Game trace consolidation | Successful ARC-AGI-3 action sequences → Grammar rules | ⏳ Planned |
 | RPN composition enrichment | Replace text-append enrichment with RPN program composition | ⏳ Planned |
 
-**Quality gates (per sub-phase):** ARC-AGI-2 10/10 regression pinned, Math 20/20 pinned, GPU utilization increase, knowledgeverse.py line count decrease, zero Python fallbacks in hot path.
+**Quality gates (per sub-phase):** query fast-lane parity green, embodied CUDA suites green, sovereignty grep clean, and no new Python orchestration in the tick path. ARC/Math remain health checks during the embodied rebuild, not merge gates.
 
 **R0 competition order (current truth):**
 1. ARC-AGI-2 submission infrastructure

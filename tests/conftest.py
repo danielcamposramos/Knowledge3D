@@ -49,12 +49,23 @@ def _cuda_context_available() -> bool:
     Defaults to False unless the test harness explicitly enables probing via
     `K3D_PYTEST_PROBE_CUDA=1`, to avoid import-time driver initialization.
     """
-    if not (_HAS_CUPY and _HAS_CUDA):
+    if os.environ.get("K3D_PYTEST_PROBE_CUDA") != "1":
         return False
-    try:
-        import cupy as _cp
 
-        _cp.cuda.Device(0).compute_capability
+    if _HAS_CUPY and _HAS_CUDA:
+        try:
+            import cupy as _cp
+
+            _cp.cuda.Device(0).compute_capability
+            return True
+        except Exception:
+            pass
+
+    try:
+        from knowledge3d.cranium.sovereign import loader as _loader
+
+        ptr = _loader.gpu_malloc(4)
+        _loader.gpu_free(ptr)
         return True
     except Exception:
         return False

@@ -1,4 +1,4 @@
-"""Encode ARC-AGI-3 frames to 32-float embeddings on GPU."""
+"""Encode ARC-AGI-3 frames to 64-float embeddings on GPU."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ PTX_DIR = Path(__file__).resolve().parents[1] / "cranium" / "ptx"
 CUDA_SOURCE = CUDA_DIR / "arc3_frame_encoder.cu"
 CUDA_HEADER = CUDA_DIR / "device_functions.cuh"
 PTX_PATH = PTX_DIR / "arc3_frame_encoder.ptx"
+EMBEDDING_DIMS = 64
 
 
 def _bytes_ptr(payload: bytearray) -> ctypes.c_void_p:
@@ -57,7 +58,7 @@ class ARC3FrameEncoder:
         height = len(frame)
         width = len(frame[0]) if height > 0 else 0
         if height == 0 or width == 0:
-            return [0.0] * 32
+            return [0.0] * EMBEDDING_DIMS
         for row in frame:
             if len(row) != width:
                 raise ValueError("arc3_frame_must_be_rectangular")
@@ -67,7 +68,7 @@ class ARC3FrameEncoder:
             flat.extend((int(cell) & 0xFF) for cell in row)
 
         frame_gpu = loader.gpu_malloc(len(flat))
-        embed_gpu = loader.gpu_malloc(32 * 4)
+        embed_gpu = loader.gpu_malloc(EMBEDDING_DIMS * 4)
         try:
             loader.memcpy_htod(frame_gpu, _bytes_ptr(flat), len(flat))
             loader.launch(
@@ -76,10 +77,9 @@ class ARC3FrameEncoder:
                 (1, 1, 1),
                 [frame_gpu, embed_gpu, ctypes.c_uint(width), ctypes.c_uint(height)],
             )
-            loader.synchronize()
-            embed_host = bytearray(32 * 4)
+            embed_host = bytearray(EMBEDDING_DIMS * 4)
             loader.memcpy_dtoh(_bytes_ptr(embed_host), embed_gpu, len(embed_host))
-            return list(struct.unpack("<32f", embed_host))
+            return list(struct.unpack(f"<{EMBEDDING_DIMS}f", embed_host))
         finally:
             loader.gpu_free(frame_gpu)
             loader.gpu_free(embed_gpu)

@@ -24,6 +24,10 @@ from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
 from knowledge3d.cranium.bridges.trigram_embed_bridge import TrigramEmbedBridge
 from knowledge3d.cranium.rpn_embedding_engine import RPNEmbeddingEngine
+from knowledge3d.cranium.sovereign_matryoshka_embedder import (
+    SovereignMatryoshkaTextEmbedder,
+    get_sovereign_matryoshka_text_embedder,
+)
 from knowledge3d.cranium.ptx_runtime.micro_specialist_pool import (
     MicroSpecialistPool,
     configure_global_micro_specialist_pool,
@@ -81,6 +85,9 @@ class KnowledgeverseMetrics:
     gpu_bind_rebuilds: int = 0
     gpu_runtime_artifact_entries: int = 0
     runtime_language_entries: int = 0
+
+
+RUNTIME_EMBED_DIMS = 64
 
 
 def _expand_embedding16_to128(values: list[float] | tuple[float, ...] | Any) -> np.ndarray:
@@ -386,6 +393,7 @@ class Knowledgeverse:
     GPU_SOURCE_CLASS_BOOK_ARTIFACT = 1.0
     GPU_SOURCE_CLASS_RUNTIME_LANGUAGE = 2.0
     HOUSE_STATE_VERSION = 1
+    GPU_BUFFER_SIGNATURE_VERSION = "phase6b3_sovereign_matryoshka_rpn_anchor_v2"
     JARVIS_STATE_VERSION = 1
     IDLE_SLEEP_THRESHOLD_SECONDS = 30.0
     IDLE_SLEEP_POLL_SECONDS = 1.0
@@ -547,6 +555,7 @@ class Knowledgeverse:
         self._sovereign_hot_path: SovereignHotPath | None = None
         self._text_embedding_engine: RPNEmbeddingEngine | None = None
         self._gpu_query_embedding_bridge: TrigramEmbedBridge | None = None
+        self._sovereign_text_embedder: SovereignMatryoshkaTextEmbedder | None = None
         self._gpu_reasoning_programs: dict[str, dict[str, Any]] = {}
         self._drawing_bridge: Any | None = None
         self._led_pathfinder: Any | None | bool = None
@@ -604,14 +613,14 @@ class Knowledgeverse:
             input_ring=self.stargate.ring_buffer,
             output_ring=self.shadow_copy.compressed_journal.buffer,
         )
-        if self.start_live_loops:
-            self._trm_game_loop.start()
         boot_stage_t0 = time.perf_counter()
         self._load_jarvis_state()
         self._load_sleep_delta()
         self._record_boot_stage("jarvis_restore", boot_stage_t0)
         boot_stage_t0 = time.perf_counter()
         self._initialize_trm_launcher()
+        if self.start_live_loops:
+            self._trm_game_loop.start()
         self._record_boot_stage("trm_launcher_init", boot_stage_t0)
         self._default_galaxies_loaded = False
         boot_stage_t0 = time.perf_counter()
@@ -844,6 +853,9 @@ class Knowledgeverse:
 
     @staticmethod
     def _foundational_default_knowledge_galaxy_name(star: dict[str, Any]) -> str:
+        declared = str(star.get("galaxy") or star.get("galaxy_id") or "").strip()
+        if declared and not declared.isdigit():
+            return declared
         star_type = int(star.get("star_type") or 0)
         if star_type == STAR_TYPE_MATH:
             return "Math"
@@ -864,30 +876,42 @@ class Knowledgeverse:
             entry_id = str(star.get("id") or star.get("_id") or "").strip()
             route_family = str(star.get("route_family") or "").strip().upper()
             selection_role = str(star.get("selection_role") or "").strip().lower()
+            sovereign_route_exempt = bool(star.get("sovereign_route_exempt"))
             include_curated_packet = bool(entry_id and entry_id in curated_packet_ids)
             if not entry_id:
                 continue
-            if not include_curated_packet and (not route_family or not selection_role):
+            if not include_curated_packet and not sovereign_route_exempt and (not route_family or not selection_role):
                 continue
             galaxy_name = self._foundational_default_knowledge_galaxy_name(star)
             name = str(star.get("name") or entry_id.replace("_", " ").title()).strip()
             component_refs = [str(value).strip() for value in list(star.get("_ref_ids") or []) if str(value).strip()]
+            taxonomy_refs = [str(value).strip() for value in list(star.get("taxonomy_refs") or []) if str(value).strip()]
+            grammar_refs = [str(value).strip() for value in list(star.get("grammar_refs") or []) if str(value).strip()]
+            meta_refs = [str(value).strip() for value in list(star.get("meta_refs") or []) if str(value).strip()]
+            composite_of = [str(value).strip() for value in list(star.get("composite_of") or []) if str(value).strip()]
             router_refs = [str(value).strip() for value in list(star.get("router_refs") or []) if str(value).strip()]
             executor_refs = [str(value).strip() for value in list(star.get("executor_refs") or []) if str(value).strip()]
             validator_refs = [str(value).strip() for value in list(star.get("validator_refs") or []) if str(value).strip()]
             anti_pattern_refs = [str(value).strip() for value in list(star.get("anti_pattern_refs") or []) if str(value).strip()]
             route_policy = dict(star.get("route_policy") or {})
+            star_metadata = dict(star.get("metadata") or {})
+            program_fields = {
+                "meta_rule_addr": int(star.get("meta_rule_addr") or 0),
+                "program_flags": int(star.get("program_flags") or 0),
+                "program_length": int(star.get("program_length") or 0),
+                "program_opcode_count": int(star.get("program_opcode_count") or 0),
+            }
             effective_selection_role = selection_role or ("unknown" if include_curated_packet else "")
             effective_route_family = route_family or str(galaxy_name).upper()
             effective_layer_id = int(star.get("layer_id") or 0)
             effective_answer_eligible = bool(star.get("answer_eligible"))
-            effective_route_exempt = bool(star.get("sovereign_route_exempt")) or effective_selection_role == "unknown"
+            effective_route_exempt = sovereign_route_exempt or effective_selection_role == "unknown"
             entry = {
                 "id": entry_id,
                 "name": name,
                 "galaxy": str(galaxy_name),
                 "domain": effective_route_family.lower(),
-                "category": (
+                "category": str(star.get("category") or "").strip() or (
                     "sovereign_knowledge_packet"
                     if include_curated_packet and effective_selection_role == "unknown"
                     else "sovereign_anti_pattern"
@@ -896,18 +920,28 @@ class Knowledgeverse:
                 ),
                 "layer": effective_layer_id,
                 "layer_id": effective_layer_id,
-                "content": name,
+                "content": str(star.get("content") or star.get("rpn_program") or star_metadata.get("description") or name),
                 "summary": f"{effective_route_family.title()} {effective_selection_role} {name}".strip(),
                 "description": (
-                    f"{effective_route_family.title()} {effective_selection_role} foundational sovereign star"
+                    str(star.get("description") or star_metadata.get("description") or "").strip()
+                    or f"{effective_route_family.title()} {effective_selection_role} foundational sovereign star"
                 ),
-                "rpn_program": f"{effective_route_family.lower()} {effective_selection_role} {name}".strip(),
+                "rpn_program": str(
+                    star.get("rpn_program")
+                    or star.get("meaning_rpn")
+                    or star_metadata.get("meaning_rpn")
+                    or f"{effective_route_family.lower()} {effective_selection_role} {name}"
+                ).strip(),
                 "embedding": list(star.get("embedding") or []),
                 "route_family": effective_route_family,
                 "selection_role": effective_selection_role,
                 "answer_eligible": effective_answer_eligible,
                 "sovereign_route_exempt": effective_route_exempt,
                 "component_refs": list(component_refs),
+                "taxonomy_refs": list(taxonomy_refs),
+                "grammar_refs": list(grammar_refs),
+                "meta_refs": list(meta_refs),
+                "composite_of": list(composite_of),
                 "router_refs": list(router_refs),
                 "executor_refs": list(executor_refs),
                 "validator_refs": list(validator_refs),
@@ -915,7 +949,10 @@ class Knowledgeverse:
                 "route_policy": dict(route_policy),
                 "attractive_prior": float(star.get("attractive_prior") or 0.0),
                 "repulsive_prior": float(star.get("repulsive_prior") or 0.0),
+                "surface_forms": dict(star.get("surface_forms") or {}),
+                **program_fields,
                 "metadata": {
+                    **star_metadata,
                     "sovereign_foundational": True,
                     "route_family": effective_route_family,
                     "selection_role": effective_selection_role,
@@ -923,11 +960,16 @@ class Knowledgeverse:
                     "answer_eligible": effective_answer_eligible,
                     "sovereign_route_exempt": effective_route_exempt,
                     "component_refs": list(component_refs),
+                    "taxonomy_refs": list(taxonomy_refs),
+                    "grammar_refs": list(grammar_refs),
+                    "meta_refs": list(meta_refs),
+                    "composite_of": list(composite_of),
                     "router_refs": list(router_refs),
                     "executor_refs": list(executor_refs),
                     "validator_refs": list(validator_refs),
                     "anti_pattern_refs": list(anti_pattern_refs),
                     "route_policy": dict(route_policy),
+                    **program_fields,
                 },
             }
             normalized = normalize_disk_entry(galaxy_name, entry)
@@ -1770,7 +1812,7 @@ class Knowledgeverse:
         self,
         galaxies: dict[str, list[dict[str, Any]]],
     ) -> str:
-        catalog_like: list[dict[str, Any]] = []
+        catalog_like: list[dict[str, Any]] = [{"signature_version": self.GPU_BUFFER_SIGNATURE_VERSION}]
         for galaxy_name in sorted(galaxies.keys()):
             entries = galaxies.get(galaxy_name)
             if not isinstance(entries, list):
@@ -1785,6 +1827,10 @@ class Knowledgeverse:
                         "galaxy": str(galaxy_name),
                         "category": str(entry.get("category", "")),
                         "template_ref": self._entry_template_ref(entry, metadata),
+                        "description": str(entry.get("description") or metadata.get("description") or "")[:256],
+                        "aliases": list(metadata.get("aliases") or [])[:16] if isinstance(metadata.get("aliases"), list) else [],
+                        "keywords": list(metadata.get("keywords") or [])[:16] if isinstance(metadata.get("keywords"), list) else [],
+                        "meaning_rpn": str(metadata.get("meaning_rpn") or entry.get("rpn_program") or "")[:256],
                         "embedding16": self._precomputed_entry_embedding16(entry),
                     }
                 )
@@ -1844,7 +1890,7 @@ class Knowledgeverse:
         if not base_signature:
             base_signature = self._fallback_gpu_buffer_signature_base(galaxy_names)
         parts = [
-            "gpu_flat_cache_v4",
+            "gpu_flat_cache_v8",
             str(self.GPU_GALAXY_ENTRY_STRIDE),
             str(self.GPU_GALAXY_EMBEDDING_DIM),
             f"route_contract_schema_v{int(route_contract.ROUTE_CONTRACT_SCHEMA_VERSION)}",
@@ -2411,6 +2457,7 @@ class Knowledgeverse:
             total_bytes += int(self._trm_state_buffer_bytes)
             self._trm_weight_bytes = int(total_bytes)
             self._trm_ready = True
+            self._get_sovereign_hot_path()
             self._trm_backend = "fused"
         except Exception as exc:
             self._trm = None
@@ -2585,48 +2632,33 @@ class Knowledgeverse:
             return {}
         self._reset_trm_state()
         projected_query = self._encode_stimulus(query_embedding, readback=True)
-        d_steps = gpu_malloc(ctypes.sizeof(ctypes.c_int32))
-        d_drift = gpu_malloc(ctypes.sizeof(ctypes.c_float))
         started = time.perf_counter()
-        try:
-            launch(
-                self._trm.kernel_recursive_fused,
-                grid=(1, 1, 1),
-                block=(256, 1, 1),
-                params=[
-                    ctypes.c_uint64(self._trm_state_buffers["d_q"].value),
-                    ctypes.c_uint64(self._trm_state_buffers["d_y"].value),
-                    ctypes.c_uint64(self._trm_state_buffers["d_z"].value),
-                    ctypes.c_uint64(self._trm_weight_buffers["W1"].value),
-                    ctypes.c_uint64(self._trm_weight_buffers["W2"].value),
-                    ctypes.c_uint64(self._trm_weight_buffers["W3"].value),
-                    ctypes.c_uint64(self._trm_weight_buffers["W4"].value),
-                    ctypes.c_uint64(self._trm_state_buffers["d_workspace"].value),
-                    ctypes.c_uint64(d_steps.value),
-                    ctypes.c_uint64(d_drift.value),
-                    ctypes.c_int32(6),
-                    ctypes.c_float(1e-4),
-                ],
-            )
-            synchronize()
-            latency_us = float((time.perf_counter() - started) * 1_000_000.0)
-            y_new_host = self._read_trm_state_vector("d_y")
-            steps_host = ctypes.c_int32()
-            drift_host = ctypes.c_float()
-            memcpy_dtoh(ctypes.byref(steps_host), d_steps, ctypes.sizeof(steps_host))
-            memcpy_dtoh(ctypes.byref(drift_host), d_drift, ctypes.sizeof(drift_host))
-            return {
-                "query_embedding_512": projected_query.tolist() if projected_query is not None else [],
-                "y_new_vector_512": y_new_host.tolist(),
-                "trm_latency_us": latency_us,
-                "trm_recursion_steps": int(steps_host.value),
-                "trm_drift": float(drift_host.value),
-            }
-        finally:
-            from knowledge3d.cranium.sovereign.loader import gpu_free
-
-            gpu_free(d_steps)
-            gpu_free(d_drift)
+        tick_result = self._trm.run_query_tick(
+            q_ptr=self._trm_state_buffers["d_q"],
+            y_ptr=self._trm_state_buffers["d_y"],
+            z_ptr=self._trm_state_buffers["d_z"],
+            W1_ptr=self._trm_weight_buffers["W1"],
+            W2_ptr=self._trm_weight_buffers["W2"],
+            W3_ptr=self._trm_weight_buffers["W3"],
+            W4_ptr=self._trm_weight_buffers["W4"],
+            z_new_ptr=self._trm_state_buffers["d_z_new"],
+            y_new_ptr=self._trm_state_buffers["d_y_new"],
+            workspace_ptr=self._trm_state_buffers["d_workspace"],
+            delta_time=0.02,
+            tick=int(self._query_sequence) + 1,
+            max_steps=6,
+            epsilon=1e-4,
+            reset_runtime=True,
+        )
+        latency_us = float((time.perf_counter() - started) * 1_000_000.0)
+        y_new_host = self._read_trm_state_vector("d_y_new")
+        return {
+            "query_embedding_512": projected_query.tolist() if projected_query is not None else [],
+            "y_new_vector_512": y_new_host.tolist(),
+            "trm_latency_us": latency_us,
+            "trm_recursion_steps": int(tick_result.get("steps", 0)),
+            "trm_drift": float(tick_result.get("drift", 0.0)),
+        }
 
     def _decode_trm_galaxy_distribution(self, y_new_vector_512: Any) -> tuple[list[float], list[float], str]:
         y_new_host = [float(value) for value in list(y_new_vector_512)]
@@ -3558,6 +3590,11 @@ class Knowledgeverse:
             engine.attach_gpu_bridge(self._gpu_query_embedding_bridge)
         return engine
 
+    def get_sovereign_text_embedder(self) -> SovereignMatryoshkaTextEmbedder:
+        if self._sovereign_text_embedder is None:
+            self._sovereign_text_embedder = get_sovereign_matryoshka_text_embedder()
+        return self._sovereign_text_embedder
+
     @classmethod
     def _slim_catalog_value(cls, value: Any) -> Any:
         if value is None or isinstance(value, bool):
@@ -3923,6 +3960,33 @@ class Knowledgeverse:
         return [float(value / norm) for value in sanitized]
 
     @classmethod
+    def _coerce_runtime_embedding(cls, values: Any) -> list[float]:
+        raw = cls._coerce_runtime_embedding_raw(values)
+        if not raw:
+            return []
+        return cls._normalize_embedding(raw)
+
+    @classmethod
+    def _coerce_runtime_embedding_raw(cls, values: Any) -> list[float]:
+        flattened = cls._flatten_float_values(values)
+        if not flattened:
+            return []
+        padded = [0.0] * RUNTIME_EMBED_DIMS
+        width = min(RUNTIME_EMBED_DIMS, len(flattened))
+        for index in range(width):
+            padded[index] = cls._finite_float_or_default(flattened[index], 0.0)
+        if 0 < width < RUNTIME_EMBED_DIMS:
+            source = padded[:width]
+            for index in range(width, RUNTIME_EMBED_DIMS):
+                a = source[index % width]
+                b = source[(index * 7 + 3) % width]
+                c = source[(index * 13 + 1) % width]
+                padded[index] = (0.60 * a) + (0.30 * b) - (0.10 * c)
+        if any(abs(value) > 0.0 for value in padded):
+            return padded
+        return []
+
+    @classmethod
     def _coerce_embedding16(cls, values: Any) -> list[float]:
         raw = cls._coerce_embedding16_raw(values)
         if not raw:
@@ -3940,6 +4004,45 @@ class Knowledgeverse:
             padded[index] = cls._finite_float_or_default(flattened[index], 0.0)
         if any(abs(value) > 0.0 for value in padded):
             return padded
+        return []
+
+    def _precomputed_entry_embedding64(self, entry: dict[str, Any]) -> list[float]:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        for candidate in (
+            entry.get("embedding_tier_64"),
+            entry.get("embedding_64"),
+            entry.get("embedding64"),
+            metadata.get("embedding_tier_64"),
+            metadata.get("embedding_64"),
+            metadata.get("embedding64"),
+            entry.get("embedding"),
+            metadata.get("embedding"),
+            entry.get("embedding16"),
+            metadata.get("embedding16"),
+        ):
+            embedding = self._coerce_runtime_embedding(candidate)
+            if embedding:
+                return embedding
+        return []
+
+    @classmethod
+    def _precomputed_entry_embedding64_raw(cls, entry: dict[str, Any]) -> list[float]:
+        metadata = entry.get("metadata") if isinstance(entry.get("metadata"), dict) else {}
+        for candidate in (
+            entry.get("embedding_tier_64"),
+            entry.get("embedding_64"),
+            entry.get("embedding64"),
+            metadata.get("embedding_tier_64"),
+            metadata.get("embedding_64"),
+            metadata.get("embedding64"),
+            entry.get("embedding"),
+            metadata.get("embedding"),
+            entry.get("embedding16"),
+            metadata.get("embedding16"),
+        ):
+            embedding = cls._coerce_runtime_embedding_raw(candidate)
+            if embedding:
+                return embedding
         return []
 
     def _precomputed_entry_embedding16(self, entry: dict[str, Any]) -> list[float]:
@@ -4095,6 +4198,23 @@ class Knowledgeverse:
         dims = [0.0] * 16
         for idx, ch in enumerate(text[:4096]):
             lane = idx & 15
+            dims[lane] += ((ord(ch) & 31) - 15.0) / 15.0
+        return self._normalize_embedding(dims)
+
+    def _entry_embedding64(self, entry: dict[str, Any]) -> list[float]:
+        embedding = self._precomputed_entry_embedding64(entry)
+        if embedding:
+            return embedding
+        text = self._entry_embedding_text(entry)
+        if text:
+            try:
+                return list(self.get_sovereign_text_embedder().embed_tier(text, RUNTIME_EMBED_DIMS))
+            except Exception:
+                pass
+        text = json.dumps(entry, ensure_ascii=True, sort_keys=True)
+        dims = [0.0] * RUNTIME_EMBED_DIMS
+        for idx, ch in enumerate(text[:4096]):
+            lane = idx % RUNTIME_EMBED_DIMS
             dims[lane] += ((ord(ch) & 31) - 15.0) / 15.0
         return self._normalize_embedding(dims)
 
@@ -4259,28 +4379,28 @@ class Knowledgeverse:
 
     def _apply_specialist_embedding_adapter(
         self,
-        embedding16: list[float],
+        embedding: list[float],
         *,
         specialist_name: str,
     ) -> list[float]:
-        if not embedding16:
+        if not embedding:
             return []
         swarm = getattr(self, "adaptive_swarm", None)
         if swarm is None or specialist_name not in swarm.base.specialists:
-            return self._normalize_embedding(list(embedding16))
+            return self._normalize_embedding(list(embedding))
         if int(getattr(swarm, "specialist_steps", {}).get(specialist_name, 0) or 0) <= 0:
-            return self._normalize_embedding(list(embedding16))
+            return self._normalize_embedding(list(embedding))
         try:
             output = swarm.compute_with_specialist(
-                np.asarray(list(embedding16), dtype=np.float32),
+                np.asarray(list(embedding), dtype=np.float32),
                 specialist_name,
             )
         except Exception:
-            return self._normalize_embedding(list(embedding16))
+            return self._normalize_embedding(list(embedding))
         try:
-            projected = [float(output[i]) for i in range(min(16, len(output)))]
+            projected = [float(output[i]) for i in range(min(RUNTIME_EMBED_DIMS, len(output)))]
         except Exception:
-            projected = [float(value) for value in list(embedding16)[:16]]
+            projected = [float(value) for value in list(embedding)[:RUNTIME_EMBED_DIMS]]
         return self._normalize_embedding(projected)
 
     def _arc_visual_feature_text(self, task: dict[str, Any] | None) -> str:
@@ -5333,7 +5453,6 @@ class Knowledgeverse:
         """
         if not query_texts:
             return []
-        engine = self.get_gpu_query_embedding_engine()
         task_payload = dict(task or {})
         surface_kind = self._normalize_semantic_task_type(
             str(task_payload.get("surface_kind") or task_payload.get("type", "")).strip().upper()
@@ -5352,21 +5471,8 @@ class Knowledgeverse:
             if surface_bridge_prefix:
                 text = f"{surface_bridge_prefix} {text}".strip()
             normalized_texts.append(text)
-        if hasattr(engine, "embed_sentences_gpu"):
-            values_batch = engine.embed_sentences_gpu(normalized_texts)
-        else:
-            values_batch = [engine.embed_sentence_gpu(text) for text in normalized_texts]
-        specialist_name = self._task_specialist_name(task)
-        outputs: list[list[float]] = []
-        for values in values_batch:
-            embedding16 = [float(values[i]) for i in range(min(16, len(values)))]
-            outputs.append(
-                self._apply_specialist_embedding_adapter(
-                    embedding16,
-                    specialist_name=specialist_name,
-                )
-            )
-        return outputs
+        embedder = self.get_sovereign_text_embedder()
+        return [embedder.embed_tier(text, RUNTIME_EMBED_DIMS) for text in normalized_texts]
 
     def _embed_query_gpu(self, query_text: str, *, task: dict[str, Any] | None = None) -> list[float]:
         embedding_text = str(query_text or "").strip()

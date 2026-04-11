@@ -75,7 +75,9 @@ def test_entity_behavior_source_and_fused_step_slot_are_present() -> None:
     fused_source = Path("knowledge3d/cranium/ptx/trm_step_fused.cu").read_text(encoding="utf-8")
     assert "BEHAVIOR_PHASE" in fused_source
     assert "entity_hot_path_ptr" in fused_source
-    assert "frame_counter" in fused_source
+    assert "state_machine_ptr" in fused_source
+    assert "ring_buffer_ptr" in fused_source
+    assert "tick" in fused_source
 
 
 def test_bind_entity_soa_and_sleep_smoke() -> None:

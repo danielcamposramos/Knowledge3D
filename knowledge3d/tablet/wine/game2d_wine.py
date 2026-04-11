@@ -110,6 +110,8 @@ def arc3_game_envelope(
     action_options: Sequence[str] | None = None,
     training_examples: Sequence[dict[str, Any]] | None = None,
     query: str = "arc3 interactive game frame",
+    query_embedding: Sequence[float] | None = None,
+    goal_embedding: Sequence[float] | None = None,
     step_count: int = 0,
     game_id: str = "",
     levels_completed: int = 0,
@@ -128,6 +130,10 @@ def arc3_game_envelope(
     }
     for key, value in dict(task_context_extras or {}).items():
         task_context[str(key)] = value
+    if query_embedding is not None:
+        task_context["query_embedding"] = [float(value) for value in list(query_embedding)]
+    if goal_embedding is not None:
+        task_context["goal_embedding"] = [float(value) for value in list(goal_embedding)]
     return TabletIngest.game2d_task(
         task_id=task_id,
         query=str(query),

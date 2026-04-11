@@ -29,11 +29,16 @@ struct EntityHotPath {
     uint32_t meta_rule_addr;
 
     float cranial_origin[3];
-    float _pad;
+    float gaze_yaw;
+    float gaze_pitch;
+    float gaze_fov;
+    uint32_t attention_entity_id;
+    float motor_output[3];
+    uint32_t current_goal_star;
 };
 #pragma pack(pop)
 
-static_assert(sizeof(EntityHotPath) == 68, "EntityHotPath layout mismatch");
+static_assert(sizeof(EntityHotPath) == 96, "EntityHotPath layout mismatch");
 
 extern "C" {
 extern __device__ __constant__ unsigned long long g_entity_hot_path_ptr;

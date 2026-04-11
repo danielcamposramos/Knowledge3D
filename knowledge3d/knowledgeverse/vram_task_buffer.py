@@ -10,27 +10,28 @@ from typing import Any
 from knowledge3d.cranium.sovereign import loader
 
 
-INPUT_SLOT_BYTES = 1536
+EMBEDDING_DIMS = 64
+EMBEDDING32_DIMS = EMBEDDING_DIMS
+INPUT_SLOT_BYTES = 2688
 OUTPUT_SLOT_BYTES = 640
-EMBEDDING32_DIMS = 32
 OPTION_EMBEDDING_SLOTS = 7
-OPTION_EMBEDDING_BYTES = EMBEDDING32_DIMS * 4
+OPTION_EMBEDDING_BYTES = EMBEDDING_DIMS * 4
 OPTION_HASH_BYTES = 8
 
 QUERY_EMBEDDING_OFFSET = 0
-TASK_TYPE_OFFSET = 128
-OPTION_COUNT_OFFSET = 132
-OPTION_EMBEDDINGS_OFFSET = 136
-OPTION_HASHES_OFFSET = 1032
-SUBJECT_ID_OFFSET = 1088
-DOMAIN_HINT_ID_OFFSET = 1092
-THINKING_BUDGET_OFFSET = 1096
-ACTION_HISTORY_OFFSET = 1100
-ACTION_HISTORY_LEN_OFFSET = 1107
-TERNARY_SIGNAL_OFFSET = 1108
-GOAL_EMBEDDING_OFFSET = 1112
-EXPECTED_HASH_OFFSET = 1240
-EXPECTED_INDEX_OFFSET = 1248
+TASK_TYPE_OFFSET = 256
+OPTION_COUNT_OFFSET = 260
+OPTION_EMBEDDINGS_OFFSET = 264
+OPTION_HASHES_OFFSET = 2056
+SUBJECT_ID_OFFSET = 2112
+DOMAIN_HINT_ID_OFFSET = 2116
+THINKING_BUDGET_OFFSET = 2120
+ACTION_HISTORY_OFFSET = 2124
+ACTION_HISTORY_LEN_OFFSET = 2131
+TERNARY_SIGNAL_OFFSET = 2132
+GOAL_EMBEDDING_OFFSET = 2136
+EXPECTED_HASH_OFFSET = 2392
+EXPECTED_INDEX_OFFSET = 2400
 
 ANSWER_INDEX_OFFSET = 0
 CONFIDENCE_OFFSET = 4
@@ -64,6 +65,8 @@ TASK_TYPE_IDS = {
 TASK_TYPE_ALIASES = {
     "ARC": "GAME_2D",
     "ARC_TASK": "GAME_2D",
+    "ARC3": "GAME_2D",
+    "ARC3_TASK": "GAME_2D",
     "SPATIAL_TASK": "GAME_2D",
     "GAME_2D": "GAME_2D",
     "MATH": "MATH",
@@ -116,13 +119,13 @@ def _stable_hash_payload(value: Any) -> int:
     return _fnv1a64(normalized)
 
 
-def _embedding32(values: object) -> list[float]:
+def _embedding64(values: object) -> list[float]:
     if isinstance(values, (list, tuple)):
-        flat = [float(value) for value in values[:EMBEDDING32_DIMS]]
+        flat = [float(value) for value in values[:EMBEDDING_DIMS]]
     else:
-        flat = [float(value) for value in list(values or [])[:EMBEDDING32_DIMS]]
-    if len(flat) < EMBEDDING32_DIMS:
-        flat.extend([0.0] * (EMBEDDING32_DIMS - len(flat)))
+        flat = [float(value) for value in list(values or [])[:EMBEDDING_DIMS]]
+    if len(flat) < EMBEDDING_DIMS:
+        flat.extend([0.0] * (EMBEDDING_DIMS - len(flat)))
     return flat
 
 
@@ -130,7 +133,7 @@ def _option_embeddings(task: dict[str, Any]) -> list[list[float]]:
     raw = task.get("option_embeddings")
     if not isinstance(raw, list):
         return []
-    return [_embedding32(item) for item in raw[:OPTION_EMBEDDING_SLOTS]]
+    return [_embedding64(item) for item in raw[:OPTION_EMBEDDING_SLOTS]]
 
 
 def _bytes_ptr(payload: bytearray) -> ctypes.c_void_p:
@@ -205,10 +208,18 @@ class VRAMTaskBuffer:
         loader.memcpy_dtoh(_bytes_ptr(payload), self.output_buffer, len(payload))
         return [self._unpack_result_slot(payload, index) for index in range(read_count)]
 
+    def write_results(self, results: list[dict[str, Any]]) -> int:
+        count = min(len(results), self.max_tasks)
+        payload = bytearray(self.output_bytes)
+        for result_index in range(count):
+            self._pack_result_slot(payload, result_index, results[result_index])
+        loader.memcpy_htod(self.output_buffer, _bytes_ptr(payload), len(payload))
+        return count
+
     def _pack_task_slot(self, payload: bytearray, task_index: int, task: dict[str, Any]) -> None:
         base = int(task_index) * INPUT_SLOT_BYTES
-        query_embedding = _embedding32(task.get("query_embedding") or task.get("embedding") or [])
-        struct.pack_into("<32f", payload, base + QUERY_EMBEDDING_OFFSET, *query_embedding)
+        query_embedding = _embedding64(task.get("query_embedding") or task.get("embedding") or [])
+        struct.pack_into(f"<{EMBEDDING_DIMS}f", payload, base + QUERY_EMBEDDING_OFFSET, *query_embedding)
         family = self.normalize_task_type(task.get("surface_kind") or task.get("type", ""))
         struct.pack_into("<I", payload, base + TASK_TYPE_OFFSET, self.task_type_id(family))
         option_embeddings = _option_embeddings(task)
@@ -216,7 +227,7 @@ class VRAMTaskBuffer:
         option_hashes = list(task.get("option_hashes") or [])
         for option_index, option_embedding in enumerate(option_embeddings):
             option_offset = base + OPTION_EMBEDDINGS_OFFSET + (option_index * OPTION_EMBEDDING_BYTES)
-            struct.pack_into("<32f", payload, option_offset, *option_embedding)
+            struct.pack_into(f"<{EMBEDDING_DIMS}f", payload, option_offset, *option_embedding)
             option_hash = int(option_hashes[option_index]) if option_index < len(option_hashes) else _stable_hash_payload(
                 (task.get("options") or [])[option_index] if isinstance(task.get("options"), list) and option_index < len(task.get("options")) else ""
             )
@@ -242,8 +253,8 @@ class VRAMTaskBuffer:
         struct.pack_into("<B", payload, base + ACTION_HISTORY_LEN_OFFSET, min(len(action_history), 7))
         ternary_signal = max(-1, min(1, int(task.get("ternary_signal", 0))))
         struct.pack_into("<b", payload, base + TERNARY_SIGNAL_OFFSET, ternary_signal)
-        goal_embedding = _embedding32(task.get("goal_embedding") or [])
-        struct.pack_into("<32f", payload, base + GOAL_EMBEDDING_OFFSET, *goal_embedding)
+        goal_embedding = _embedding64(task.get("goal_embedding") or [])
+        struct.pack_into(f"<{EMBEDDING_DIMS}f", payload, base + GOAL_EMBEDDING_OFFSET, *goal_embedding)
         expected_hash = int(task.get("expected_hash") or _stable_hash_payload(task.get("expected_answer") or task.get("expected_output")))
         struct.pack_into("<Q", payload, base + EXPECTED_HASH_OFFSET, expected_hash & 0xFFFFFFFFFFFFFFFF)
         expected_index = max(-1, int(task.get("expected_index", -1)))
@@ -251,14 +262,14 @@ class VRAMTaskBuffer:
 
     def _unpack_task_slot(self, payload: bytearray, task_index: int) -> dict[str, Any]:
         base = int(task_index) * INPUT_SLOT_BYTES
-        query_embedding = list(struct.unpack_from("<32f", payload, base + QUERY_EMBEDDING_OFFSET))
+        query_embedding = list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", payload, base + QUERY_EMBEDDING_OFFSET))
         task_type_id = struct.unpack_from("<I", payload, base + TASK_TYPE_OFFSET)[0]
         option_count = struct.unpack_from("<I", payload, base + OPTION_COUNT_OFFSET)[0]
         option_embeddings: list[list[float]] = []
         option_hashes: list[int] = []
         for option_index in range(min(option_count, OPTION_EMBEDDING_SLOTS)):
             option_offset = base + OPTION_EMBEDDINGS_OFFSET + (option_index * OPTION_EMBEDDING_BYTES)
-            option_embeddings.append(list(struct.unpack_from("<32f", payload, option_offset)))
+            option_embeddings.append(list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", payload, option_offset)))
             option_hash_offset = base + OPTION_HASHES_OFFSET + (option_index * OPTION_HASH_BYTES)
             option_hashes.append(int(struct.unpack_from("<Q", payload, option_hash_offset)[0]))
         subject_id = struct.unpack_from("<I", payload, base + SUBJECT_ID_OFFSET)[0]
@@ -270,7 +281,7 @@ class VRAMTaskBuffer:
             for history_index in range(min(action_history_len, 7))
         ]
         ternary_signal = struct.unpack_from("<b", payload, base + TERNARY_SIGNAL_OFFSET)[0]
-        goal_embedding = list(struct.unpack_from("<32f", payload, base + GOAL_EMBEDDING_OFFSET))
+        goal_embedding = list(struct.unpack_from(f"<{EMBEDDING_DIMS}f", payload, base + GOAL_EMBEDDING_OFFSET))
         expected_hash = int(struct.unpack_from("<Q", payload, base + EXPECTED_HASH_OFFSET)[0])
         expected_index = int(struct.unpack_from("<i", payload, base + EXPECTED_INDEX_OFFSET)[0])
         return {
@@ -331,6 +342,26 @@ class VRAMTaskBuffer:
             "route_trace_role_ids": [int(value) for value in route_trace_role_ids],
         }
 
+    def _pack_result_slot(self, payload: bytearray, task_index: int, result: dict[str, Any]) -> None:
+        base = int(task_index) * OUTPUT_SLOT_BYTES
+        struct.pack_into("<I", payload, base + ANSWER_INDEX_OFFSET, int(result.get("answer_index", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<f", payload, base + CONFIDENCE_OFFSET, float(result.get("confidence", 0.0) or 0.0))
+        struct.pack_into("<b", payload, base + CONVERGENCE_OFFSET, int(result.get("convergence_signal", 0) or 0))
+        struct.pack_into("<I", payload, base + ITERATIONS_OFFSET, int(result.get("iterations_used", 0) or 0) & 0xFFFFFFFF)
+        answer_hash = int(result.get("answer_text_hash") or _stable_hash_payload(result.get("answer_text")))
+        struct.pack_into("<Q", payload, base + ANSWER_HASH_OFFSET, answer_hash & 0xFFFFFFFFFFFFFFFF)
+        struct.pack_into("<f", payload, base + GOAL_PROGRESS_OFFSET, float(result.get("goal_progress", 0.0) or 0.0))
+        struct.pack_into("<I", payload, base + WINNER_STAR_INDEX_OFFSET, int(result.get("winner_star_index", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + WINNER_ROLE_ID_OFFSET, int(result.get("winner_role_id", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + ROUTE_DEPTH_OFFSET, int(result.get("route_depth", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<i", payload, base + ANTI_PATTERN_SIGNAL_OFFSET, int(result.get("anti_pattern_signal", 0) or 0))
+        struct.pack_into("<I", payload, base + ROUTER_STAR_INDEX_OFFSET, int(result.get("router_star_index", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + EXECUTOR_STAR_INDEX_OFFSET, int(result.get("executor_star_index", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + VALIDATOR_STAR_INDEX_OFFSET, int(result.get("validator_star_index", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + ROUTE_BUDGET_USED_OFFSET, int(result.get("route_budget_used", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + ROUTE_BUDGET_MIN_OFFSET, int(result.get("route_budget_min", 0) or 0) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + RECURSION_DEPTH_USED_OFFSET, int(result.get("recursion_depth_used", 0) or 0) & 0xFFFFFFFF)
+
 
 __all__ = [
     "ANSWER_HASH_OFFSET",
@@ -339,6 +370,7 @@ __all__ = [
     "CONFIDENCE_OFFSET",
     "CONVERGENCE_OFFSET",
     "DOMAIN_HINT_ID_OFFSET",
+    "EMBEDDING_DIMS",
     "EMBEDDING32_DIMS",
     "EXPECTED_HASH_OFFSET",
     "EXPECTED_INDEX_OFFSET",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from knowledge3d.knowledgeverse.galaxy_vram_table import (
+    EMBEDDING_DIMS,
     STAR_FLAG_LEARNABLE,
     GalaxyVRAMTable,
 )
@@ -23,7 +24,8 @@ def test_galaxy_vram_table_round_trip():
 
     assert count >= 80
     assert len(roundtrip) == count
-    assert all(len(row["embedding"]) == 32 for row in roundtrip[:7])
+    assert all(len(row["embedding"]) == EMBEDDING_DIMS for row in roundtrip[:7])
+    assert any(abs(float(value)) > 1.0e-8 for value in roundtrip[0]["embedding"][32:])
     assert any(row["component_refs"] for row in roundtrip[:7])
     assert (roundtrip[0]["flags"] & STAR_FLAG_LEARNABLE) != 0
     assert roundtrip[7]["star_type"] == 1
@@ -56,8 +58,8 @@ def test_sleep_time_micro_updates_learnable_galaxy_star():
         before = table.read_stars(1)[0]["embedding"]
         task = {
             "type": "GAME_2D",
-            "query_embedding": [1.0] + ([0.0] * 31),
-            "option_embeddings": [[1.0 if i == j else 0.0 for i in range(32)] for j in range(7)],
+            "query_embedding": [1.0] + ([0.0] * (EMBEDDING_DIMS - 1)),
+            "option_embeddings": [[1.0 if i == j else 0.0 for i in range(EMBEDDING_DIMS)] for j in range(7)],
             "subject": "arc3_subject",
             "domain_hint": "arc3_domain",
         }

@@ -30,6 +30,7 @@ from typing import Tuple, Optional, Iterable, Sequence, List
 
 from knowledge3d.cranium.ptx_runtime.rpn_math_core import HostTensorF32
 from knowledge3d.cranium.kernels.ptx_compiler import compile_cuda_file
+from knowledge3d.cranium.bridges.trm_step_fused_bridge import TRMStepFusedBridge
 from knowledge3d.cranium.sovereign.loader import (
     get_function,
     get_global,
@@ -216,11 +217,16 @@ class _EntityHotPathStruct(ctypes.Structure):
         ("blackboard_star_id", ctypes.c_uint32),
         ("meta_rule_addr", ctypes.c_uint32),
         ("cranial_origin", ctypes.c_float * 3),
-        ("_pad", ctypes.c_float),
+        ("gaze_yaw", ctypes.c_float),
+        ("gaze_pitch", ctypes.c_float),
+        ("gaze_fov", ctypes.c_float),
+        ("attention_entity_id", ctypes.c_uint32),
+        ("motor_output", ctypes.c_float * 3),
+        ("current_goal_star", ctypes.c_uint32),
     ]
 
 
-assert ctypes.sizeof(_EntityHotPathStruct) == 68
+assert ctypes.sizeof(_EntityHotPathStruct) == 96
 
 
 class _CASStarNodePayload(ctypes.Union):
@@ -3166,6 +3172,9 @@ class ModularRPNEngine:
             cranial_origin = list(entry.get("cranial_origin", [0.0, 1.6, 0.0]) or [0.0, 1.6, 0.0])[:3]
             while len(cranial_origin) < 3:
                 cranial_origin.append(0.0)
+            motor_output = list(entry.get("motor_output", [0.0, 0.0, 0.0]) or [0.0, 0.0, 0.0])[:3]
+            while len(motor_output) < 3:
+                motor_output.append(0.0)
             host[idx] = _EntityHotPathStruct(
                 star_table_idx=int(entry.get("star_table_idx", idx)),
                 physics_body_id=int(entry.get("physics_body_id", 0)),
@@ -3183,7 +3192,12 @@ class ModularRPNEngine:
                 blackboard_star_id=int(entry.get("blackboard_star_id", 0)),
                 meta_rule_addr=int(entry.get("meta_rule_addr", 0)),
                 cranial_origin=(ctypes.c_float * 3)(*map(float, cranial_origin)),
-                _pad=0.0,
+                gaze_yaw=float(entry.get("gaze_yaw", 0.0)),
+                gaze_pitch=float(entry.get("gaze_pitch", 0.0)),
+                gaze_fov=float(entry.get("gaze_fov", 0.7853981633974483)),
+                attention_entity_id=int(entry.get("attention_entity_id", 0)),
+                motor_output=(ctypes.c_float * 3)(*map(float, motor_output)),
+                current_goal_star=int(entry.get("current_goal_star", 0)),
             )
 
         nbytes = ctypes.sizeof(host)
@@ -3731,6 +3745,7 @@ __all__ = [
     # Runtime Engines
     "ModularRPNEngine",
     "GalaxyMemoryUpdater",
+    "TRMStepFusedBridge",
     # GLM's World Model
     "WorldModelBridge",
 ]

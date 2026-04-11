@@ -152,11 +152,11 @@ $L__BB0_12:
 	bra.uni 	$L__BB0_13;
 
 $L__BB0_14:
-	shl.b32 	%r34, %r2, 8;
+	mul.lo.s32 	%r34, %r2, 400;
 	cvt.u64.u32 	%rd48, %r34;
 	cvta.to.global.u64 	%rd49, %rd19;
 	add.s64 	%rd50, %rd49, %rd48;
-	ld.global.nc.u64 	%rd15, [%rd50+176];
+	ld.global.nc.u64 	%rd15, [%rd50+304];
 	setp.eq.s64 	%p11, %rd15, 0;
 	@%p11 bra 	$L__BB0_16;
 

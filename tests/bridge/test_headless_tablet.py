@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
-from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletEmit, TabletIngest
-from knowledge3d.cranium.actions import ActionType
+from knowledge3d.bridge.headless_tablet import ActionType, HeadlessTabletMPC, TabletEmit, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -49,6 +49,72 @@ class _FakeDaemon:
         return {"status": "error", "error": "unsupported_task"}
 
 
+class _FailingDaemon:
+    def handle_command(self, payload: dict[str, object]) -> dict[str, object]:
+        raise AssertionError("daemon fallback should not run when bridge is available")
+
+
+class _FakeTabletBridge:
+    def __init__(self) -> None:
+        self.bound_buffers: dict[str, Any] | None = None
+        self.bound_galaxy_table: dict[str, Any] | None = None
+        self.submitted_queries: list[dict[str, Any]] = []
+
+    def bind_query_runtime_buffers(self, **kwargs: Any) -> dict[str, int]:
+        self.bound_buffers = dict(kwargs)
+        return {"bound": 1, "vector_dim": 512, "workspace_floats": 4096}
+
+    def bind_galaxy_table(
+        self,
+        gpu_ptr: Any,
+        star_count: int,
+        *,
+        embedding_dims: int = 64,
+        host_stars: list[dict[str, Any]] | None = None,
+    ) -> dict[str, int]:
+        self.bound_galaxy_table = {
+            "gpu_ptr": gpu_ptr,
+            "star_count": int(star_count),
+            "embedding_dims": int(embedding_dims),
+            "host_stars": [dict(star) for star in list(host_stars or [])],
+        }
+        return {"bound": 1, "star_count": int(star_count), "embedding_dims": int(embedding_dims)}
+
+    def submit_query(
+        self,
+        query_embedding: list[float],
+        *,
+        action_buffer_words: list[int] | None = None,
+        delta_time: float = 0.02,
+        tick: int | None = None,
+    ) -> dict[str, Any]:
+        action_words = list(action_buffer_words or [])
+        self.submitted_queries.append(
+            {
+                "query_embedding": list(query_embedding),
+                "action_buffer_words": action_words,
+                "delta_time": float(delta_time),
+                "tick": tick,
+            }
+        )
+        return {
+            "status": "ok",
+            "mode": "submit_query",
+            "tick": int(tick or 0),
+            "steps": 1,
+            "drift": 0.0,
+            "current_state": 4,
+            "sleep_state": 4,
+            "query_embedding_512": [0.25] * 512,
+            "y_new_vector_512": [0.5] * 512,
+            "z_new_vector_512": [0.75] * 512,
+            "trm_latency_us": 10.0,
+            "action_buffers": [[int(ActionType.NO_ACTION.value)] + [0] * 71],
+            "ring_event_payload": 1234,
+            "tick_result": {"tick": int(tick or 0)},
+        }
+
+
 def test_tablet_ingest_arc_builds_standard_route_payload_and_action_buffer():
     envelope = TabletIngest.arc_task(
         task_id="arc_demo",
@@ -88,6 +154,135 @@ def test_headless_tablet_mpc_routes_math_through_standard_contract(tmp_path: Pat
     assert result["emitted"]["answer_text"] == "4"
     assert result["emitted"]["correct"] is True
     assert result["tablet_contract"]["action_type"] == "UPDATE_TABLET"
+
+
+def test_headless_tablet_mpc_uses_bridge_ring_path_without_daemon(tmp_path: Path):
+    bridge = _FakeTabletBridge()
+    boundary = HeadlessTabletMPC(
+        command_handler=_FailingDaemon(),
+        bridge=bridge,
+        storage_root=tmp_path,
+    )
+    envelope = TabletIngest.math_problem(
+        task_id="math_bridge_demo",
+        question="What is 2 + 2?",
+        competition="AMC",
+        expected_answer="4",
+    )
+
+    result = boundary.submit(envelope, use_enriched=True)
+
+    assert len(bridge.submitted_queries) == 1
+    submitted = bridge.submitted_queries[0]
+    assert submitted["delta_time"] == 0.02
+    assert submitted["tick"] == 1
+    assert len(submitted["query_embedding"]) == 512
+    assert len(submitted["action_buffer_words"]) == 72
+    assert submitted["action_buffer_words"][0] == int(ActionType.UPDATE_TABLET.value)
+    assert result["tablet_contract"]["sovereign_path"] == "tablet_bridge_ring"
+    assert result["tablet_contract"]["output_action_type"] == "NO_ACTION"
+    assert result["response"]["task_result"]["gpu_execution"] is True
+    assert result["response"]["task_result"]["answer_materialized"] is False
+    assert result["response"]["task_result"]["failure_code"] == "not_materialized_from_y_new_yet"
+    assert result["emitted"]["answer_materialized"] is False
+    assert result["emitted"]["correct"] is False
+
+
+def test_headless_tablet_mpc_discovers_knowledgeverse_bridge_and_binds_runtime(tmp_path: Path):
+    class _Launcher:
+        def __init__(self) -> None:
+            self._step_fused_bridge = _FakeTabletBridge()
+
+    kv = Knowledgeverse.__new__(Knowledgeverse)
+    kv._trm = _Launcher()
+    kv._trm_state_buffers = {
+        "d_q": 1,
+        "d_y": 2,
+        "d_z": 3,
+        "d_z_new": 4,
+        "d_y_new": 5,
+        "d_workspace": 6,
+        "d_q_input": 7,
+    }
+    kv._trm_weight_buffers = {"W1": 11, "W2": 12, "W3": 13, "W4": 14}
+    kv._matryoshka_bridge = object()
+    kv._trm_matryoshka_weight_buffer = 15
+    kv._sovereign_hot_path = type(
+        "_Runtime",
+        (),
+        {
+            "star_table": type("_StarTable", (), {"gpu_ptr": 123, "star_count": 1, "_host_stars": [{"answer_text": "42"}]})(),
+            "_host_stars": [{"answer_text": "42"}],
+        },
+    )()
+
+    boundary = HeadlessTabletMPC(
+        command_handler=_FailingDaemon(),
+        knowledgeverse=kv,
+        storage_root=tmp_path,
+    )
+
+    assert boundary._bridge is kv._trm._step_fused_bridge
+    assert kv._trm._step_fused_bridge.bound_buffers is not None
+    assert kv._trm._step_fused_bridge.bound_buffers["q_ptr"] == 1
+    assert kv._trm._step_fused_bridge.bound_buffers["matryoshka_weight_ptr"] == 15
+    assert kv._trm._step_fused_bridge.bound_galaxy_table is not None
+    assert kv._trm._step_fused_bridge.bound_galaxy_table["star_count"] == 1
+
+
+def test_headless_tablet_mpc_materializes_bridge_top_star_answer(tmp_path: Path):
+    class _AnswerBridge(_FakeTabletBridge):
+        def submit_query(
+            self,
+            query_embedding: list[float],
+            *,
+            action_buffer_words: list[int] | None = None,
+            delta_time: float = 0.02,
+            tick: int | None = None,
+        ) -> dict[str, Any]:
+            packet = super().submit_query(
+                query_embedding,
+                action_buffer_words=action_buffer_words,
+                delta_time=delta_time,
+                tick=tick,
+            )
+            packet.update(
+                {
+                    "answer_materialized": True,
+                    "failure_code": "",
+                    "top_star_idx": 7,
+                    "top_star_score": 0.99,
+                    "top_star_galaxy_id": 123,
+                    "top_star_role": 4,
+                    "top_star_hash": 456,
+                    "top_star": {
+                        "id": "math_answer_4",
+                        "selection_role": "answer",
+                        "metadata": {"answer_text": "4"},
+                    },
+                }
+            )
+            return packet
+
+    boundary = HeadlessTabletMPC(
+        command_handler=_FailingDaemon(),
+        bridge=_AnswerBridge(),
+        storage_root=tmp_path,
+    )
+    envelope = TabletIngest.math_problem(
+        task_id="math_bridge_answer_demo",
+        question="What is 2 + 2?",
+        competition="AMC",
+        expected_answer="4",
+    )
+
+    result = boundary.submit(envelope)
+
+    assert result["response"]["task_result"]["answer_materialized"] is True
+    assert result["response"]["task_result"]["top_star_idx"] == 7
+    assert result["emitted"]["answer_text"] == "4"
+    assert result["emitted"]["numeric_answer"] == 4.0
+    assert result["emitted"]["correct"] is True
 
 
 def test_tablet_emit_lhe_uses_typed_option_answer_from_task_result():

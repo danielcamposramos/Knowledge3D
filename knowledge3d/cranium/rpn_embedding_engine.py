@@ -126,6 +126,18 @@ def _mean_vectors(vectors: Sequence[Sequence[float]], embedding_dim: int) -> Flo
     return _normalize((value * scale for value in accum), embedding_dim)
 
 
+def _positional_weighted_vectors(vectors: Sequence[Sequence[float]], embedding_dim: int) -> Float32Vector:
+    if not vectors:
+        return _zero_vector(embedding_dim)
+    accum = [0.0] * int(embedding_dim)
+    for index, vector in enumerate(vectors):
+        weight = 0.4 * (0.6 ** float(index))
+        coerced = _coerce_vector(vector, embedding_dim)
+        for dim, value in enumerate(coerced):
+            accum[dim] += weight * float(value)
+    return _normalize(accum, embedding_dim)
+
+
 def _vector_table(vectors: Sequence[Sequence[float]], embedding_dim: int) -> HostTensorF32:
     if not vectors:
         return HostTensorF32.zeros(0, embedding_dim)
@@ -212,7 +224,7 @@ class RPNEmbeddingEngine:
         tokens = [token for token in sentence.strip().split() if token]
         if not tokens:
             return _zero_vector(self.embedding_dim)
-        return _mean_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
+        return _positional_weighted_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
 
     # ------------------------------------------------------------------ #
     # GPU bridge integration
@@ -268,7 +280,7 @@ class RPNEmbeddingEngine:
         if not tokens:
             return _zero_vector(self.embedding_dim)
         embeddings = [self.embed_word_gpu(token) for token in tokens]
-        return _mean_vectors(embeddings, self.embedding_dim)
+        return _positional_weighted_vectors(embeddings, self.embedding_dim)
 
     def embed_sentences_gpu(self, sentences: Sequence[str]) -> List[Float32Vector]:
         if self._gpu_bridge is None:
@@ -298,7 +310,7 @@ class RPNEmbeddingEngine:
             if not tokens:
                 outputs.append(_zero_vector(self.embedding_dim))
                 continue
-            outputs.append(_mean_vectors([token_cache[token] for token in tokens], self.embedding_dim))
+            outputs.append(_positional_weighted_vectors([token_cache[token] for token in tokens], self.embedding_dim))
         return outputs
 
     def extract_trigram_indices(self, text: str) -> List[int]:
@@ -310,7 +322,7 @@ class RPNEmbeddingEngine:
     def embed_tokens(self, tokens: Sequence[str]) -> Float32Vector:
         if not tokens:
             return _zero_vector(self.embedding_dim)
-        return _mean_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
+        return _positional_weighted_vectors([self.embed_word(token) for token in tokens], self.embedding_dim)
 
     # ------------------------------------------------------------------ #
     # Persistence

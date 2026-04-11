@@ -210,6 +210,7 @@ def test_trm_step_fused_source_has_explicit_physics_phase_slot() -> None:
     path = Path("knowledge3d/cranium/ptx/trm_step_fused.cu")
     source = path.read_text(encoding="utf-8")
     assert "PHYSICS_PHASE" in source
+    assert "trm_phase2_physics_step" in source
     assert "physics_soa_ptr" in source
     assert "solver_iterations" in source
 

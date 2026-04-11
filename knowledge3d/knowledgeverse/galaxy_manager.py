@@ -99,6 +99,7 @@ def normalize_meaning_layer_entry(
     galaxy_name: str = "meaning_layer_stars",
 ) -> dict[str, Any]:
     raw = dict(entry)
+    existing_metadata = dict(raw.get("metadata") or {})
     star_payload = {
         "star_id": str(raw.get("star_id") or raw.get("id") or "").strip(),
         "meaning_class": str(raw.get("meaning_class") or raw.get("category") or "meaning_star").strip(),
@@ -154,8 +155,10 @@ def normalize_meaning_layer_entry(
         metadata["domain"] = str(star.domain)
     if star.galaxy_ref:
         metadata["galaxy_ref"] = str(star.galaxy_ref)
-    return {
-        "id": star.star_id,
+    merged_metadata = dict(existing_metadata)
+    merged_metadata.update(metadata)
+    normalized = {
+        "id": str(raw.get("id") or star.star_id).strip() or star.star_id,
         "name": name,
         "galaxy": str(galaxy_name),
         "domain": str(star.domain or galaxy_name).strip().lower(),
@@ -165,8 +168,25 @@ def normalize_meaning_layer_entry(
         "summary": name or rpn_text,
         "description": rpn_text or name,
         "rpn_program": rpn_text,
-        "metadata": metadata,
+        "metadata": merged_metadata,
     }
+    for key in (
+        "selection_role",
+        "answer_eligible",
+        "route_policy",
+        "sovereign_route_exempt",
+        "meta_rule_addr",
+        "program_flags",
+        "program_length",
+        "program_opcode_count",
+        "surface_forms",
+        "embedding",
+        "embedding64",
+        "embedding16",
+    ):
+        if key in raw:
+            normalized[key] = raw.get(key)
+    return normalized
 
 
 def normalize_disk_entry(

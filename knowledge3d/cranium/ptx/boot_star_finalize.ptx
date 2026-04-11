@@ -19,8 +19,8 @@
 )
 {
 	.reg .pred 	%p<31>;
-	.reg .f32 	%f<59>;
-	.reg .b32 	%r<67>;
+	.reg .f32 	%f<107>;
+	.reg .b32 	%r<71>;
 	.reg .b64 	%rd<33>;
 
 
@@ -35,9 +35,9 @@
 	@%p1 bra 	$L__BB0_16;
 
 	cvta.to.global.u64 	%rd3, %rd1;
-	mul.lo.s32 	%r17, %r1, 176;
+	mul.lo.s32 	%r17, %r1, 384;
 	cvt.u64.u32 	%rd4, %r17;
-	mul.lo.s32 	%r18, %r1, 152;
+	mul.lo.s32 	%r18, %r1, 360;
 	cvt.u64.u32 	%rd5, %r18;
 	add.s64 	%rd6, %rd3, %rd4;
 	ld.global.nc.f32 	%f14, [%rd6];
@@ -74,20 +74,116 @@
 	st.global.f32 	[%rd8+56], %f28;
 	ld.global.nc.f32 	%f29, [%rd6+60];
 	st.global.f32 	[%rd8+60], %f29;
-	ld.global.nc.u32 	%r2, [%rd6+72];
-	ld.global.nc.u32 	%r3, [%rd6+76];
-	ld.global.nc.u32 	%r4, [%rd6+84];
-	ld.global.nc.u32 	%r5, [%rd6+128];
-	ld.global.nc.u32 	%r6, [%rd6+136];
-	ld.global.nc.u32 	%r7, [%rd6+112];
-	ld.global.nc.u32 	%r8, [%rd6+116];
-	ld.global.nc.u32 	%r9, [%rd6+120];
+	ld.global.nc.f32 	%f30, [%rd6+64];
+	st.global.f32 	[%rd8+64], %f30;
+	ld.global.nc.f32 	%f31, [%rd6+68];
+	st.global.f32 	[%rd8+68], %f31;
+	ld.global.nc.f32 	%f32, [%rd6+72];
+	st.global.f32 	[%rd8+72], %f32;
+	ld.global.nc.f32 	%f33, [%rd6+76];
+	st.global.f32 	[%rd8+76], %f33;
+	ld.global.nc.f32 	%f34, [%rd6+80];
+	st.global.f32 	[%rd8+80], %f34;
+	ld.global.nc.f32 	%f35, [%rd6+84];
+	st.global.f32 	[%rd8+84], %f35;
+	ld.global.nc.f32 	%f36, [%rd6+88];
+	st.global.f32 	[%rd8+88], %f36;
+	ld.global.nc.f32 	%f37, [%rd6+92];
+	st.global.f32 	[%rd8+92], %f37;
+	ld.global.nc.f32 	%f38, [%rd6+96];
+	st.global.f32 	[%rd8+96], %f38;
+	ld.global.nc.f32 	%f39, [%rd6+100];
+	st.global.f32 	[%rd8+100], %f39;
+	ld.global.nc.f32 	%f40, [%rd6+104];
+	st.global.f32 	[%rd8+104], %f40;
+	ld.global.nc.f32 	%f41, [%rd6+108];
+	st.global.f32 	[%rd8+108], %f41;
+	ld.global.nc.f32 	%f42, [%rd6+112];
+	st.global.f32 	[%rd8+112], %f42;
+	ld.global.nc.f32 	%f43, [%rd6+116];
+	st.global.f32 	[%rd8+116], %f43;
+	ld.global.nc.f32 	%f44, [%rd6+120];
+	st.global.f32 	[%rd8+120], %f44;
+	ld.global.nc.f32 	%f45, [%rd6+124];
+	st.global.f32 	[%rd8+124], %f45;
+	ld.global.nc.f32 	%f46, [%rd6+128];
+	st.global.f32 	[%rd8+128], %f46;
+	ld.global.nc.f32 	%f47, [%rd6+132];
+	st.global.f32 	[%rd8+132], %f47;
+	ld.global.nc.f32 	%f48, [%rd6+136];
+	st.global.f32 	[%rd8+136], %f48;
+	ld.global.nc.f32 	%f49, [%rd6+140];
+	st.global.f32 	[%rd8+140], %f49;
+	ld.global.nc.f32 	%f50, [%rd6+144];
+	st.global.f32 	[%rd8+144], %f50;
+	ld.global.nc.f32 	%f51, [%rd6+148];
+	st.global.f32 	[%rd8+148], %f51;
+	ld.global.nc.f32 	%f52, [%rd6+152];
+	st.global.f32 	[%rd8+152], %f52;
+	ld.global.nc.f32 	%f53, [%rd6+156];
+	st.global.f32 	[%rd8+156], %f53;
+	ld.global.nc.f32 	%f54, [%rd6+160];
+	st.global.f32 	[%rd8+160], %f54;
+	ld.global.nc.f32 	%f55, [%rd6+164];
+	st.global.f32 	[%rd8+164], %f55;
+	ld.global.nc.f32 	%f56, [%rd6+168];
+	st.global.f32 	[%rd8+168], %f56;
+	ld.global.nc.f32 	%f57, [%rd6+172];
+	st.global.f32 	[%rd8+172], %f57;
+	ld.global.nc.f32 	%f58, [%rd6+176];
+	st.global.f32 	[%rd8+176], %f58;
+	ld.global.nc.f32 	%f59, [%rd6+180];
+	st.global.f32 	[%rd8+180], %f59;
+	ld.global.nc.f32 	%f60, [%rd6+184];
+	st.global.f32 	[%rd8+184], %f60;
+	ld.global.nc.f32 	%f61, [%rd6+188];
+	st.global.f32 	[%rd8+188], %f61;
+	ld.global.nc.f32 	%f62, [%rd6+192];
+	st.global.f32 	[%rd8+192], %f62;
+	ld.global.nc.f32 	%f63, [%rd6+196];
+	st.global.f32 	[%rd8+196], %f63;
+	ld.global.nc.f32 	%f64, [%rd6+200];
+	st.global.f32 	[%rd8+200], %f64;
+	ld.global.nc.f32 	%f65, [%rd6+204];
+	st.global.f32 	[%rd8+204], %f65;
+	ld.global.nc.f32 	%f66, [%rd6+208];
+	st.global.f32 	[%rd8+208], %f66;
+	ld.global.nc.f32 	%f67, [%rd6+212];
+	st.global.f32 	[%rd8+212], %f67;
+	ld.global.nc.f32 	%f68, [%rd6+216];
+	st.global.f32 	[%rd8+216], %f68;
+	ld.global.nc.f32 	%f69, [%rd6+220];
+	st.global.f32 	[%rd8+220], %f69;
+	ld.global.nc.f32 	%f70, [%rd6+224];
+	st.global.f32 	[%rd8+224], %f70;
+	ld.global.nc.f32 	%f71, [%rd6+228];
+	st.global.f32 	[%rd8+228], %f71;
+	ld.global.nc.f32 	%f72, [%rd6+232];
+	st.global.f32 	[%rd8+232], %f72;
+	ld.global.nc.f32 	%f73, [%rd6+236];
+	st.global.f32 	[%rd8+236], %f73;
+	ld.global.nc.f32 	%f74, [%rd6+240];
+	st.global.f32 	[%rd8+240], %f74;
+	ld.global.nc.f32 	%f75, [%rd6+244];
+	st.global.f32 	[%rd8+244], %f75;
+	ld.global.nc.f32 	%f76, [%rd6+248];
+	st.global.f32 	[%rd8+248], %f76;
+	ld.global.nc.f32 	%f77, [%rd6+252];
+	st.global.f32 	[%rd8+252], %f77;
+	ld.global.nc.u32 	%r2, [%rd6+264];
+	ld.global.nc.u32 	%r3, [%rd6+268];
+	ld.global.nc.u32 	%r4, [%rd6+276];
+	ld.global.nc.u32 	%r5, [%rd6+320];
+	ld.global.nc.u32 	%r6, [%rd6+328];
+	ld.global.nc.u32 	%r7, [%rd6+304];
+	ld.global.nc.u32 	%r8, [%rd6+308];
+	ld.global.nc.u32 	%r9, [%rd6+312];
 	and.b32  	%r19, %r9, 1;
 	setp.eq.b32 	%p2, %r19, 1;
 	mov.pred 	%p3, 0;
 	xor.pred  	%p4, %p2, %p3;
 	not.pred 	%p5, %p4;
-	ld.global.nc.f32 	%f1, [%rd6+108];
+	ld.global.nc.f32 	%f1, [%rd6+300];
 	@%p5 bra 	$L__BB0_3;
 	bra.uni 	$L__BB0_2;
 
@@ -95,14 +191,14 @@ $L__BB0_3:
 	setp.eq.s32 	%p7, %r2, 5;
 	setp.ne.s32 	%p8, %r4, 0;
 	selp.u32 	%r27, 1, 0, %p8;
-	selp.b32 	%r66, -1, %r27, %p7;
+	selp.b32 	%r70, -1, %r27, %p7;
 	bra.uni 	$L__BB0_4;
 
 $L__BB0_2:
-	ld.global.nc.u32 	%r25, [%rd6+88];
+	ld.global.nc.u32 	%r25, [%rd6+280];
 	setp.gt.s32 	%p6, %r25, 0;
 	shr.s32 	%r26, %r25, 31;
-	selp.b32 	%r66, 1, %r26, %p6;
+	selp.b32 	%r70, 1, %r26, %p6;
 
 $L__BB0_4:
 	and.b32  	%r28, %r9, 2;
@@ -112,31 +208,31 @@ $L__BB0_4:
 
 $L__BB0_6:
 	setp.eq.s32 	%p12, %r4, 0;
-	selp.f32 	%f55, 0f3F000000, 0f3F800000, %p12;
+	selp.f32 	%f103, 0f3F000000, 0f3F800000, %p12;
 	bra.uni 	$L__BB0_7;
 
 $L__BB0_5:
-	ld.global.nc.f32 	%f30, [%rd6+92];
-	abs.f32 	%f31, %f30;
-	setp.geu.f32 	%p10, %f31, 0f7F800000;
-	selp.f32 	%f32, 0f00000000, %f30, %p10;
-	setp.lt.f32 	%p11, %f32, 0f00000000;
-	selp.f32 	%f55, 0f00000000, %f32, %p11;
+	ld.global.nc.f32 	%f78, [%rd6+284];
+	abs.f32 	%f79, %f78;
+	setp.geu.f32 	%p10, %f79, 0f7F800000;
+	selp.f32 	%f80, 0f00000000, %f78, %p10;
+	setp.lt.f32 	%p11, %f80, 0f00000000;
+	selp.f32 	%f103, 0f00000000, %f80, %p11;
 
 $L__BB0_7:
-	abs.f32 	%f33, %f1;
-	setp.geu.f32 	%p13, %f33, 0f7F800000;
-	selp.f32 	%f34, 0f00000000, %f1, %p13;
-	max.f32 	%f35, %f34, 0f00000000;
+	abs.f32 	%f81, %f1;
+	setp.geu.f32 	%p13, %f81, 0f7F800000;
+	selp.f32 	%f82, 0f00000000, %f1, %p13;
+	max.f32 	%f83, %f82, 0f00000000;
 	and.b32  	%r34, %r9, 4;
 	setp.eq.s32 	%p14, %r34, 0;
-	min.f32 	%f56, %f35, 0f3F800000;
+	min.f32 	%f104, %f83, 0f3F800000;
 	@%p14 bra 	$L__BB0_9;
 
-	ld.global.nc.f32 	%f36, [%rd6+96];
-	abs.f32 	%f37, %f36;
-	setp.geu.f32 	%p15, %f37, 0f7F800000;
-	selp.f32 	%f56, 0f00000000, %f36, %p15;
+	ld.global.nc.f32 	%f84, [%rd6+288];
+	abs.f32 	%f85, %f84;
+	setp.geu.f32 	%p15, %f85, 0f7F800000;
+	selp.f32 	%f104, 0f00000000, %f84, %p15;
 
 $L__BB0_9:
 	and.b32  	%r40, %r9, 8;
@@ -148,16 +244,16 @@ $L__BB0_11:
 	setp.eq.s32 	%p19, %r2, 1;
 	setp.ne.s32 	%p20, %r5, 0;
 	and.pred  	%p21, %p19, %p20;
-	selp.f32 	%f57, 0f3E800000, 0f00000000, %p21;
+	selp.f32 	%f105, 0f3E800000, 0f00000000, %p21;
 	bra.uni 	$L__BB0_12;
 
 $L__BB0_10:
-	ld.global.nc.f32 	%f38, [%rd6+100];
-	abs.f32 	%f39, %f38;
-	setp.geu.f32 	%p17, %f39, 0f7F800000;
-	selp.f32 	%f40, 0f00000000, %f38, %p17;
-	setp.lt.f32 	%p18, %f40, 0f00000000;
-	selp.f32 	%f57, 0f00000000, %f40, %p18;
+	ld.global.nc.f32 	%f86, [%rd6+292];
+	abs.f32 	%f87, %f86;
+	setp.geu.f32 	%p17, %f87, 0f7F800000;
+	selp.f32 	%f88, 0f00000000, %f86, %p17;
+	setp.lt.f32 	%p18, %f88, 0f00000000;
+	selp.f32 	%f105, 0f00000000, %f88, %p18;
 
 $L__BB0_12:
 	and.b32  	%r46, %r9, 16;
@@ -169,59 +265,67 @@ $L__BB0_14:
 	setp.eq.s32 	%p25, %r2, 5;
 	setp.ne.s32 	%p26, %r6, 0;
 	or.pred  	%p27, %p25, %p26;
-	selp.f32 	%f58, 0f3E99999A, 0f00000000, %p27;
+	selp.f32 	%f106, 0f3E99999A, 0f00000000, %p27;
 	bra.uni 	$L__BB0_15;
 
 $L__BB0_13:
-	ld.global.nc.f32 	%f41, [%rd6+104];
-	abs.f32 	%f42, %f41;
-	setp.geu.f32 	%p23, %f42, 0f7F800000;
-	selp.f32 	%f43, 0f00000000, %f41, %p23;
-	setp.lt.f32 	%p24, %f43, 0f00000000;
-	selp.f32 	%f58, 0f00000000, %f43, %p24;
+	ld.global.nc.f32 	%f89, [%rd6+296];
+	abs.f32 	%f90, %f89;
+	setp.geu.f32 	%p23, %f90, 0f7F800000;
+	selp.f32 	%f91, 0f00000000, %f89, %p23;
+	setp.lt.f32 	%p24, %f91, 0f00000000;
+	selp.f32 	%f106, 0f00000000, %f91, %p24;
 
 $L__BB0_15:
-	cvt.rn.f32.u32 	%f44, %r3;
-	mul.f32 	%f45, %f44, 0f3E800000;
-	max.f32 	%f46, %f45, 0f00000000;
-	min.f32 	%f47, %f46, 0f3F800000;
-	ld.global.nc.u32 	%r57, [%rd6+64];
-	st.global.u32 	[%rd8+64], %r57;
-	ld.global.nc.u32 	%r59, [%rd6+68];
-	st.global.u32 	[%rd8+68], %r59;
-	st.global.u32 	[%rd8+72], %r2;
-	st.global.u32 	[%rd8+76], %r3;
-	ld.global.nc.u32 	%r60, [%rd6+80];
-	st.global.u32 	[%rd8+80], %r60;
-	st.global.u32 	[%rd8+84], %r4;
-	st.global.u32 	[%rd8+88], %r66;
-	st.global.f32 	[%rd8+92], %f55;
-	setp.lt.f32 	%p28, %f56, 0f3D4CCCCD;
-	selp.f32 	%f48, 0f3D4CCCCD, %f56, %p28;
-	st.global.f32 	[%rd8+96], %f48;
-	st.global.f32 	[%rd8+100], %f57;
-	st.global.f32 	[%rd8+104], %f58;
+	cvt.rn.f32.u32 	%f92, %r3;
+	mul.f32 	%f93, %f92, 0f3E800000;
+	max.f32 	%f94, %f93, 0f00000000;
+	min.f32 	%f95, %f94, 0f3F800000;
+	ld.global.nc.u32 	%r57, [%rd6+256];
+	st.global.u32 	[%rd8+256], %r57;
+	ld.global.nc.u32 	%r59, [%rd6+260];
+	st.global.u32 	[%rd8+260], %r59;
+	st.global.u32 	[%rd8+264], %r2;
+	st.global.u32 	[%rd8+268], %r3;
+	ld.global.nc.u32 	%r60, [%rd6+272];
+	st.global.u32 	[%rd8+272], %r60;
+	st.global.u32 	[%rd8+276], %r4;
+	st.global.u32 	[%rd8+280], %r70;
+	st.global.f32 	[%rd8+284], %f103;
+	setp.lt.f32 	%p28, %f104, 0f3D4CCCCD;
+	selp.f32 	%f96, 0f3D4CCCCD, %f104, %p28;
+	st.global.f32 	[%rd8+288], %f96;
+	st.global.f32 	[%rd8+292], %f105;
+	st.global.f32 	[%rd8+296], %f106;
 	min.u32 	%r61, %r8, 255;
 	and.b32  	%r62, %r7, 15;
 	prmt.b32 	%r63, %r61, %r62, 8452;
-	st.global.u32 	[%rd8+108], %r63;
-	ld.global.nc.u32 	%r64, [%rd6+140];
+	st.global.u32 	[%rd8+300], %r63;
+	ld.global.nc.u32 	%r64, [%rd6+348];
 	cvt.u64.u32 	%rd30, %r64;
-	ld.global.nc.u32 	%r65, [%rd6+144];
+	ld.global.nc.u32 	%r65, [%rd6+352];
 	cvt.u64.u32 	%rd31, %r65;
 	bfi.b64 	%rd32, %rd31, %rd30, 32, 32;
-	st.global.u64 	[%rd8+112], %rd32;
-	ld.global.nc.f32 	%f49, [%rd6+148];
-	abs.f32 	%f50, %f49;
-	setp.geu.f32 	%p29, %f50, 0f7F800000;
-	selp.f32 	%f51, 0f00000000, %f49, %p29;
-	st.global.f32 	[%rd8+120], %f51;
-	ld.global.nc.f32 	%f52, [%rd6+152];
-	abs.f32 	%f53, %f52;
-	setp.geu.f32 	%p30, %f53, 0f7F800000;
-	selp.f32 	%f54, 0f00000000, %f52, %p30;
-	st.global.f32 	[%rd8+124], %f54;
-	st.global.f32 	[%rd8+128], %f47;
+	st.global.u64 	[%rd8+304], %rd32;
+	ld.global.nc.f32 	%f97, [%rd6+356];
+	abs.f32 	%f98, %f97;
+	setp.geu.f32 	%p29, %f98, 0f7F800000;
+	selp.f32 	%f99, 0f00000000, %f97, %p29;
+	st.global.f32 	[%rd8+312], %f99;
+	ld.global.nc.f32 	%f100, [%rd6+360];
+	abs.f32 	%f101, %f100;
+	setp.geu.f32 	%p30, %f101, 0f7F800000;
+	selp.f32 	%f102, 0f00000000, %f100, %p30;
+	st.global.f32 	[%rd8+316], %f102;
+	st.global.f32 	[%rd8+320], %f95;
+	ld.global.nc.u32 	%r66, [%rd6+332];
+	st.global.u32 	[%rd8+324], %r66;
+	ld.global.nc.u32 	%r67, [%rd6+336];
+	st.global.u32 	[%rd8+328], %r67;
+	ld.global.nc.u32 	%r68, [%rd6+340];
+	st.global.u32 	[%rd8+332], %r68;
+	ld.global.nc.u32 	%r69, [%rd6+344];
+	st.global.u32 	[%rd8+336], %r69;
 
 $L__BB0_16:
 	ret;

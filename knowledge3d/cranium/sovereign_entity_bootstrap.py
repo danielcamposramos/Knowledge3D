@@ -145,6 +145,12 @@ def build_entity_hot_path_array(galaxy_manager: Any) -> list[dict[str, Any]]:
                 "blackboard_star_id": int(blackboard_star_id),
                 "meta_rule_addr": len(star.meta_refs),
                 "cranial_origin": [0.0, 1.6, 0.0],
+                "gaze_yaw": 0.0,
+                "gaze_pitch": 0.0,
+                "gaze_fov": 0.7853981633974483,
+                "attention_entity_id": 0,
+                "motor_output": [0.0, 0.0, 0.0],
+                "current_goal_star": 0,
             }
         )
     return hot_paths

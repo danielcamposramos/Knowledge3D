@@ -36,12 +36,14 @@ class TRMGameLoop:
         self,
         knowledgeverse: Any,
         *,
+        bridge: Any | None = None,
         input_ring: RingBuffer | None = None,
         output_ring: RingBuffer | None = None,
         input_size_mb: int = 512,
         output_size_mb: int = 256,
     ) -> None:
         self.knowledgeverse = knowledgeverse
+        self.bridge = bridge
         self.input_ring = input_ring or RingBuffer(size_mb=input_size_mb)
         self.output_ring = output_ring or RingBuffer(size_mb=output_size_mb)
         self._pending_inputs: deque[TRMQueuedInput] = deque()
@@ -51,12 +53,20 @@ class TRMGameLoop:
         self._sequence = 0
         self._tick = 0
         self._active = False
+        self._last_tick_result: dict[str, Any] = {}
+        self._last_action_buffers: list[list[int]] = []
 
     def start(self) -> None:
         self._active = True
+        bridge = self._bridge_or_none()
+        if bridge is not None and hasattr(bridge, "start_tick_loop"):
+            bridge.start_tick_loop()
 
     def stop(self) -> None:
         self._active = False
+        bridge = self._bridge_or_none()
+        if bridge is not None and hasattr(bridge, "stop_tick_loop"):
+            bridge.stop_tick_loop()
 
     def is_active(self) -> bool:
         return bool(self._active)
@@ -97,28 +107,11 @@ class TRMGameLoop:
     def tick(self, *, max_tasks: int = 1) -> int:
         if not self._active:
             return 0
+        bridge = self._resolve_bridge()
         processed = 0
-        dispatch_fn = getattr(self.knowledgeverse, "_dispatch_sovereign_task", None)
-        if dispatch_fn is None:
-            raise RuntimeError("knowledgeverse_missing__dispatch_sovereign_task")
         while self._pending_inputs and processed < max(1, int(max_tasks)):
             record = self._pending_inputs.popleft()
-            task = dict(record.payload.get("task") or {})
-            route = (
-                dict(record.payload.get("route") or {})
-                if isinstance(record.payload.get("route"), dict)
-                else None
-            )
-            specialist = str(record.payload.get("specialist") or "auto")
-            domain_hint = record.payload.get("domain_hint")
-            use_enriched = bool(record.payload.get("use_enriched", True))
-            result = dispatch_fn(
-                task=task,
-                route=route,
-                specialist=specialist,
-                domain_hint=domain_hint,
-                use_enriched=use_enriched,
-            )
+            result = self._run_query_tick(bridge)
             result.setdefault(
                 "trm_io",
                 {
@@ -151,6 +144,10 @@ class TRMGameLoop:
             self._outputs_by_request[record.request_id] = output
             self._tick += 1
             processed += 1
+        if processed <= 0:
+            self._run_background_tick(bridge)
+            self._tick += 1
+            processed = 1
         return processed
 
     def wait_output(self, request_id: str, *, max_ticks: int = 1) -> dict[str, Any] | None:
@@ -193,8 +190,65 @@ class TRMGameLoop:
             "output_size": int(self.output_ring.size()),
             "input_window": self._window_payload(input_window),
             "output_window": self._window_payload(output_window),
+            "bridge": self._bridge_status_payload(),
+            "last_tick_result": dict(self._last_tick_result),
+            "last_action_buffers": [list(row) for row in self._last_action_buffers],
         }
 
     @staticmethod
     def _window_payload(window: RingWindow) -> dict[str, int]:
         return {"start": int(window.start), "length": int(window.length)}
+
+    def _bridge_or_none(self) -> Any | None:
+        if self.bridge is not None:
+            return self.bridge
+        launcher = getattr(self.knowledgeverse, "_trm", None)
+        if launcher is not None:
+            bridge = getattr(launcher, "_step_fused_bridge", None)
+            if bridge is not None:
+                return bridge
+        candidate = getattr(self.knowledgeverse, "bridge", None)
+        if candidate is not None:
+            return candidate
+        return None
+
+    def _resolve_bridge(self) -> Any:
+        bridge = self._bridge_or_none()
+        if bridge is None:
+            raise RuntimeError("trm_game_loop_missing_fused_bridge")
+        return bridge
+
+    def _bridge_status_payload(self) -> dict[str, Any]:
+        bridge = self._bridge_or_none()
+        if bridge is None or not hasattr(bridge, "tick_loop_status"):
+            return {}
+        return dict(bridge.tick_loop_status())
+
+    def _action_buffer_payload(self, bridge: Any) -> list[list[int]]:
+        if not hasattr(bridge, "read_action_buffers_words"):
+            return []
+        return bridge.read_action_buffers_words()
+
+    def _run_background_tick(self, bridge: Any) -> dict[str, Any]:
+        tick_result = dict(bridge.launch_tick(delta_time=0.02))
+        action_buffers = self._action_buffer_payload(bridge)
+        self._last_tick_result = dict(tick_result)
+        self._last_action_buffers = [list(row) for row in action_buffers]
+        return {
+            "status": "ok",
+            "mode": "background_tick",
+            "trm_tick": tick_result,
+            "action_buffers": action_buffers,
+        }
+
+    def _run_query_tick(self, bridge: Any) -> dict[str, Any]:
+        tick_result = dict(bridge.run_query_tick(delta_time=0.02))
+        action_buffers = self._action_buffer_payload(bridge)
+        self._last_tick_result = dict(tick_result)
+        self._last_action_buffers = [list(row) for row in action_buffers]
+        return {
+            "status": "ok",
+            "mode": "query_tick",
+            "trm_tick": tick_result,
+            "action_buffers": action_buffers,
+        }

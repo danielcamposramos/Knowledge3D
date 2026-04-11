@@ -11,7 +11,7 @@ from typing import Any
 from knowledge3d.cranium.sovereign import loader
 
 from .lesson_vram_ring import VRAMLessonRing
-from .vram_task_buffer import VRAMTaskBuffer
+from .vram_task_buffer import EMBEDDING_DIMS, VRAMTaskBuffer
 
 
 CUDA_DIR = Path(__file__).resolve().parents[1] / "cranium" / "cuda"
@@ -116,10 +116,12 @@ def cpu_reference_dispatch(
     rows: list[dict[str, Any]] = []
     state = _coerce_brain_state(brain_state)
     for task in tasks:
-        query = _pad32(task.get("query_embedding") or [])
-        goal_embedding = _pad32(task.get("goal_embedding") or [])
-        option_embeddings = [_pad32(option) for option in list(task.get("option_embeddings") or [])[:7]]
+        query = _pad_embedding(task.get("query_embedding") or [])
+        goal_embedding = _pad_embedding(task.get("goal_embedding") or [])
+        option_embeddings = [_pad_embedding(option) for option in list(task.get("option_embeddings") or [])[:7]]
         task_type = VRAMTaskBuffer.task_type_id(str(task.get("type", "")))
+        task_family = VRAMTaskBuffer.task_type_name(task_type)
+        enable_game2d_control = task_family == "GAME_2D" and _is_live_game2d_packet(query)
         thinking_budget = max(5, min(20, int(task.get("thinking_budget", 10))))
         ternary_signal = max(-1, min(1, int(task.get("ternary_signal", 0))))
         if state is not None and state["frame_count"] > 0:
@@ -132,12 +134,12 @@ def cpu_reference_dispatch(
         if state is not None and state["frame_count"] > 0:
             reasoning_state = [
                 _tanh((0.70 * float(state["reasoning"][index])) + (0.30 * query[index]))
-                for index in range(32)
+                for index in range(EMBEDDING_DIMS)
             ]
-            frame_delta = [query[index] - float(state["prev_frame"][index]) for index in range(32)]
+            frame_delta = [query[index] - float(state["prev_frame"][index]) for index in range(EMBEDDING_DIMS)]
         else:
             reasoning_state = list(query)
-            frame_delta = [0.0] * 32
+            frame_delta = [0.0] * EMBEDDING_DIMS
         best_index = 0
         best_score = 0.0
         converged = 0
@@ -153,15 +155,23 @@ def cpu_reference_dispatch(
                 for chain_index in range(9):
                     chain_states[chain_index] = [
                         _tanh((0.70 * float(state["chains"][chain_index][dim])) + (0.30 * chain_states[chain_index][dim]))
-                        for dim in range(32)
+                        for dim in range(EMBEDDING_DIMS)
                     ]
-                    resonance_scores[chain_index] = _cosine32(chain_states[chain_index], reasoning_state)
+                    resonance_scores[chain_index] = _cosine(chain_states[chain_index], reasoning_state)
             galaxy_knowledge, top_galaxy_star_indices, top_galaxy_star_scores = _navigate_galaxy_ref(
                 reasoning_state,
                 galaxy_stars,
+                route_family=task_family,
             )
-            swarm_output = _specialize_task_ref(task_type, swarm_output, chain_states, query, galaxy_knowledge)
-            if task_type == 8:
+            swarm_output = _specialize_task_ref(
+                task_type,
+                swarm_output,
+                chain_states,
+                query,
+                galaxy_knowledge,
+                enable_game2d_control=enable_game2d_control,
+            )
+            if enable_game2d_control:
                 swarm_output = _arc3_frame_delta_ref(swarm_output, frame_delta)
                 swarm_output = _blend_with_galaxy_ref(
                     swarm_output,
@@ -180,12 +190,8 @@ def cpu_reference_dispatch(
             if bounded_options > 0:
                 candidate_scores: list[float] = []
                 for option_index, option_embedding in enumerate(option_embeddings[:bounded_options]):
-                    if galaxy_stars is not None and task_type == 8 and option_index < len(galaxy_stars):
-                        candidate_embedding = _compose_galaxy_embedding_ref(galaxy_stars, option_index)
-                    else:
-                        candidate_embedding = option_embedding
-                    score = _cosine32(swarm_output, candidate_embedding)
-                    if task_type == 8:
+                    score = _cosine(swarm_output, option_embedding)
+                    if enable_game2d_control:
                         score += _arc3_action_prior_ref(option_index, query, ternary_signal)
                     for history_index, history_action in enumerate(action_history[:7]):
                         if int(history_action) == option_index:
@@ -238,18 +244,18 @@ def cpu_reference_dispatch(
     return rows
 
 
-def _pad32(values: Any) -> list[float]:
-    row = [float(value) for value in list(values or [])[:32]]
-    if len(row) < 32:
-        row.extend([0.0] * (32 - len(row)))
+def _pad_embedding(values: Any) -> list[float]:
+    row = [float(value) for value in list(values or [])[:EMBEDDING_DIMS]]
+    if len(row) < EMBEDDING_DIMS:
+        row.extend([0.0] * (EMBEDDING_DIMS - len(row)))
     return row
 
 
 def _blank_brain_state() -> dict[str, Any]:
     return {
-        "reasoning": [0.0] * 32,
-        "chains": [[0.0] * 32 for _ in range(9)],
-        "prev_frame": [0.0] * 32,
+        "reasoning": [0.0] * EMBEDDING_DIMS,
+        "chains": [[0.0] * EMBEDDING_DIMS for _ in range(9)],
+        "prev_frame": [0.0] * EMBEDDING_DIMS,
         "action_ring": [],
         "ternary_signal": 0,
         "frame_count": 0,
@@ -257,15 +263,23 @@ def _blank_brain_state() -> dict[str, Any]:
     }
 
 
+def _is_live_game2d_packet(query: list[float]) -> bool:
+    if len(query) < EMBEDDING_DIMS:
+        return False
+    reserved_signal = any(abs(float(query[index])) > 1.0e-6 for index in (10, 11, 12, 13, 28, 29, 31))
+    high_lane_signal = any(abs(float(value)) > 1.0e-6 for value in query[32:])
+    return bool(reserved_signal and high_lane_signal)
+
+
 def _coerce_brain_state(brain_state: dict[str, Any] | None) -> dict[str, Any] | None:
     if brain_state is None:
         return None
     state = _blank_brain_state()
     if isinstance(brain_state, dict):
-        state["reasoning"] = _pad32(brain_state.get("reasoning") or state["reasoning"])
+        state["reasoning"] = _pad_embedding(brain_state.get("reasoning") or state["reasoning"])
         raw_chains = list(brain_state.get("chains") or state["chains"])[:9]
-        state["chains"] = [_pad32(row) for row in raw_chains] + ([[0.0] * 32] * max(0, 9 - len(raw_chains)))
-        state["prev_frame"] = _pad32(brain_state.get("prev_frame") or state["prev_frame"])
+        state["chains"] = [_pad_embedding(row) for row in raw_chains] + ([[0.0] * EMBEDDING_DIMS] * max(0, 9 - len(raw_chains)))
+        state["prev_frame"] = _pad_embedding(brain_state.get("prev_frame") or state["prev_frame"])
         state["action_ring"] = [int(value) for value in list(brain_state.get("action_ring") or [])[:7]]
         state["ternary_signal"] = max(-1, min(1, int(brain_state.get("ternary_signal", 0))))
         state["frame_count"] = max(0, int(brain_state.get("frame_count", 0)))
@@ -296,9 +310,9 @@ def _blend_with_galaxy_ref(
 
     output: list[float] = []
     chain_count = max(1, len(chain_ids))
-    for index in range(32):
+    for index in range(EMBEDDING_DIMS):
         context_mean = sum(chain_states[chain_id % 9][index] for chain_id in chain_ids) / float(chain_count)
-        neighbor_mix = 0.5 * (galaxy_knowledge[(index - 1) % 32] + galaxy_knowledge[(index + 1) % 32])
+        neighbor_mix = 0.5 * (galaxy_knowledge[(index - 1) % EMBEDDING_DIMS] + galaxy_knowledge[(index + 1) % EMBEDDING_DIMS])
         output.append(
             math.tanh(
                 (self_weight * embedding[index]) +
@@ -314,17 +328,23 @@ def _blend_with_galaxy_ref(
 def _navigate_galaxy_ref(
     reasoning_state: list[float],
     galaxy_stars: list[dict[str, Any]] | None,
+    *,
+    route_family: str | None = None,
 ) -> tuple[list[float], list[int], list[float]]:
     if not galaxy_stars:
-        return [0.0] * 32, [], []
+        return [0.0] * EMBEDDING_DIMS, [], []
+    normalized_family = str(route_family or "").strip().upper()
     best: list[tuple[float, int]] = [(-1.0e30, -1) for _ in range(8)]
     for star_index in range(len(galaxy_stars)):
+        star_family = str(galaxy_stars[star_index].get("route_family") or "").strip().upper()
+        if normalized_family and star_family != normalized_family:
+            continue
         star_embedding = _compose_galaxy_embedding_ref(galaxy_stars, star_index)
-        similarity = _cosine32(reasoning_state, star_embedding)
+        similarity = _cosine(reasoning_state, star_embedding)
         worst_slot = min(range(8), key=lambda slot: best[slot][0])
         if similarity > best[worst_slot][0]:
             best[worst_slot] = (similarity, star_index)
-    knowledge = [0.0] * 32
+    knowledge = [0.0] * EMBEDDING_DIMS
     total_weight = 0.0
     for similarity, star_index in best:
         if star_index < 0:
@@ -334,7 +354,7 @@ def _navigate_galaxy_ref(
             continue
         total_weight += weight
         star_embedding = _compose_galaxy_embedding_ref(galaxy_stars, star_index)
-        for index in range(32):
+        for index in range(EMBEDDING_DIMS):
             knowledge[index] += weight * star_embedding[index]
     if total_weight > 1.0e-6:
         knowledge = [value / total_weight for value in knowledge]
@@ -348,8 +368,8 @@ def _navigate_galaxy_ref(
 def _goal_progress_ref(current_frame: list[float], goal_embedding: list[float], prev_frame: list[float]) -> float:
     import math
 
-    current_dist = math.sqrt(sum((current_frame[index] - goal_embedding[index]) ** 2 for index in range(32)))
-    prev_dist = math.sqrt(sum((prev_frame[index] - goal_embedding[index]) ** 2 for index in range(32)))
+    current_dist = math.sqrt(sum((current_frame[index] - goal_embedding[index]) ** 2 for index in range(EMBEDDING_DIMS)))
+    prev_dist = math.sqrt(sum((prev_frame[index] - goal_embedding[index]) ** 2 for index in range(EMBEDDING_DIMS)))
     if current_dist < 1.0e-4:
         return 1.0
     if current_dist < prev_dist:
@@ -389,24 +409,24 @@ def _nine_chain_swarm_ref(query: list[float], rounds: int) -> tuple[list[list[fl
     swarm_output = list(query)
     for _ in range(rounds):
         chain_states = [[math.tanh(value) for value in row] for row in chain_states]
-        consensus = [sum(chain_states[c][d] for c in range(9)) / 9.0 for d in range(32)]
+        consensus = [sum(chain_states[c][d] for c in range(9)) / 9.0 for d in range(EMBEDDING_DIMS)]
         consensus_norm = math.sqrt(sum(value * value for value in consensus) + 1.0e-12)
         weight_sum = 0.0
         for chain in range(9):
-            dot = sum(chain_states[chain][d] * consensus[d] for d in range(32))
+            dot = sum(chain_states[chain][d] * consensus[d] for d in range(EMBEDDING_DIMS))
             state_norm = math.sqrt(sum(value * value for value in chain_states[chain]) + 1.0e-12)
             resonance = dot / ((state_norm * consensus_norm) + 1.0e-12)
             resonance_scores[chain] = resonance
             blend = 0.18 if chain == 8 else 0.12
             chain_states[chain] = [
-                ((1.0 - blend) * chain_states[chain][d]) + (blend * consensus[d]) for d in range(32)
+                ((1.0 - blend) * chain_states[chain][d]) + (blend * consensus[d]) for d in range(EMBEDDING_DIMS)
             ]
             weight_sum += abs(resonance) + 1.0e-4
         if weight_sum <= 1.0e-12:
             weight_sum = 1.0
         swarm_output = [
             sum(((abs(resonance_scores[c]) + 1.0e-4) / weight_sum) * chain_states[c][d] for c in range(9))
-            for d in range(32)
+            for d in range(EMBEDDING_DIMS)
         ]
     return chain_states, swarm_output, resonance_scores
 
@@ -417,46 +437,51 @@ def _specialize_task_ref(
     chain_states: list[list[float]],
     frame_query: list[float],
     galaxy_knowledge: list[float],
+    *,
+    enable_game2d_control: bool,
 ) -> list[float]:
     import math
 
     output = list(swarm_output)
-    if task_type == 0:
+    task_family = VRAMTaskBuffer.task_type_name(task_type)
+    if task_family == "INTERACTION":
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.60, 0.30, 0.10, 0.0, [3, 4])
-        route = _cosine32(output, galaxy_knowledge)
-        output = [math.tanh(output[d] + (0.03 * route * galaxy_knowledge[d])) for d in range(32)]
-        output = [math.tanh((0.94 * output[d]) + (0.03 * output[d // 2]) + (0.03 * output[(d * 2) % 32])) for d in range(32)]
-    elif task_type == 1:
+        route = _cosine(output, galaxy_knowledge)
+        output = [math.tanh(output[d] + (0.03 * route * galaxy_knowledge[d])) for d in range(EMBEDDING_DIMS)]
+        output = [math.tanh((0.94 * output[d]) + (0.03 * output[d // 2]) + (0.03 * output[(d * 2) % EMBEDDING_DIMS])) for d in range(EMBEDDING_DIMS)]
+    elif task_family == "GAME_2D" and enable_game2d_control:
+        output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.45, 0.40, 0.10, 0.05, [3, 4])
+        output = _arc3_action_select_ref(output, chain_states, frame_query)
+    elif task_family == "GAME_2D":
+        output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.55, 0.30, 0.10, 0.05, list(range(9)))
+    elif task_family == "MATH":
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.50, 0.40, 0.10, 0.0, [0, 1, 2])
-        output = [math.tanh((0.92 * output[d]) + (0.08 * ((chain_states[0][d] + chain_states[1][d] + chain_states[2][d]) / 3.0))) for d in range(32)]
-        route = _cosine32(output, galaxy_knowledge)
-        output = [math.tanh(output[d] + (0.03 * route * galaxy_knowledge[d])) for d in range(32)]
-    elif task_type == 2:
+        output = [math.tanh((0.92 * output[d]) + (0.08 * ((chain_states[0][d] + chain_states[1][d] + chain_states[2][d]) / 3.0))) for d in range(EMBEDDING_DIMS)]
+        route = _cosine(output, galaxy_knowledge)
+        output = [math.tanh(output[d] + (0.03 * route * galaxy_knowledge[d])) for d in range(EMBEDDING_DIMS)]
+    elif task_family == "QUESTION":
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.48, 0.40, 0.08, 0.04, [0, 1, 2, 3])
-        output = [math.tanh((0.92 * output[d]) + (0.08 * ((chain_states[0][d] + chain_states[1][d] + chain_states[2][d]) / 3.0))) for d in range(32)]
-        output = [math.tanh(output[d] + (0.05 * (output[d] - output[(d + 31) % 32]))) for d in range(32)]
-    elif task_type == 3:
+        output = [math.tanh((0.92 * output[d]) + (0.08 * ((chain_states[0][d] + chain_states[1][d] + chain_states[2][d]) / 3.0))) for d in range(EMBEDDING_DIMS)]
+        output = [math.tanh(output[d] + (0.05 * (output[d] - output[(d + EMBEDDING_DIMS - 1) % EMBEDDING_DIMS]))) for d in range(EMBEDDING_DIMS)]
+    elif task_family == "CHAT":
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.45, 0.40, 0.15, 0.0, list(range(9)))
-        output = [math.tanh((0.90 * output[d]) + (0.10 * (sum(chain_states[c][d] for c in range(9)) / 9.0))) for d in range(32)]
-    elif task_type == 4:
+        output = [math.tanh((0.90 * output[d]) + (0.10 * (sum(chain_states[c][d] for c in range(9)) / 9.0))) for d in range(EMBEDDING_DIMS)]
+    elif task_family == "GENERAL":
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.50, 0.35, 0.10, 0.05, [7, 8])
         energy = sum(value * value for value in output)
-        boost = 1.0 + (0.04 * min(1.0, max(0.0, energy / 32.0)))
+        boost = 1.0 + (0.04 * min(1.0, max(0.0, energy / float(EMBEDDING_DIMS))))
         output = [value * boost for value in output]
         creative = chain_states[7]
         synthesis = chain_states[8]
-        creative_score = _cosine32(output, creative)
-        synthesis_score = _cosine32(output, synthesis)
+        creative_score = _cosine(output, creative)
+        synthesis_score = _cosine(output, synthesis)
         total = math.exp(creative_score) + math.exp(synthesis_score) + 1.0e-6
         creative_weight = math.exp(creative_score) / total
         synthesis_weight = math.exp(synthesis_score) / total
         output = [
             math.tanh((0.75 * output[d]) + (0.25 * ((creative_weight * creative[d]) + (synthesis_weight * synthesis[d]))))
-            for d in range(32)
+            for d in range(EMBEDDING_DIMS)
         ]
-    elif task_type == 8:
-        output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.45, 0.40, 0.10, 0.05, [3, 4])
-        output = _arc3_action_select_ref(output, chain_states, frame_query)
     else:
         output = _blend_with_galaxy_ref(output, galaxy_knowledge, chain_states, frame_query, 0.55, 0.30, 0.10, 0.05, list(range(9)))
     return output
@@ -485,7 +510,7 @@ def _arc3_action_select_ref(embedding: list[float], chain_states: list[list[floa
     output[5] = math.tanh((0.30 * output[5]) + (1.25 * cx))
     output[6] = math.tanh((0.30 * output[6]) + (1.25 * cy))
     output[7] = math.tanh((0.40 * output[7]) + (0.80 * occupancy))
-    for index in range(8, 32):
+    for index in range(8, EMBEDDING_DIMS):
         spatial_delta = chain_states[3][index] - chain_states[4][index]
         output[index] = math.tanh((0.82 * output[index]) + (0.02 * abs(spatial_delta)) + (0.02 * frame_data[index]))
     output[10] = math.tanh((0.15 * output[10]) - (0.40 * movement_need))
@@ -531,8 +556,8 @@ def _arc3_frame_delta_ref(embedding: list[float], frame_delta: list[float]) -> l
     output = list(embedding)
     delta_magnitude = math.sqrt(sum(float(value) * float(value) for value in frame_delta) + 1.0e-12)
     delta_signal = max(0.0, min(1.0, delta_magnitude * 2.0))
-    for index in range(32):
-        explore = (0.08 * _pseudo_random(index, 32)) if delta_signal < 0.1 else 0.0
+    for index in range(EMBEDDING_DIMS):
+        explore = (0.08 * _pseudo_random(index, EMBEDDING_DIMS)) if delta_signal < 0.1 else 0.0
         output[index] = math.tanh(
             (0.92 * output[index]) +
             (0.06 * delta_signal * frame_delta[index]) +
@@ -543,9 +568,9 @@ def _arc3_frame_delta_ref(embedding: list[float], frame_delta: list[float]) -> l
 
 def _compose_galaxy_embedding_ref(galaxy_stars: list[dict[str, Any]], star_index: int) -> list[float]:
     if star_index < 0 or star_index >= len(galaxy_stars):
-        return [0.0] * 32
+        return [0.0] * EMBEDDING_DIMS
     star = galaxy_stars[star_index]
-    output = _pad32(star.get("embedding") or [])
+    output = _pad_embedding(star.get("embedding") or [])
     refs = [int(value) for value in list(star.get("component_refs") or [])[:4] if int(value) >= 0]
     if not refs:
         return output
@@ -555,8 +580,8 @@ def _compose_galaxy_embedding_ref(galaxy_stars: list[dict[str, Any]], star_index
     for ref_index in refs:
         if ref_index >= len(galaxy_stars):
             continue
-        ref_embedding = _pad32(galaxy_stars[ref_index].get("embedding") or [])
-        for index in range(32):
+        ref_embedding = _pad_embedding(galaxy_stars[ref_index].get("embedding") or [])
+        for index in range(EMBEDDING_DIMS):
             output[index] += ref_weight * ref_embedding[index]
     norm = sum(value * value for value in output) ** 0.5
     if norm > 1.0e-6:
@@ -576,7 +601,7 @@ def _cognitive_executive_ref(resonance_scores: list[float], chain_states: list[l
     denom = sum(weights) or 1.0
     return [
         math.tanh((0.80 * embedding[d]) + (0.20 * sum((weights[c] / denom) * chain_states[c][d] for c in range(9))))
-        for d in range(32)
+        for d in range(EMBEDDING_DIMS)
     ]
 
 
@@ -596,7 +621,7 @@ def _halting_gate_ref(scores: list[float], min_threshold: float, gap_threshold: 
     return bool(top >= min_threshold and (top - second) >= gap_threshold and agreement >= required_agreement)
 
 
-def _cosine32(a: list[float], b: list[float]) -> float:
+def _cosine(a: list[float], b: list[float]) -> float:
     import math
 
     dot = sum(float(x) * float(y) for x, y in zip(a, b))

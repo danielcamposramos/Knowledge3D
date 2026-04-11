@@ -1,7 +1,7 @@
 # CODEX.md -- Implementation Lead Guide
 
-**Last Updated:** April 8, 2026
-**Version:** 6.4 (April reconciliation + ARC R0 execution track)
+**Last Updated:** April 11, 2026
+**Version:** 6.8 (embodied tick Phase 3 living clock)
 
 Codex-style agents lead implementation, Reality Galaxy, and testing. Read the latest briefing first for the full architecture; this file captures Codex's role, patterns, and backlog.
 
@@ -28,6 +28,11 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 
 **Newest milestone:** First live ARC3 level completion through the full living path. The run on `ls20-9607627b` reached `levels_completed=1` at `action_count=13` and completed a 15-action probe without resetting the world state.
 
+**Embodied rebuild note (April 10, 2026):**
+- The old ARC 10/10 and Math 20/20 pins were achieved through heavier Python orchestration and are not merge gates for the embodied tick rebuild.
+- Current hard gates for embodied work are: query fast-lane parity, embodied CUDA suites, sovereignty grep, and keeping Python out of the tick path.
+- Benchmarks remain health checks while perception/navigation/action move into the fused kernel.
+
 **Sovereignty note (current truth):**
 - ALL benchmarks route through `Knowledgeverse.execute_task() -> query() -> knowledgeverse_gpu_query`
 - Composed head pipeline: Morton → LED-A* → Frustum → LOD → Nine-Chain Swarm → Halting Gate
@@ -36,6 +41,33 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 - Halting agreement/gap computation moved from Python to PTX kernel (`analyze_scores()`)
 - MMLU scoring moved from Python to RPN expressions via `evaluate_batch()`
 - **ZERO fallbacks. If it breaks, fix on GPU.**
+
+---
+
+## MCP Infrastructure — USE THIS FIRST (Save Tokens)
+
+**Two MCP servers are running locally. Query them BEFORE reading spec files from disk.**
+
+### `k3d-knowledge` (Qdrant semantic search over all 35 specs)
+- **Tool**: `mcp__k3d-knowledge__qdrant-find`
+- **Use when**: You need to know what the specs say about any K3D concept (kernel contracts, Galaxy layout, RPN opcodes, sovereignty rules, etc.)
+- **Contains**: All `docs/vocabulary/*.md` chunked by section (1319 points, 384-dim embeddings)
+- **Pattern**: `qdrant-find("halting gate contract")` → returns relevant spec excerpts with file paths. Read the full file only if you need more context.
+
+### `ollama-specialists` (delegate heavy work to local models)
+- **Tools**: `kimi_swarm`, `ask_coder`, `ask_cloud`, `plan_task`, `flesh_out_code`, `extract_facts`, `summarize`, `route_specialist`, `web_search`, `memory_harvest`, `mvcic`
+- **Use when**: Planning non-trivial implementation, drafting CUDA/PTX code, multi-angle code review, or research — instead of burning your own context
+- **Standing directive from Daniel**: "Always dispatch ollama specialists instead of burning your tokens"
+- **Pattern for Codex**:
+  - `plan_task` → before any non-trivial kernel change
+  - `ask_coder` → for CUDA/PTX/Python code drafts (deepseek-r1 local)
+  - `kimi_swarm` → for architecture review or multi-angle bug analysis
+  - `flesh_out_code` → expand stubs into full implementations
+
+### Rule of Thumb
+1. **First**: `qdrant-find` to check spec compliance before writing code
+2. **Second**: `plan_task` or `ask_coder` for implementation strategy
+3. **Last resort**: Read full spec files (only if MCP results are insufficient)
 
 ---
 
@@ -49,9 +81,9 @@ Morton Octree → LED-A* → Frustum Cull → Dynamic LOD → Nine-Chain Swarm �
 - Python = boot + I/O ONLY (~200 lines target, NOT 4000 lines of orchestration)
 
 **Current Sovereignty Debt:**
-- `knowledgeverse.py` is ~8,182 lines of Python orchestration → target ~200 lines
+- `knowledgeverse.py` is ~16.9k lines of Python orchestration → target ~200 lines
 - `_select_composed_head_candidate()` is a **1,157-line** Python scoring monster → should be GPU kernel
-- TRMLauncher exists (644 lines, 3 backends) but is **NOT imported or called** in query path
+- TRMLauncher now routes the fused query fast-lane through `TRMStepFusedBridge`; Phase 3 adds a 50 Hz bridge-owned fused tick thread, while deeper composed-head extraction remains pending
 - 15 GRE specialist kernels LOADED but NOT CALLED during inference
 - Only ~5 of 88 PTX kernels active in query path
 - 132 MiB of 12 GB VRAM used
@@ -288,8 +320,17 @@ Answer (or iterate)
 - `knowledge3d/cranium/ptx/trm_step_fused.cu` — Single-kernel TRM forward pass
 - `knowledge3d/knowledgeverse/knowledgeverse.py` — The 8,182-line target (shrink to ~200)
 
-**Quintet gate (must hold at every sub-step):**
-ARC 10/10, Math 20/20, GSM8K 2/10, LHE 6/10, MMLU 12+/50
+**Phase 1 clockwork status (2026-04-10):**
+- `trm_step_fused` is now the single runtime tick entrypoint for the query fast-lane and embodied state dispatch.
+- Landed locally: VRAM GPU event ring buffer, `TRMStateMachine` lifecycle kernel, fixed `delta_time` + `tick` plumbing, and state-gated `SLEEP` / `IDLE` / `REASONING` / `HANDLING_QUERY`.
+- `knowledgeverse.py` no longer launches `kernel_recursive_fused` directly for `_run_single_trm_tick`; it delegates to the fused bridge through `TRMLauncher`.
+- Phase 2 perception slice is now live locally: 96-byte `EntityHotPath`, `blockIdx.x` multi-entity dispatch, bounded event batch drain, `PERCEIVING` target selection, `NAVIGATING` motor steering, `ACTING` behavior-side state writeback, and GPU physics/collision emission.
+- Phase 2.5 ActionBuffer emission is now live locally: `trm_step_fused` writes one 288-byte / 72-word ActionBuffer slot per entity after physics, and `TRMStepFusedBridge` owns the VRAM output buffer plus raw zero-copy/debug readback.
+- Phase 3 living tick is now live locally: `TRMStepFusedBridge` owns a 50 Hz daemon clock that only calls the fused GPU tick, `run_query_tick()` shares the same launch lock for query preemption, and `TRMGameLoop.tick()` routes to the bridge instead of `_dispatch_sovereign_task`.
+- Remaining work is deeper composed-head extraction into reusable device helpers and viewer/world consumption of ActionBuffer slots.
+
+**Embodied tick gate (current truth):**
+Query fast-lane parity green, Phase 1/2 embodied CUDA suites green, sovereignty grep clean, and no new Python tick orchestration. Benchmarks are health checks during this rebuild, not merge gates.
 
 ### Priority 6: Wire GRE Specialist Kernels (See table above)
 

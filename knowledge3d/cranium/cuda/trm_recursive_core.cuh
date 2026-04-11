@@ -3,7 +3,7 @@
 #include <math.h>
 
 #ifndef GPU_TASK_EMBED_DIMS
-#define GPU_TASK_EMBED_DIMS 32
+#define GPU_TASK_EMBED_DIMS 64
 #endif
 
 #ifndef GPU_TASK_TRM_DIMS
@@ -15,7 +15,8 @@
 #endif
 
 __device__ __forceinline__ float trm_swiglu_scalar(float x) {
-    return x / (1.0f + expf(-x));
+    const float sig = 1.0f / (1.0f + expf(-x));
+    return x * sig;
 }
 
 __device__ __forceinline__ void trm_vec_add3_512_device(

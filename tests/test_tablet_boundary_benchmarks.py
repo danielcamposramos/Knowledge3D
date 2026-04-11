@@ -10,7 +10,7 @@ import pytest
 from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 from benchmarks.math_competitions import MathCompetitionBenchmark
-from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
+from knowledge3d.bridge.headless_tablet import ActionType, HeadlessTabletMPC
 import scripts.run_headless_tablet_benchmarks as runner
 from scripts.run_headless_tablet_benchmarks import run_tablet_benchmark_suite
 
@@ -68,6 +68,49 @@ class _BenchmarkDaemon:
         return {"status": "error", "error": "unsupported_task"}
 
 
+class _FailingDaemon:
+    def handle_command(self, payload: dict[str, object]) -> dict[str, object]:
+        raise AssertionError("benchmark tablet bridge path must not call daemon fallback")
+
+
+class _BenchmarkBridge:
+    def __init__(self) -> None:
+        self.submitted_queries: list[dict[str, object]] = []
+
+    def submit_query(
+        self,
+        query_embedding: list[float],
+        *,
+        action_buffer_words: list[int] | None = None,
+        delta_time: float = 0.02,
+        tick: int | None = None,
+    ) -> dict[str, object]:
+        self.submitted_queries.append(
+            {
+                "query_embedding_len": len(query_embedding),
+                "action_buffer_words": list(action_buffer_words or []),
+                "delta_time": float(delta_time),
+                "tick": int(tick or 0),
+            }
+        )
+        return {
+            "status": "ok",
+            "mode": "submit_query",
+            "tick": int(tick or 0),
+            "steps": 1,
+            "drift": 0.0,
+            "current_state": 4,
+            "sleep_state": 4,
+            "query_embedding_512": [0.25] * 512,
+            "y_new_vector_512": [0.5] * 512,
+            "z_new_vector_512": [0.75] * 512,
+            "trm_latency_us": 10.0,
+            "action_buffers": [[int(ActionType.NO_ACTION.value)] + [0] * 71],
+            "ring_event_payload": 1234,
+            "tick_result": {"tick": int(tick or 0)},
+        }
+
+
 def test_arc_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     dataset_dir = tmp_path / "arc_eval"
     dataset_dir.mkdir(parents=True, exist_ok=True)
@@ -111,6 +154,38 @@ def test_math_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     assert result["total"] == 1
     assert result["overall_accuracy"] == 1.0
     assert result["results_by_competition"]["AMC"]["results"][0]["method"] == "tablet_boundary"
+
+
+def test_math_benchmark_can_run_through_tablet_bridge_without_daemon(tmp_path: Path):
+    dataset_dir = tmp_path / "math_bridge"
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    (dataset_dir / "amc_problems.json").write_text(
+        json.dumps([{"id": "m1", "problem_text": "What is 2 + 2?", "answer": "4"}]),
+        encoding="utf-8",
+    )
+    bridge = _BenchmarkBridge()
+    boundary = HeadlessTabletMPC(
+        command_handler=_FailingDaemon(),
+        bridge=bridge,
+        storage_root=tmp_path / "storage",
+    )
+    benchmark = MathCompetitionBenchmark(
+        dataset_path=dataset_dir,
+        tablet_boundary=boundary,
+        knowledgeverse=_RunnerKnowledgeverse(dataset_dir),
+    )
+
+    result = benchmark.run_benchmark(use_enriched=True)
+
+    assert len(bridge.submitted_queries) == 1
+    assert bridge.submitted_queries[0]["query_embedding_len"] == 512
+    assert bridge.submitted_queries[0]["action_buffer_words"][0] == int(ActionType.UPDATE_TABLET.value)
+    row = result["results_by_competition"]["AMC"]["results"][0]
+    assert row["method"] == "tablet_boundary"
+    assert row["runtime"] == "tablet_bridge_ring_query"
+    assert row["gpu_execution"] is True
+    assert row["tablet_contract"]["sovereign_path"] == "tablet_bridge_ring"
+    assert row["task_result"]["answer_materialized"] is False
 
 
 def test_math_benchmark_loads_real_math_and_math_layouts(tmp_path: Path):
