@@ -14,7 +14,7 @@ from typing import Any, Callable
 from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.tablet.wine.math_wine import math_dataset_envelope
+from knowledge3d.tablet.wine.math_wine import build_math_session_tape, math_dataset_envelope
 
 
 SAFE_MATH_NAMES = {
@@ -930,10 +930,28 @@ class UnifiedMathBenchmark:
         }
         step = max(1, int(progress_every or 25))
         start = time.monotonic()
-        for index, problem in enumerate(self.problems[resume_index:], start=resume_index + 1):
-            row_start = time.monotonic()
-            result = self._solve_problem(problem=problem, use_enriched=use_enriched)
-            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
+        tablet_rows: list[dict[str, Any]] = []
+        if self.tablet_boundary is not None:
+            tape = build_math_session_tape(
+                session_id=f"math_{int(time.time() * 1000)}",
+                suite_name="unified_math",
+                rows=self.problems[resume_index:],
+                use_enriched=use_enriched,
+            )
+            tablet_rows = list(self.tablet_boundary.run_tape_session(tape)["results"])
+        for offset, problem in enumerate(self.problems[resume_index:]):
+            index = resume_index + offset + 1
+            if self.tablet_boundary is not None:
+                result = self._math_result_from_tablet(problem=problem, tablet_result=tablet_rows[offset])
+                task_result = dict(result.get("task_result") or {})
+                result["elapsed_s"] = round(
+                    max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                    3,
+                )
+            else:
+                row_start = time.monotonic()
+                result = self._solve_problem(problem=problem, use_enriched=use_enriched)
+                result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             self.results.append(result)
             if result["correct"]:
                 correct += 1
@@ -1034,6 +1052,14 @@ class UnifiedMathBenchmark:
             expected_answer=problem.get("answer"),
         )
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        return self._math_result_from_tablet(problem=problem, tablet_result=tablet_result)
+
+    def _math_result_from_tablet(
+        self,
+        *,
+        problem: dict[str, Any],
+        tablet_result: dict[str, Any],
+    ) -> dict[str, Any]:
         emitted = dict(tablet_result["emitted"])
         route = emitted.get("route", {})
         predicted = emitted.get("numeric_answer")

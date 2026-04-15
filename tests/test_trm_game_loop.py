@@ -113,6 +113,8 @@ def test_trm_game_loop_buffers_and_bridge_query_ticket():
     assert result["trm_io"]["request_id"] == request_id
     assert result["trm_tick"]["steps"] == 1
     assert result["action_buffers"][0][0] == 0xFF
+    assert result["answer"] == "2+2=?"
+    assert result["task_result"]["answer"] == "2+2=?"
     input_packet = loop.read_input_packet(request_id)
     output_packet = loop.read_output_packet(request_id)
     assert input_packet is not None
@@ -121,7 +123,7 @@ def test_trm_game_loop_buffers_and_bridge_query_ticket():
     assert output_packet["result"]["mode"] == "query_tick"
     assert bridge.query_calls == 1
     assert bridge.background_calls == 0
-    assert kv.calls == []
+    assert len(kv.calls) == 1
     assert loop.snapshot()["completed_outputs"] == 1
 
 
@@ -169,8 +171,10 @@ def test_knowledgeverse_execute_task_uses_trm_game_loop(tmp_path: Path, monkeypa
 
     assert result["mode"] == "query_tick"
     assert result["trm_io"]["request_id"].startswith("trmio_")
+    assert result["answer"] == "loop-shell"
+    assert result["task_result"]["answer"] == "loop-shell"
     assert kv.trm_game_loop_status()["tick"] >= 1
-    assert called == []
+    assert len(called) == 1
     assert fake_bridge.query_calls == 1
     raw_packet = kv._trm_game_loop.read_output_packet(result["trm_io"]["request_id"])
     assert raw_packet is not None

@@ -1,0 +1,55 @@
+{
+  "kernel_statistics": {
+    "cuda_kernels": 72, 
+    "kernels_with_opcodes": 5, 
+    "orphaned_kernels": 94, 
+    "orphaned_opcodes": 237, 
+    "ptx_kernels": 27, 
+    "total_kernels": 99
+  }, 
+  "opcode_statistics": {
+    "by_category": {
+      "3d_technique": 5, 
+      "advanced_drawing": 3, 
+      "bitwise": 34, 
+      "cas": 18, 
+      "cbr_extension": 4, 
+      "checkpoint": 3, 
+      "clustering": 28, 
+      "complex": 4, 
+      "drawing_galaxy": 4, 
+      "entity_behavior": 11, 
+      "galaxy_access": 4, 
+      "grammar_evolution": 5, 
+      "lighting_layer": 2, 
+      "math": 61, 
+      "other": 32, 
+      "physics_meta_dispatch": 15, 
+      "procedural_drawing": 16, 
+      "procedural_texture": 6, 
+      "programmability": 16, 
+      "reasoning_paradigm": 22, 
+      "sas": 5, 
+      "special": 4, 
+      "variable_reference": 5
+    }, 
+    "by_tier": {
+      "tier_0_math": 206, 
+      "tier_1_cooperative": 48, 
+      "tier_2_physics": 53
+    }, 
+    "total_count": 307
+  }, 
+  "orphaned_analysis": {
+    "orphaned_kernels": 94, 
+    "orphaned_opcodes": 237
+  }, 
+  "summary": {
+    "kernel_points": 99, 
+    "opcode_points": 307, 
+    "total_kernels": 99, 
+    "total_opcodes": 307, 
+    "total_qdrant_points": 406
+  }, 
+  "timestamp": "2026-04-13T18:10:58.377387"
+}

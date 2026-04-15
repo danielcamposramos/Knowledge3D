@@ -6,9 +6,10 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import time
 from typing import Any
 
-from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope
+from knowledge3d.tablet.wine.game2d_wine import build_game2d_session_tape
 
 try:
     from benchmarks.daemon_client import DaemonClient
@@ -87,25 +88,28 @@ def main() -> int:
     tasks = _load_tasks(_resolve_dataset_path(args.dataset_path), max_tasks=max(1, int(args.max_tasks)))
 
     ok = 0
-    use_enriched = True
-    enforce_gpu = not bool(args.allow_zero_gpu)
-    for task in tasks:
-        envelope = arc2_game_envelope(
-            task_id=str(task["task_id"]),
-            training_examples=list(task["training_examples"]),
-            input_grid=task["input_grid"],
-            expected_output=task.get("expected_output"),
-        )
-        payload = envelope.to_route_payload(use_enriched=use_enriched)
-        response = client.send(payload)
-        if enforce_gpu:
-            client.assert_gpu_for_solved_command(
-                response,
-                solved_key="task_result",
-                context=f"arc_sender:{task['task_id']}",
-            )
-        task_result = response.get("task_result")
-        if response.get("status") == "ok" and isinstance(task_result, dict) and task_result.get("status") == "success":
+    tape = build_game2d_session_tape(
+        session_id=f"arc_sender_{int(time.time())}",
+        suite_name="arc_sender",
+        rows=[
+            {
+                "id": str(task["task_id"]),
+                "training_examples": list(task["training_examples"]),
+                "input_grid": task["input_grid"],
+                "expected_output": task.get("expected_output"),
+            }
+            for task in tasks
+        ],
+        use_enriched=True,
+    )
+    response = client.tablet_session_run_tape(tape)
+    results = list(response.get("results") or []) if response.get("status") == "ok" else []
+    for task, row in zip(tasks, results):
+        emitted = dict(row.get("emitted") or {})
+        task_result = dict(emitted.get("task_result") or {})
+        if not bool(args.allow_zero_gpu) and not bool(task_result.get("gpu_execution", False)):
+            raise RuntimeError(f"arc_sender:{task['task_id']}: missing_gpu_execution")
+        if bool(emitted.get("correct", False)):
             ok += 1
 
     print(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from knowledge3d.ingestion.canonical_lookup import canonical_word_star_id
 from knowledge3d.knowledgeverse._house_utils import char_refs
 from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar, SurfaceForm
 
@@ -15,13 +16,24 @@ from .multilingual_meanings import (
     OMW_LANG_MAP,
     POS_MAP,
     SynsetEntry,
+    build_meaning_layer_bundle,
     build_meaning_layer_stars,
     iter_meaning_stars,
     load_all_omw,
     meaning_layer_stats,
     parse_omw_tab,
     synset_to_star,
+    synset_to_star_bundle,
 )
+from .dbnary_ingester import (
+    DBNARY_DEFAULT_PATH,
+    LexicalRecord,
+    WordMergeResult,
+    iter_dbnary_records,
+    lexical_record_to_word_star,
+    merge_lexical_records_into_omw,
+)
+from .kaikki_ingester import KAIKKI_DEFAULT_PATHS, iter_kaikki_records
 from .numeral_systems import NUMERAL_SYSTEMS, NumeralSystem, decode_number, encode_number, iter_numeral_systems
 from .paper_and_book_sizes import BOOK_SIZES, PAPER_SIZES, StandardSize, a_series_ratio_ok, iter_book_sizes, iter_paper_sizes
 from .periodic_table import ELEMENTS, ELEMENTS_BY_ATOMIC_NUMBER, ELEMENTS_BY_SYMBOL, ElementEntry, SUBATOMIC_PARTICLES, iter_elements
@@ -39,11 +51,11 @@ def _surface_map(values: dict[str, str]) -> dict[str, SurfaceForm]:
         if not lang or not raw:
             continue
         out[lang] = SurfaceForm(
-            word_ref=f"{lang}_{raw.lower().replace(' ', '_')}",
+            word_ref=canonical_word_star_id(lang, raw),
             char_refs=char_refs(raw, lang),
         )
     if "en" not in out:
-        out["en"] = SurfaceForm(word_ref="en_entry", char_refs=["char_e"])
+        out["en"] = SurfaceForm(word_ref=canonical_word_star_id("en", "entry"), char_refs=["char_e"])
     return out
 
 
@@ -207,6 +219,9 @@ __all__ = [
     "MATERIAL_RULES",
     "MEASUREMENT_DOMAINS",
     "MeasurementDomain",
+    "DBNARY_DEFAULT_PATH",
+    "KAIKKI_DEFAULT_PATHS",
+    "LexicalRecord",
     "OMW_DEFAULT_PATH",
     "OMW_LANG_MAP",
     "NUMERAL_SYSTEMS",
@@ -221,10 +236,12 @@ __all__ = [
     "UnitDefinition",
     "WikipediaAttribution",
     "WikipediaIngestRecord",
+    "WordMergeResult",
     "WRITING_SYSTEMS",
     "WritingSystem",
     "a_series_ratio_ok",
     "build_foundation_stars",
+    "build_meaning_layer_bundle",
     "build_meaning_layer_stars",
     "build_wikipedia_record",
     "convert",
@@ -237,6 +254,8 @@ __all__ = [
     "iter_elements",
     "iter_format_entries",
     "iter_meaning_stars",
+    "iter_dbnary_records",
+    "iter_kaikki_records",
     "iter_material_rules",
     "iter_numeral_systems",
     "iter_paper_sizes",
@@ -245,9 +264,12 @@ __all__ = [
     "load_all_omw",
     "meaning_layer_stats",
     "parse_omw_tab",
+    "lexical_record_to_word_star",
     "proceduralize_content",
     "proceduralize_text",
     "synset_to_star",
+    "synset_to_star_bundle",
+    "merge_lexical_records_into_omw",
     "to_si_value",
     "tokenize_words",
     "validate_material_rules",

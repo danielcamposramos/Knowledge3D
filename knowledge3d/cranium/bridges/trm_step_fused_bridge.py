@@ -42,7 +42,7 @@ TRM_DEFAULT_TICK_HZ = 50.0
 TRM_DIMS = 512
 TRM_HIDDEN_DIMS = 1024
 TRM_WORKSPACE_FLOATS_PER_ENTITY = 4096
-GALAXY_STAR_RECORD_BYTES = 400
+GALAXY_STAR_RECORD_BYTES = 408
 GALAXY_EMBEDDING_DIMS = 64
 GALAXY_INVALID_STAR_INDEX = 0xFFFFFFFF
 ACTION_BUFFER_BYTES = 288
@@ -217,6 +217,7 @@ class TRMStepFusedBridge:
         self._tick_thread: threading.Thread | None = None
         self._launch_lock = threading.RLock()
         self._gpu_producers_active = False
+        self._query_session: dict[str, Any] | None = None
 
         self.reset_event_ring()
         self.bind_entity_hot_paths([_default_entity()])
@@ -1196,6 +1197,175 @@ class TRMStepFusedBridge:
                 "tick_result": dict(tick_result),
                 **answer_decode,
             }
+
+    def open_query_session(
+        self,
+        *,
+        reset_runtime: bool = True,
+        tick_hz: float = TRM_DEFAULT_TICK_HZ,
+        delta_time: float = TRM_DEFAULT_DELTA_TIME,
+    ) -> dict[str, Any]:
+        with self._launch_lock:
+            if self._query_session is not None:
+                raise RuntimeError("query_session_already_open")
+            was_ticking = bool(self.tick_loop_status().get("ticking"))
+            if reset_runtime:
+                self.reset_runtime(current_state=TRM_STATE_IDLE)
+            self.reset_query_state()
+            self._initialize_action_buffer(1)
+            if not was_ticking:
+                self.start_tick_loop(delta_time=float(delta_time), tick_hz=float(tick_hz))
+            self._query_session = {
+                "active": True,
+                "tick_hz": float(tick_hz),
+                "delta_time": float(delta_time),
+                "started_at": time.perf_counter(),
+                "started_tick_count": int(self._tick_loop_count),
+                "started_tick_counter": int(self._tick_counter),
+                "started_tick_loop": not was_ticking,
+                "pending": None,
+            }
+            return self.query_session_status()
+
+    def query_session_status(self) -> dict[str, Any]:
+        pending = None
+        if self._query_session is not None and isinstance(self._query_session.get("pending"), dict):
+            pending = dict(self._query_session["pending"])
+        return {
+            "active": bool(self._query_session is not None),
+            "tick_loop": self.tick_loop_status(),
+            "pending": pending,
+            "session": {
+                "tick_hz": float(self._query_session.get("tick_hz", 0.0)) if self._query_session else 0.0,
+                "delta_time": float(self._query_session.get("delta_time", 0.0)) if self._query_session else 0.0,
+                "started_tick_count": int(self._query_session.get("started_tick_count", 0)) if self._query_session else 0,
+                "started_tick_counter": int(self._query_session.get("started_tick_counter", 0)) if self._query_session else 0,
+                "started_tick_loop": bool(self._query_session.get("started_tick_loop", False)) if self._query_session else False,
+            },
+        }
+
+    def queue_query_frame(
+        self,
+        query_embedding: Any,
+        *,
+        action_buffer_words: Any | None = None,
+        frame_id: str,
+    ) -> dict[str, Any]:
+        with self._launch_lock:
+            if self._query_session is None:
+                raise RuntimeError("query_session_not_open")
+            pending = self._query_session.get("pending")
+            if isinstance(pending, dict) and not bool(pending.get("completed", False)):
+                raise RuntimeError("query_session_pending_frame_not_drained")
+            self.reset_query_state()
+            self._initialize_action_buffer(1)
+            projected_query = self._prepare_query_unlocked(query_embedding, readback=True) or []
+            event_payload = self._copy_query_action_buffer_in(action_buffer_words)
+            submitted_tick_count = int(self._tick_loop_count)
+            submitted_tick_counter = int(self._tick_counter)
+            self.enqueue_query(entity_id=0, payload=event_payload)
+            pending = {
+                "frame_id": str(frame_id),
+                "queued_at": time.perf_counter(),
+                "ring_event_payload": int(event_payload),
+                "submitted_tick_count": submitted_tick_count,
+                "submitted_tick_counter": submitted_tick_counter,
+                "query_embedding_512": list(projected_query),
+                "completed": False,
+            }
+            self._query_session["pending"] = pending
+            return dict(pending)
+
+    def poll_query_result(
+        self,
+        *,
+        timeout_s: float,
+        frame_id: str,
+    ) -> dict[str, Any]:
+        deadline = time.perf_counter() + max(0.0, float(timeout_s))
+        while True:
+            with self._launch_lock:
+                if self._query_session is None:
+                    raise RuntimeError("query_session_not_open")
+                pending = self._query_session.get("pending")
+                if not isinstance(pending, dict):
+                    raise RuntimeError("query_session_no_pending_frame")
+                if str(pending.get("frame_id")) != str(frame_id):
+                    raise RuntimeError("query_session_frame_id_mismatch")
+                if self._tick_loop_last_error:
+                    self._query_session["pending"] = None
+                    return {
+                        "status": "error",
+                        "mode": "query_session",
+                        "frame_id": str(frame_id),
+                        "failure_code": f"tick_loop_error:{self._tick_loop_last_error}",
+                        "query_embedding_512": list(pending.get("query_embedding_512") or []),
+                        "action_buffers": self.read_action_buffers_words(entity_count=1),
+                    }
+                buffers = self._query_buffers_or_default()
+                action_buffers = self.read_action_buffers_words(entity_count=1)
+                timed_out = time.perf_counter() >= deadline
+                advanced = int(self._tick_loop_count) > int(pending.get("submitted_tick_count", 0))
+                answer_decode: dict[str, Any] = {}
+                if advanced:
+                    answer_decode = self._answer_decode_from_action_buffer(action_buffers)
+                    if not answer_decode:
+                        answer_decode = self._decode_top_galaxy_star(buffers["y_new"])
+                completed = bool(answer_decode.get("answer_materialized"))
+                if completed or timed_out:
+                    states = self.read_state_machines()
+                    entities = self.read_entity_hot_paths()
+                    current_state = int(states[0]["current_state"]) if states else 0
+                    sleep_state = int(entities[0]["sleep_state"]) if entities else 0
+                    y_new = self._read_device_float_vector(buffers["y_new"], TRM_DIMS)
+                    z_new = self._read_device_float_vector(buffers["z_new"], TRM_DIMS)
+                    queued_at = float(pending.get("queued_at") or time.perf_counter())
+                    result = {
+                        "status": "ok" if completed else "timeout",
+                        "mode": "query_session",
+                        "frame_id": str(frame_id),
+                        "tick": int(self._tick_counter),
+                        "steps": max(1, int(self._tick_loop_count - int(pending.get("submitted_tick_count", 0)))) if advanced else 0,
+                        "drift": 0.0,
+                        "current_state": current_state,
+                        "sleep_state": sleep_state,
+                        "query_embedding_512": list(pending.get("query_embedding_512") or []),
+                        "y_new_vector_512": list(y_new),
+                        "z_new_vector_512": list(z_new),
+                        "trm_latency_us": float((time.perf_counter() - queued_at) * 1_000_000.0),
+                        "action_buffers": action_buffers,
+                        "ring_event_payload": int(pending.get("ring_event_payload", 0) or 0),
+                        "tick_result": {
+                            "tick_count": int(self._tick_loop_count),
+                            "tick_counter": int(self._tick_counter),
+                            "advanced": bool(advanced),
+                        },
+                        **(
+                            answer_decode
+                            if completed
+                            else {
+                                "answer_materialized": False,
+                                "failure_code": "query_session_timeout_waiting_for_materialization",
+                            }
+                        ),
+                    }
+                    pending["completed"] = True
+                    self._query_session["pending"] = None
+                    return result
+            time.sleep(0.002)
+
+    def close_query_session(self) -> dict[str, Any]:
+        with self._launch_lock:
+            session = dict(self._query_session or {})
+            stop_loop = bool(session.get("started_tick_loop", False))
+            self._query_session = None
+        bridge_status = self.stop_tick_loop(timeout=1.0) if stop_loop else self.tick_loop_status()
+        return {
+            "status": "ok",
+            "closed": True,
+            "tick_loop": bridge_status,
+            "session": session,
+        }
 
     @property
     def tick_count(self) -> int:

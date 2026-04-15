@@ -13,7 +13,7 @@ from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
 from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
-from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope
+from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope, build_game2d_session_tape
 
 
 class ARCAGI2Benchmark:
@@ -172,6 +172,7 @@ class ARCAGI2Benchmark:
         tasks_with_generated_patterns = 0
         step = max(1, int(progress_every or 10))
         start = time.monotonic()
+        tablet_rows: list[dict[str, Any]] = []
         if self.tablet_boundary is None:
             self.adapter = ArcAgi2Adapter(
                 use_enriched=use_enriched,
@@ -206,10 +207,26 @@ class ARCAGI2Benchmark:
             )
         else:
             self.adapter = None
-        for index, task in enumerate(self.tasks[resume_index:], start=resume_index + 1):
-            row_start = time.monotonic()
-            result = self._solve_task(task=task, use_enriched=use_enriched)
-            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
+            tape = build_game2d_session_tape(
+                session_id=f"arc_{int(time.time() * 1000)}",
+                suite_name="arc_agi_2",
+                rows=self.tasks[resume_index:],
+                use_enriched=use_enriched,
+            )
+            tablet_rows = list(self.tablet_boundary.run_tape_session(tape)["results"])
+        for offset, task in enumerate(self.tasks[resume_index:]):
+            index = resume_index + offset + 1
+            if self.tablet_boundary is not None:
+                result = self._arc_result_from_tablet_result(task=task, tablet_result=tablet_rows[offset])
+                task_result = dict(result.get("task_result") or {})
+                result["elapsed_s"] = round(
+                    max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                    3,
+                )
+            else:
+                row_start = time.monotonic()
+                result = self._solve_task(task=task, use_enriched=use_enriched)
+                result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
                 raise RuntimeError(
                     "PTX ARC solver contract violated: expected solver='arc_ptx_ops' "
@@ -330,6 +347,14 @@ class ARCAGI2Benchmark:
             expected_output=task["test"][0].get("output"),
         )
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        return self._arc_result_from_tablet_result(task=task, tablet_result=tablet_result)
+
+    def _arc_result_from_tablet_result(
+        self,
+        *,
+        task: dict[str, Any],
+        tablet_result: dict[str, Any],
+    ) -> dict[str, Any]:
         emitted = dict(tablet_result["emitted"])
         route = emitted.get("route", {})
         correct = bool(emitted.get("correct", False))

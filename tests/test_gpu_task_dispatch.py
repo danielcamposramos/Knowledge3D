@@ -211,6 +211,47 @@ def test_gpu_task_dispatch_arc3_galaxy_table_matches_composed_reference():
     )
 
 
+def test_gpu_task_dispatch_game2d_zero_option_grid_avoids_action_answer_seed():
+    galaxy_stars = build_resolved_foundational_stars()
+    star_ids = [str(star.get("id") or "") for star in galaxy_stars]
+    query_index = star_ids.index("game2d_grid_materializer")
+    composed_query = compose_star_embedding(galaxy_stars, query_index)
+    task = {
+        "type": "ARC_TASK",
+        "surface_kind": "GAME_2D",
+        "query_embedding": composed_query,
+        "expected_output": [[1]],
+        "expected_result_kind": "grid",
+        "subject": "arc_grid",
+        "domain_hint": "arc_grid",
+    }
+
+    task_buffer = VRAMTaskBuffer(max_tasks=1)
+    galaxy_table = GalaxyVRAMTable(max_stars=256)
+    try:
+        galaxy_table.load_stars(galaxy_stars)
+        dispatcher = GPUTaskDispatch()
+        task_buffer.bulk_load([task])
+        dispatcher.launch(task_buffer, 1, star_table=galaxy_table)
+        result = task_buffer.read_results(1)[0]
+    finally:
+        galaxy_table.close()
+        task_buffer.close()
+
+    winner_index = int(result["winner_star_index"])
+    assert 0 <= winner_index < len(galaxy_stars)
+    winner_id = str(galaxy_stars[winner_index].get("id") or "")
+    assert winner_id != "game2d_action_move_up"
+    assert winner_id not in {
+        "game2d_action_move_down",
+        "game2d_action_move_left",
+        "game2d_action_move_right",
+        "game2d_action_perform",
+        "game2d_action_click",
+        "game2d_action_undo",
+    }
+
+
 def test_gpu_task_dispatch_non_arc3_galaxy_navigation_changes_result_shape():
     galaxy_stars = build_resolved_foundational_stars()
     composed_query = compose_star_embedding(galaxy_stars, 12)

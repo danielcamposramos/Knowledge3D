@@ -12,6 +12,7 @@ from benchmarks.math_competitions import UnifiedMathBenchmark
 from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
+from knowledge3d.tablet.wine.math_wine import build_math_session_tape
 
 
 class IMOBenchmark:
@@ -186,11 +187,28 @@ class IMOBenchmark:
         resume_index = max(0, min(int(start_index), total))
         correct = max(0, int(initial_correct))
         step = max(1, int(progress_every or 25))
+        tablet_rows: list[dict[str, Any]] = []
+        if self._bench.tablet_boundary is not None:
+            tape = build_math_session_tape(
+                session_id=f"imo_{int(time.time() * 1000)}",
+                suite_name="imo",
+                rows=self._bench.problems[resume_index:],
+                use_enriched=use_enriched,
+            )
+            tablet_rows = list(self._bench.tablet_boundary.run_tape_session(tape)["results"])
 
-        for index, problem in enumerate(self._bench.problems[resume_index:], start=resume_index + 1):
-            row_start = time.monotonic()
-            result = self._bench._solve_problem(problem=problem, use_enriched=use_enriched)
-            elapsed_s = round(max(0.0, time.monotonic() - row_start), 3)
+        for offset, problem in enumerate(self._bench.problems[resume_index:]):
+            index = resume_index + offset + 1
+            if self._bench.tablet_boundary is not None:
+                result = self._bench._math_result_from_tablet(problem=problem, tablet_result=tablet_rows[offset])
+                elapsed_s = round(
+                    max(0.0, float(dict(result.get("task_result") or {}).get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                    3,
+                )
+            else:
+                row_start = time.monotonic()
+                result = self._bench._solve_problem(problem=problem, use_enriched=use_enriched)
+                elapsed_s = round(max(0.0, time.monotonic() - row_start), 3)
             self.results.append(
                 {
                     "question_id": result["problem_id"],

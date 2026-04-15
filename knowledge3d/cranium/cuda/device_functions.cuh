@@ -55,7 +55,7 @@
 #define GPU_FAMILY_GRAMMAR 6u
 #define GPU_FAMILY_INTERACTION 7u
 
-#define GALAXY_STAR_RECORD_BYTES 400
+#define GALAXY_STAR_RECORD_BYTES 408
 #define GALAXY_STAR_EMBEDDING_OFFSET 0
 #define GALAXY_STAR_GALAXY_ID_OFFSET 256
 #define GALAXY_STAR_TYPE_OFFSET 260
@@ -84,6 +84,8 @@
 #define GALAXY_STAR_PROGRAM_FLAGS_OFFSET 388
 #define GALAXY_STAR_PROGRAM_LENGTH_OFFSET 392
 #define GALAXY_STAR_PROGRAM_OPCODE_COUNT_OFFSET 396
+#define GALAXY_STAR_CONTEXT_ID_OFFSET 400
+#define GALAXY_STAR_ETHICAL_TRIT_OFFSET 404
 #define GALAXY_STAR_FLAG_ACTIVE 0x01
 #define GALAXY_STAR_FLAG_LEARNABLE 0x02
 #define GALAXY_STAR_ROUTE_FAMILY_SHIFT 8u
@@ -103,6 +105,8 @@
 #define ROUTE_POLICY_REQUIRES_EXECUTOR 0x02u
 #define ROUTE_POLICY_REQUIRES_VALIDATOR 0x04u
 #define ROUTE_POLICY_ANSWER_GATE 0x08u
+#define ROUTE_POLICY_MATERIALIZE_ACTION 0x10u
+#define ROUTE_POLICY_MATERIALIZE_GRID 0x20u
 
 #define GPU_ROUTE_MAX_DEPTH 8u
 #define GPU_ROUTE_FRONTIER_WIDTH 32u
@@ -260,6 +264,8 @@ __device__ __forceinline__ unsigned int pack_route_policy_device(
     bool requires_executor,
     bool requires_validator,
     bool answer_gate,
+    bool materialize_action,
+    bool materialize_grid,
     unsigned int branch_topk
 ) {
     unsigned int flags = 0u;
@@ -274,6 +280,12 @@ __device__ __forceinline__ unsigned int pack_route_policy_device(
     }
     if (answer_gate) {
         flags |= ROUTE_POLICY_ANSWER_GATE;
+    }
+    if (materialize_action) {
+        flags |= ROUTE_POLICY_MATERIALIZE_ACTION;
+    }
+    if (materialize_grid) {
+        flags |= ROUTE_POLICY_MATERIALIZE_GRID;
     }
     return flags | (device_clamp_u32(branch_topk, 0u, 255u) << 8);
 }

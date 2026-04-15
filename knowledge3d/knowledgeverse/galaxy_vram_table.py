@@ -11,7 +11,7 @@ from knowledge3d.knowledgeverse.foundational_galaxy_builder import build_foundat
 
 
 EMBEDDING_DIMS = 64
-STAR_RECORD_BYTES = 400
+STAR_RECORD_BYTES = 408
 STAR_EMBEDDING_OFFSET = 0
 STAR_GALAXY_ID_OFFSET = 256
 STAR_TYPE_OFFSET = 260
@@ -40,6 +40,8 @@ STAR_META_RULE_ADDR_OFFSET = 384
 STAR_PROGRAM_FLAGS_OFFSET = 388
 STAR_PROGRAM_LENGTH_OFFSET = 392
 STAR_PROGRAM_OPCODE_COUNT_OFFSET = 396
+STAR_CONTEXT_ID_OFFSET = 400
+STAR_ETHICAL_TRIT_OFFSET = 404
 
 STAR_FLAG_ACTIVE = 0x01
 STAR_FLAG_LEARNABLE = 0x02
@@ -74,6 +76,8 @@ ROUTE_POLICY_DECOMPOSE_ON_FAIL = 0x01
 ROUTE_POLICY_REQUIRES_EXECUTOR = 0x02
 ROUTE_POLICY_REQUIRES_VALIDATOR = 0x04
 ROUTE_POLICY_ANSWER_GATE = 0x08
+ROUTE_POLICY_MATERIALIZE_ACTION = 0x10
+ROUTE_POLICY_MATERIALIZE_GRID = 0x20
 
 
 def encode_route_policy(
@@ -82,6 +86,8 @@ def encode_route_policy(
     requires_executor: bool = False,
     requires_validator: bool = False,
     answer_gate: bool = False,
+    materialize_action: bool = False,
+    materialize_grid: bool = False,
     branch_topk: int = 0,
 ) -> int:
     flags = 0
@@ -93,6 +99,10 @@ def encode_route_policy(
         flags |= ROUTE_POLICY_REQUIRES_VALIDATOR
     if answer_gate:
         flags |= ROUTE_POLICY_ANSWER_GATE
+    if materialize_action:
+        flags |= ROUTE_POLICY_MATERIALIZE_ACTION
+    if materialize_grid:
+        flags |= ROUTE_POLICY_MATERIALIZE_GRID
     topk = max(0, min(255, int(branch_topk or 0)))
     return int(flags | (topk << 8))
 
@@ -104,6 +114,8 @@ def decode_route_policy(route_policy_id: int) -> dict[str, int | bool]:
         "requires_executor": bool(value & ROUTE_POLICY_REQUIRES_EXECUTOR),
         "requires_validator": bool(value & ROUTE_POLICY_REQUIRES_VALIDATOR),
         "answer_gate": bool(value & ROUTE_POLICY_ANSWER_GATE),
+        "materialize_action": bool(value & ROUTE_POLICY_MATERIALIZE_ACTION),
+        "materialize_grid": bool(value & ROUTE_POLICY_MATERIALIZE_GRID),
         "branch_topk": int((value >> 8) & 0xFF),
     }
 
@@ -519,6 +531,8 @@ class GalaxyVRAMTable:
         struct.pack_into("<I", payload, base + STAR_PROGRAM_FLAGS_OFFSET, int(star.get("program_flags", 0)) & 0xFFFFFFFF)
         struct.pack_into("<I", payload, base + STAR_PROGRAM_LENGTH_OFFSET, int(star.get("program_length", 0)) & 0xFFFFFFFF)
         struct.pack_into("<I", payload, base + STAR_PROGRAM_OPCODE_COUNT_OFFSET, int(star.get("program_opcode_count", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<I", payload, base + STAR_CONTEXT_ID_OFFSET, int(star.get("context_id", 0)) & 0xFFFFFFFF)
+        struct.pack_into("<b", payload, base + STAR_ETHICAL_TRIT_OFFSET, max(-1, min(1, int(star.get("ethical_trit", 0)))))
 
     def _unpack_star(self, payload: bytearray, star_index: int) -> dict[str, Any]:
         base = int(star_index) * STAR_RECORD_BYTES
@@ -550,6 +564,8 @@ class GalaxyVRAMTable:
         program_flags = struct.unpack_from("<I", payload, base + STAR_PROGRAM_FLAGS_OFFSET)[0]
         program_length = struct.unpack_from("<I", payload, base + STAR_PROGRAM_LENGTH_OFFSET)[0]
         program_opcode_count = struct.unpack_from("<I", payload, base + STAR_PROGRAM_OPCODE_COUNT_OFFSET)[0]
+        context_id = struct.unpack_from("<I", payload, base + STAR_CONTEXT_ID_OFFSET)[0]
+        ethical_trit = struct.unpack_from("<b", payload, base + STAR_ETHICAL_TRIT_OFFSET)[0]
         router_refs = [int(value) for value in router_refs_raw[:router_count] if value != STAR_NULL_REF]
         executor_refs = [int(value) for value in executor_refs_raw[:executor_count] if value != STAR_NULL_REF]
         validator_refs = [int(value) for value in validator_refs_raw[:validator_count] if value != STAR_NULL_REF]
@@ -583,6 +599,8 @@ class GalaxyVRAMTable:
             "program_flags": int(program_flags),
             "program_length": int(program_length),
             "program_opcode_count": int(program_opcode_count),
+            "context_id": int(context_id),
+            "ethical_trit": int(ethical_trit),
         }
 
 
@@ -607,6 +625,8 @@ __all__ = [
     "STAR_PROGRAM_FLAGS_OFFSET",
     "STAR_PROGRAM_LENGTH_OFFSET",
     "STAR_PROGRAM_OPCODE_COUNT_OFFSET",
+    "STAR_CONTEXT_ID_OFFSET",
+    "STAR_ETHICAL_TRIT_OFFSET",
     "STAR_RECORD_BYTES",
     "STAR_ROUTE_POLICY_OFFSET",
     "STAR_REPULSIVE_PRIOR_OFFSET",

@@ -152,7 +152,7 @@ $L__BB0_12:
 	bra.uni 	$L__BB0_13;
 
 $L__BB0_14:
-	mul.lo.s32 	%r34, %r2, 400;
+	mul.lo.s32 	%r34, %r2, 408;
 	cvt.u64.u32 	%rd48, %r34;
 	cvta.to.global.u64 	%rd49, %rd19;
 	add.s64 	%rd50, %rd49, %rd48;

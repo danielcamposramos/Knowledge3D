@@ -278,6 +278,8 @@ extern "C" __global__ void gpu_task_dispatch(
         static_cast<int>(*reinterpret_cast<const signed char*>(input_buffer + input_base + GPU_TASK_TERNARY_SIGNAL_OFFSET));
 
     const unsigned int task_family_id = effective_task_family_device(family_id, domain_hint_id);
+    const bool is_game2d_grid_task =
+        (task_family_id == GPU_FAMILY_GAME_2D && option_count == 0u);
     const bool has_brain = brain_state != nullptr;
     const GalaxyRoleAdjacencyDeviceView adjacency = {
         router_offsets,
@@ -579,6 +581,9 @@ extern "C" __global__ void gpu_task_dispatch(
                     if (role_id != GALAXY_ROLE_ROUTER && role_id != GALAXY_ROLE_ANSWER) {
                         continue;
                     }
+                    if (is_game2d_grid_task && role_id != GALAXY_ROLE_ROUTER) {
+                        continue;
+                    }
                     const unsigned int star_family_id = galaxy_read_route_family_id(galaxy_table, candidate_index);
                     if (!family_candidate_allowed_device(task_family_id, star_family_id)) {
                         continue;
@@ -617,7 +622,7 @@ extern "C" __global__ void gpu_task_dispatch(
                     nearest_indices,
                     nearest_scores,
                     8u,
-                    GALAXY_ROLE_UNKNOWN,
+                    is_game2d_grid_task ? GALAXY_ROLE_ROUTER : GALAXY_ROLE_UNKNOWN,
                     task_family_id,
                     0
                 );
@@ -663,7 +668,11 @@ extern "C" __global__ void gpu_task_dispatch(
                         best_router_roles[copy_slot] = queue_path_roles[node_slot][copy_slot];
                     }
                 }
-                if (node_role == GALAXY_ROLE_EXECUTOR && node_score > best_executor_score) {
+                if (
+                    node_role == GALAXY_ROLE_EXECUTOR
+                    && !(is_game2d_grid_task && galaxy_route_policy_flag(node_policy, ROUTE_POLICY_MATERIALIZE_ACTION))
+                    && node_score > best_executor_score
+                ) {
                     best_executor_score = node_score;
                     executor_index = node_index;
                     best_executor_path_len = node_path_len;
@@ -672,7 +681,12 @@ extern "C" __global__ void gpu_task_dispatch(
                         best_executor_roles[copy_slot] = queue_path_roles[node_slot][copy_slot];
                     }
                 }
-                if ((node_role == GALAXY_ROLE_VALIDATOR || node_role == GALAXY_ROLE_ANSWER) && node_score > best_validator_score) {
+                if (
+                    (node_role == GALAXY_ROLE_VALIDATOR || node_role == GALAXY_ROLE_ANSWER)
+                    && !(is_game2d_grid_task && node_role == GALAXY_ROLE_ANSWER)
+                    && !(is_game2d_grid_task && node_path_len < 4u)
+                    && node_score > best_validator_score
+                ) {
                     best_validator_score = node_score;
                     validator_index = node_index;
                     best_validator_path_len = node_path_len;
@@ -689,6 +703,12 @@ extern "C" __global__ void gpu_task_dispatch(
 
                 int eligible_winner = role_is_emittable_device(node_role, node_answer_eligible);
                 if (eligible_winner) {
+                    if (is_game2d_grid_task && node_role == GALAXY_ROLE_ANSWER) {
+                        eligible_winner = 0;
+                    }
+                    if (is_game2d_grid_task && node_path_len < 4u) {
+                        eligible_winner = 0;
+                    }
                     const int has_executor = route_path_has_role(queue_path_roles[node_slot], node_path_len, GALAXY_ROLE_EXECUTOR);
                     const int has_validator = route_path_has_role(queue_path_roles[node_slot], node_path_len, GALAXY_ROLE_VALIDATOR);
                     if (galaxy_route_policy_flag(node_policy, ROUTE_POLICY_REQUIRES_EXECUTOR) && node_role != GALAXY_ROLE_EXECUTOR && !has_executor) {
@@ -746,13 +766,22 @@ extern "C" __global__ void gpu_task_dispatch(
                         }
                         const unsigned int child_role = galaxy_read_selection_role(galaxy_table, child_index);
                         const unsigned int child_family_id = galaxy_read_route_family_id(galaxy_table, child_index);
+                        const unsigned int child_policy = galaxy_read_route_policy(galaxy_table, child_index);
                         if (child_role != GALAXY_ROLE_ANTI_PATTERN && !family_candidate_allowed_device(task_family_id, child_family_id)) {
                             continue;
                         }
-                        const float child_score =
+                        float child_score =
                             star_selection_score_device(galaxy_table, adjacency, child_index, reasoning_state, task_family_id)
                             + (0.12f * node_score)
                             + route_transition_bonus_device(task_family_id, node_role, child_role);
+                        if (is_game2d_grid_task) {
+                            if (galaxy_route_policy_flag(child_policy, ROUTE_POLICY_MATERIALIZE_GRID)) {
+                                child_score += 0.35f;
+                            }
+                            if (galaxy_route_policy_flag(child_policy, ROUTE_POLICY_MATERIALIZE_ACTION) || child_role == GALAXY_ROLE_ANSWER) {
+                                child_score -= 0.45f;
+                            }
+                        }
                         int worst_slot = 0;
                         for (int candidate_slot = 1; candidate_slot < static_cast<int>(GPU_ROUTE_BRANCH_FANOUT); ++candidate_slot) {
                             if (child_scores[candidate_slot] < child_scores[worst_slot]) {

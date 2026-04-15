@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Shared opcode constants for the modular RPN executors."""
 
 # Literals
@@ -118,6 +119,11 @@ OP_ROLLBACK = 0x61
 OP_VERIFY = 0x62
 
 # Phase 2: Bitwise Logic (Tier-1)
+# MOVED from 0x80-0x83 to resolve conflicts with 3D Technique Suite
+# OLD: 0x80 OP_AND (conflict) -> NEW: 0x80 OP_AND (restored after geometric migration)
+# OLD: 0x81 OP_OR (conflict) -> NEW: 0x81 OP_OR (restored after geometric migration)
+# OLD: 0x82 OP_XOR (conflict) -> NEW: 0x82 OP_XOR (restored after geometric migration)
+# OLD: 0x83 OP_NOT (conflict) -> NEW: 0x83 OP_NOT (restored after geometric migration)
 OP_AND = 0x80
 OP_OR = 0x81
 OP_XOR = 0x82
@@ -194,10 +200,13 @@ OP_QUANTUM_PHASE = 0xD5
 OP_QUANTUM_HADAMARD = 0xD6
 OP_QUANTUM_CNOT = 0xD7
 
-# Knowledgeverse Galaxy opcodes (GPU-resident Galaxy access)
-OP_LOAD_GALAXY = 0xE0
-OP_GALAXY_SIMILARITY = 0xE1
-OP_GALAXY_SCAN = 0xE2
+# Knowledgeverse Galaxy compatibility opcodes (GPU-resident Galaxy access).
+# 0xE0-0xE2 are reserved for the Batch 3 Rete family under
+# K3D_REASONING_OPCODES_V1, so the legacy Galaxy helpers move to
+# non-conflicting aliases in the modular kernel.
+OP_LOAD_GALAXY = 0xE3
+OP_GALAXY_SIMILARITY = 0xE4
+OP_GALAXY_SCAN = 0xEF
 
 # Multivariate variable reference opcodes (Tier 0: 1 cycle)
 OP_VAR_X = 0xEA
@@ -217,6 +226,49 @@ OP_GRAMMAR_QUERY = 0xE9        # embedding k → top-k matching rules
 OP_TEMPORAL_COHERENCE = 0xF0
 OP_TEMPORAL_MASK = 0xF1
 OP_TEMPORAL_AGGREGATE = 0xF2
+
+# Reasoning-paradigm aliases (Batch 1-4 sovereign modular kernel surface).
+# Some of these intentionally share numeric values with older non-reasoning
+# aliases because the modular kernel dispatches them behind
+# K3D_REASONING_OPCODES_V1.
+OP_ABDUCE = 0xA0
+OP_EXPLAIN = 0xA1
+OP_SUSPECT = 0xA2
+OP_ABDUCE_HALT = 0xA3
+OP_SCUNION = 0xA4
+OP_ICHECK = 0xA5
+OP_ABDRES = 0xA6
+OP_ABDNEG = 0xA7
+OP_EBELIEF = 0xB0
+OP_BIDUCE = 0xB1
+OP_FRAME = 0xB2
+OP_EULER_COMPLETE = 0xB3
+OP_DL_SATURATE = 0xB4
+OP_BLOCKING_CHECK = 0xB5
+OP_CTX_SWITCH = 0xB6
+OP_ALPCHAIN = 0xB7
+OP_TUNIFY = 0xC0
+OP_TRESOLVE = 0xC1
+OP_TORDER = 0xC2
+OP_TSUBSUME = 0xC3
+OP_TSUPERPOS = 0xC4
+OP_TREWRITE = 0xC5
+OP_TSPLIT = 0xD0
+OP_TCLOSE = 0xD1
+OP_TEXPAND = 0xD2
+OP_TBCP = 0xD3
+OP_TLEARNT = 0xD4
+OP_RETE_ALPHA_TEST = 0xE0
+OP_RETE_BETA_JOIN = 0xE1
+OP_AGENDA_INSERT = 0xE2
+OP_HALT_SET = 0xF0
+OP_HALT_SYNC = 0xF1
+
+# Batch 4 CBR extension block.
+OP_CASE_FETCH = 0x100
+OP_CASE_REBIND = 0x101
+OP_CASE_REVISE = 0x102
+OP_CASE_RETAIN_HINT = 0x103
 
 # Temporal/trit opcodes are the live modular-kernel owners of 0x70-0x76.
 OP_TADD = 0x70
@@ -324,15 +376,17 @@ OP_ATMOSPHERE_FOG   = 0x7D
 OP_VIGNETTE         = 0x7E
 
 # Phase 5 — 3D Technique Suite
-OP_NURBS_EVAL       = 0x80
-OP_MARCHING_CUBES   = 0x81
-OP_LSYSTEM_GENERATE = 0x82
-OP_PARAMETRIC_SURFACE = 0x83
-OP_CSG_UNION_3D     = 0x84
-OP_CSG_INTERSECT_3D = 0x85
-OP_CSG_SUBTRACT_3D  = 0x86
-OP_CROSS_MODAL_LINK = 0x87
-OP_PROCEDURAL_TEXTURE = 0x88
+# MIGRATED from 0x80-0x88 to resolve conflicts with logical ops
+# Original addresses: 0x80-0x88 -> New addresses: 0x170-0x178
+OP_NURBS_EVAL       = 0x170
+OP_MARCHING_CUBES   = 0x171
+OP_LSYSTEM_GENERATE = 0x172
+OP_PARAMETRIC_SURFACE = 0x173
+OP_CSG_UNION_3D     = 0x174
+OP_CSG_INTERSECT_3D = 0x175
+OP_CSG_SUBTRACT_3D  = 0x176
+OP_CROSS_MODAL_LINK = 0x177
+OP_PROCEDURAL_TEXTURE = 0x178
 
 # Sovereign rigid-body physics meta-dispatch surface (Tier-3 composed phase).
 # These opcodes bridge the scalar/vector RPN stack to the body-indexed physics
@@ -731,4 +785,41 @@ __all__ += [
     "OP_CSG_INTERSECT",
     "OP_EXTRUDE",
     "OP_LATHE",
+    # Reasoning-paradigm modular-kernel surface (Batch 1-4, master plan §4/§7).
+    "OP_ABDUCE",
+    "OP_EXPLAIN",
+    "OP_SUSPECT",
+    "OP_ABDUCE_HALT",
+    "OP_SCUNION",
+    "OP_ICHECK",
+    "OP_ABDRES",
+    "OP_ABDNEG",
+    "OP_EBELIEF",
+    "OP_BIDUCE",
+    "OP_FRAME",
+    "OP_EULER_COMPLETE",
+    "OP_DL_SATURATE",
+    "OP_BLOCKING_CHECK",
+    "OP_CTX_SWITCH",
+    "OP_ALPCHAIN",
+    "OP_TUNIFY",
+    "OP_TRESOLVE",
+    "OP_TORDER",
+    "OP_TSUBSUME",
+    "OP_TSUPERPOS",
+    "OP_TREWRITE",
+    "OP_TSPLIT",
+    "OP_TCLOSE",
+    "OP_TEXPAND",
+    "OP_TBCP",
+    "OP_TLEARNT",
+    "OP_RETE_ALPHA_TEST",
+    "OP_RETE_BETA_JOIN",
+    "OP_AGENDA_INSERT",
+    "OP_HALT_SET",
+    "OP_HALT_SYNC",
+    "OP_CASE_FETCH",
+    "OP_CASE_REBIND",
+    "OP_CASE_REVISE",
+    "OP_CASE_RETAIN_HINT",
 ]

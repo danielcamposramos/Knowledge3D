@@ -1,0 +1,2 @@
+# Batch 8 controlled escape hatch for raw HS-math symlink refs.
+# Match is literal against the raw ref before resolution.

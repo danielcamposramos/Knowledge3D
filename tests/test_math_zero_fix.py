@@ -66,8 +66,8 @@ def test_build_language_math_bridge_entry_keeps_language_and_math_refs() -> None
         domain="Foundation/Language",
         surface_forms={
             "en": SurfaceForm(word_ref="addition", char_refs=["char_a"]),
-            "es": SurfaceForm(word_ref="adicion", char_refs=["char_es_a"]),
-            "pt": SurfaceForm(word_ref="adicao", char_refs=["char_pt_a"]),
+            "es": SurfaceForm(word_ref="adicion", char_refs=["char_a"]),
+            "pt": SurfaceForm(word_ref="adicao", char_refs=["char_a"]),
         },
     )
 
@@ -93,10 +93,10 @@ def test_ingest_enriched_galaxy_keeps_math_meaning_in_language_and_math_bridge(t
         domain="Foundation/Language",
         surface_forms={
             "en": SurfaceForm(word_ref="addition", char_refs=["char_a"]),
-            "es": SurfaceForm(word_ref="adicion", char_refs=["char_es_a"]),
-            "pt": SurfaceForm(word_ref="adicao", char_refs=["char_pt_a"]),
-            "fr": SurfaceForm(word_ref="addition", char_refs=["char_fr_a"]),
-            "de": SurfaceForm(word_ref="addition", char_refs=["char_de_a"]),
+            "es": SurfaceForm(word_ref="adicion", char_refs=["char_a"]),
+            "pt": SurfaceForm(word_ref="adicao", char_refs=["char_a"]),
+            "fr": SurfaceForm(word_ref="addition", char_refs=["char_a"]),
+            "de": SurfaceForm(word_ref="addition", char_refs=["char_a"]),
         },
     )
     meaning_path = tmp_path / "meaning.jsonl"

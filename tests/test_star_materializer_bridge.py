@@ -75,6 +75,106 @@ def test_runtime_answer_label_blocks_humanized_internal_labels(tmp_path):
     assert kv._runtime_answer_label("Question Open Text Materializer") == ""
 
 
+def test_runtime_materialize_result_builds_game2d_grid_from_curriculum_rpn(tmp_path):
+    kv = Knowledgeverse(
+        storage_root=tmp_path / "kv_runtime_game2d_grid",
+        eager_load_default_galaxies=False,
+        start_live_loops=False,
+    )
+
+    def _flip_h(*, input_grid, transform_chain, color_mapping):
+        assert transform_chain == ["mirror_h"]
+        assert color_mapping == {}
+        return [list(reversed(row)) for row in input_grid]
+
+    kv._execute_arc_transform_gpu = _flip_h  # type: ignore[method-assign]
+
+    packet = kv.materialize_runtime_result(
+        task={
+            "query": "horizontal reflection grid transform",
+            "input_grid": [[2, 0], [0, 3]],
+            "expected_output": [[0, 2], [3, 0]],
+        },
+        route_family="GAME_2D",
+        answer_kind="grid",
+        answer_index=0,
+        stars=[
+            {
+                "id": "method_transform_reflect_horizontal",
+                "rpn_program": "[RECALL grid][TPACK FLIP_H][STORE reflected]",
+                "metadata": {
+                    "curriculum_metadata": {
+                        "rpn_sketch": "[RECALL grid][TPACK FLIP_H][STORE reflected]",
+                    },
+                    "meaning_star": {
+                        "meaning_rpn": "[RECALL grid][TPACK FLIP_H][STORE reflected]",
+                    },
+                },
+            }
+        ],
+    )
+
+    assert packet["answer_materialized"] is True
+    assert packet["answer_kind"] == "grid"
+    assert packet["output_grid"] == [[0, 2], [3, 0]]
+    assert packet["failure_code"] == ""
+
+
+def test_runtime_materialize_result_recalls_loaded_game2d_curriculum_star(tmp_path, monkeypatch):
+    kv = Knowledgeverse(
+        storage_root=tmp_path / "kv_runtime_game2d_recall",
+        eager_load_default_galaxies=False,
+        start_live_loops=False,
+    )
+
+    def _flip_h(*, input_grid, transform_chain, color_mapping):
+        assert transform_chain == ["mirror_h"]
+        assert color_mapping == {}
+        return [list(reversed(row)) for row in input_grid]
+
+    class _FakeGalaxyManager:
+        def query(self, **kwargs):
+            assert kwargs["specialist"] == "visual"
+            assert "Drawing" in kwargs["galaxies"]
+            return [
+                {
+                    "entry": {
+                        "id": "method_transform_reflect_horizontal",
+                        "metadata": {
+                            "curriculum_metadata": {
+                                "rpn_sketch": "[RECALL grid][TPACK FLIP_H][STORE reflected]",
+                            },
+                        },
+                    }
+                }
+            ]
+
+    kv._execute_arc_transform_gpu = _flip_h  # type: ignore[method-assign]
+    kv.galaxy_manager = _FakeGalaxyManager()  # type: ignore[assignment]
+    monkeypatch.setattr(kv, "_discover_live_galaxy_names", lambda: ["Drawing", "Reality", "Math"])
+
+    packet = kv.materialize_runtime_result(
+        task={
+            "query": "horizontal reflection grid transform",
+            "input_grid": [[2, 0], [0, 3]],
+            "expected_output": [[0, 2], [3, 0]],
+        },
+        route_family="GAME_2D",
+        answer_kind="grid",
+        answer_index=0,
+        stars=[
+            {
+                "id": "game2d_state_parse_executor",
+                "metadata": {},
+            }
+        ],
+    )
+
+    assert packet["answer_materialized"] is True
+    assert packet["answer_kind"] == "grid"
+    assert packet["output_grid"] == [[0, 2], [3, 0]]
+
+
 def _spine_catalog_and_sources():
     ordered_ids = [
         "math_question_router",
@@ -563,7 +663,8 @@ def test_force_rebuild_writes_fresh_artifact_then_next_boot_restores_it(tmp_path
         assert manifest["feed_source_version"] == FEED_SOURCE_VERSION
         assert manifest["feed_source_signature"] == feed_source_summary["feed_source_signature"]
         assert manifest["default_knowledge_signature"] == "unit_default_sig"
-        assert manifest["house_signature_base"] == "unit_house_sig"
+        expected_house_signature = f"unit_house_sig:{kv.GPU_BUFFER_SIGNATURE_VERSION}"
+        assert manifest["house_signature_base"] == expected_house_signature
         assert manifest["build_decode_ptx_signature"]
         assert manifest["boot_finalize_ptx_signature"]
         assert manifest["materializer_ptx_signature"]
@@ -581,7 +682,7 @@ def test_force_rebuild_writes_fresh_artifact_then_next_boot_restores_it(tmp_path
         assert manifest["meaning_knowledge_coverage_audit_passed"] is False
         assert artifact["mode"] == "artifact"
         assert artifact["default_knowledge_signature"] == "unit_default_sig"
-        assert artifact["house_signature_base"] == "unit_house_sig"
+        assert artifact["house_signature_base"] == expected_house_signature
     finally:
         runtime = getattr(kv, "_sovereign_hot_path", None)
         if runtime is not None:

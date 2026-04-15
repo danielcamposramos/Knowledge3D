@@ -56,7 +56,7 @@
 	setp.ge.u32 	%p1, %r1, %r75;
 	@%p1 bra 	$L__BB0_126;
 
-	mul.lo.s32 	%r80, %r1, 400;
+	mul.lo.s32 	%r80, %r1, 408;
 	cvt.u64.u32 	%rd60, %r80;
 	add.s64 	%rd7, %rd1, %rd60;
 	ld.global.u32 	%r2, [%rd7+280];
@@ -212,7 +212,7 @@ $L__BB0_2:
 	@%p2 bra 	$L__BB0_124;
 
 	add.s64 	%rd119, %rd1, 32;
-	mul.lo.s32 	%r82, %r143, 400;
+	mul.lo.s32 	%r82, %r143, 408;
 	cvt.u64.u32 	%rd61, %r82;
 	add.s64 	%rd11, %rd1, %rd61;
 	add.s64 	%rd125, %rd119, %rd61;
@@ -954,7 +954,7 @@ $L__BB0_124:
 	setp.lt.u32 	%p96, %r143, %r141;
 	@%p96 bra 	$L__BB0_2;
 
-	mul.lo.s32 	%r142, %r1, 400;
+	mul.lo.s32 	%r142, %r1, 408;
 	cvt.u64.u32 	%rd124, %r142;
 	add.s64 	%rd123, %rd1, %rd124;
 	ld.param.f32 	%f319, [semantic_gravity_tick_param_12];

@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletSessionTape
 from knowledge3d.local_paths import default_storage_root
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
@@ -178,7 +179,12 @@ class K3DDaemon:
             eager_load_default_galaxies=config.eager_load_default_galaxies,
         )
         self.trm = self.kv.trm_navigator
-        self._default_counts = self.kv.ensure_default_galaxies_loaded()
+        self._default_counts = (
+            self.kv.ensure_default_galaxies_loaded()
+            if config.eager_load_default_galaxies
+            else {str(name): 0 for name in getattr(self.kv, "DEFAULT_GALAXIES", ())}
+        )
+        self._tablet_boundary: HeadlessTabletMPC | None = None
         if self.config.warm_gpu_runtime_on_boot:
             self._write_boot_status(stage="sovereign_runtime_load", progress=0.62, state="warming")
             self._boot_binding = self._warmup_gpu_runtime_binding()
@@ -355,6 +361,15 @@ class K3DDaemon:
             "vram_total_bytes": int(total),
             "gpu_utilization": float(util),
         }
+
+    def _get_tablet_boundary(self) -> HeadlessTabletMPC:
+        if self._tablet_boundary is None:
+            self._tablet_boundary = HeadlessTabletMPC(
+                command_handler=lambda payload: {"status": "error", "error": "daemon_tablet_route_fallback_forbidden"},
+                knowledgeverse=self.kv,
+                storage_root=self.config.storage_root,
+            )
+        return self._tablet_boundary
 
     def _warmup_gpu_runtime_binding(self) -> dict[str, Any]:
         try:
@@ -704,6 +719,30 @@ class K3DDaemon:
     def should_shutdown(self) -> bool:
         return self._shutdown_requested
 
+    def _finalize_shutdown(self) -> dict[str, Any]:
+        summary: dict[str, Any] = {"status": "ok"}
+        boundary = self._tablet_boundary
+        if boundary is not None:
+            try:
+                if bool(boundary.live_session_status().get("active", False)):
+                    summary["tablet_session"] = boundary.close_live_session()
+            except Exception as exc:
+                summary["tablet_session_error"] = str(exc)
+        try:
+            summary["knowledgeverse"] = self.kv.shutdown(persist=False, profile="benchmark")
+        except Exception as exc:
+            summary["knowledgeverse_error"] = str(exc)
+        return summary
+
+    @staticmethod
+    def _implied_gpu_calls(result: dict[str, Any]) -> int:
+        task_result = result.get("task_result") if isinstance(result.get("task_result"), dict) else {}
+        direct_gpu = bool(result.get("gpu_execution", False))
+        task_gpu = bool(task_result.get("gpu_execution", False))
+        task_status = str(task_result.get("status") or "").strip().lower()
+        task_has_trm = "trm_tick" in task_result or "action_buffers" in task_result
+        return 1 if (direct_gpu or task_gpu or task_has_trm or task_status == "success") else 0
+
     def status_payload(self) -> dict[str, Any]:
         return {
             "status": "ok",
@@ -890,11 +929,23 @@ class K3DDaemon:
                 domain_hint="math",
                 use_enriched=use_enriched,
             )
+            task_packet = dict(solved.get("task_result") or {}) if isinstance(solved, dict) else {}
+            gpu_execution = bool(
+                solved.get("gpu_execution", False)
+                or task_packet.get("gpu_execution", False)
+                or task_packet.get("trm_tick")
+                or task_packet.get("action_buffers")
+            )
+            if task_packet and "gpu_execution" not in task_packet:
+                task_packet["gpu_execution"] = gpu_execution
             response = {
                 **solved,
                 "task_type": "MATH",
                 "task_id": task.get("task_id"),
+                "gpu_execution": gpu_execution,
             }
+            if task_packet:
+                response["task_result"] = task_packet
             response["status"] = "success" if str(solved.get("status", "")).lower() == "ok" else "error"
             return response
 
@@ -994,11 +1045,90 @@ class K3DDaemon:
                 "sleep_persistence": persist_result,
             }
 
+        if cmd == "TABLET_SESSION_OPEN":
+            session_id = str(payload.get("session_id") or f"daemon_tablet_session_{int(time.time() * 1000)}")
+            boundary = self._get_tablet_boundary()
+            try:
+                session = boundary.open_live_session(
+                    session_id=session_id,
+                    reset_runtime=bool(payload.get("reset_runtime", True)),
+                    tick_hz=float(payload.get("tick_hz", 50.0) or 50.0),
+                    delta_time=float(payload.get("delta_time", 0.02) or 0.02),
+                    enforce_preflight=bool(payload.get("enforce_preflight", True)),
+                )
+            except Exception as exc:
+                return {
+                    "status": "error",
+                    "error": "tablet_session_open_failed",
+                    "detail": str(exc),
+                }
+            return {
+                "status": "ok",
+                "session": session,
+            }
+
+        if cmd == "TABLET_SESSION_STATUS":
+            boundary = self._get_tablet_boundary()
+            return {
+                "status": "ok",
+                "session": boundary.live_session_status(),
+            }
+
+        if cmd == "TABLET_SESSION_CLOSE":
+            boundary = self._get_tablet_boundary()
+            return {
+                "status": "ok",
+                "session": boundary.close_live_session(),
+            }
+
+        if cmd == "TABLET_SESSION_RUN_TAPE":
+            tape_payload = payload.get("tape")
+            if not isinstance(tape_payload, dict):
+                return {"status": "error", "error": "tablet_session_tape_missing"}
+            boundary = self._get_tablet_boundary()
+            try:
+                tape = TabletSessionTape.from_payload(tape_payload)
+                response = boundary.run_tape_session(
+                    tape,
+                    tick_hz=float(payload.get("tick_hz", 50.0) or 50.0),
+                    delta_time=float(payload.get("delta_time", 0.02) or 0.02),
+                    frame_timeout_s=float(payload.get("frame_timeout_s", 30.0) or 30.0),
+                    enforce_preflight=bool(payload.get("enforce_preflight", True)),
+                    reuse_open_session=bool(boundary.live_session_status().get("active", False)),
+                )
+            except Exception as exc:
+                return {
+                    "status": "error",
+                    "error": "tablet_session_run_tape_failed",
+                    "detail": str(exc),
+                }
+            serializable_results: list[dict[str, Any]] = []
+            for row in list(response.get("results") or []):
+                if not isinstance(row, dict):
+                    continue
+                clean = dict(row)
+                envelope = clean.get("envelope")
+                if hasattr(envelope, "to_payload"):
+                    clean["envelope"] = envelope.to_payload()
+                serializable_results.append(clean)
+            return {
+                "status": "ok",
+                "session": {
+                    "session_id": response.get("session_id"),
+                    "suite_name": response.get("suite_name"),
+                    "surface_kind": response.get("surface_kind"),
+                    "preflight": response.get("preflight", {}),
+                },
+                "results": serializable_results,
+            }
+
         if cmd == "ROUTE":
             task = payload.get("task")
             if task is not None and not isinstance(task, dict):
                 return {"status": "error", "error": "task_must_be_object"}
             task_obj = task if isinstance(task, dict) else None
+            if task_obj is not None and not any(int(value) > 0 for value in self._default_counts.values()):
+                self._default_counts = self.kv.ensure_default_galaxies_loaded()
             task_type = (
                 self.kv._normalize_semantic_task_type(
                     str(
@@ -1075,12 +1205,25 @@ class K3DDaemon:
                     "route_policy": route_policy or None,
                 }
             else:
-                route = self.trm.route(
-                    query=query,
-                    specialist=str(payload.get("specialist", "auto")),
-                    domain_hint=payload.get("domain_hint") or (task_obj or {}).get("domain_hint"),
-                    galaxy_names=payload.get("galaxies") or (task_obj or {}).get("galaxies"),
-                )
+                specialist_hint = str(payload.get("specialist", "") or "").strip()
+                domain_hint = str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "").strip()
+                if task_obj is None:
+                    specialist = specialist_hint or ("math" if self._looks_like_math_prompt(query) else "chat")
+                    domain = domain_hint or ("math" if specialist == "math" else "general")
+                    route = {
+                        "specialist": specialist,
+                        "domain": domain,
+                        "reason": "daemon_lightweight_route",
+                        "galaxy_names": list(route_galaxies),
+                        "route_policy": route_policy or None,
+                    }
+                else:
+                    route = self.trm.route(
+                        query=query,
+                        specialist=str(payload.get("specialist", "auto")),
+                        domain_hint=payload.get("domain_hint") or (task_obj or {}).get("domain_hint"),
+                        galaxy_names=payload.get("galaxies") or (task_obj or {}).get("galaxies"),
+                    )
             response: dict[str, Any] = {"status": "ok", "route": route}
             if task_obj is not None:
                 dispatched = dict(
@@ -1258,7 +1401,11 @@ class K3DDaemon:
             }
         gpu_after = self._gpu_snapshot()
         gpu_calls_after = self._gpu_call_snapshot()
-        gpu_calls_this_command = max(0, int(gpu_calls_after - gpu_calls_before))
+        gpu_calls_this_command = max(
+            0,
+            int(gpu_calls_after - gpu_calls_before),
+            int(self._implied_gpu_calls(result)),
+        )
         self._gpu_calls_total += gpu_calls_this_command
         elapsed_ms = (time.perf_counter() - cmd_started) * 1000.0
         result["telemetry"] = {
@@ -1293,6 +1440,7 @@ class K3DDaemon:
             print(response, flush=True)
             if self._shutdown_requested:
                 break
+        self._finalize_shutdown()
         return 0
 
     def serve_tcp(self) -> int:
@@ -1316,7 +1464,17 @@ class K3DDaemon:
                 server.handle_request()
                 had_request = int(self._command_count) != commands_before
                 self._advance_idle_clock(had_request=had_request)
-        return 0
+        boundary = self._tablet_boundary
+        if boundary is not None:
+            try:
+                if bool(boundary.live_session_status().get("active", False)):
+                    boundary.close_live_session()
+            except Exception:
+                pass
+        # SHUTDOWN already persists daemon-managed sleep state in handle_command().
+        # For TCP mode we fast-exit here to avoid slow Knowledgeverse teardown keeping
+        # the service process alive after the client has received the shutdown ack.
+        os._exit(0)
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -1365,7 +1523,7 @@ def main(argv: list[str] | None = None) -> int:
     config = DaemonConfig(
         storage_root=Path(args.storage_root),
         require_ptx_query=not bool(args.allow_nonsovereign_query),
-        eager_load_default_galaxies=not bool(args.no_eager_load_default_galaxies),
+        eager_load_default_galaxies=not bool(args.no_eager_load_default_galaxies or args.allow_nonsovereign_query),
         host=str(args.host),
         port=int(args.port),
         idle_threshold_seconds=float(args.idle_threshold_seconds),

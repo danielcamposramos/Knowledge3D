@@ -111,7 +111,7 @@ class TRMGameLoop:
         processed = 0
         while self._pending_inputs and processed < max(1, int(max_tasks)):
             record = self._pending_inputs.popleft()
-            result = self._run_query_tick(bridge)
+            result = self._run_query_tick(bridge, record)
             result.setdefault(
                 "trm_io",
                 {
@@ -241,14 +241,37 @@ class TRMGameLoop:
             "action_buffers": action_buffers,
         }
 
-    def _run_query_tick(self, bridge: Any) -> dict[str, Any]:
+    def _run_query_tick(self, bridge: Any, record: TRMQueuedInput) -> dict[str, Any]:
         tick_result = dict(bridge.run_query_tick(delta_time=0.02))
         action_buffers = self._action_buffer_payload(bridge)
+        payload = dict(record.payload)
+        dispatch = self.knowledgeverse._dispatch_sovereign_task(
+            task=dict(payload.get("task") or {}),
+            route=dict(payload.get("route") or {}),
+            specialist=str(payload.get("specialist") or "auto"),
+            domain_hint=payload.get("domain_hint"),
+            use_enriched=bool(payload.get("use_enriched", True)),
+        )
+        dispatch_result = dict(dispatch or {})
+        route_payload = dict(payload.get("route") or {})
+        if route_payload and not isinstance(dispatch_result.get("route"), dict):
+            dispatch_result["route"] = route_payload
+        task_result = dispatch_result.get("task_result")
+        if not isinstance(task_result, dict):
+            task_result = {
+                key: value
+                for key, value in dispatch_result.items()
+                if key not in {"task_result", "trm_tick", "action_buffers", "trm_io", "mode"}
+            }
+        else:
+            task_result = dict(task_result)
+        if route_payload and not isinstance(task_result.get("route"), dict):
+            task_result["route"] = route_payload
+        dispatch_result["task_result"] = task_result
         self._last_tick_result = dict(tick_result)
         self._last_action_buffers = [list(row) for row in action_buffers]
-        return {
-            "status": "ok",
-            "mode": "query_tick",
-            "trm_tick": tick_result,
-            "action_buffers": action_buffers,
-        }
+        dispatch_result.setdefault("status", "ok")
+        dispatch_result["mode"] = "query_tick"
+        dispatch_result["trm_tick"] = tick_result
+        dispatch_result["action_buffers"] = action_buffers
+        return dispatch_result

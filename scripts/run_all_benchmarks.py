@@ -22,6 +22,7 @@ from benchmarks.arc_agi_2 import ARCAGI2Benchmark
 from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 from benchmarks.math_competitions import MathCompetitionBenchmark
 from benchmarks.mmlu import MMLUBenchmark
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.cranium.sovereign.loader import get_vram_usage
 from knowledge3d.gpu.perf_counters import gpu_utilisation
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
@@ -57,6 +58,10 @@ BENCHMARK_CONFIG: dict[str, dict[str, str]] = {
 
 class SovereigntyViolation(RuntimeError):
     """Raised when solved benchmark tasks do not show sovereign GPU evidence."""
+
+
+def _build_tablet_boundary(kv: Knowledgeverse) -> HeadlessTabletMPC:
+    return HeadlessTabletMPC(knowledgeverse=kv)
 
 
 def _safe_gpu_snapshot() -> dict[str, Any]:
@@ -226,6 +231,23 @@ def _assert_arc_solver_contract(arc_result: dict[str, Any], *, required_solver: 
         raise RuntimeError(
             f"ARC solver contract violated: expected '{required_solver}' for all tasks; "
             f"found {len(bad)} mismatches (sample: {sample})."
+        )
+
+
+def _assert_tablet_boundary_contract(benchmark_name: str, payload: dict[str, Any]) -> None:
+    rows = payload.get("results", [])
+    if not isinstance(rows, list):
+        raise RuntimeError(f"{benchmark_name}_tablet_contract_missing_results")
+    bad_indexes = [
+        index
+        for index, row in enumerate(rows)
+        if not isinstance(row, dict) or not bool(row.get("tablet_contract"))
+    ]
+    if bad_indexes:
+        sample = ", ".join(str(index) for index in bad_indexes[:5])
+        raise RuntimeError(
+            f"{benchmark_name}_tablet_contract_violated: "
+            f"{len(bad_indexes)} rows missing tablet boundary evidence (sample indexes: {sample})"
         )
 
 
@@ -1065,6 +1087,7 @@ def main() -> None:
 
     if persistence_mode == "unified":
         shared_kv = Knowledgeverse(storage_root=unified_storage_root)
+        shared_tablet = _build_tablet_boundary(shared_kv)
         continuity["shared_instance"] = True
         continuity["instance_ids"] = {
             "empty_mind": int(id(shared_kv)),
@@ -1105,6 +1128,7 @@ def main() -> None:
                     object_penalty_weight=args.arc_object_penalty_weight,
                     query_scope_galaxies=args.arc_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1124,6 +1148,7 @@ def main() -> None:
                     max_problems=args.max_math_problems,
                     query_scope_galaxies=args.math_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1139,6 +1164,7 @@ def main() -> None:
                     max_questions=args.max_lhe_questions,
                     query_scope_galaxies=args.lhe_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1155,6 +1181,7 @@ def main() -> None:
                     query_scope_galaxies=args.mmlu_query_scope_galaxies,
                     subjects=args.mmlu_subjects,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1195,6 +1222,7 @@ def main() -> None:
                     object_penalty_weight=args.arc_object_penalty_weight,
                     query_scope_galaxies=args.arc_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1214,6 +1242,7 @@ def main() -> None:
                     max_problems=args.max_math_problems,
                     query_scope_galaxies=args.math_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1229,6 +1258,7 @@ def main() -> None:
                     max_questions=args.max_lhe_questions,
                     query_scope_galaxies=args.lhe_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1245,6 +1275,7 @@ def main() -> None:
                     query_scope_galaxies=args.mmlu_query_scope_galaxies,
                     subjects=args.mmlu_subjects,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=shared_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1262,6 +1293,7 @@ def main() -> None:
         enriched_galaxy_counts_end = shared_after_enriched
     else:
         empty_kv = Knowledgeverse(storage_root=empty_storage_root)
+        empty_tablet = _build_tablet_boundary(empty_kv)
         continuity["instance_ids"]["empty_mind"] = int(id(empty_kv))
         empty_galaxy_counts_start = _collect_default_galaxy_counts(empty_kv)
         if run_arc:
@@ -1297,6 +1329,7 @@ def main() -> None:
                     object_penalty_weight=args.arc_object_penalty_weight,
                     query_scope_galaxies=args.arc_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=empty_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1315,6 +1348,7 @@ def main() -> None:
                     max_problems=args.max_math_problems,
                     query_scope_galaxies=args.math_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=empty_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1329,6 +1363,7 @@ def main() -> None:
                     max_questions=args.max_lhe_questions,
                     query_scope_galaxies=args.lhe_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=empty_tablet,
                 ).run_benchmark(use_enriched=False),
             )
         else:
@@ -1337,6 +1372,7 @@ def main() -> None:
         empty_galaxy_counts_end = _collect_default_galaxy_counts(empty_kv)
 
         enriched_kv = Knowledgeverse(storage_root=enriched_storage_root)
+        enriched_tablet = _build_tablet_boundary(enriched_kv)
         continuity["instance_ids"]["enriched"] = int(id(enriched_kv))
         continuity["shared_instance"] = continuity["instance_ids"]["empty_mind"] == continuity["instance_ids"]["enriched"]
         enriched_galaxy_counts_start = _collect_default_galaxy_counts(enriched_kv)
@@ -1373,6 +1409,7 @@ def main() -> None:
                     object_penalty_weight=args.arc_object_penalty_weight,
                     query_scope_galaxies=args.arc_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=enriched_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1391,6 +1428,7 @@ def main() -> None:
                     max_problems=args.max_math_problems,
                     query_scope_galaxies=args.math_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=enriched_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1405,6 +1443,7 @@ def main() -> None:
                     max_questions=args.max_lhe_questions,
                     query_scope_galaxies=args.lhe_query_scope_galaxies,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=enriched_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1420,6 +1459,7 @@ def main() -> None:
                     query_scope_galaxies=args.mmlu_query_scope_galaxies,
                     subjects=args.mmlu_subjects,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=empty_tablet,
                 ).run_benchmark(use_enriched=False),
             )
             mmlu_enriched, mmlu_enriched_metrics = _run_with_metrics(
@@ -1431,6 +1471,7 @@ def main() -> None:
                     query_scope_galaxies=args.mmlu_query_scope_galaxies,
                     subjects=args.mmlu_subjects,
                     runtime_seed_knowledge=args.benchmark_runtime_seeding,
+                    tablet_boundary=enriched_tablet,
                 ).run_benchmark(use_enriched=True),
             )
         else:
@@ -1443,6 +1484,19 @@ def main() -> None:
     if args.arc_enable_full_ptx and run_arc:
         _assert_arc_solver_contract(arc_empty, required_solver="arc_ptx_ops")
         _assert_arc_solver_contract(arc_enriched, required_solver="arc_ptx_ops")
+
+    if run_arc:
+        _assert_tablet_boundary_contract("arc_empty", arc_empty)
+        _assert_tablet_boundary_contract("arc_enriched", arc_enriched)
+    if run_math:
+        _assert_tablet_boundary_contract("math_empty", math_empty)
+        _assert_tablet_boundary_contract("math_enriched", math_enriched)
+    if run_lhe:
+        _assert_tablet_boundary_contract("lhe_empty", lhe_empty)
+        _assert_tablet_boundary_contract("lhe_enriched", lhe_enriched)
+    if run_mmlu:
+        _assert_tablet_boundary_contract("mmlu_empty", mmlu_empty)
+        _assert_tablet_boundary_contract("mmlu_enriched", mmlu_enriched)
 
     summary = {
         "timestamp": datetime.now(tz=timezone.utc).isoformat(),

@@ -14,13 +14,18 @@ docs/vocabulary/*.md files by headers, embeds with FastEmbed
 Re-running updates existing points (deterministic IDs based on content hash).
 """
 
-import hashlib
-import os
 import re
 from pathlib import Path
+import sys
 
 from qdrant_client import QdrantClient, models
 from fastembed import TextEmbedding
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from knowledge3d.ingestion.qdrant_credentials import resolve_qdrant_api_key
 
 
 DOCS_DIR = "docs/vocabulary"
@@ -145,8 +150,7 @@ def make_id(file_path: str, header: str, chunk_index: int = 0) -> str:
 
 
 def main():
-    api_key = os.getenv("QDRANT_API_KEY", "@20Cooool58")
-    client = QdrantClient(url="http://localhost:6333", api_key=api_key)
+    client = QdrantClient(url="http://localhost:6333", api_key=resolve_qdrant_api_key(), timeout=60.0)
 
     existing = [c.name for c in client.get_collections().collections]
     if COLLECTION in existing:

@@ -6,6 +6,8 @@ from knowledge3d.bridge.headless_tablet import (
     ROUTE_POLICY_ALL_LIVE_GALAXIES,
     TabletEnvelope,
     TabletIngest,
+    TabletSessionFrame,
+    TabletSessionTape,
 )
 
 
@@ -93,4 +95,42 @@ def lhe_question_envelope(
         options=options,
         domain=domain,
         expected_answer=expected_answer,
+    )
+
+
+def build_question_session_tape(
+    *,
+    session_id: str,
+    suite_name: str,
+    rows: Sequence[Mapping[str, Any]],
+    use_enriched: bool = True,
+) -> TabletSessionTape:
+    frames: list[TabletSessionFrame] = []
+    for index, row in enumerate(rows):
+        envelope = TabletIngest.question_task(
+            task_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+            question=str(row.get("question_text") or row.get("question") or ""),
+            options=list(row.get("options") or []),
+            domain=str(row.get("subject") or row.get("domain") or "general"),
+            expected_answer=str(
+                row.get("correct_answer")
+                or row.get("expected_answer")
+                or ""
+            ).strip()
+            or None,
+        )
+        frames.append(
+            TabletSessionFrame(
+                frame_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+                envelope=envelope,
+                expected=row.get("correct_answer") if "correct_answer" in row else row.get("expected_answer"),
+                source_meta=dict(row),
+            )
+        )
+    return TabletSessionTape(
+        session_id=str(session_id),
+        suite_name=str(suite_name),
+        surface_kind="QUESTION",
+        frames=tuple(frames),
+        use_enriched=bool(use_enriched),
     )

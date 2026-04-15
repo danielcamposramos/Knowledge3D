@@ -6,6 +6,8 @@ from pathlib import Path
 import re
 from typing import Any
 
+from knowledge3d.ingestion.canonical_lookup import canonical_char_star_id
+
 from .meaning_star import MeaningCentricStar, SurfaceForm, wrap_galaxy_entry_with_meaning_star
 from . import route_contract
 
@@ -181,14 +183,12 @@ def _localized_number_word_entry_id(language: str, value: int, english_word: str
 
 
 def _surface_form_char_refs(text: str, language: str) -> list[str]:
+    del language
     refs: list[str] = []
     for char in text:
         if char.isspace():
             continue
-        if char.isascii() and char.isalnum():
-            refs.append(f"char_{char.lower()}")
-        else:
-            refs.append(f"char_{language}_u{ord(char):04x}")
+        refs.append(canonical_char_star_id(char))
     return refs
 
 

@@ -133,7 +133,7 @@ $L__BB0_9:
 	mov.u32 	%r84, %r1;
 
 $L__BB0_11:
-	mul.lo.s32 	%r56, %r84, 400;
+	mul.lo.s32 	%r56, %r84, 408;
 	cvt.u64.u32 	%rd9, %r56;
 	add.s64 	%rd10, %rd5, %rd9;
 	ld.global.nc.u32 	%r57, [%rd10+272];
@@ -243,7 +243,7 @@ $L__BB0_25:
 	mov.u32 	%r90, %r1;
 
 $L__BB0_26:
-	mul.lo.s32 	%r63, %r90, 400;
+	mul.lo.s32 	%r63, %r90, 408;
 	cvt.u64.u32 	%rd14, %r63;
 	add.s64 	%rd32, %rd5, %rd14;
 	ld.global.nc.u32 	%r64, [%rd32+272];
@@ -407,7 +407,7 @@ $L__BB0_48:
 	bra.uni 	$L__BB0_49;
 
 $L__BB0_47:
-	mul.lo.s32 	%r76, %r41, 400;
+	mul.lo.s32 	%r76, %r41, 408;
 	cvt.u64.u32 	%rd39, %r76;
 	add.s64 	%rd40, %rd5, %rd39;
 	ld.global.nc.u32 	%r77, [%rd40+256];
