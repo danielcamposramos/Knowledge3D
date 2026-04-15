@@ -6,6 +6,8 @@ from knowledge3d.bridge.headless_tablet import (
     ROUTE_POLICY_ALL_LIVE_GALAXIES,
     TabletEnvelope,
     TabletIngest,
+    TabletSessionFrame,
+    TabletSessionTape,
 )
 
 
@@ -146,4 +148,41 @@ def arc3_game_envelope(
         result_kind="control",
         task_context=task_context,
         metadata=metadata,
+    )
+
+
+def build_game2d_session_tape(
+    *,
+    session_id: str,
+    suite_name: str,
+    rows: Sequence[Mapping[str, Any]],
+    use_enriched: bool = True,
+) -> TabletSessionTape:
+    frames: list[TabletSessionFrame] = []
+    for index, row in enumerate(rows):
+        envelope = arc2_game_envelope(
+            task_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+            training_examples=list(row.get("train") or row.get("training_examples") or []),
+            input_grid=(list(row.get("test") or [{}])[0].get("input") if isinstance(row.get("test"), list) and row.get("test") else row.get("input_grid")),
+            expected_output=(list(row.get("test") or [{}])[0].get("output") if isinstance(row.get("test"), list) and row.get("test") else row.get("expected_output")),
+        )
+        expected = None
+        if isinstance(row.get("test"), list) and row.get("test"):
+            expected = row["test"][0].get("output")
+        else:
+            expected = row.get("expected_output")
+        frames.append(
+            TabletSessionFrame(
+                frame_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+                envelope=envelope,
+                expected=expected,
+                source_meta=dict(row),
+            )
+        )
+    return TabletSessionTape(
+        session_id=str(session_id),
+        suite_name=str(suite_name),
+        surface_kind="GAME_2D",
+        frames=tuple(frames),
+        use_enriched=bool(use_enriched),
     )

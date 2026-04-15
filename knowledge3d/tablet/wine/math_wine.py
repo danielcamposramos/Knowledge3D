@@ -6,6 +6,8 @@ from knowledge3d.bridge.headless_tablet import (
     ROUTE_POLICY_ALL_LIVE_GALAXIES,
     TabletEnvelope,
     TabletIngest,
+    TabletSessionFrame,
+    TabletSessionTape,
 )
 
 
@@ -130,4 +132,36 @@ def omni_math_envelope(
         question=question,
         competition="Omni-MATH",
         expected_answer=expected_answer,
+    )
+
+
+def build_math_session_tape(
+    *,
+    session_id: str,
+    suite_name: str,
+    rows: Sequence[Mapping[str, Any]],
+    use_enriched: bool = True,
+) -> TabletSessionTape:
+    frames: list[TabletSessionFrame] = []
+    for index, row in enumerate(rows):
+        envelope = math_dataset_envelope(
+            task_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+            question=str(row.get("problem_text") or row.get("question") or ""),
+            competition=str(row.get("competition") or ""),
+            expected_answer=row.get("answer") if "answer" in row else row.get("expected_answer"),
+        )
+        frames.append(
+            TabletSessionFrame(
+                frame_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
+                envelope=envelope,
+                expected=row.get("answer") if "answer" in row else row.get("expected_answer"),
+                source_meta=dict(row),
+            )
+        )
+    return TabletSessionTape(
+        session_id=str(session_id),
+        suite_name=str(suite_name),
+        surface_kind="MATH",
+        frames=tuple(frames),
+        use_enriched=bool(use_enriched),
     )

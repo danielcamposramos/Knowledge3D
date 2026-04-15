@@ -221,7 +221,80 @@ The following are valid design targets currently at Stage 0-1. They MUST pass th
 
 ---
 
-## 7. Ternary-Ready Register Semantics (March 2026)
+## 7. Extended Tier — Reasoning-Paradigm Block (0xA0–0xF1)
+
+**Authority**: `TEMP/CLAUDE_REASONING_PARADIGMS_AND_N_SWARM_SPEC_2026-04-13.md` §4.
+These opcodes are reserved for the first reasoning-paradigm wave. Reservation
+does not bypass the admission pipeline: each opcode still lands as a PTX
+implementation only when its Batch slice admits it.
+
+**Ternary packing convention**: every value crossing lane/kernel boundaries is
+encoded as a ternary-ready triple `(value, confidence, polarity)`. Current binary
+hardware packs this as explicit fields; future ternary hardware maps the trit
+lane natively. Stack diagrams below use bare symbolic names for readability,
+but each operand is ternary-packed at transport boundaries.
+
+| Opcode | Mnemonic | Family | Stack diagram | Semantics | Ternary packing |
+|---|---:|---|---|---|---|
+| `0xA0` | `ABDUCE` | Abductive | `[obs] -> [hyp_id]` | Retrieve a hypothesis candidate for an observation from the Hypothesis Galaxy. | `obs` and `hyp_id` carry confidence; polarity is observation support. |
+| `0xA1` | `EXPLAIN` | Abductive | `[hyp_id, obs] -> [cover_mask]` | Verify `effects(hyp_id) ⊇ obs` using `TCOMP` over a ternary effect mask. | `cover_mask` packs covered `+1`, unknown `0`, contradicted `-1`. |
+| `0xA2` | `SUSPECT` | Abductive | `[hyp_id] -> [simplicity_score]` | Rank by simplicity via `TQUANT` term-size and symbol-rarity score. | Score confidence mirrors hypothesis support; polarity marks plausible/implausible. |
+| `0xA3` | `ABDUCE_HALT` | Abductive | `[score] -> [halt_bit]` | Push abductive result to the halting gate if score exceeds threshold. | Halt bit is packed as `+1` accept, `0` continue, `-1` reject. |
+| `0xA4` | `SCUNION` | Abductive | `[mask_a, mask_b] -> [mask_union]` | Warp-popcount greedy set-cover union. | Masks are ternary coverage masks. |
+| `0xA5` | `ICHECK` | Abductive | `[hyp_id, ic_mask] -> [valid]` | Integrity-constraint validation via ternary AND. | `valid` uses `+1` valid, `0` unknown, `-1` violation. |
+| `0xA6` | `ABDRES` | Abductive | `[goal, assumptions] -> [resolvent]` | Abductive resolution: unify goal and collect required assumptions. | Assumption support stored as ternary confidence/polarity. |
+| `0xA7` | `ABDNEG` | Abductive | `[goal] -> [naf_result]` | Negation-as-failure under finite failure. | `+1` proven finite failure, `0` unknown, `-1` contradicted. |
+| `0xB0` | `EBELIEF` | Subjective/frame | `[evidence] -> [belief]` | Evidence-to-belief transform by Bayes inversion over `TQUANT`. | Belief is a ternary opinion triple. |
+| `0xB1` | `BIDUCE` | Subjective/frame | `[pre, post] -> [frame]` | Bi-abductive frame inference. | Frame confidence tracks pre/post support. |
+| `0xB2` | `FRAME` | Subjective/frame | `[heap_a, heap_b] -> [frame_delta]` | Separation-logic frame extraction. | Delta polarity marks add/remove/unknown. |
+| `0xB3` | `EULER_COMPLETE` | Subjective/frame | `[chain_root] -> [closure]` | Transitive property-chain closure for Euler/N3-style reasoning. | Closure entries carry ternary entailment strength. |
+| `0xB4` | `DL_SATURATE` | Subjective/frame | `[node] -> [saturated_node]` | Description-logic tableau saturation. | Clash/no-clash encoded as ternary branch state. |
+| `0xB5` | `BLOCKING_CHECK` | Subjective/frame | `[node, predecessor] -> [blocked]` | Binary blocking over node × predecessor. | `blocked` is `+1` blocked, `0` unknown, `-1` open. |
+| `0xB6` | `CTX_SWITCH` | Subjective/frame | `[ctx_id] -> []` | Set lane-local Galaxy read filter to `star.context_id == ctx_id || star.context_id == 0`. | `ctx_id` is a u32 value with neutral polarity. |
+| `0xB7` | `ALPCHAIN` | Subjective/frame | `[goal] -> [subgoals]` | Abductive-logic-programming backward-chain step. | Subgoal masks retain ternary proof status. |
+| `0xC0` | `TUNIFY` | Deductive/ATP | `[term_a, term_b] -> [subst_handle]` | Robinson unification with occur-check. | `subst_handle=0` means failure; confidence marks substitution completeness. |
+| `0xC1` | `TRESOLVE` | Deductive/ATP | `[clause_a, clause_b] -> [resolvent]` | Binary resolution to resolvent clause. | Resolvent polarity marks derived support or contradiction. |
+| `0xC2` | `TORDER` | Deductive/ATP | `[term_a, term_b] -> [order]` | KBO/LPO term ordering. | `order` uses ternary less/equal/greater mapping. |
+| `0xC3` | `TSUBSUME` | Deductive/ATP | `[clause_a, clause_b] -> [subsumed]` | Forward/backward clause subsumption. | `subsumed` uses `+1` yes, `0` unknown, `-1` no. |
+| `0xC4` | `TSUPERPOS` | Deductive/ATP | `[rule, term] -> [critical_pair]` | Superposition critical-pair generation. | Pair carries equation confidence and polarity. |
+| `0xC5` | `TREWRITE` | Deductive/ATP | `[term, rule_set] -> [rewritten_term]` | Ordered rewriting from indexed rule set. | Rewritten term keeps rule confidence. |
+| `0xD0` | `TSPLIT` | Tableaux/SAT | `[alpha_formula, beta_formula] -> [branch_id_alpha, branch_id_beta]` | Alpha/beta branch split. | Branch state records ternary open/closed/unknown. |
+| `0xD1` | `TCLOSE` | Tableaux/SAT | `[branch_id, lit_a, lit_b] -> [closed]` | Branch closure via complementarity. | `closed` uses `+1` closed, `0` unknown, `-1` still open. |
+| `0xD2` | `TEXPAND` | Tableaux/SAT | `[branch_id, formula] -> [expanded_formula]` | Gamma/delta quantifier expansion with on-GPU Skolemisation. | Expansion confidence follows source formula. |
+| `0xD3` | `TBCP` | Tableaux/SAT | `[watch_state] -> [propagated]` | Boolean constraint propagation with two-watch representation. | Propagation result is ternary satisfiability state. |
+| `0xD4` | `TLEARNT` | Tableaux/SAT | `[conflict] -> [learnt_clause]` | Conflict-clause learning and minimisation. | Learnt clause polarity marks conflict evidence. |
+| `0xE0` | `RETE_ALPHA_TEST` | Rete | `[fact, alpha_node] -> [match]` | Rete alpha-memory test. | Match is ternary true/unknown/false. |
+| `0xE1` | `RETE_BETA_JOIN` | Rete | `[left_token, right_token] -> [joined_token]` | Rete beta-memory join. | Joined token confidence is the ternary conjunction of parents. |
+| `0xE2` | `AGENDA_INSERT` | Rete | `[activation] -> [agenda_handle]` | Insert activation into agenda. | Agenda priority carries ternary support. |
+| `0xF0` | `HALT_SET` | System | `[local_halt] -> []` | Write lane-local consensus register view. | Halt trit uses `+1` halt, `0` continue, `-1` reject. |
+| `0xF1` | `HALT_SYNC` | System | `[] -> [global_halt]` | Global barrier and cross-lane halt check. | Global halt trit is reduced across active lanes. |
+
+### 7.1 Batch 4 CBR Extension Block (0x100–0x103)
+
+Batch 4 keeps **Cyc/context**, **casuistry**, and **model checking** on the
+reuse-existing-surface path:
+
+- `CTX_SWITCH` remains the public context gate and now admits bounded
+  heuristic filtering over `context_id`, `ethical_trit`, and rule salience.
+- Casuistry is implemented as an ethical projection over case-based reasoning,
+  not as a separate opcode family.
+- Model checking remains a bounded kernel/bridge surface reusing existing
+  graph/state infrastructure, so no new public opcode is reserved for it in
+  Batch 4.
+
+The only new public opcode reservations in Batch 4 are the bounded
+case-based-reasoning primitives below.
+
+| Opcode | Mnemonic | Family | Stack diagram | Semantics | Ternary packing |
+|---|---:|---|---|---|---|
+| `0x100` | `CASE_FETCH` | CBR | `[query, case_a, case_b] -> [case_handle]` | Select the nearest valid case from a bounded case window using existing similarity/state surfaces. | Returned handle carries case id, context, ethical code, and bounded confidence. |
+| `0x101` | `CASE_REBIND` | CBR | `[case_handle, rebind_spec] -> [bound_case]` | Clone/rebind a stored case program or solution handle to current symbols/facts. | Bound case preserves source support and rewrites value/context fields only. |
+| `0x102` | `CASE_REVISE` | CBR/Casuistry | `[bound_case, revise_constraint] -> [revised_case]` | Run bounded revise logic and ethical gating; returns `0` on failure. | Ethical polarity is preserved and may be vetoed by stage-3 style gate semantics. |
+| `0x103` | `CASE_RETAIN_HINT` | CBR | `[revised_case] -> [retain_hint]` | Emit a bounded shadow-copy retention hint for sleep-time materialisation. | Hint carries confidence/polarity but does not write permanent state in hot path. |
+
+---
+
+## 8. Ternary-Ready Register Semantics (March 2026)
 
 The [Hyper-Parallel Processing](HYPER_PARALLEL_PROCESSING.md) paradigm (§6) establishes that all RPN register values MUST be representable with **value + confidence + polarity** — either natively (future ternary hardware: balanced ternary −1/0/+1) or by convention (current binary hardware: explicit encoding).
 
@@ -235,7 +308,7 @@ The [Hyper-Parallel Processing](HYPER_PARALLEL_PROCESSING.md) paradigm (§6) est
 
 ---
 
-## 8. Future Extensions
+## 9. Future Extensions
 
 Once the math core tiering and Reality Enabler galaxies are stable, the promotion pipeline (Section 6) governs admission of new opcodes. Candidates include:
 
@@ -247,7 +320,7 @@ All candidates MUST pass the Stage 0-3 pipeline documented above.
 
 ---
 
-## 8. References
+## 10. References
 
 - `knowledge3d/cranium/ptx_runtime/rpn_opcodes.py`  
 - `knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py`  

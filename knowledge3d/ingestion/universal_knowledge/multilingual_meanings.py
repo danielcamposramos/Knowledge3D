@@ -18,7 +18,8 @@ from pathlib import Path
 import re
 from typing import Iterator
 
-from knowledge3d.knowledgeverse._house_utils import char_refs
+from knowledge3d.ingestion.canonical_lookup import canonical_char_star_id, canonical_word_star_id
+from knowledge3d.ingestion.symlink_helpers import link
 from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar, SurfaceForm
 
 
@@ -99,7 +100,76 @@ def _append_unique(target: dict[str, list[str]], key: str, value: str) -> None:
 
 
 def _lemma_word_ref(language: str, lemma: str) -> str:
-    return f"{language}_{str(lemma or '').strip().lower().replace(' ', '_')}"
+    return canonical_word_star_id(language, lemma)
+
+
+def _char_refs(text: str) -> list[str]:
+    refs: list[str] = []
+    for char in str(text or ""):
+        if char.isspace():
+            continue
+        refs.append(canonical_char_star_id(char))
+    return refs
+
+
+def _word_meaning_rpn(language: str, lemma: str, sense_anchor: str) -> str:
+    token = _safe_rpn_token(lemma)
+    return f"WORD LANG_{str(language).upper()} LEMMA {token} STORE_surface RECALL {sense_anchor}"
+
+
+def _char_meaning_rpn(char: str) -> str:
+    return f"CHAR U{ord(char):04X} GLYPH"
+
+
+def _word_star(language: str, lemma: str, meaning_star_id: str) -> MeaningCentricStar:
+    word_id = canonical_word_star_id(language, lemma)
+    refs = _char_refs(lemma)
+    return MeaningCentricStar(
+        star_id=word_id,
+        meaning_class="concept",
+        meaning_rpn=_word_meaning_rpn(language, lemma, meaning_star_id),
+        domain=f"Word/{language}",
+        surface_forms={
+            language: SurfaceForm(word_ref=word_id, char_refs=refs),
+        },
+        lod_class="lod_summary",
+        confidence=1,
+        polarity=1,
+    )
+
+
+def _char_star(char: str) -> MeaningCentricStar:
+    return MeaningCentricStar(
+        star_id=canonical_char_star_id(char),
+        meaning_class="form",
+        meaning_rpn=_char_meaning_rpn(char),
+        domain="Character/Unicode",
+        lod_class="lod_icon",
+        confidence=1,
+        polarity=1,
+    )
+
+
+def _dedupe_stars(stars: list[MeaningCentricStar]) -> list[MeaningCentricStar]:
+    merged: dict[str, MeaningCentricStar] = {}
+    for star in stars:
+        existing = merged.get(star.star_id)
+        if existing is None:
+            merged[star.star_id] = star
+            continue
+        for ref in star.taxonomy_refs:
+            if ref not in existing.taxonomy_refs:
+                existing.taxonomy_refs.append(ref)
+        for ref in star.meta_refs:
+            if ref not in existing.meta_refs:
+                existing.meta_refs.append(ref)
+        for ref in star.component_refs:
+            if ref not in existing.component_refs:
+                existing.component_refs.append(ref)
+        for ref in star.composite_of:
+            if ref not in existing.composite_of:
+                existing.composite_of.append(ref)
+    return list(merged.values())
 
 
 def parse_omw_tab(filepath: Path, lang_code: str) -> dict[str, SynsetEntry]:
@@ -233,7 +303,7 @@ def synset_to_star(entry: SynsetEntry) -> MeaningCentricStar:
         primary = lemmas[0]
         surface_forms[language] = SurfaceForm(
             word_ref=_lemma_word_ref(language, primary),
-            char_refs=char_refs(primary, language),
+            char_refs=_char_refs(primary),
         )
         for synonym in lemmas[1:]:
             synonym_refs.append(f"synonym:{language}:{synonym}")
@@ -254,9 +324,34 @@ def synset_to_star(entry: SynsetEntry) -> MeaningCentricStar:
         surface_forms=surface_forms,
         meta_refs=meta_refs,
         house_room="House/Library",
+        lod_class="lod_summary",
         confidence=1,
         polarity=1,
     )
+
+
+def synset_to_star_bundle(entry: SynsetEntry) -> list[MeaningCentricStar]:
+    meaning_star = synset_to_star(entry)
+    stars: list[MeaningCentricStar] = [meaning_star]
+    chars_by_id: dict[str, MeaningCentricStar] = {}
+    for language in sorted(entry.lemmas.keys()):
+        lemmas = list(entry.lemmas.get(language, []))
+        if not lemmas:
+            continue
+        primary = lemmas[0]
+        word_star = _word_star(language, primary, meaning_star.star_id)
+        link(meaning_star, word_star, f"surface_forms.{language}.word_ref", "taxonomy_refs")
+        for char in str(primary):
+            if char.isspace():
+                continue
+            char_star = chars_by_id.get(canonical_char_star_id(char))
+            if char_star is None:
+                char_star = _char_star(char)
+                chars_by_id[char_star.star_id] = char_star
+                stars.append(char_star)
+            link(word_star, char_star, "component_refs", "composite_of")
+        stars.append(word_star)
+    return _dedupe_stars(stars)
 
 
 def iter_meaning_stars(
@@ -297,6 +392,30 @@ def build_meaning_layer_stars(
     return list(iter_meaning_stars(omw_path, min_languages=min_languages, limit=limit))
 
 
+def build_meaning_layer_bundle(
+    omw_path: Path | None = None,
+    *,
+    min_languages: int = 3,
+    pos_filter: set[str] | None = None,
+    limit: int | None = None,
+) -> list[MeaningCentricStar]:
+    allowed_pos = {str(pos).strip().lower() for pos in set(pos_filter or set()) if str(pos).strip()} or None
+    bundled: list[MeaningCentricStar] = []
+    meaning_count = 0
+    synsets = load_all_omw(omw_path)
+    for synset_id in sorted(synsets.keys()):
+        entry = synsets[synset_id]
+        if len(entry.lemmas) < int(min_languages):
+            continue
+        if allowed_pos is not None and entry.pos.lower() not in allowed_pos:
+            continue
+        bundled.extend(synset_to_star_bundle(entry))
+        meaning_count += 1
+        if limit is not None and meaning_count >= int(limit):
+            break
+    return _dedupe_stars(bundled)
+
+
 def meaning_layer_stats(stars: list[MeaningCentricStar]) -> dict[str, object]:
     """Summarize the produced meaning layer."""
     total_stars = len(stars)
@@ -323,9 +442,11 @@ __all__ = [
     "POS_MAP",
     "SynsetEntry",
     "build_meaning_layer_stars",
+    "build_meaning_layer_bundle",
     "iter_meaning_stars",
     "load_all_omw",
     "meaning_layer_stats",
     "parse_omw_tab",
     "synset_to_star",
+    "synset_to_star_bundle",
 ]

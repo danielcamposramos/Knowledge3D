@@ -32,6 +32,14 @@ try:
     libcudart.cudaFree.argtypes = [ctypes.c_void_p]
     libcudart.cudaMemcpy.restype = ctypes.c_int
     libcudart.cudaMemcpy.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t, ctypes.c_int]
+    libcudart.cudaSetDevice.restype = ctypes.c_int
+    libcudart.cudaSetDevice.argtypes = [ctypes.c_int]
+    libcudart.cudaHostAlloc.restype = ctypes.c_int
+    libcudart.cudaHostAlloc.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t, ctypes.c_uint]
+    libcudart.cudaHostGetDevicePointer.restype = ctypes.c_int
+    libcudart.cudaHostGetDevicePointer.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_void_p, ctypes.c_uint]
+    libcudart.cudaFreeHost.restype = ctypes.c_int
+    libcudart.cudaFreeHost.argtypes = [ctypes.c_void_p]
 except OSError:
     libcudart = None
 
@@ -41,9 +49,19 @@ except AttributeError:
     _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo", None)
 
 try:
-    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32_v2")
-except AttributeError:  # pragma: no cover - legacy drivers
+    _cuMemAlloc = getattr(nvcuda, "cuMemAlloc")
+except AttributeError:
+    _cuMemAlloc = getattr(nvcuda, "cuMemAlloc_v2")
+
+try:
+    _cuMemFree = getattr(nvcuda, "cuMemFree")
+except AttributeError:
+    _cuMemFree = getattr(nvcuda, "cuMemFree_v2")
+
+try:
     _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32")
+except AttributeError:  # pragma: no cover - legacy drivers
+    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32_v2")
 
 try:
     _cuMemcpyDtoD_v2 = getattr(nvcuda, "cuMemcpyDtoD_v2")
@@ -102,6 +120,16 @@ try:
 except AttributeError:
     _cuMemFreeHost = None
 
+try:
+    _cuMemHostAlloc = getattr(nvcuda, "cuMemHostAlloc")
+except AttributeError:
+    _cuMemHostAlloc = None
+
+try:
+    _cuMemHostGetDevicePointer = getattr(nvcuda, "cuMemHostGetDevicePointer")
+except AttributeError:
+    _cuMemHostGetDevicePointer = getattr(nvcuda, "cuMemHostGetDevicePointer_v2", None)
+
 # ==========================================
 # CUDA Driver API Types
 # ==========================================
@@ -113,11 +141,37 @@ CUstream = ctypes.c_void_p
 CUdevice = ctypes.c_int
 CUcontext = ctypes.c_void_p
 
+CU_CTX_MAP_HOST = 0x08
+
 if _cuMemGetInfo is not None:
     _cuMemGetInfo.restype = ctypes.c_int
     _cuMemGetInfo.argtypes = [
         ctypes.POINTER(ctypes.c_size_t),
         ctypes.POINTER(ctypes.c_size_t),
+    ]
+_cuMemAlloc.restype = ctypes.c_int
+_cuMemAlloc.argtypes = [ctypes.POINTER(CUdeviceptr), ctypes.c_size_t]
+_cuMemFree.restype = ctypes.c_int
+_cuMemFree.argtypes = [CUdeviceptr]
+
+try:
+    _cuLaunchCooperativeKernel = getattr(nvcuda, "cuLaunchCooperativeKernel")
+except AttributeError:
+    _cuLaunchCooperativeKernel = None
+
+if _cuLaunchCooperativeKernel is not None:
+    _cuLaunchCooperativeKernel.restype = ctypes.c_int
+    _cuLaunchCooperativeKernel.argtypes = [
+        CUfunction,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        ctypes.c_uint,
+        CUstream,
+        ctypes.POINTER(ctypes.c_void_p),
     ]
 
 _cuMemsetD32.restype = ctypes.c_int
@@ -161,12 +215,29 @@ if _cuMemAllocHost_v2 is not None:
 if _cuMemFreeHost is not None:
     _cuMemFreeHost.restype = ctypes.c_int
     _cuMemFreeHost.argtypes = [ctypes.c_void_p]
+if _cuMemHostAlloc is not None:
+    _cuMemHostAlloc.restype = ctypes.c_int
+    _cuMemHostAlloc.argtypes = [ctypes.POINTER(ctypes.c_void_p), ctypes.c_size_t, ctypes.c_uint]
+if _cuMemHostGetDevicePointer is not None:
+    _cuMemHostGetDevicePointer.restype = ctypes.c_int
+    _cuMemHostGetDevicePointer.argtypes = [ctypes.POINTER(CUdeviceptr), ctypes.c_void_p, ctypes.c_uint]
+nvcuda.cuCtxCreate.restype = ctypes.c_int
+nvcuda.cuCtxCreate.argtypes = [ctypes.POINTER(CUcontext), ctypes.c_uint, CUdevice]
+nvcuda.cuDevicePrimaryCtxSetFlags.restype = ctypes.c_int
+nvcuda.cuDevicePrimaryCtxSetFlags.argtypes = [CUdevice, ctypes.c_uint]
+nvcuda.cuDevicePrimaryCtxRetain.restype = ctypes.c_int
+nvcuda.cuDevicePrimaryCtxRetain.argtypes = [ctypes.POINTER(CUcontext), CUdevice]
+nvcuda.cuCtxSetCurrent.restype = ctypes.c_int
+nvcuda.cuCtxSetCurrent.argtypes = [CUcontext]
+nvcuda.cuCtxGetCurrent.restype = ctypes.c_int
+nvcuda.cuCtxGetCurrent.argtypes = [ctypes.POINTER(CUcontext)]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
 
 _cupy_allocations: List[Tuple[int, int, "Any"]] = []
 _cudart_allocations: List[Tuple[int, int]] = []
+_cudart_mapped_host_allocations: set[int] = set()
 
 
 class PinnedHostBuffer:
@@ -284,7 +355,7 @@ def _ensure_init():
         
         # Check if we should force Primary Context (to share with PyTorch)
         use_primary = os.environ.get("K3D_USE_PRIMARY_CTX", "0") == "1"
-        res = 201 if use_primary else nvcuda.cuCtxCreate(ctypes.byref(ctx), 0, device)
+        res = 201 if use_primary else nvcuda.cuCtxCreate(ctypes.byref(ctx), CU_CTX_MAP_HOST, device)
         
         if res != 0:
             if os.environ.get("K3D_RPN_DEBUG") and not use_primary:
@@ -453,7 +524,7 @@ def gpu_malloc(size_bytes: int) -> CUdeviceptr:
     if os.environ.get("K3D_FORCE_CUPY_ALLOC"):
         res = 201
     else:
-        res = nvcuda.cuMemAlloc(ctypes.byref(ptr), size_bytes)
+        res = _cuMemAlloc(ctypes.byref(ptr), size_bytes)
     if os.environ.get("K3D_RPN_DEBUG"):
         print(f"[loader] cuMemAlloc({size_bytes}) -> {res}, ptr={ptr}")
     if res == 201:
@@ -505,7 +576,7 @@ def gpu_free(ptr: CUdeviceptr) -> None:
             libcudart.cudaFree(ctypes.c_void_p(cudart_alloc[0]))
         _cudart_allocations.remove(cudart_alloc)
         return
-    ck(nvcuda.cuMemFree(ptr))
+    ck(_cuMemFree(ptr))
 
 
 def _coerce_host_pointer(value: object) -> ctypes.c_void_p:
@@ -699,6 +770,73 @@ def pinned_host_free(ptr: ctypes.c_void_p) -> None:
     ck(res)
 
 
+def mapped_host_alloc(size_bytes: int) -> tuple[ctypes.c_void_p, CUdeviceptr]:
+    """Allocate host-mapped memory and return (host_ptr, device_ptr)."""
+    _ensure_current_context()
+    if _cuMemHostAlloc is None or _cuMemHostGetDevicePointer is None:
+        if libcudart is None:
+            raise RuntimeError("mapped host memory not available in CUDA driver")
+        return _mapped_host_alloc_cudart(size_bytes)
+    host_ptr = ctypes.c_void_p()
+    CU_MEMHOSTALLOC_DEVICEMAP = 0x02
+    res = _cuMemHostAlloc(ctypes.byref(host_ptr), ctypes.c_size_t(max(1, int(size_bytes))), CU_MEMHOSTALLOC_DEVICEMAP)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemHostAlloc(mapped) -> {res}, ptr={host_ptr.value}")
+    ck(res)
+    device_ptr = CUdeviceptr()
+    res = _cuMemHostGetDevicePointer(ctypes.byref(device_ptr), host_ptr, 0)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cuMemHostGetDevicePointer -> {res}, ptr={device_ptr.value}")
+    if res != 0:
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] driver mapped host device pointer failed; retrying via cudart")
+        pinned_host_free(host_ptr)
+        if libcudart is None:
+            ck(res)
+        return _mapped_host_alloc_cudart(size_bytes)
+    return host_ptr, device_ptr
+
+
+def mapped_host_free(ptr: ctypes.c_void_p) -> None:
+    """Free host-mapped memory returned by mapped_host_alloc."""
+    address = int(ptr.value or 0) if ptr else 0
+    if address in _cudart_mapped_host_allocations:
+        _cudart_mapped_host_allocations.discard(address)
+        res = libcudart.cudaFreeHost(ptr)
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[loader] cudaFreeHost(mapped) -> {res}")
+        ck(res)
+        return
+    pinned_host_free(ptr)
+
+
+def _mapped_host_alloc_cudart(size_bytes: int) -> tuple[ctypes.c_void_p, CUdeviceptr]:
+    """Allocate host-mapped memory through CUDA runtime when driver mapping fails."""
+    if libcudart is None:
+        raise RuntimeError("CUDA runtime mapped host memory unavailable")
+    res = libcudart.cudaSetDevice(0)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cudaSetDevice(mapped) -> {res}")
+    ck(res)
+    host_ptr = ctypes.c_void_p()
+    CUDA_HOST_ALLOC_MAPPED = 0x02
+    res = libcudart.cudaHostAlloc(
+        ctypes.byref(host_ptr),
+        ctypes.c_size_t(max(1, int(size_bytes))),
+        CUDA_HOST_ALLOC_MAPPED,
+    )
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cudaHostAlloc(mapped) -> {res}, ptr={host_ptr.value}")
+    ck(res)
+    device_ptr_raw = ctypes.c_void_p()
+    res = libcudart.cudaHostGetDevicePointer(ctypes.byref(device_ptr_raw), host_ptr, 0)
+    if os.environ.get("K3D_RPN_DEBUG"):
+        print(f"[loader] cudaHostGetDevicePointer -> {res}, ptr={device_ptr_raw.value}")
+    ck(res)
+    _cudart_mapped_host_allocations.add(int(host_ptr.value or 0))
+    return host_ptr, CUdeviceptr(int(device_ptr_raw.value or 0))
+
+
 def memset_d32(dst_device: CUdeviceptr, value: int, count: int) -> None:
     """Fill device memory with 32-bit value."""
     _ensure_current_context()
@@ -757,6 +895,38 @@ def launch(
         param_ptrs,
         None
     ))
+
+
+def launch_cooperative(
+    kernel: CUfunction,
+    grid: Tuple[int, int, int],
+    block: Tuple[int, int, int],
+    params: List,
+    shared_mem: int = 0,
+    stream: Optional[CUstream] = None
+) -> None:
+    """Launch a CUDA cooperative kernel via the Driver API."""
+    _ensure_init()
+    if _cuLaunchCooperativeKernel is None:
+        raise RuntimeError("cuLaunchCooperativeKernel not available in CUDA driver")
+
+    grid_arr = (ctypes.c_uint * 3)(*grid)
+    block_arr = (ctypes.c_uint * 3)(*block)
+    param_ptrs = (ctypes.c_void_p * len(params))(*[
+        ctypes.cast(ctypes.byref(p), ctypes.c_void_p) if hasattr(p, '_type_')
+        else ctypes.c_void_p(p)
+        for p in params
+    ])
+
+    ck(_cuLaunchCooperativeKernel(
+        kernel,
+        grid_arr[0], grid_arr[1], grid_arr[2],
+        block_arr[0], block_arr[1], block_arr[2],
+        shared_mem,
+        stream or CUstream(),
+        param_ptrs,
+    ))
+
 
 def synchronize() -> None:
     """Synchronize device (wait for all kernels to complete)."""
@@ -904,7 +1074,10 @@ __all__ = [
     "memcpy_htod",
     "memcpy_dtoh",
     "memcpy_dtod",
+    "mapped_host_alloc",
+    "mapped_host_free",
     "launch",
+    "launch_cooperative",
     "synchronize",
     "get_vram_usage",
     "cpu_to_gpu",

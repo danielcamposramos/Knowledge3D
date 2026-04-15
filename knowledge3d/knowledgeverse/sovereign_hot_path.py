@@ -54,7 +54,7 @@ from .star_materializer_bridge import (
 )
 from .vram_task_buffer import EMBEDDING_DIMS, VRAMTaskBuffer
 
-RAW_CATALOG_INPUT_STRUCT = struct.Struct("<64f6Ii5f11IQ2f20x")
+RAW_CATALOG_INPUT_STRUCT = struct.Struct("<64f6Ii5f11IQ2fIb3x12x")
 REF_TUPLE_STRUCT = struct.Struct("<4I")
 BUILD_REF_HASH_STRUCT = struct.Struct("<IIQ")
 FEED_SOURCE_REF_STRUCT = struct.Struct("<IIQI4x")
@@ -240,6 +240,22 @@ def _trace_role_names(role_ids: list[int]) -> list[str]:
     for role_id in list(role_ids or []):
         values.append(str(names.get(int(role_id), "unknown")))
     return values
+
+
+def _recover_role_star_from_trace(
+    *,
+    host_star_lookup: Any,
+    route_trace_star_indices: list[int],
+    route_trace_role_ids: list[int],
+    desired_role_id: int,
+) -> dict[str, Any] | None:
+    for star_index, role_id in zip(route_trace_star_indices, route_trace_role_ids):
+        if int(role_id) != int(desired_role_id):
+            continue
+        recovered = host_star_lookup(int(star_index))
+        if isinstance(recovered, dict):
+            return recovered
+    return None
 
 
 def _write_pickle_file(path: Path, payload: Any) -> None:
@@ -1093,12 +1109,16 @@ class SovereignHotPath:
         requires_executor = bool(explicit.get("requires_executor"))
         requires_validator = bool(explicit.get("requires_validator"))
         answer_gate = bool(explicit.get("answer_gate"))
+        materialize_action = bool(explicit.get("materialize_action"))
+        materialize_grid = bool(explicit.get("materialize_grid"))
         branch_topk = int(explicit.get("branch_topk", 0) or 0)
         return encode_route_policy(
             decompose_on_fail=decompose_on_fail,
             requires_executor=requires_executor,
             requires_validator=requires_validator,
             answer_gate=answer_gate,
+            materialize_action=materialize_action,
+            materialize_grid=materialize_grid,
             branch_topk=branch_topk,
         )
 
@@ -1395,6 +1415,26 @@ class SovereignHotPath:
                     ),
                 )
                 or 0
+            ),
+            "context_id": int(
+                source.get(
+                    "context_id",
+                    metadata.get("context_id", catalog_row.get("context_id", 0)),
+                )
+                or 0
+            ),
+            "ethical_trit": max(
+                -1,
+                min(
+                    1,
+                    int(
+                        source.get(
+                            "ethical_trit",
+                            metadata.get("ethical_trit", catalog_row.get("ethical_trit", 0)),
+                        )
+                        or 0
+                    ),
+                ),
             ),
             "embedding": list(embedding),
             "embedding64": list(embedding),
@@ -3289,6 +3329,8 @@ class SovereignHotPath:
             int(row.get("star_hash", 0) or 0),
             float(row.get("domain_hash", 0.0) or 0.0),
             float(row.get("subject_hash", 0.0) or 0.0),
+            int(row.get("context_id", 0) or 0),
+            max(-1, min(1, int(row.get("ethical_trit", 0) or 0))),
         )
 
     def _pack_catalog_input_chunk(
@@ -3586,8 +3628,17 @@ class SovereignHotPath:
     def _task_payload(self, task: dict[str, Any]) -> dict[str, Any]:
         query_text = str(task.get("query") or task.get("prompt") or task.get("question") or "").strip()
         family = VRAMTaskBuffer.normalize_task_type(task.get("surface_kind") or task.get("type") or "")
+        expected_result_kind = str(task.get("expected_result_kind") or "").strip().lower()
+        grid_expected = bool(
+            family == "GAME_2D"
+            and (
+                expected_result_kind == "grid"
+                or task.get("expected_output") is not None
+                or task.get("goal_grid") is not None
+            )
+        )
         raw_options = list(task.get("options") or [])
-        if not raw_options and family == "GAME_2D":
+        if not raw_options and family == "GAME_2D" and not grid_expected:
             raw_options = list(task.get("action_options") or [])
         options = [str(option) for option in raw_options if str(option).strip()]
         action_star_ids = {
@@ -3636,6 +3687,7 @@ class SovereignHotPath:
             "goal_embedding": list(task.get("goal_embedding") or []),
             "expected_hash": expected_hash,
             "expected_index": expected_index,
+            "expected_result_kind": expected_result_kind,
             "task_id": str(task.get("task_id") or ""),
         }
 
@@ -3670,6 +3722,29 @@ class SovereignHotPath:
         executor_star = self._host_star(trace.executor_index)
         validator_star = self._host_star(trace.validator_index)
         winner_star = self._host_star(trace.winner_index)
+        if not isinstance(router_star, dict):
+            router_star = _recover_role_star_from_trace(
+                host_star_lookup=self._host_star,
+                route_trace_star_indices=trace.route_trace_star_indices,
+                route_trace_role_ids=trace.route_trace_role_ids,
+                desired_role_id=ROLE_ROUTER,
+            )
+        if not isinstance(executor_star, dict):
+            executor_star = _recover_role_star_from_trace(
+                host_star_lookup=self._host_star,
+                route_trace_star_indices=trace.route_trace_star_indices,
+                route_trace_role_ids=trace.route_trace_role_ids,
+                desired_role_id=ROLE_EXECUTOR,
+            )
+        if not isinstance(validator_star, dict):
+            validator_star = _recover_role_star_from_trace(
+                host_star_lookup=self._host_star,
+                route_trace_star_indices=trace.route_trace_star_indices,
+                route_trace_role_ids=trace.route_trace_role_ids,
+                desired_role_id=ROLE_VALIDATOR,
+            )
+        if not isinstance(winner_star, dict):
+            winner_star = self._host_star(trace.winner_index) or validator_star or executor_star or router_star
         options = list(task.get("options") or [])
         declared_task_type = str(task.get("type") or payload["surface_kind"]).strip().upper()
         effective_task_type = self.knowledgeverse._effective_question_task_type(

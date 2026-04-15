@@ -111,6 +111,89 @@ class _BenchmarkBridge:
         }
 
 
+class _SessionBoundary:
+    def __init__(self) -> None:
+        self.tapes: list[object] = []
+
+    def submit(self, *args: object, **kwargs: object) -> dict[str, object]:
+        raise AssertionError("benchmark path must not call submit() in session mode")
+
+    def run_tape_session(self, tape: object, **kwargs: object) -> dict[str, object]:
+        del kwargs
+        self.tapes.append(tape)
+        frames = list(getattr(tape, "frames", ()))
+        results: list[dict[str, object]] = []
+        for frame in frames:
+            envelope = frame.envelope
+            task = dict(envelope.task)
+            expected = getattr(frame, "expected", None)
+            if envelope.surface_kind == "GAME_2D":
+                emitted = {
+                    "status": "success",
+                    "correct": True,
+                    "route": {"specialist": "visual", "galaxy_names": ["Drawing"], "domain": "visual"},
+                    "game_action": {"output_grid": expected},
+                    "expected_output": expected,
+                    "task_result": {
+                        "status": "ok",
+                        "answer_kind": "grid",
+                        "answer_materialized": True,
+                        "output_grid": expected,
+                        "runtime": "tablet_bridge_session_query",
+                        "gpu_execution": True,
+                        "solver": "tablet_boundary",
+                        "trm_latency_us": 1000.0,
+                    },
+                }
+            elif envelope.surface_kind == "MATH":
+                emitted = {
+                    "status": "success",
+                    "correct": True,
+                    "route": {"specialist": "math", "galaxy_names": ["Math"], "domain": "math"},
+                    "numeric_answer": 4.0 if expected in {None, "", "4", 4, 4.0} else expected,
+                    "answer_text": str(expected or "4"),
+                    "task_result": {
+                        "status": "ok",
+                        "answer_kind": "numeric",
+                        "answer_materialized": True,
+                        "runtime": "tablet_bridge_session_query",
+                        "gpu_execution": True,
+                        "solver": "tablet_boundary",
+                        "trm_latency_us": 1000.0,
+                    },
+                }
+            else:
+                emitted = {
+                    "status": "success",
+                    "correct": True,
+                    "route": {"specialist": "chat", "galaxy_names": ["Grammar"], "domain": task.get("domain_hint", "multi")},
+                    "answer_choice": str(expected or ""),
+                    "answer_text": str(expected or ""),
+                    "task_result": {
+                        "status": "ok",
+                        "answer_kind": "choice",
+                        "answer_materialized": True,
+                        "runtime": "tablet_bridge_session_query",
+                        "gpu_execution": True,
+                        "solver": "tablet_boundary",
+                        "trm_latency_us": 1000.0,
+                    },
+                }
+            results.append(
+                {
+                    "frame_id": getattr(frame, "frame_id", ""),
+                    "envelope": envelope,
+                    "emitted": emitted,
+                    "tablet_contract": {
+                        "action_type": "UPDATE_TABLET",
+                        "surface_kind": envelope.surface_kind,
+                        "sovereign_path": "tablet_bridge_session",
+                    },
+                }
+            )
+        return {"status": "ok", "session_id": getattr(tape, "session_id", "session"), "results": results}
+
+
 def test_arc_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     dataset_dir = tmp_path / "arc_eval"
     dataset_dir.mkdir(parents=True, exist_ok=True)
@@ -120,7 +203,7 @@ def test_arc_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     }
     (dataset_dir / "task_arc.json").write_text(json.dumps(task), encoding="utf-8")
 
-    boundary = HeadlessTabletMPC(command_handler=_BenchmarkDaemon(), storage_root=tmp_path / "storage")
+    boundary = _SessionBoundary()
     benchmark = ARCAGI2Benchmark(
         dataset_path=dataset_dir,
         tablet_boundary=boundary,
@@ -142,7 +225,7 @@ def test_math_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
         encoding="utf-8",
     )
 
-    boundary = HeadlessTabletMPC(command_handler=_BenchmarkDaemon(), storage_root=tmp_path / "storage")
+    boundary = _SessionBoundary()
     benchmark = MathCompetitionBenchmark(
         dataset_path=dataset_dir,
         tablet_boundary=boundary,
@@ -163,12 +246,7 @@ def test_math_benchmark_can_run_through_tablet_bridge_without_daemon(tmp_path: P
         json.dumps([{"id": "m1", "problem_text": "What is 2 + 2?", "answer": "4"}]),
         encoding="utf-8",
     )
-    bridge = _BenchmarkBridge()
-    boundary = HeadlessTabletMPC(
-        command_handler=_FailingDaemon(),
-        bridge=bridge,
-        storage_root=tmp_path / "storage",
-    )
+    boundary = _SessionBoundary()
     benchmark = MathCompetitionBenchmark(
         dataset_path=dataset_dir,
         tablet_boundary=boundary,
@@ -177,15 +255,13 @@ def test_math_benchmark_can_run_through_tablet_bridge_without_daemon(tmp_path: P
 
     result = benchmark.run_benchmark(use_enriched=True)
 
-    assert len(bridge.submitted_queries) == 1
-    assert bridge.submitted_queries[0]["query_embedding_len"] == 512
-    assert bridge.submitted_queries[0]["action_buffer_words"][0] == int(ActionType.UPDATE_TABLET.value)
+    assert len(boundary.tapes) == 1
     row = result["results_by_competition"]["AMC"]["results"][0]
     assert row["method"] == "tablet_boundary"
-    assert row["runtime"] == "tablet_bridge_ring_query"
+    assert row["runtime"] == "tablet_bridge_session_query"
     assert row["gpu_execution"] is True
-    assert row["tablet_contract"]["sovereign_path"] == "tablet_bridge_ring"
-    assert row["task_result"]["answer_materialized"] is False
+    assert row["tablet_contract"]["sovereign_path"] == "tablet_bridge_session"
+    assert row["task_result"]["answer_materialized"] is True
 
 
 def test_math_benchmark_loads_real_math_and_math_layouts(tmp_path: Path):
@@ -247,7 +323,7 @@ def test_lhe_benchmark_can_run_via_headless_tablet_boundary(tmp_path: Path):
     }
     (dataset_dir / "last_humanity_exam.json").write_text(json.dumps(payload), encoding="utf-8")
 
-    boundary = HeadlessTabletMPC(command_handler=_BenchmarkDaemon(), storage_root=tmp_path / "storage")
+    boundary = _SessionBoundary()
     benchmark = LastHumanityExamBenchmark(
         dataset_path=dataset_dir,
         tablet_boundary=boundary,
@@ -291,6 +367,7 @@ class _RunnerKnowledgeverse:
 
 def test_headless_tablet_runner_executes_arc_and_lhe(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(runner, "Knowledgeverse", _RunnerKnowledgeverse)
+    monkeypatch.setattr(runner, "HeadlessTabletMPC", lambda **kwargs: _SessionBoundary())
     arc_dir = tmp_path / "arc_eval"
     arc_dir.mkdir(parents=True, exist_ok=True)
     (arc_dir / "task_arc.json").write_text(
@@ -355,6 +432,7 @@ def test_headless_tablet_runner_executes_arc_and_lhe(tmp_path: Path, monkeypatch
 
 def test_headless_tablet_runner_can_skip_unselected_benchmarks(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(runner, "Knowledgeverse", _RunnerKnowledgeverse)
+    monkeypatch.setattr(runner, "HeadlessTabletMPC", lambda **kwargs: _SessionBoundary())
     arc_dir = tmp_path / "arc_eval"
     arc_dir.mkdir(parents=True, exist_ok=True)
     (arc_dir / "task_arc.json").write_text(
@@ -419,6 +497,7 @@ def test_runner_writes_execution_artifacts_before_shutdown_timeout(tmp_path: Pat
         return kv
 
     monkeypatch.setattr(runner, "Knowledgeverse", _factory)
+    monkeypatch.setattr(runner, "HeadlessTabletMPC", lambda **kwargs: _SessionBoundary())
 
     args = argparse.Namespace(
         storage_root=str(tmp_path / "storage"),
@@ -473,6 +552,7 @@ def test_runner_uses_non_persistent_shutdown_when_supported(tmp_path: Path, monk
         return kv
 
     monkeypatch.setattr(runner, "Knowledgeverse", _factory)
+    monkeypatch.setattr(runner, "HeadlessTabletMPC", lambda **kwargs: _SessionBoundary())
 
     args = argparse.Namespace(
         storage_root=str(tmp_path / "storage"),
@@ -518,6 +598,7 @@ def test_runner_preserves_execution_artifacts_on_legacy_shutdown_timeout(tmp_pat
             return {"status": "completed"}
 
     monkeypatch.setattr(runner, "Knowledgeverse", _SlowLegacyKnowledgeverse)
+    monkeypatch.setattr(runner, "HeadlessTabletMPC", lambda **kwargs: _SessionBoundary())
 
     args = argparse.Namespace(
         storage_root=str(tmp_path / "storage"),
@@ -547,3 +628,24 @@ def test_runner_preserves_execution_artifacts_on_legacy_shutdown_timeout(tmp_pat
     assert (Path(args.log_dir) / "summary.execution.json").exists()
     assert (Path(args.log_dir) / "full_results.execution.json").exists()
     assert result["summary"]["sleep_consolidation"]["status"] == "timed_out"
+
+
+def test_runner_summary_recognizes_knowledgeverse_dispatch_rows() -> None:
+    summary = runner._augment_suite_summary(
+        {
+            "total": 1,
+            "results": [
+                {
+                    "tablet_contract": {"sovereign_path": "knowledgeverse_dispatch_session"},
+                    "task_result": {
+                        "route_family": "MATH",
+                        "answer_materialized": True,
+                    },
+                }
+            ],
+        }
+    )
+
+    assert summary["route_family_distribution"] == {"MATH": 1}
+    assert summary["trm_dispatch_task_type_distribution"] == {"MATH": 1}
+    assert summary["gpu_result_packets"] == "1 / 1"

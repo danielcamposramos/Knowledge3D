@@ -956,6 +956,26 @@ __device__ inline float4 physics_quat_normalize(float4 q) {
     return make_float4(q.x * inv, q.y * inv, q.z * inv, q.w * inv);
 }
 
+#if defined(K3D_REASONING_OPCODES_V1)
+#include "../cuda/rpn_ctx_switch.cu"
+#include "../cuda/rpn_unify.cu"
+#include "../cuda/rpn_resolve.cu"
+#include "../cuda/rpn_order.cu"
+#include "../cuda/rpn_subsume.cu"
+#include "../cuda/rpn_rewrite.cu"
+#include "../cuda/rpn_superpos.cu"
+#include "../cuda/rpn_tableaux.cu"
+#include "../cuda/rpn_abduce.cu"
+#include "../cuda/rpn_alp.cu"
+#include "../cuda/rpn_abduce_ext.cu"
+#include "../cuda/rpn_ebelief.cu"
+#include "../cuda/rpn_frame.cu"
+#include "../cuda/rpn_rete.cu"
+#include "../cuda/rpn_case.cu"
+#include "../cuda/rpn_dpll.cu"
+#include "../cuda/rpn_halt.cu"
+#endif
+
 #include "entity_behavior.cu"
 }  // namespace
 
@@ -990,6 +1010,10 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
     __shared__ uint32_t sas_last_rule_template;
     __shared__ uint32_t sas_last_rule_strength;
     __shared__ uint32_t sas_last_rule_matched;
+    __shared__ uint32_t active_context;
+    __shared__ uint32_t halt_requested;
+    __shared__ uint32_t halt_sync_seen;
+    __shared__ uint32_t halt_should_break;
 
     if (tid == 0) {
         stack_size = 0;
@@ -1011,6 +1035,10 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
         sas_last_rule_template = CAS_NULL_IDX;
         sas_last_rule_strength = 1u;
         sas_last_rule_matched = 0u;
+        active_context = 0u;
+        halt_requested = 0u;
+        halt_sync_seen = 0u;
+        halt_should_break = 0u;
         for (uint32_t idx = 0; idx < kSasBindingCap; ++idx) {
             sas_binding_var_ids[idx] = kSasEmptyBinding;
             sas_binding_subj_idxs[idx] = CAS_NULL_IDX;
@@ -1023,11 +1051,167 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
         if (error_code != kErrorNone) {
             break;
         }
+        if (halt_should_break != 0u) {
+            break;
+        }
 
         if (tid == 0) {
             const uint16_t opcode = op_codes[i];
 
             switch (opcode) {
+#if defined(K3D_REASONING_OPCODES_V1)
+                case 0xA0: {
+                    op_abduce(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA1: {
+                    op_explain(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA2: {
+                    op_suspect(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA3: {
+                    op_abduce_halt(stack, stack_size, error_code, halt_requested);
+                    break;
+                }
+                case 0xA4: {
+                    op_scunion(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA5: {
+                    op_icheck(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA6: {
+                    op_abdres(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xA7: {
+                    op_abdneg(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB0: {
+                    op_ebelief(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB1: {
+                    op_biduce(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB2: {
+                    op_frame(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB3: {
+                    op_euler_complete(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB4: {
+                    op_dl_saturate(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB5: {
+                    op_blocking_check(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xB6: {
+                    op_ctx_switch(stack, stack_size, error_code, active_context);
+                    break;
+                }
+                case 0xB7: {
+                    op_alpchain(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC0: {
+                    op_tunify(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC1: {
+                    op_tresolve(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC2: {
+                    op_torder(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC3: {
+                    op_tsubsume(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC4: {
+                    op_tsuperpos(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xC5: {
+                    op_trewrite(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xD0: {
+                    op_tsplit(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xD1: {
+                    op_tclose(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xD2: {
+                    op_texpand(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xD3: {
+                    op_tbcp(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xD4: {
+                    op_tlearnt(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xE0: {
+                    op_rete_alpha_test(stack, stack_size, error_code, active_context);
+                    break;
+                }
+                case 0xE1: {
+                    op_rete_beta_join(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xE2: {
+                    op_agenda_insert(stack, stack_size, error_code);
+                    break;
+                }
+                case 0x100: {
+                    op_case_fetch(stack, stack_size, error_code, active_context);
+                    break;
+                }
+                case 0x101: {
+                    op_case_rebind(stack, stack_size, error_code);
+                    break;
+                }
+                case 0x102: {
+                    op_case_revise(stack, stack_size, error_code, active_context);
+                    break;
+                }
+                case 0x103: {
+                    op_case_retain_hint(stack, stack_size, error_code);
+                    break;
+                }
+                case 0xF0: {
+                    op_halt_set(stack, stack_size, error_code, halt_requested);
+                    break;
+                }
+                case 0xF1: {
+                    op_halt_sync(
+                        stack,
+                        stack_size,
+                        error_code,
+                        halt_requested,
+                        halt_sync_seen,
+                        halt_should_break
+                    );
+                    break;
+                }
+#endif
                 case 0x00: {  // literal scalar
                     float value = scalars ? scalars[scalar_index] : 0.0f;
                     scalar_index += 1;
@@ -1433,7 +1617,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     push(stack, stack_size, make_scalar(sig), error_code);
                     break;
                 }
-                case 0xE0: {  // LOAD_GALAXY
+                case 0xE3: {  // LOAD_GALAXY (compat alias under reasoning-opcode regime)
                     float entry_index_scalar = 0.0f;
                     if (!pop_scalar(stack, stack_size, entry_index_scalar, error_code)) break;
                     int entry_index = rounded_index(entry_index_scalar);
@@ -1451,7 +1635,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     push(stack, stack_size, make_scalar(static_cast<float>(entry_index)), error_code);
                     break;
                 }
-                case 0xE1: {  // GALAXY_SIMILARITY
+                case 0xE4: {  // GALAXY_SIMILARITY (compat alias under reasoning-opcode regime)
                     float entry_index_scalar = 0.0f;
                     if (!pop_scalar(stack, stack_size, entry_index_scalar, error_code)) break;
                     int entry_index = rounded_index(entry_index_scalar);
@@ -1463,7 +1647,7 @@ extern "C" __global__ void modular_rpn_geometric_kernel(
                     push(stack, stack_size, make_scalar(similarity), error_code);
                     break;
                 }
-                case 0xE2: {  // GALAXY_SCAN
+                case 0xEF: {  // GALAXY_SCAN (compat alias under reasoning-opcode regime)
                     float requested_k_scalar = 0.0f;
                     if (!pop_scalar(stack, stack_size, requested_k_scalar, error_code)) break;
                     if (g_galaxy_entries_ptr == 0ULL || g_query_embedding_ptr == 0ULL) {

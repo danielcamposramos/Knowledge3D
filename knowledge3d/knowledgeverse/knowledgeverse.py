@@ -9144,6 +9144,152 @@ class Knowledgeverse:
                     return resolved
         return ""
 
+    @staticmethod
+    def _runtime_copy_grid(grid: Any) -> list[list[int]] | None:
+        if not isinstance(grid, list):
+            return None
+        copied: list[list[int]] = []
+        for row in grid:
+            if not isinstance(row, list):
+                return None
+            try:
+                copied.append([int(value) for value in row])
+            except Exception:
+                return None
+        return copied
+
+    @staticmethod
+    def _runtime_infer_arc_transform_chain(rpn_text: str) -> list[str]:
+        text = str(rpn_text or "").upper()
+        if not text:
+            return []
+        if "TPACK TRANSPOSE" in text and "TPACK FLIP_H" in text:
+            return ["rotate_90"]
+        if "TPACK ROT_180" in text:
+            return ["rotate_180"]
+        if "TPACK FLIP_V" in text:
+            return ["mirror_v"]
+        if "TPACK FLIP_H" in text:
+            return ["mirror_h"]
+        return []
+
+    def _runtime_materialize_game2d_output_grid(
+        self,
+        *,
+        task: dict[str, Any],
+        stars: list[dict[str, Any]],
+    ) -> list[list[int]] | None:
+        input_grid = self._runtime_copy_grid(task.get("input_grid"))
+        if input_grid is None:
+            return None
+        def _try_candidates(candidate_stars: list[dict[str, Any]]) -> list[list[int]] | None:
+            for star in candidate_stars:
+                if not isinstance(star, dict):
+                    continue
+                metadata = star.get("metadata") if isinstance(star.get("metadata"), dict) else {}
+                curriculum_metadata = (
+                    metadata.get("curriculum_metadata")
+                    if isinstance(metadata, dict) and isinstance(metadata.get("curriculum_metadata"), dict)
+                    else {}
+                )
+                meaning_star = (
+                    metadata.get("meaning_star")
+                    if isinstance(metadata, dict) and isinstance(metadata.get("meaning_star"), dict)
+                    else {}
+                )
+
+                primitive_plan: list[dict[str, Any]] = []
+                for candidate in (
+                    star.get("arc_primitive_plan"),
+                    metadata.get("arc_primitive_plan") if isinstance(metadata, dict) else None,
+                    curriculum_metadata.get("arc_primitive_plan") if isinstance(curriculum_metadata, dict) else None,
+                ):
+                    if isinstance(candidate, list):
+                        primitive_plan = [dict(step) for step in candidate if isinstance(step, dict)]
+                        if primitive_plan:
+                            break
+                if primitive_plan:
+                    try:
+                        output_grid = self._execute_arc_primitive_plan_gpu(
+                            input_grid=input_grid,
+                            primitive_plan=primitive_plan,
+                        )
+                    except Exception:
+                        output_grid = None
+                    copied = self._runtime_copy_grid(output_grid)
+                    if copied is not None:
+                        return copied
+
+                transform_chain: list[str] = []
+                for candidate in (
+                    star.get("arc_transform_chain"),
+                    metadata.get("arc_transform_chain") if isinstance(metadata, dict) else None,
+                    curriculum_metadata.get("arc_transform_chain") if isinstance(curriculum_metadata, dict) else None,
+                ):
+                    if isinstance(candidate, list):
+                        transform_chain = [str(step).strip() for step in candidate if str(step).strip()]
+                        if transform_chain:
+                            break
+
+                if not transform_chain:
+                    for sketch in (
+                        curriculum_metadata.get("rpn_sketch") if isinstance(curriculum_metadata, dict) else None,
+                        metadata.get("rpn_sketch") if isinstance(metadata, dict) else None,
+                        meaning_star.get("meaning_rpn") if isinstance(meaning_star, dict) else None,
+                        metadata.get("meaning_rpn") if isinstance(metadata, dict) else None,
+                        star.get("meaning_rpn"),
+                        star.get("rpn_program"),
+                    ):
+                        transform_chain = self._runtime_infer_arc_transform_chain(str(sketch or ""))
+                        if transform_chain:
+                            break
+
+                if not transform_chain:
+                    continue
+
+                try:
+                    output_grid = self._execute_arc_transform_gpu(
+                        input_grid=input_grid,
+                        transform_chain=transform_chain,
+                        color_mapping={},
+                    )
+                except Exception:
+                    output_grid = None
+                copied = self._runtime_copy_grid(output_grid)
+                if copied is not None:
+                    return copied
+            return None
+
+        copied = _try_candidates([star for star in stars if isinstance(star, dict)])
+        if copied is not None:
+            return copied
+
+        query_text = str(task.get("query") or task.get("prompt") or "").strip()
+        if query_text:
+            try:
+                records = self.galaxy_manager.query(
+                    query_text=query_text,
+                    specialist="visual",
+                    top_k=12,
+                    galaxies=self._discover_live_galaxy_names(),
+                )
+            except Exception:
+                records = []
+            seen_ids = {str(star.get("id") or "").strip() for star in stars if isinstance(star, dict)}
+            recalled: list[dict[str, Any]] = []
+            for record in list(records or []):
+                entry = record.get("entry") if isinstance(record.get("entry"), dict) else {}
+                entry_id = str(entry.get("id") or "").strip()
+                if not entry or (entry_id and entry_id in seen_ids):
+                    continue
+                recalled.append(dict(entry))
+                if entry_id:
+                    seen_ids.add(entry_id)
+            copied = _try_candidates(recalled)
+            if copied is not None:
+                return copied
+        return None
+
     def materialize_runtime_result(
         self,
         *,
@@ -9170,6 +9316,11 @@ class Knowledgeverse:
             if isinstance(direct_grid, list):
                 output_grid = direct_grid
                 break
+        if route_family == "GAME_2D" and output_grid is None:
+            output_grid = self._runtime_materialize_game2d_output_grid(
+                task=task,
+                stars=stars,
+            )
 
         for star in stars:
             metadata = star.get("metadata") if isinstance(star.get("metadata"), dict) else {}

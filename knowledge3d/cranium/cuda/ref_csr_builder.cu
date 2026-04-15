@@ -2,16 +2,6 @@
 
 #include "device_functions.cuh"
 
-#define STAR_RECORD_BYTES                  256
-#define STAR_ROUTER_REF_COUNT_OFFSET       184
-#define STAR_ROUTER_REFS_OFFSET            188
-#define STAR_EXECUTOR_REF_COUNT_OFFSET     196
-#define STAR_EXECUTOR_REFS_OFFSET          200
-#define STAR_VALIDATOR_REF_COUNT_OFFSET    208
-#define STAR_VALIDATOR_REFS_OFFSET         212
-#define STAR_ANTI_PATTERN_REF_COUNT_OFFSET 220
-#define STAR_ANTI_PATTERN_REFS_OFFSET      224
-
 #define STAR_NULL_REF 0xFFFFFFFFu
 #define ROLE_REF_LIMIT 2u
 #define REF_TUPLE_BYTES 16
@@ -96,7 +86,7 @@ extern "C" __global__ void ref_scatter_refs(
     const unsigned int slot = tuple_u32(src, 12);
     if (star_index >= star_count) return;
 
-    unsigned char* star_dst = galaxy_table + (star_index * STAR_RECORD_BYTES);
+    unsigned char* star_dst = galaxy_table + (star_index * GALAXY_STAR_RECORD_BYTES);
     unsigned int dst_offset = 0u;
     unsigned int inline_count_offset = 0u;
     unsigned int inline_refs_offset = 0u;
@@ -104,23 +94,23 @@ extern "C" __global__ void ref_scatter_refs(
     switch (role_type) {
         case 0u:
             dst_offset = router_offsets[star_index] + slot;
-            inline_count_offset = STAR_ROUTER_REF_COUNT_OFFSET;
-            inline_refs_offset = STAR_ROUTER_REFS_OFFSET;
+            inline_count_offset = GALAXY_STAR_ROUTER_REF_COUNT_OFFSET;
+            inline_refs_offset = GALAXY_STAR_ROUTER_REFS_OFFSET;
             break;
         case 1u:
             dst_offset = executor_offsets[star_index] + slot;
-            inline_count_offset = STAR_EXECUTOR_REF_COUNT_OFFSET;
-            inline_refs_offset = STAR_EXECUTOR_REFS_OFFSET;
+            inline_count_offset = GALAXY_STAR_EXECUTOR_REF_COUNT_OFFSET;
+            inline_refs_offset = GALAXY_STAR_EXECUTOR_REFS_OFFSET;
             break;
         case 2u:
             dst_offset = validator_offsets[star_index] + slot;
-            inline_count_offset = STAR_VALIDATOR_REF_COUNT_OFFSET;
-            inline_refs_offset = STAR_VALIDATOR_REFS_OFFSET;
+            inline_count_offset = GALAXY_STAR_VALIDATOR_REF_COUNT_OFFSET;
+            inline_refs_offset = GALAXY_STAR_VALIDATOR_REFS_OFFSET;
             break;
         case 3u:
             dst_offset = anti_pattern_offsets[star_index] + slot;
-            inline_count_offset = STAR_ANTI_PATTERN_REF_COUNT_OFFSET;
-            inline_refs_offset = STAR_ANTI_PATTERN_REFS_OFFSET;
+            inline_count_offset = GALAXY_STAR_ANTI_PATTERN_REF_COUNT_OFFSET;
+            inline_refs_offset = GALAXY_STAR_ANTI_PATTERN_REFS_OFFSET;
             break;
         default:
             return;

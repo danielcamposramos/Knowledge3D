@@ -43,7 +43,7 @@
 	@%p3 bra 	$L__BB0_13;
 
 	cvta.to.global.u64 	%rd16, %rd12;
-	mul.lo.s32 	%r12, %r1, 400;
+	mul.lo.s32 	%r12, %r1, 408;
 	cvt.u64.u32 	%rd17, %r12;
 	add.s64 	%rd18, %rd16, %rd17;
 	ld.global.nc.u64 	%rd2, [%rd18+304];

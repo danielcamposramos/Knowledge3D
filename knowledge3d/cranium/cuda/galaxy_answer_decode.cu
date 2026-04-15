@@ -1,14 +1,8 @@
 #include <cuda_runtime.h>
 #include <stdint.h>
 
-#define K3D_STAR_RECORD_BYTES 400u
-#define K3D_STAR_EMBEDDING_OFFSET 0u
-#define K3D_STAR_GALAXY_ID_OFFSET 256u
-#define K3D_STAR_SELECTION_ROLE_OFFSET 264u
-#define K3D_STAR_FLAGS_OFFSET 272u
-#define K3D_STAR_ANSWER_ELIGIBLE_OFFSET 276u
-#define K3D_STAR_STAR_HASH_OFFSET 304u
-#define K3D_STAR_FLAG_ACTIVE 0x01u
+#include "device_functions.cuh"
+
 #define K3D_GALAXY_EMBEDDING_DIMS 64u
 #define K3D_INVALID_STAR_INDEX 0xFFFFFFFFu
 
@@ -44,22 +38,22 @@ extern "C" __global__ void galaxy_answer_decode_top1(
 
     if (galaxy_table != nullptr && y_new != nullptr && y_norm > 1.0e-8f && dim_count > 0u) {
         for (unsigned int star_index = tid; star_index < star_count; star_index += blockDim.x) {
-            const unsigned int base = star_index * K3D_STAR_RECORD_BYTES;
+            const unsigned int base = star_index * GALAXY_STAR_RECORD_BYTES;
             const unsigned int flags = *reinterpret_cast<const unsigned int*>(
-                galaxy_table + base + K3D_STAR_FLAGS_OFFSET
+                galaxy_table + base + GALAXY_STAR_FLAGS_OFFSET
             );
-            if ((flags & K3D_STAR_FLAG_ACTIVE) == 0u) {
+            if ((flags & GALAXY_STAR_FLAG_ACTIVE) == 0u) {
                 continue;
             }
             const unsigned int answer_eligible = *reinterpret_cast<const unsigned int*>(
-                galaxy_table + base + K3D_STAR_ANSWER_ELIGIBLE_OFFSET
+                galaxy_table + base + GALAXY_STAR_ANSWER_ELIGIBLE_OFFSET
             );
             if (require_answer_eligible != 0u && answer_eligible == 0u) {
                 continue;
             }
 
             const float* embedding = reinterpret_cast<const float*>(
-                galaxy_table + base + K3D_STAR_EMBEDDING_OFFSET
+                galaxy_table + base + GALAXY_STAR_EMBEDDING_OFFSET
             );
             float dot = 0.0f;
             float star_norm_sq = 0.0f;
@@ -110,15 +104,15 @@ extern "C" __global__ void galaxy_answer_decode_top1(
             top_star_hash[0] = 0ull;
             return;
         }
-        const unsigned int base = winner * K3D_STAR_RECORD_BYTES;
+        const unsigned int base = winner * GALAXY_STAR_RECORD_BYTES;
         top_galaxy_id[0] = *reinterpret_cast<const unsigned int*>(
-            galaxy_table + base + K3D_STAR_GALAXY_ID_OFFSET
+            galaxy_table + base + GALAXY_STAR_GALAXY_ID_OFFSET
         );
         top_role_id[0] = *reinterpret_cast<const unsigned int*>(
-            galaxy_table + base + K3D_STAR_SELECTION_ROLE_OFFSET
+            galaxy_table + base + GALAXY_STAR_SELECTION_ROLE_OFFSET
         );
         top_star_hash[0] = *reinterpret_cast<const unsigned long long*>(
-            galaxy_table + base + K3D_STAR_STAR_HASH_OFFSET
+            galaxy_table + base + GALAXY_STAR_HASH_OFFSET
         );
     }
 }

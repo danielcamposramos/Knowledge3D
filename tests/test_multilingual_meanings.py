@@ -52,7 +52,7 @@ def test_synset_to_star_english_primary() -> None:
     assert star.star_id == "synset_00001740_a"
     assert "ABLE" in star.meaning_rpn
     assert "en" in star.surface_forms
-    assert star.surface_forms["en"].word_ref == "en_able"
+    assert star.surface_forms["en"].word_ref == "word_en_able"
 
 
 @pytest.mark.skipif(not HAS_OMW, reason="OMW data not available")

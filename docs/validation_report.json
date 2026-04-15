@@ -1,0 +1,58 @@
+{
+  "issues": {
+    "kernel_issues": [], 
+    "mapping_issues": [
+      "237 orphaned opcodes found (in manifest but not referenced by kernels)", 
+      "Sample orphaned opcodes: OP_SUSPECT (0x00A2), OP_FLOOR (0x002B), OP_CASE_RETAIN_HINT (0x0103), OP_GRADIENT_CONIC (0x00F5), OP_LAYER_POP (0x00FE)", 
+      "94 orphaned kernels found (exist but lack opcode bindings)", 
+      "Sample orphaned kernels: knowledge3d/cranium/kernels/gre_defeasible_resolver.ptx, knowledge3d/cranium/kernels/gre_world_model.cu, knowledge3d/cranium/kernels/galaxy_resonance_engine.ptx, knowledge3d/cranium/kernels/trit_inspector.ptx, knowledge3d/cranium/kernels/zero_copy_memory_manager.cu"
+    ], 
+    "opcode_issues": [
+      "Duplicate opcode value 0x0080: OP_NURBS_EVAL, OP_AND", 
+      "Duplicate opcode value 0x0081: OP_MARCHING_CUBES, OP_OR", 
+      "Duplicate opcode value 0x0082: OP_XOR, OP_LSYSTEM_GENERATE", 
+      "Duplicate opcode value 0x0083: OP_NOT, OP_PARAMETRIC_SURFACE", 
+      "Duplicate opcode value 0x0087: OP_CROSS_MODAL_LINK, OP_CSG_SUBTRACT", 
+      "Duplicate opcode value 0x0088: OP_CSG_INTERSECT, OP_PROCEDURAL_TEXTURE", 
+      "Duplicate opcode value 0x00A1: OP_EXPLAIN, OP_VECTOR_RELU", 
+      "Duplicate opcode value 0x00A3: OP_VECTOR_SIGMOID, OP_ABDUCE_HALT", 
+      "Duplicate opcode value 0x00A4: OP_MATMUL_SMALL, OP_SCUNION", 
+      "Duplicate opcode value 0x00A5: OP_ICHECK, OP_DOT_BATCH", 
+      "Duplicate opcode value 0x00A6: OP_ABDRES, OP_TRACE_TENSOR", 
+      "Duplicate opcode value 0x00A7: OP_ABDNEG, OP_MATRIX_DET", 
+      "Duplicate opcode value 0x00B0: OP_BRANCH, OP_EBELIEF", 
+      "Duplicate opcode value 0x00B1: OP_LOOP, OP_BIDUCE", 
+      "Duplicate opcode value 0x00B2: OP_NEXT, OP_FRAME", 
+      "Duplicate opcode value 0x00B3: OP_EULER_COMPLETE, OP_STORE", 
+      "Duplicate opcode value 0x00B4: OP_DL_SATURATE, OP_RECALL", 
+      "Duplicate opcode value 0x00B5: OP_SYMBOLIC_DIFF, OP_BLOCKING_CHECK", 
+      "Duplicate opcode value 0x00B6: OP_GRADIENT, OP_CTX_SWITCH", 
+      "Duplicate opcode value 0x00B7: OP_ALPCHAIN, OP_SYMBOLIC_INTEGRATE", 
+      "Duplicate opcode value 0x00C1: OP_TRESOLVE, OP_VEC_NORMALIZE", 
+      "Duplicate opcode value 0x00C2: OP_TORDER, OP_VEC_ARGMAX", 
+      "Duplicate opcode value 0x00C3: OP_VEC_BLEND, OP_TSUBSUME", 
+      "Duplicate opcode value 0x00C4: OP_COSINE_SIM_BATCH, OP_TSUPERPOS", 
+      "Duplicate opcode value 0x00C5: OP_CLUSTER_ASSIGN, OP_TREWRITE", 
+      "Duplicate opcode value 0x00D0: OP_CHOLESKY, OP_TSPLIT", 
+      "Duplicate opcode value 0x00D1: OP_LU_DECOMP, OP_TCLOSE", 
+      "Duplicate opcode value 0x00D2: OP_QUANTUM_SUPERPOSE, OP_TEXPAND", 
+      "Duplicate opcode value 0x00D3: OP_TBCP, OP_QUANTUM_MEASURE", 
+      "Duplicate opcode value 0x00D4: OP_TLEARNT, OP_QUANTUM_ENTANGLE", 
+      "Duplicate opcode value 0x00DB: OP_NEG, OP_NEGATE", 
+      "Duplicate opcode value 0x00F0: OP_HALT_SET, OP_TEMPORAL_COHERENCE", 
+      "Duplicate opcode value 0x00F1: OP_TEMPORAL_MASK, OP_HALT_SYNC"
+    ], 
+    "sovereignty_issues": []
+  }, 
+  "summary": {
+    "kernel_issues": 0, 
+    "mapping_issues": 4, 
+    "opcode_issues": 33, 
+    "sovereignty_issues": 0, 
+    "status": "FAIL", 
+    "total_issues": 37, 
+    "total_kernels": 99, 
+    "total_opcodes": 307
+  }, 
+  "timestamp": "2026-04-13T18:13:21.820783"
+}

@@ -208,6 +208,19 @@ _GRAMMAR_SPECS = [
     ("grammar_trailing_question_mark", "Trailing Question Mark", "{expression}?", "EXPR STRIP_QUESTION MARK_QUERY"),
 ]
 
+_KBO_PRECEDENCE_RANKS = {
+    "f": 240,
+    "g": 224,
+    "h": 208,
+    "x": 176,
+    "y": 160,
+    "z": 144,
+    "a": 96,
+    "b": 80,
+    "c": 64,
+    "d": 48,
+}
+
 
 def _pad_program_entry(bytecode: bytes, opcode_count: int) -> bytes:
     header = len(bytecode).to_bytes(2, "little") + int(opcode_count).to_bytes(2, "little")
@@ -498,7 +511,8 @@ class StarCrafter:
         for entry_id, name, word, symbol, program_alias, extra_terms in _OPERATOR_SPECS:
             program_id = program_by_alias[program_alias]
             word_id = f"word_operator_{word.replace(' ', '_')}_en"
-            symbol_id = f"char_operator_{symbol.encode('unicode_escape').decode('ascii').replace('\\\\', '_')}"
+            escaped_symbol = symbol.encode("unicode_escape").decode("ascii").replace("\\", "_")
+            symbol_id = f"char_operator_{escaped_symbol}"
             meaning_rpn = f"{name.upper()} BINARY_OPERATOR {symbol}"
             star = self._meaning_star(
                 meaning_class="action",
@@ -638,11 +652,98 @@ class StarCrafter:
             for target in concept_targets:
                 self._link(rule_id, target, "grammar_refs", "taxonomy_refs")
 
+    def craft_swarm_perf_calibration_star(self) -> None:
+        star = self._meaning_star(
+            meaning_class="meta",
+            meaning_rpn="SWARM PERF CALIBRATION N_HINT SAMPLE_COUNT PEAK_UTILITY",
+            domain="Meta/Swarm/Performance",
+            taxonomy_refs=["concept_binary_operation"],
+        )
+        self._register(
+            _CraftedEntry(
+                entry_id="swarm_perf_calibration",
+                galaxy="Meta",
+                name="Swarm Perf Calibration",
+                category="meaning_swarm_perf_calibration",
+                star_type=STAR_TYPE_GRAMMAR,
+                selection_role=ROLE_UNKNOWN,
+                answer_eligible=False,
+                layer_id=4,
+                route_family="META",
+                route_policy={"requires_validator": False, "branch_topk": 0},
+                meaning_star=star,
+                metadata={
+                    "description": "Sleep-time sovereign calibration surface for adaptive N-chain worker selection.",
+                    "aliases": ["swarm perf calibration", "adaptive n calibration", "lane perf calibration"],
+                    "keywords": ["swarm", "performance", "calibration", "adaptive", "n-chain", "sleep"],
+                    "calibration_schema": {
+                        "n_hint": "u32",
+                        "sample_count_total": "u32",
+                        "last_tick_epoch": "u32",
+                        "utility_peak_q20": "u32",
+                    },
+                },
+                extra_top_level={
+                    "program_flags": 0x00,
+                    "program_length": 0,
+                    "program_opcode_count": 0,
+                },
+            )
+        )
+
+    def craft_reasoning_kbo_precedence_star(self) -> None:
+        star = self._meaning_star(
+            meaning_class="meta",
+            meaning_rpn="KBO PRECEDENCE F G H X Y Z A B C D",
+            domain="Meta/Reasoning/Ordering",
+            taxonomy_refs=["concept_binary_operation"],
+        )
+        self._register(
+            _CraftedEntry(
+                entry_id="reasoning_kbo_precedence",
+                galaxy="Meta",
+                name="Reasoning KBO Precedence",
+                category="meaning_reasoning_kbo_precedence",
+                star_type=STAR_TYPE_GRAMMAR,
+                selection_role=ROLE_UNKNOWN,
+                answer_eligible=False,
+                layer_id=4,
+                route_family="META",
+                route_policy={"requires_validator": False, "branch_topk": 0},
+                meaning_star=star,
+                metadata={
+                    "description": "Canonical precedence source for bounded Batch 3 KBO ordering and ordered rewriting.",
+                    "aliases": ["kbo precedence", "reasoning precedence", "ordered rewrite precedence"],
+                    "keywords": ["reasoning", "kbo", "precedence", "rewrite", "superposition", "ordering"],
+                    "precedence_ranks": dict(_KBO_PRECEDENCE_RANKS),
+                    "symbol_ids": {
+                        "f": 1,
+                        "g": 2,
+                        "h": 3,
+                        "x": 4,
+                        "y": 5,
+                        "z": 6,
+                        "a": 7,
+                        "b": 8,
+                        "c": 9,
+                        "d": 10,
+                    },
+                },
+                extra_top_level={
+                    "program_flags": 0x00,
+                    "program_length": 0,
+                    "program_opcode_count": 0,
+                },
+            )
+        )
+
     def craft_all(self) -> list[dict[str, Any]]:
         self.craft_digit_stars()
         self.craft_rpn_program_stars()
         self.craft_operator_stars()
         self.craft_grammar_rule_stars()
+        self.craft_swarm_perf_calibration_star()
+        self.craft_reasoning_kbo_precedence_star()
         return [self._entries[key].to_row() for key in sorted(self._entries)]
 
 

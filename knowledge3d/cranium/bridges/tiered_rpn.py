@@ -540,7 +540,7 @@ class TieredRPNEngine:
         """Legacy tier heuristic for the non-CAS/SAS opcode surface."""
 
         ternary_ops = {0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76}
-        tier2_forced_ops = {0xE0, 0xE1, 0xE2}
+        tier2_forced_ops = {0xE3, 0xE4, 0xEF, 0x100, 0x101, 0x102, 0x103}
         has_tier3 = any(
             (op not in ternary_ops)
             and (op not in tier2_forced_ops)

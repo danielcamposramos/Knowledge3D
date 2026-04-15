@@ -121,7 +121,8 @@ def cpu_reference_dispatch(
         option_embeddings = [_pad_embedding(option) for option in list(task.get("option_embeddings") or [])[:7]]
         task_type = VRAMTaskBuffer.task_type_id(str(task.get("type", "")))
         task_family = VRAMTaskBuffer.task_type_name(task_type)
-        enable_game2d_control = task_family == "GAME_2D" and _is_live_game2d_packet(query)
+        is_game2d_grid_task = _is_game2d_grid_packet(task, len(option_embeddings))
+        enable_game2d_control = task_family == "GAME_2D" and not is_game2d_grid_task and _is_live_game2d_packet(query)
         thinking_budget = max(5, min(20, int(task.get("thinking_budget", 10))))
         ternary_signal = max(-1, min(1, int(task.get("ternary_signal", 0))))
         if state is not None and state["frame_count"] > 0:
@@ -269,6 +270,19 @@ def _is_live_game2d_packet(query: list[float]) -> bool:
     reserved_signal = any(abs(float(query[index])) > 1.0e-6 for index in (10, 11, 12, 13, 28, 29, 31))
     high_lane_signal = any(abs(float(value)) > 1.0e-6 for value in query[32:])
     return bool(reserved_signal and high_lane_signal)
+
+
+def _is_game2d_grid_packet(task: dict[str, Any], option_count: int) -> bool:
+    expected_result_kind = str(task.get("expected_result_kind") or "").strip().lower()
+    return bool(
+        VRAMTaskBuffer.normalize_task_type(task.get("surface_kind") or task.get("type") or "") == "GAME_2D"
+        and option_count <= 0
+        and (
+            expected_result_kind == "grid"
+            or task.get("expected_output") is not None
+            or task.get("goal_grid") is not None
+        )
+    )
 
 
 def _coerce_brain_state(brain_state: dict[str, Any] | None) -> dict[str, Any] | None:

@@ -6,6 +6,8 @@ import json
 import socket
 from typing import Any
 
+from knowledge3d.bridge.headless_tablet import TabletSessionTape
+
 
 class SovereigntyViolation(RuntimeError):
     """Raised when a solved command reports zero GPU calls."""
@@ -33,6 +35,42 @@ class DaemonClient:
     def send_command(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Compatibility alias for sender/test call sites."""
         return self.send(payload)
+
+    def tablet_session_open(
+        self,
+        *,
+        session_id: str,
+        tick_hz: float = 50.0,
+        delta_time: float = 0.02,
+    ) -> dict[str, Any]:
+        return self.send(
+            {
+                "command": "TABLET_SESSION_OPEN",
+                "session_id": str(session_id),
+                "tick_hz": float(tick_hz),
+                "delta_time": float(delta_time),
+            }
+        )
+
+    def tablet_session_run_tape(
+        self,
+        tape: TabletSessionTape,
+        *,
+        frame_timeout_s: float = 30.0,
+    ) -> dict[str, Any]:
+        return self.send(
+            {
+                "command": "TABLET_SESSION_RUN_TAPE",
+                "tape": tape.to_payload(),
+                "frame_timeout_s": float(frame_timeout_s),
+            }
+        )
+
+    def tablet_session_status(self) -> dict[str, Any]:
+        return self.send({"command": "TABLET_SESSION_STATUS"})
+
+    def tablet_session_close(self) -> dict[str, Any]:
+        return self.send({"command": "TABLET_SESSION_CLOSE"})
 
     def assert_gpu_for_solved_command(
         self,

@@ -14,7 +14,11 @@ from typing import Any, Callable
 from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.tablet.wine.question_wine import QUESTION_ROUTE_GALAXIES, mmlu_question_envelope
+from knowledge3d.tablet.wine.question_wine import (
+    QUESTION_ROUTE_GALAXIES,
+    build_question_session_tape,
+    mmlu_question_envelope,
+)
 
 
 class MMLUBenchmark:
@@ -213,10 +217,28 @@ class MMLUBenchmark:
         total = len(self.questions)
         step = max(1, int(progress_every or 100))
         start = time.monotonic()
-        for index, question in enumerate(self.questions[resume_index:], start=resume_index + 1):
-            row_start = time.monotonic()
-            result = self._solve_question(question=question, use_enriched=use_enriched)
-            result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
+        tablet_rows: list[dict[str, Any]] = []
+        if self.tablet_boundary is not None:
+            tape = build_question_session_tape(
+                session_id=f"mmlu_{int(time.time() * 1000)}",
+                suite_name="mmlu",
+                rows=self.questions[resume_index:],
+                use_enriched=use_enriched,
+            )
+            tablet_rows = list(self.tablet_boundary.run_tape_session(tape)["results"])
+        for offset, question in enumerate(self.questions[resume_index:]):
+            index = resume_index + offset + 1
+            if self.tablet_boundary is not None:
+                result = self._question_result_from_tablet(question=question, tablet_result=tablet_rows[offset])
+                task_result = dict(result.get("task_result") or {})
+                result["elapsed_s"] = round(
+                    max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                    3,
+                )
+            else:
+                row_start = time.monotonic()
+                result = self._solve_question(question=question, use_enriched=use_enriched)
+                result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
             result["elapsed_ms"] = round(float(result["elapsed_s"]) * 1000.0, 3)
             self.results.append(result)
             if result["correct"]:
@@ -329,6 +351,14 @@ class MMLUBenchmark:
             expected_answer=str(question["correct_answer"]),
         )
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        return self._question_result_from_tablet(question=question, tablet_result=tablet_result)
+
+    def _question_result_from_tablet(
+        self,
+        *,
+        question: dict[str, Any],
+        tablet_result: dict[str, Any],
+    ) -> dict[str, Any]:
         emitted = dict(tablet_result["emitted"])
         route = emitted.get("route", {})
         predicted = str(emitted.get("answer_choice") or emitted.get("answer_text") or "").strip()

@@ -298,8 +298,8 @@ $L__BB2_5:
 	cvta.to.global.u64 	%rd30, %rd15;
 	shl.b64 	%rd31, %rd3, 2;
 	add.s64 	%rd47, %rd30, %rd31;
-	mov.u64 	%rd49, 200;
-	mov.u64 	%rd48, 196;
+	mov.u64 	%rd49, 328;
+	mov.u64 	%rd48, 324;
 	bra.uni 	$L__BB2_11;
 
 $L__BB2_6:
@@ -313,16 +313,16 @@ $L__BB2_6:
 	cvta.to.global.u64 	%rd22, %rd17;
 	mul.wide.u32 	%rd23, %r12, 4;
 	add.s64 	%rd47, %rd22, %rd23;
-	mov.u64 	%rd49, 224;
-	mov.u64 	%rd48, 220;
+	mov.u64 	%rd49, 352;
+	mov.u64 	%rd48, 348;
 	bra.uni 	$L__BB2_11;
 
 $L__BB2_10:
 	cvta.to.global.u64 	%rd34, %rd14;
 	shl.b64 	%rd35, %rd3, 2;
 	add.s64 	%rd47, %rd34, %rd35;
-	mov.u64 	%rd49, 188;
-	mov.u64 	%rd48, 184;
+	mov.u64 	%rd49, 316;
+	mov.u64 	%rd48, 312;
 	bra.uni 	$L__BB2_11;
 
 $L__BB2_9:
@@ -330,8 +330,8 @@ $L__BB2_9:
 	cvta.to.global.u64 	%rd26, %rd16;
 	mul.wide.u32 	%rd27, %r13, 4;
 	add.s64 	%rd47, %rd26, %rd27;
-	mov.u64 	%rd49, 212;
-	mov.u64 	%rd48, 208;
+	mov.u64 	%rd49, 340;
+	mov.u64 	%rd48, 336;
 
 $L__BB2_11:
 	ld.global.nc.u32 	%r14, [%rd47];
@@ -345,7 +345,7 @@ $L__BB2_11:
 
 	cvta.to.global.u64 	%rd39, %rd11;
 	cvt.u32.u64 	%r16, %rd3;
-	shl.b32 	%r17, %r16, 8;
+	mul.lo.s32 	%r17, %r16, 408;
 	cvt.u64.u32 	%rd40, %r17;
 	shl.b32 	%r18, %r3, 2;
 	cvt.u64.u32 	%rd41, %r18;
@@ -353,7 +353,7 @@ $L__BB2_11:
 	add.s64 	%rd43, %rd42, %rd49;
 	add.s64 	%rd44, %rd39, %rd43;
 	st.global.u32 	[%rd44], %r2;
-	or.b64  	%rd45, %rd48, %rd40;
+	add.s64 	%rd45, %rd48, %rd40;
 	add.s64 	%rd46, %rd39, %rd45;
 	add.s32 	%r19, %r3, 1;
 	red.global.max.u32 	[%rd46], %r19;

@@ -117,6 +117,11 @@ def populate_math_symbols(*, galaxy_dir: Path = DEFAULT_GALAXY_DIR) -> dict[str,
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Populate Character galaxy with math symbols, digits, and operators.")
     parser.add_argument(
+        "--pinned",
+        action="store_true",
+        help="Compatibility flag for Batch 8 runbooks; current population surface is already pinned.",
+    )
+    parser.add_argument(
         "--galaxy-dir",
         type=Path,
         default=DEFAULT_GALAXY_DIR,

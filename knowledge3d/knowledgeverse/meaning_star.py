@@ -33,6 +33,14 @@ def _coerce_trit(value: int | float | None) -> int:
     return max(-1, min(1, resolved))
 
 
+def _coerce_u32(value: Any) -> int:
+    try:
+        resolved = int(value)
+    except Exception:
+        resolved = 0
+    return max(0, min(0xFFFFFFFF, resolved))
+
+
 def _coerce_refs(values: Any) -> list[str]:
     if not isinstance(values, list):
         return []
@@ -111,15 +119,20 @@ class MeaningCentricStar:
     reality_refs: list[str] = field(default_factory=list)
     grammar_refs: list[str] = field(default_factory=list)
     meta_refs: list[str] = field(default_factory=list)
+    char_refs: list[str] = field(default_factory=list)
+    untranslatable_languages: list[str] = field(default_factory=list)
     house_position: tuple[float, float, float] = (0.0, 0.0, 0.0)
     house_room: str = ""
     galaxy_ref: str = ""
     confidence: int = 0
     polarity: int = 0
+    context_id: int = 0
+    ethical_trit: int = 0
     embedding_64: EmbeddingVector | None = None
     embedding_128: EmbeddingVector | None = None
     embedding_512: EmbeddingVector | None = None
     embedding_2048: EmbeddingVector | None = None
+    lod_class: str = "lod_summary"
     component_refs: list[str] = field(default_factory=list)
     composite_of: list[str] = field(default_factory=list)
 
@@ -154,14 +167,19 @@ class MeaningCentricStar:
         self.reality_refs = _coerce_refs(self.reality_refs)
         self.grammar_refs = _coerce_refs(self.grammar_refs)
         self.meta_refs = _coerce_refs(self.meta_refs)
+        self.char_refs = _coerce_refs(self.char_refs)
+        self.untranslatable_languages = sorted(set(_coerce_refs(self.untranslatable_languages)))
         self.house_room = str(self.house_room).strip()
         self.galaxy_ref = str(self.galaxy_ref).strip()
+        self.lod_class = str(self.lod_class or "lod_summary").strip() or "lod_summary"
         raw_position = list(self.house_position) if isinstance(self.house_position, (list, tuple)) else [0.0, 0.0, 0.0]
         while len(raw_position) < 3:
             raw_position.append(0.0)
         self.house_position = tuple(float(raw_position[index]) for index in range(3))
         self.confidence = _coerce_trit(self.confidence)
         self.polarity = _coerce_trit(self.polarity)
+        self.context_id = _coerce_u32(self.context_id)
+        self.ethical_trit = _coerce_trit(self.ethical_trit)
         self.embedding_64 = _coerce_embedding(self.embedding_64, 64)
         self.embedding_128 = _coerce_embedding(self.embedding_128, 128)
         self.embedding_512 = _coerce_embedding(self.embedding_512, 512)
@@ -189,10 +207,15 @@ class MeaningCentricStar:
             "reality_refs": list(self.reality_refs),
             "grammar_refs": list(self.grammar_refs),
             "meta_refs": list(self.meta_refs),
+            "char_refs": list(self.char_refs),
+            "untranslatable_languages": list(self.untranslatable_languages),
             "house_position": [float(value) for value in self.house_position],
             "house_room": self.house_room,
+            "lod_class": self.lod_class,
             "confidence": int(self.confidence),
             "polarity": int(self.polarity),
+            "context_id": int(self.context_id),
+            "ethical_trit": int(self.ethical_trit),
             "embedding_64": list(self.embedding_64) if self.embedding_64 is not None else None,
             "embedding_128": list(self.embedding_128) if self.embedding_128 is not None else None,
             "embedding_512": list(self.embedding_512) if self.embedding_512 is not None else None,
@@ -227,11 +250,16 @@ class MeaningCentricStar:
             reality_refs=_coerce_refs(payload.get("reality_refs")),
             grammar_refs=_coerce_refs(payload.get("grammar_refs")),
             meta_refs=_coerce_refs(payload.get("meta_refs")),
+            char_refs=_coerce_refs(payload.get("char_refs")),
+            untranslatable_languages=_coerce_refs(payload.get("untranslatable_languages")),
             house_position=tuple(payload.get("house_position", (0.0, 0.0, 0.0))),
             house_room=str(payload.get("house_room", "")).strip(),
             galaxy_ref=str(payload.get("galaxy_ref", "")).strip(),
+            lod_class=str(payload.get("lod_class", "lod_summary")).strip() or "lod_summary",
             confidence=_coerce_trit(payload.get("confidence")),
             polarity=_coerce_trit(payload.get("polarity")),
+            context_id=_coerce_u32(payload.get("context_id")),
+            ethical_trit=_coerce_trit(payload.get("ethical_trit")),
             embedding_64=payload.get("embedding_64"),
             embedding_128=payload.get("embedding_128"),
             embedding_512=payload.get("embedding_512"),

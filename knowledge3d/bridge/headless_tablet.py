@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import re
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
@@ -39,6 +40,20 @@ SURFACE_KIND_CHAT = "CHAT"
 SURFACE_KIND_GENERAL = "GENERAL"
 SURFACE_KIND_GRAMMAR = "GRAMMAR"
 ROUTE_POLICY_ALL_LIVE_GALAXIES = "all_live_galaxies"
+TABLET_ALL_LIVE_GALAXIES = (
+    "Drawing",
+    "Reality",
+    "Grammar",
+    "Math",
+    "Tool",
+    "Number",
+    "Word",
+    "Character",
+    "Audio",
+    "3DObjects",
+    "Language",
+    "game_mechanics",
+)
 
 _TABLET_MUTATION_TYPES = {
     SURFACE_KIND_GAME_2D: 1,
@@ -68,6 +83,10 @@ class _MathOperands:
     right: int = 0
     count: int = 0
     operator_hint: int = 0
+
+
+def _decode_signed_i32_word(value: Any) -> int:
+    return int(np.array([int(value) & 0xFFFFFFFF], dtype=np.uint32).view(np.int32)[0])
 
 
 def _extract_math_operands(query: str) -> _MathOperands:
@@ -255,6 +274,44 @@ def _flatten_route_response(response: Mapping[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _canonicalize_live_runtime_response(response: Mapping[str, Any]) -> dict[str, Any]:
+    payload = dict(_as_dict(response))
+    if not payload:
+        return {}
+    task_result = _as_dict(payload.get("task_result"))
+    if not task_result:
+        task_result = {
+            key: value
+            for key, value in payload.items()
+            if key not in {"task_result"}
+        }
+    route_payload = _as_dict(task_result.get("route")) or _as_dict(payload.get("route"))
+    if route_payload:
+        task_result["route"] = route_payload
+        payload["route"] = route_payload
+    task_result.setdefault(
+        "gpu_execution",
+        bool(payload.get("gpu_execution"))
+        or bool(task_result.get("gpu_execution"))
+        or bool(task_result.get("answer_materialized")),
+    )
+    task_result.setdefault(
+        "runtime",
+        str(task_result.get("runtime") or payload.get("runtime") or "knowledgeverse_dispatch_session"),
+    )
+    task_result.setdefault(
+        "solver",
+        str(task_result.get("solver") or payload.get("solver") or "knowledgeverse_dispatch_session"),
+    )
+    task_result.setdefault(
+        "program_id",
+        str(task_result.get("program_id") or payload.get("program_id") or ""),
+    )
+    payload["task_result"] = task_result
+    payload.setdefault("status", str(task_result.get("status") or "ok"))
+    return _flatten_route_response(payload)
+
+
 def _normalise_text_answer(value: Any) -> str:
     if value is None:
         return ""
@@ -342,6 +399,95 @@ def _task_result_packet(
     }
 
 
+def _trace_recalled_star_ids(task_result: Mapping[str, Any] | None) -> list[str]:
+    payload = _as_dict(task_result)
+    trace_ids = [str(value).strip() for value in list(payload.get("trace_star_ids") or []) if str(value).strip()]
+    trace_roles = [str(value).strip().lower() for value in list(payload.get("trace_roles") or [])]
+    recalled: list[str] = []
+    for index, star_id in enumerate(trace_ids):
+        role = trace_roles[index] if index < len(trace_roles) else ""
+        if role in {"executor", "validator", "winner", "materializer"}:
+            recalled.append(star_id)
+    winner = str(payload.get("winner_star_id") or payload.get("winner_star") or "").strip()
+    if winner:
+        recalled.append(winner)
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for star_id in recalled:
+        if star_id and star_id not in seen:
+            seen.add(star_id)
+            ordered.append(star_id)
+    return ordered
+
+
+def _trace_halting_reason(task_result: Mapping[str, Any] | None, emitted: Mapping[str, Any] | None) -> str:
+    payload = _as_dict(task_result)
+    emitted_payload = _as_dict(emitted)
+    failure_code = str(
+        payload.get("failure_code")
+        or emitted_payload.get("failure_code")
+        or emitted_payload.get("failure_reason")
+        or ""
+    ).strip()
+    if "timeout" in failure_code.lower():
+        return "TIMEOUT"
+    if not bool(payload.get("answer_materialized") or emitted_payload.get("answer_materialized")):
+        return "EMPTY_RECALL"
+    return "CONVERGED"
+
+
+def _trace_raw_answer(task_result: Mapping[str, Any] | None) -> str:
+    payload = _as_dict(task_result)
+    for key in ("raw_answer", "response", "answer", "answer_text", "answer_choice"):
+        text = _normalise_text_answer(payload.get(key))
+        if text:
+            return text
+    numeric_answer = payload.get("numeric_answer")
+    if numeric_answer is not None:
+        return _normalise_text_answer(numeric_answer)
+    return ""
+
+
+def _trace_normalized_answer(emitted: Mapping[str, Any] | None) -> str:
+    payload = _as_dict(emitted)
+    for key in ("predicted_answer", "answer_choice", "answer_text", "predicted_action"):
+        text = _normalise_text_answer(payload.get(key))
+        if text:
+            return text
+    numeric_answer = payload.get("numeric_answer")
+    if numeric_answer is not None:
+        return _normalise_text_answer(numeric_answer)
+    return ""
+
+
+def _trace_specialist_lane(
+    envelope: "TabletEnvelope",
+    *,
+    route_payload: Mapping[str, Any] | None,
+    task_result: Mapping[str, Any] | None,
+) -> str:
+    payload = _as_dict(task_result)
+    route = _as_dict(route_payload)
+    for key in ("specialist_lane", "winner_role", "executor_role", "validator_role"):
+        text = _normalise_text_answer(payload.get(key))
+        if text:
+            return text
+    for key in ("specialist_lane", "specialist", "domain_hint"):
+        text = _normalise_text_answer(route.get(key))
+        if text:
+            return text
+    return str(envelope.specialist or "auto")
+
+
+def _trace_opcodes_fired(task_result: Mapping[str, Any] | None) -> list[str]:
+    payload = _as_dict(task_result)
+    explicit = payload.get("opcodes_fired")
+    if isinstance(explicit, list):
+        return [str(value).strip() for value in explicit if str(value).strip()]
+    program_id = _normalise_text_answer(payload.get("program_id"))
+    return [program_id] if program_id else []
+
+
 @dataclass(frozen=True)
 class TabletEnvelope:
     surface_kind: str
@@ -356,6 +502,42 @@ class TabletEnvelope:
     user_lang: str = "en"
     document_langs: tuple[str, ...] = ("en",)
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "surface_kind": str(self.surface_kind),
+            "task_id": str(self.task_id),
+            "query": str(self.query),
+            "specialist": str(self.specialist),
+            "task": dict(self.task),
+            "domain_hint": self.domain_hint,
+            "galaxies": list(self.galaxies),
+            "route_policy": str(self.route_policy),
+            "result_kind": self.result_kind,
+            "user_lang": str(self.user_lang),
+            "document_langs": list(self.document_langs),
+            "metadata": dict(self.metadata),
+        }
+
+    @staticmethod
+    def from_payload(payload: Mapping[str, Any]) -> "TabletEnvelope":
+        return TabletEnvelope(
+            surface_kind=str(payload.get("surface_kind") or ""),
+            task_id=str(payload.get("task_id") or ""),
+            query=str(payload.get("query") or ""),
+            specialist=str(payload.get("specialist") or ""),
+            task=dict(payload.get("task") or {}),
+            domain_hint=str(payload.get("domain_hint")).strip() if payload.get("domain_hint") is not None else None,
+            galaxies=tuple(str(name) for name in list(payload.get("galaxies") or []) if str(name).strip()),
+            route_policy=str(payload.get("route_policy") or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+            result_kind=str(payload.get("result_kind")).strip() if payload.get("result_kind") is not None else None,
+            user_lang=str(payload.get("user_lang") or "en"),
+            document_langs=tuple(
+                str(name) for name in list(payload.get("document_langs") or ["en"]) if str(name).strip()
+            )
+            or ("en",),
+            metadata=dict(payload.get("metadata") or {}),
+        )
 
     def to_route_payload(self, *, use_enriched: bool = True) -> dict[str, Any]:
         task_payload = dict(self.task)
@@ -415,6 +597,63 @@ class TabletEnvelope:
         return buf
 
 
+@dataclass(frozen=True)
+class TabletSessionFrame:
+    frame_id: str
+    envelope: TabletEnvelope
+    expected: Any = None
+    source_meta: dict[str, Any] = field(default_factory=dict)
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "frame_id": str(self.frame_id),
+            "envelope": self.envelope.to_payload(),
+            "expected": self.expected,
+            "source_meta": dict(self.source_meta),
+        }
+
+    @staticmethod
+    def from_payload(payload: Mapping[str, Any]) -> "TabletSessionFrame":
+        return TabletSessionFrame(
+            frame_id=str(payload.get("frame_id") or ""),
+            envelope=TabletEnvelope.from_payload(dict(payload.get("envelope") or {})),
+            expected=payload.get("expected"),
+            source_meta=dict(payload.get("source_meta") or {}),
+        )
+
+
+@dataclass(frozen=True)
+class TabletSessionTape:
+    session_id: str
+    suite_name: str
+    surface_kind: str
+    frames: tuple[TabletSessionFrame, ...]
+    use_enriched: bool = True
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "session_id": str(self.session_id),
+            "suite_name": str(self.suite_name),
+            "surface_kind": str(self.surface_kind),
+            "use_enriched": bool(self.use_enriched),
+            "frames": [frame.to_payload() for frame in self.frames],
+        }
+
+    @staticmethod
+    def from_payload(payload: Mapping[str, Any]) -> "TabletSessionTape":
+        return TabletSessionTape(
+            session_id=str(payload.get("session_id") or ""),
+            suite_name=str(payload.get("suite_name") or ""),
+            surface_kind=str(payload.get("surface_kind") or ""),
+            use_enriched=bool(payload.get("use_enriched", True)),
+            frames=tuple(
+                TabletSessionFrame.from_payload(frame)
+                for frame in list(payload.get("frames") or [])
+                if isinstance(frame, Mapping)
+            ),
+        )
+
+
 class TabletIngest:
     """Normalize external I/O into the generic tablet route contract."""
 
@@ -442,10 +681,12 @@ class TabletIngest:
             str(name)
             for name in (
                 galaxies
-                or ("Drawing", "game_mechanics", "Grammar", "Tool", "Reality")
+                or TABLET_ALL_LIVE_GALAXIES
             )
             if str(name).strip()
         )
+        normalized_result_kind = str(result_kind or "").strip().lower()
+        action_option_values = [str(option) for option in (action_options or []) if str(option).strip()]
         task_payload = {
             "type": "ARC_TASK",
             "surface_kind": SURFACE_KIND_GAME_2D,
@@ -457,9 +698,11 @@ class TabletIngest:
             "expected_output": expected_output,
             "training_examples": list(training_examples or []),
             "available_actions": list(available_actions or []),
-            "action_options": [str(option) for option in (action_options or []) if str(option).strip()],
+            "action_options": action_option_values,
         }
-        task_payload["options"] = list(task_payload["action_options"])
+        if normalized_result_kind:
+            task_payload["expected_result_kind"] = normalized_result_kind
+        task_payload["options"] = [] if normalized_result_kind == "grid" else list(action_option_values)
         for key, value in dict(task_context or {}).items():
             normalized_key = str(key).strip()
             if not normalized_key:
@@ -825,11 +1068,349 @@ class HeadlessTabletMPC:
         self._knowledgeverse = knowledgeverse
         self._bridge = bridge
         self._tick_seq = 0
+        self._live_session: dict[str, Any] | None = None
         self._handler = command_handler or self._build_local_daemon_handler(
             knowledgeverse=knowledgeverse,
             storage_root=storage_root,
         )
         self._resolve_sovereign_bridge()
+
+    @staticmethod
+    def _count_canonical_rows(lookup: Any, *, must: list[Any]) -> int:
+        from qdrant_client import models  # pylint: disable=import-outside-toplevel
+
+        query_filter = models.Filter(must=list(must))
+        for kwargs in (
+            {"count_filter": query_filter, "exact": True},
+            {"filter": query_filter, "exact": True},
+        ):
+            try:
+                response = lookup.client.count(
+                    collection_name=lookup.collection_name,
+                    **kwargs,
+                )
+                return int(getattr(response, "count", 0) or 0)
+            except TypeError:
+                continue
+        raise RuntimeError("canonical_count_api_unsupported")
+
+    def run_live_knowledge_preflight(self) -> dict[str, Any]:
+        kv = self._knowledgeverse
+        if kv is None:
+            raise RuntimeError("tablet_session_requires_knowledgeverse")
+
+        default_counts = dict(kv.ensure_default_galaxies_loaded())
+        default_names = [str(name) for name in tuple(getattr(kv, "DEFAULT_GALAXIES", ()))]
+        galaxies_loaded = bool(default_names) and all(name in default_counts for name in default_names)
+        galaxies_populated = sum(max(0, int(default_counts.get(name, 0) or 0)) for name in default_names) > 0
+
+        from knowledge3d.ingestion.canonical_lookup import CanonicalLookup  # pylint: disable=import-outside-toplevel
+        from qdrant_client import models  # pylint: disable=import-outside-toplevel
+        from scripts.ingest_phase7a1_seed_audit import run_audit  # pylint: disable=import-outside-toplevel
+
+        lookup = CanonicalLookup()
+        alias_audit = run_audit(lookup)
+        alias_ok = not bool(alias_audit.get("missing"))
+
+        cluster1_count = self._count_canonical_rows(
+            lookup,
+            must=[
+                models.FieldCondition(key="kind", match=models.MatchValue(value="meaning_star")),
+                models.FieldCondition(key="metadata.subkind", match=models.MatchValue(value="math_hs_cluster1")),
+            ],
+        )
+        cluster2_count = self._count_canonical_rows(
+            lookup,
+            must=[
+                models.FieldCondition(key="kind", match=models.MatchValue(value="meaning_star")),
+                models.FieldCondition(key="metadata.subkind", match=models.MatchValue(value="math_hs_cluster2")),
+            ],
+        )
+        cluster3_count = self._count_canonical_rows(
+            lookup,
+            must=[
+                models.FieldCondition(key="kind", match=models.MatchValue(value="meaning_star")),
+                models.FieldCondition(key="metadata.subkind", match=models.MatchValue(value="math_hs_cluster3")),
+            ],
+        )
+        reasoning_symlink_count = self._count_canonical_rows(
+            lookup,
+            must=[models.FieldCondition(key="kind", match=models.MatchValue(value="reasoning_taxonomy_symlink"))],
+        )
+
+        required_triplets = {
+            "char_u003e": lookup.star_id_exists("char_u003e"),
+            "math_symbol_greater_than_sign": lookup.star_id_exists("math_symbol_greater_than_sign"),
+            "concept_greater": lookup.star_id_exists("concept_greater"),
+            "concept_automated_reasoning": lookup.star_id_exists("concept_automated_reasoning"),
+        }
+        checks = {
+            "default_live_galaxies_loaded": bool(galaxies_loaded and galaxies_populated),
+            "canonical_form_layer_alias_audit_green": bool(alias_ok),
+            "math_cluster1_present": cluster1_count > 0,
+            "math_cluster2_present": cluster2_count > 0,
+            "math_cluster3_present": cluster3_count > 0,
+            "reasoning_taxonomy_present": reasoning_symlink_count > 0 and required_triplets["concept_automated_reasoning"],
+            "required_form_meaning_triplets": all(required_triplets[name] for name in ("char_u003e", "math_symbol_greater_than_sign", "concept_greater")),
+        }
+        failures = [name for name, ok in checks.items() if not ok]
+        return {
+            "status": "ok" if not failures else "error",
+            "checks": checks,
+            "failures": failures,
+            "default_galaxy_counts": default_counts,
+            "alias_audit": alias_audit,
+            "math_cluster_counts": {
+                "cluster1": int(cluster1_count),
+                "cluster2": int(cluster2_count),
+                "cluster3": int(cluster3_count),
+            },
+            "reasoning_taxonomy_symlink_count": int(reasoning_symlink_count),
+            "required_triplets": required_triplets,
+        }
+
+    def open_live_session(
+        self,
+        *,
+        session_id: str | None = None,
+        reset_runtime: bool = True,
+        tick_hz: float = 50.0,
+        delta_time: float = 0.02,
+        enforce_preflight: bool = True,
+    ) -> dict[str, Any]:
+        if self._live_session is not None:
+            raise RuntimeError("tablet_live_session_already_open")
+        backend = self._resolve_live_session_backend()
+        preflight = self.run_live_knowledge_preflight() if enforce_preflight else {"status": "skipped"}
+        if str(preflight.get("status", "")).lower() not in {"ok", "skipped"}:
+            raise RuntimeError(f"tablet_live_preflight_failed:{','.join(preflight.get('failures') or [])}")
+        self._live_session = {
+            "session_id": str(session_id or f"tablet_session_{int(time.time() * 1000)}"),
+            "backend": str(backend),
+            "tick_hz": float(tick_hz),
+            "delta_time": float(delta_time),
+            "opened_at": time.time(),
+            "preflight": preflight,
+        }
+        if backend == "bridge_query_session":
+            bridge = self._resolve_sovereign_bridge()
+            assert bridge is not None
+            session_status = bridge.open_query_session(
+                reset_runtime=bool(reset_runtime),
+                tick_hz=float(tick_hz),
+                delta_time=float(delta_time),
+            )
+            self._live_session["bridge"] = dict(session_status)
+        else:
+            self._live_session["bridge"] = {}
+        return dict(self._live_session)
+
+    def live_session_status(self) -> dict[str, Any]:
+        bridge_status = {}
+        if self._live_session is not None and str(self._live_session.get("backend") or "") == "bridge_query_session":
+            bridge = self._resolve_sovereign_bridge()
+            bridge_status = (
+                dict(bridge.query_session_status()) if bridge is not None and hasattr(bridge, "query_session_status") else {}
+            )
+        return {
+            "active": bool(self._live_session is not None),
+            "session": dict(self._live_session or {}),
+            "bridge": bridge_status,
+        }
+
+    def close_live_session(self) -> dict[str, Any]:
+        bridge_status = {}
+        if self._live_session is not None and str(self._live_session.get("backend") or "") == "bridge_query_session":
+            bridge = self._resolve_sovereign_bridge()
+            if bridge is not None and hasattr(bridge, "close_query_session"):
+                bridge_status = dict(bridge.close_query_session())
+        session = dict(self._live_session or {})
+        self._live_session = None
+        return {
+            "status": "ok",
+            "closed_session": session,
+            "bridge": bridge_status,
+        }
+
+    def _log_session_confirmation(
+        self,
+        *,
+        frame: TabletSessionFrame,
+        row: Mapping[str, Any],
+    ) -> None:
+        kv = self._knowledgeverse
+        if kv is None or not hasattr(kv, "log_event"):
+            return
+        emitted = dict(row.get("emitted") or {})
+        task_result = dict(emitted.get("task_result") or {})
+        predicted = (
+            emitted.get("predicted_answer")
+            or emitted.get("output_grid")
+            or emitted.get("answer_choice")
+            or emitted.get("answer_text")
+            or task_result.get("answer_text")
+            or task_result.get("numeric_answer")
+        )
+        route = dict(emitted.get("route") or {})
+        trace_record = self._build_trace_record(frame=frame, row=row)
+        kv.log_event(
+            "tablet_session_frame_confirmed",
+            {
+                "task_id": str(frame.envelope.task_id),
+                "surface_kind": _normalize_surface_kind(frame.envelope.surface_kind),
+                "expected": frame.expected,
+                "predicted": predicted,
+                "correct": bool(emitted.get("correct", False)),
+                "route_family": str(route.get("route_family") or ""),
+                "runtime": str(task_result.get("runtime") or ""),
+                "frame_id": str(frame.frame_id),
+            },
+        )
+        kv.log_event(
+            "tablet_session_trace",
+            trace_record,
+        )
+
+    def _build_trace_record(
+        self,
+        *,
+        frame: TabletSessionFrame,
+        row: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        emitted = dict(row.get("emitted") or {})
+        task_result = dict(emitted.get("task_result") or {})
+        route = dict(emitted.get("route") or row.get("route_payload") or {})
+        kv = self._knowledgeverse
+        stars_loaded_count = 0
+        if kv is not None and hasattr(kv, "_discover_live_galaxy_names"):
+            try:
+                for galaxy_name in kv._discover_live_galaxy_names():
+                    galaxy = kv.galaxy_manager.get_galaxy(galaxy_name)
+                    stars_loaded_count += len(list(getattr(galaxy, "entries", []) or []))
+            except Exception:
+                stars_loaded_count = 0
+        stars_touched = [
+            str(value).strip()
+            for value in list(emitted.get("trace_star_ids") or task_result.get("trace_star_ids") or [])
+            if str(value).strip()
+        ]
+        trace_record = {
+            "item_id": str(frame.frame_id),
+            "task_id": str(frame.envelope.task_id),
+            "suite": str(frame.source_meta.get("suite") or row.get("suite") or "unknown"),
+            "route_family": str(emitted.get("route_family") or task_result.get("route_family") or route.get("route_family") or ""),
+            "specialist_lane": _trace_specialist_lane(frame.envelope, route_payload=route, task_result=task_result),
+            "stars_loaded_count": int(stars_loaded_count),
+            "stars_touched": stars_touched,
+            "stars_recalled": _trace_recalled_star_ids(task_result),
+            "opcodes_fired": _trace_opcodes_fired(task_result),
+            "halting_reason": _trace_halting_reason(task_result, emitted),
+            "raw_answer": _trace_raw_answer(task_result),
+            "normalized_answer": _trace_normalized_answer(emitted),
+            "latency_ms": int(round(float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1000.0)),
+            "correct": bool(emitted.get("correct", False)),
+            "program_id": str(task_result.get("program_id") or ""),
+            "surface_kind": _normalize_surface_kind(frame.envelope.surface_kind),
+        }
+        return trace_record
+
+    def run_tape_session(
+        self,
+        tape: TabletSessionTape,
+        *,
+        tick_hz: float = 50.0,
+        delta_time: float = 0.02,
+        frame_timeout_s: float = 30.0,
+        enforce_preflight: bool = True,
+        reuse_open_session: bool = False,
+    ) -> dict[str, Any]:
+        if not tape.frames:
+            return {"status": "ok", "session_id": str(tape.session_id), "results": []}
+        opened_here = False
+        if self._live_session is None:
+            session = self.open_live_session(
+                session_id=tape.session_id,
+                reset_runtime=True,
+                tick_hz=float(tick_hz),
+                delta_time=float(delta_time),
+                enforce_preflight=bool(enforce_preflight),
+            )
+            opened_here = True
+        else:
+            if not reuse_open_session:
+                raise RuntimeError("tablet_live_session_already_open")
+            session = dict(self._live_session)
+        backend = str(session.get("backend") or "")
+        results: list[dict[str, Any]] = []
+        try:
+            for frame in tape.frames:
+                envelope = frame.envelope
+                self.tablet.prepare_headless_context(
+                    user_lang=envelope.user_lang,
+                    document_langs=list(envelope.document_langs),
+                )
+                route_payload = envelope.to_route_payload(use_enriched=bool(tape.use_enriched))
+                action_buffer = envelope.to_action_buffer()
+                mutation_type, payload_words = action_buffer.extract_tablet_mutation()
+                if backend == "knowledgeverse_dispatch":
+                    response = self._run_live_envelope_via_knowledgeverse(
+                        envelope,
+                        use_enriched=bool(tape.use_enriched),
+                    )
+                else:
+                    bridge = self._resolve_sovereign_bridge()
+                    assert bridge is not None
+                    bridge.queue_query_frame(
+                        self._query_embedding_for_envelope(envelope),
+                        action_buffer_words=self._action_buffer_words(action_buffer),
+                        frame_id=str(frame.frame_id),
+                    )
+                    bridge_result = bridge.poll_query_result(
+                        timeout_s=float(frame_timeout_s),
+                        frame_id=str(frame.frame_id),
+                    )
+                    action_buffer_words = bridge_result.get("action_buffers") or []
+                    response = self._materialize_from_action_buffer(
+                        bridge_result=bridge_result,
+                        action_words=action_buffer_words,
+                        envelope=envelope,
+                    )
+                emitted = TabletEmit.emit(envelope, response)
+                row = {
+                    "frame_id": str(frame.frame_id),
+                    "expected": frame.expected,
+                    "source_meta": dict(frame.source_meta),
+                    "envelope": envelope,
+                    "route_payload": route_payload,
+                    "response": response,
+                    "raw_response": response,
+                    "emitted": emitted,
+                    "tablet_contract": {
+                        "action_type": action_buffer.get_action_type().name,
+                        "mutation_type": int(mutation_type),
+                        "payload_words": payload_words.tolist(),
+                        "surface_kind": _normalize_surface_kind(envelope.surface_kind),
+                        "sovereign_path": "knowledgeverse_dispatch_session"
+                        if backend == "knowledgeverse_dispatch"
+                        else "tablet_bridge_session",
+                        "session_id": str(tape.session_id),
+                        "frame_id": str(frame.frame_id),
+                        "output_action_type": str(response.get("task_result", {}).get("action_type", "")),
+                    },
+                }
+                self._log_session_confirmation(frame=frame, row=row)
+                results.append(row)
+        finally:
+            if opened_here:
+                self.close_live_session()
+        return {
+            "status": "ok",
+            "session_id": str(tape.session_id),
+            "suite_name": str(tape.suite_name),
+            "surface_kind": _normalize_surface_kind(tape.surface_kind),
+            "preflight": session.get("preflight", {}),
+            "results": results,
+        }
 
     def _build_local_daemon_handler(
         self,
@@ -855,12 +1436,59 @@ class HeadlessTabletMPC:
             self._bind_bridge_query_runtime()
             return self._bridge
         kv = self._knowledgeverse
+        swarm_getter = getattr(kv, "get_swarm_bridge", None)
+        if callable(swarm_getter):
+            try:
+                bridge = swarm_getter()
+            except Exception:
+                bridge = None
+            if bridge is not None and hasattr(bridge, "open_query_session"):
+                self._bridge = bridge
+                self._bind_bridge_query_runtime()
+                return self._bridge
         launcher = getattr(kv, "_trm", None)
         bridge = getattr(launcher, "_step_fused_bridge", None)
         if bridge is not None:
             self._bridge = bridge
             self._bind_bridge_query_runtime()
         return self._bridge
+
+    def _resolve_live_session_backend(self) -> str:
+        kv = self._knowledgeverse
+        if kv is not None and hasattr(kv, "execute_task"):
+            return "knowledgeverse_dispatch"
+        bridge = self._resolve_sovereign_bridge()
+        if bridge is not None and hasattr(bridge, "open_query_session"):
+            return "bridge_query_session"
+        raise RuntimeError("tablet_live_session_requires_runtime")
+
+    def _run_live_envelope_via_knowledgeverse(
+        self,
+        envelope: TabletEnvelope,
+        *,
+        use_enriched: bool,
+    ) -> dict[str, Any]:
+        kv = self._knowledgeverse
+        if kv is None or not hasattr(kv, "execute_task"):
+            raise RuntimeError("tablet_live_session_requires_knowledgeverse")
+        task_payload = dict(envelope.task)
+        task_payload.setdefault("surface_kind", _normalize_surface_kind(envelope.surface_kind))
+        task_payload.setdefault("route_policy", str(envelope.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES))
+        route = {
+            "specialist": str(envelope.specialist),
+            "domain": str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+            "domain_hint": str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+            "galaxy_names": list(envelope.galaxies),
+            "route_policy": str(envelope.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+        }
+        response = kv.execute_task(
+            task=task_payload,
+            route=route,
+            specialist=str(envelope.specialist),
+            domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+            use_enriched=bool(use_enriched),
+        )
+        return _canonicalize_live_runtime_response(response or {})
 
     def _bind_bridge_query_runtime(self) -> None:
         bridge = self._bridge
@@ -1064,7 +1692,7 @@ class HeadlessTabletMPC:
             and len(first_words) >= (TABLET_WORD_OFFSET_DATA + 6)
             and int(first_words[TABLET_WORD_OFFSET_DATA + 5]) == 1
         ):
-            action_buffer_numeric_answer = int(np.int32(first_words[TABLET_WORD_OFFSET_DATA]))
+            action_buffer_numeric_answer = _decode_signed_i32_word(first_words[TABLET_WORD_OFFSET_DATA])
             action_buffer_answer_materialized = True
             top_star_idx = int(first_words[TABLET_WORD_OFFSET_DATA + 1])
             if 0 <= top_star_idx:
@@ -1092,11 +1720,16 @@ class HeadlessTabletMPC:
             "route_family": _normalize_surface_kind(envelope.surface_kind),
             "runtime": "tablet_bridge_ring",
         }
+        bridge_gpu_execution = bool(
+            answer_packet.get("answer_materialized")
+            or action_type_name != ActionType.NO_ACTION.name
+            or int(bridge_result.get("top_star_idx", -1) or -1) >= 0
+        )
         task_result = {
             "status": "ok",
             "runtime": "tablet_bridge_ring_query",
             "program_type": "trm_step_fused_submit_query",
-            "gpu_execution": True,
+            "gpu_execution": bridge_gpu_execution,
             "answer_kind": "embedding",
             "answer_materialized": bool(answer_packet.get("answer_materialized")),
             "answer_text": str(answer_packet.get("answer_text") or ""),
@@ -1143,6 +1776,8 @@ class HeadlessTabletMPC:
         }
 
     def submit(self, envelope: TabletEnvelope, *, use_enriched: bool = True) -> dict[str, Any]:
+        if self._live_session is not None:
+            raise RuntimeError("tablet_submit_forbidden_during_live_session")
         self.tablet.prepare_headless_context(
             user_lang=envelope.user_lang,
             document_langs=list(envelope.document_langs),

@@ -24,6 +24,8 @@
 #define FINAL_STAR_PROGRAM_FLAGS_OFFSET      328
 #define FINAL_STAR_PROGRAM_LENGTH_OFFSET     332
 #define FINAL_STAR_PROGRAM_OPCODE_COUNT_OFFSET 336
+#define FINAL_STAR_CONTEXT_ID_OFFSET         340
+#define FINAL_STAR_ETHICAL_TRIT_OFFSET       344
 
 #define RAW_EMBEDDING64_OFFSET                 0
 #define RAW_GALAXY_ID_OFFSET                 256
@@ -52,6 +54,8 @@
 #define RAW_STAR_HASH_OFFSET                 348
 #define RAW_DOMAIN_HASH_OFFSET               356
 #define RAW_SUBJECT_HASH_OFFSET              360
+#define RAW_CONTEXT_ID_OFFSET                364
+#define RAW_ETHICAL_TRIT_OFFSET              368
 
 #define RAW_EXPLICIT_POLARITY_BIT   0x01u
 #define RAW_EXPLICIT_FOCUS_BIT      0x02u
@@ -168,6 +172,8 @@ extern "C" __global__ void boot_star_finalize(
             (route_policy_flags & ROUTE_POLICY_REQUIRES_EXECUTOR) != 0u,
             (route_policy_flags & ROUTE_POLICY_REQUIRES_VALIDATOR) != 0u,
             (route_policy_flags & ROUTE_POLICY_ANSWER_GATE) != 0u,
+            (route_policy_flags & ROUTE_POLICY_MATERIALIZE_ACTION) != 0u,
+            (route_policy_flags & ROUTE_POLICY_MATERIALIZE_GRID) != 0u,
             branch_topk
         )
     );
@@ -179,4 +185,6 @@ extern "C" __global__ void boot_star_finalize(
     write_u32(dst, FINAL_STAR_PROGRAM_FLAGS_OFFSET, raw_u32(src, RAW_PROGRAM_FLAGS_OFFSET));
     write_u32(dst, FINAL_STAR_PROGRAM_LENGTH_OFFSET, raw_u32(src, RAW_PROGRAM_LENGTH_OFFSET));
     write_u32(dst, FINAL_STAR_PROGRAM_OPCODE_COUNT_OFFSET, raw_u32(src, RAW_PROGRAM_OPCODE_COUNT_OFFSET));
+    write_u32(dst, FINAL_STAR_CONTEXT_ID_OFFSET, raw_u32(src, RAW_CONTEXT_ID_OFFSET));
+    write_i32(dst, FINAL_STAR_ETHICAL_TRIT_OFFSET, clamp_trit_int_device(raw_i32(src, RAW_ETHICAL_TRIT_OFFSET)));
 }

@@ -1,6 +1,6 @@
 # Knowledge3D Vocabulary — Architecture Specifications
 
-**Last Updated**: March 16, 2026
+**Last Updated**: April 11, 2026
 **Status**: Living documentation (updated as architecture evolves)
 
 ---
@@ -18,7 +18,8 @@ This directory contains the **canonical architectural specifications** for Knowl
 6. Read [KNOWLEDGEVERSE_SPECIFICATION.md](#knowledgeverse) (runtime memory substrate)
 7. Read [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](#dual-client-contract) (human + AI duality)
 8. Read [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](#meaning-centric-star-schema) 🆕 (atomic unit of knowledge + semantic gravity)
-9. Then explore domain-specific specs as needed
+9. Read [CANONICAL_REGISTRY_SPECIFICATION.md](#canonical-registry) 🆕 (canonical IDs, Qdrant registry, symlink discipline)
+10. Then explore domain-specific specs as needed
 
 ---
 
@@ -225,6 +226,25 @@ Defines the **Meaning-Centric Star** — the canonical unit of knowledge in K3D.
 **Production Status**: 📐 Architecture specification (Phase H primary deliverable)
 
 **Integration**: Extends Reality Enabler dual-program stars to ALL knowledge. Implements Foundational Knowledge Layer 2 as canonical center. Integrates Hyper-Parallel ternary logic as spatial force operator.
+
+---
+
+### [CANONICAL_REGISTRY_SPECIFICATION.md](CANONICAL_REGISTRY_SPECIFICATION.md) 🆕
+**Canonical ID Registry & Qdrant Overlay**
+
+Defines the `k3d_canonical` registry: the deterministic ID functions, file-backed Qdrant credential resolution, strict `CanonicalLookup` overlay, bidirectional symlink helper contract, and bootstrap seed script that keep K3D ingestion aligned on one canonical naming surface.
+
+**Key Concepts:**
+- `k3d_canonical` as the ingestion-side librarian for stable IDs
+- deterministic ID helpers (`canonical_slug`, `canonical_*_id`, UUIDv5 point IDs)
+- strict `CanonicalLookup` semantics (`canonical_lookup_miss:{kind}:{key}`)
+- file-backed secret resolution for Qdrant access
+- bidirectional symlink writes through `append_ref()` / `link()`
+- canonical seed set (69 entries after Phase 7.A.1 mathematical-role and nine-language grammar-template registration)
+
+**Production Status**: ✅ Landed (Phase 7.0 / 7.A first slice)
+
+**Integration**: Meaning-Centric Star schema, Foundational Knowledge ingestion, vocabulary Qdrant indexing, future letter/math/grammar/word canonical shelves
 
 ---
 

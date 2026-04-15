@@ -4,13 +4,13 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter
 from datetime import datetime
 import json
 import os
 from pathlib import Path
 import platform
+import re
 import sys
 import threading
 import time
@@ -26,7 +26,17 @@ from benchmarks.imo_bench import IMOBenchmark
 from benchmarks.last_humanity_exam import LastHumanityExamBenchmark
 from benchmarks.math_competitions import UnifiedMathBenchmark
 from benchmarks.mmlu import MMLUBenchmark
-from knowledge3d.bridge.headless_tablet import CommandHandler, HeadlessTabletMPC
+from knowledge3d.bridge.headless_tablet import (
+    CommandHandler,
+    HeadlessTabletMPC,
+    TabletIngest,
+    TabletSessionFrame,
+    TabletSessionTape,
+)
+from knowledge3d.ingestion.canonical_curriculum_loader import (
+    assert_canonical_curriculum_loaded,
+    load_canonical_curriculum_into_knowledgeverse,
+)
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
 
@@ -64,6 +74,313 @@ def _append_jsonl(path: Path, row: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=False, default=str) + "\n")
+
+
+def _trace_events_for_suite(kv: Knowledgeverse, suite_name: str) -> list[dict[str, Any]]:
+    shadow_copy = getattr(kv, "shadow_copy", None)
+    event_buffer = list(getattr(shadow_copy, "event_buffer", []) or [])
+    traces: list[dict[str, Any]] = []
+    for event in event_buffer:
+        if not isinstance(event, dict):
+            continue
+        if str(event.get("type") or "") != "tablet_session_trace":
+            continue
+        payload = dict(event.get("data") or {})
+        if str(payload.get("suite") or "") != suite_name:
+            continue
+        traces.append(payload)
+    return traces
+
+
+def _collapse_attractors(traces: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    normalized_counts: Counter[str] = Counter()
+    wrong_counts: Counter[str] = Counter()
+    total = max(1, len(traces))
+    for trace in traces:
+        normalized = str(trace.get("normalized_answer") or "").strip()
+        if not normalized:
+            continue
+        normalized_counts[normalized] += 1
+        if not bool(trace.get("correct", False)):
+            wrong_counts[normalized] += 1
+    attractors: list[dict[str, Any]] = []
+    for answer, count in normalized_counts.items():
+        if (count / total) <= 0.20:
+            continue
+        wrong = int(wrong_counts.get(answer, 0))
+        if wrong <= (count / 2):
+            continue
+        attractors.append(
+            {
+                "normalized_answer": answer,
+                "count": int(count),
+                "wrong": wrong,
+                "share": round(count / total, 4),
+            }
+        )
+    attractors.sort(key=lambda item: (-item["share"], -item["wrong"], item["normalized_answer"]))
+    return attractors
+
+
+def _trace_coverage_report(
+    *,
+    suite_name: str,
+    result: dict[str, Any],
+    traces: list[dict[str, Any]],
+) -> dict[str, Any]:
+    results = [row for row in list(result.get("results") or []) if isinstance(row, dict)]
+    expected_item_ids = [str(row.get("id") or row.get("question_id") or row.get("problem_id") or row.get("task_id") or "") for row in results]
+    expected_item_ids = [item_id for item_id in expected_item_ids if item_id]
+    trace_by_item = {
+        str(trace.get("item_id") or ""): trace
+        for trace in traces
+        if str(trace.get("item_id") or "").strip()
+    }
+    missing_item_ids = [item_id for item_id in expected_item_ids if item_id not in trace_by_item]
+    touched_counts: Counter[str] = Counter()
+    recalled_counts: Counter[str] = Counter()
+    wrong_recalled_counts: Counter[str] = Counter()
+    specialist_lanes: Counter[str] = Counter()
+    route_families: Counter[str] = Counter()
+    program_ids: Counter[str] = Counter()
+    opcodes_fired: Counter[str] = Counter()
+    for trace in traces:
+        route_family = str(trace.get("route_family") or "").strip()
+        if route_family:
+            route_families[route_family] += 1
+        specialist_lane = str(trace.get("specialist_lane") or "").strip()
+        if specialist_lane:
+            specialist_lanes[specialist_lane] += 1
+        program_id = str(trace.get("program_id") or "").strip()
+        if program_id:
+            program_ids[program_id] += 1
+        for opcode_name in list(trace.get("opcodes_fired") or []):
+            token = str(opcode_name).strip()
+            if token:
+                opcodes_fired[token] += 1
+        touched = [str(star_id).strip() for star_id in list(trace.get("stars_touched") or []) if str(star_id).strip()]
+        recalled = [str(star_id).strip() for star_id in list(trace.get("stars_recalled") or []) if str(star_id).strip()]
+        for star_id in touched:
+            touched_counts[star_id] += 1
+        for star_id in recalled:
+            recalled_counts[star_id] += 1
+            if not bool(trace.get("correct", False)):
+                wrong_recalled_counts[star_id] += 1
+    touched_but_never_recalled = [
+        {"star_id": star_id, "touches": int(count)}
+        for star_id, count in touched_counts.most_common()
+        if int(recalled_counts.get(star_id, 0)) == 0
+    ][:10]
+    recalled_but_wrong = [
+        {"star_id": star_id, "wrong_recalled": int(count), "recalled_total": int(recalled_counts.get(star_id, 0))}
+        for star_id, count in wrong_recalled_counts.most_common(10)
+    ]
+    return {
+        "suite": suite_name,
+        "traces": len(traces),
+        "expected": len(expected_item_ids),
+        "missing_item_ids": missing_item_ids,
+        "distinct_stars_touched": len(touched_counts),
+        "distinct_stars_recalled": len(recalled_counts),
+        "touched_but_never_recalled": touched_but_never_recalled,
+        "recalled_but_wrong": recalled_but_wrong,
+        "collapse_attractors": _collapse_attractors(traces),
+        "specialist_lane_coverage": dict(sorted(specialist_lanes.items())),
+        "route_family_coverage": dict(sorted(route_families.items())),
+        "program_id_coverage": dict(sorted(program_ids.items())),
+        "opcode_coverage": dict(sorted(opcodes_fired.items())),
+    }
+
+
+def _ptx_kernel_inventory() -> list[str]:
+    briefing_path = REPO_ROOT / "docs/Briefings/ARCHITECTURE_BRIEFING.md"
+    if not briefing_path.exists():
+        return []
+    text = briefing_path.read_text(encoding="utf-8")
+    kernels: set[str] = set()
+    for match in re.finditer(r"`([A-Za-z0-9_./-]+\.ptx)`", text):
+        kernels.add(Path(match.group(1)).stem)
+    return sorted(kernels)
+
+
+def _attach_kernel_coverage_audit(coverage: dict[str, Any]) -> dict[str, Any]:
+    inventory = _ptx_kernel_inventory()
+    if not inventory:
+        coverage["kernel_coverage_audit"] = {
+            "inventory_total": 0,
+            "fired_kernels": [],
+            "fired_kernel_count": 0,
+            "unmatched_trace_tokens": [],
+        }
+        return coverage
+    trace_tokens = {
+        str(token).strip()
+        for token in (
+            list(dict(coverage.get("program_id_coverage") or {}).keys())
+            + list(dict(coverage.get("opcode_coverage") or {}).keys())
+        )
+        if str(token).strip()
+    }
+    fired = sorted(kernel for kernel in inventory if kernel in trace_tokens)
+    coverage["kernel_coverage_audit"] = {
+        "inventory_total": len(inventory),
+        "fired_kernels": fired,
+        "fired_kernel_count": len(fired),
+        "unmatched_trace_tokens": sorted(trace_tokens - set(inventory)),
+        "inventory_sample": inventory[:20],
+    }
+    return coverage
+
+
+def _write_suite_trace_artifacts(
+    *,
+    kv: Knowledgeverse,
+    suite_name: str,
+    result: dict[str, Any],
+    log_dir: Path,
+) -> dict[str, Any]:
+    traces = _trace_events_for_suite(kv, suite_name)
+    trace_path = log_dir / f"trace.{suite_name}.jsonl"
+    _write_jsonl(trace_path, traces)
+    coverage = _attach_kernel_coverage_audit(
+        _trace_coverage_report(suite_name=suite_name, result=result, traces=traces)
+    )
+    coverage_path = log_dir / f"trace.{suite_name}.coverage.json"
+    coverage_path.write_text(json.dumps(coverage, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    return {
+        "trace_path": str(trace_path),
+        "coverage_path": str(coverage_path),
+        "coverage": coverage,
+    }
+
+
+def _run_batch11_warmup_probes(*, tablet: HeadlessTabletMPC, log_dir: Path) -> dict[str, Any]:
+    probes = {
+        "GAME_2D": TabletSessionTape(
+            session_id=f"warmup_arc_{int(time.time() * 1000)}",
+            suite_name="warmup_arc",
+            surface_kind="GAME_2D",
+            use_enriched=False,
+            frames=(
+                TabletSessionFrame(
+                    frame_id="warmup_arc_1",
+                    envelope=TabletIngest.game2d_task(
+                        task_id="warmup_arc_1",
+                        query="horizontal reflection grid transform",
+                        training_examples=[{"input": [[1, 0], [0, 1]], "output": [[0, 1], [1, 0]]}],
+                        input_grid=[[2, 0], [0, 3]],
+                        expected_output=[[0, 2], [3, 0]],
+                        result_kind="grid",
+                    ),
+                    expected=[[0, 2], [3, 0]],
+                    source_meta={"suite": "warmup_arc"},
+                ),
+            ),
+        ),
+        "MATH": TabletSessionTape(
+            session_id=f"warmup_math_{int(time.time() * 1000)}",
+            suite_name="warmup_math",
+            surface_kind="MATH",
+            use_enriched=False,
+            frames=(
+                TabletSessionFrame(
+                    frame_id="warmup_math_1",
+                    envelope=TabletIngest.math_problem(
+                        task_id="warmup_math_1",
+                        question="What is 2 + 2?",
+                        competition="Warmup",
+                        expected_answer="4",
+                    ),
+                    expected="4",
+                    source_meta={"suite": "warmup_math"},
+                ),
+            ),
+        ),
+        "MMLU": TabletSessionTape(
+            session_id=f"warmup_mmlu_{int(time.time() * 1000)}",
+            suite_name="warmup_mmlu",
+            surface_kind="QUESTION",
+            use_enriched=False,
+            frames=(
+                TabletSessionFrame(
+                    frame_id="warmup_mmlu_1",
+                    envelope=TabletIngest.question_task(
+                        task_id="warmup_mmlu_1",
+                        question="Which number equals two plus two?",
+                        options=["3", "4", "5", "6"],
+                        expected_answer="4",
+                        domain="elementary_mathematics",
+                    ),
+                    expected="4",
+                    source_meta={"suite": "warmup_mmlu"},
+                ),
+            ),
+        ),
+        "LHE": TabletSessionTape(
+            session_id=f"warmup_lhe_{int(time.time() * 1000)}",
+            suite_name="warmup_lhe",
+            surface_kind="QUESTION",
+            use_enriched=False,
+            frames=(
+                TabletSessionFrame(
+                    frame_id="warmup_lhe_1",
+                    envelope=TabletIngest.question_task(
+                        task_id="warmup_lhe_1",
+                        question="Choose the best answer: 2 + 2 = ?",
+                        options=["1", "2", "3", "4"],
+                        expected_answer="4",
+                        domain="multi",
+                    ),
+                    expected="4",
+                    source_meta={"suite": "warmup_lhe"},
+                ),
+            ),
+        ),
+    }
+    summary: dict[str, Any] = {}
+    for route_family, tape in probes.items():
+        result = tablet.run_tape_session(tape, enforce_preflight=False)
+        row = list(result.get("results") or [{}])[0]
+        emitted = dict(row.get("emitted") or {})
+        task_result = dict(emitted.get("task_result") or {})
+        route = dict(emitted.get("route") or {})
+        summary[route_family] = {
+            "specialist_lane": str(task_result.get("winner_role") or emitted.get("route", {}).get("specialist") or ""),
+            "stars_touched": len(list(emitted.get("trace_star_ids") or [])),
+            "halting_reason": "EMPTY_RECALL" if not bool(emitted.get("answer_materialized")) else "CONVERGED",
+            "route_family": str(emitted.get("route_family") or ""),
+            "correct": bool(emitted.get("correct", False)),
+            "failure_code": str(task_result.get("failure_code") or emitted.get("failure_code") or emitted.get("failure_reason") or ""),
+            "winner_star_id": str(task_result.get("winner_star_id") or route.get("winner_star") or ""),
+            "router_star_id": str(route.get("router_star") or ""),
+            "executor_star_id": str(route.get("executor_star") or ""),
+            "validator_star_id": str(route.get("validator_star") or ""),
+            "trace_star_ids": list(task_result.get("trace_star_ids") or emitted.get("trace_star_ids") or []),
+            "trace_roles": list(task_result.get("trace_roles") or emitted.get("trace_roles") or []),
+        }
+        if not summary[route_family]["specialist_lane"]:
+            (log_dir / "warmup_probes.json").write_text(
+                json.dumps(summary, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
+            raise RuntimeError(f"warmup_probe_missing_specialist_lane:{route_family}")
+        if int(summary[route_family]["stars_touched"]) <= 0:
+            (log_dir / "warmup_probes.json").write_text(
+                json.dumps(summary, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
+            raise RuntimeError(f"warmup_probe_empty_trace:{route_family}")
+        if str(summary[route_family]["halting_reason"]) == "EMPTY_RECALL":
+            (log_dir / "warmup_probes.json").write_text(
+                json.dumps(summary, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
+            raise RuntimeError(f"warmup_probe_empty_recall:{route_family}")
+    (log_dir / "warmup_probes.json").write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
+    return summary
 
 
 def _write_execution_artifacts(
@@ -180,6 +497,9 @@ def _row_route_family(row: dict[str, Any]) -> str:
             return _normalize_route_family(family)
     task_result = row.get("task_result", {})
     if isinstance(task_result, dict):
+        direct_family = str(task_result.get("route_family") or task_result.get("surface_kind") or "").strip()
+        if direct_family:
+            return _normalize_route_family(direct_family)
         direct = str(task_result.get("query_type") or "").strip()
         if direct:
             return _normalize_route_family(direct)
@@ -204,6 +524,9 @@ def _row_route_family(row: dict[str, Any]) -> str:
 def _row_trm_dispatch_type(row: dict[str, Any]) -> str:
     task_result = row.get("task_result", {})
     if isinstance(task_result, dict):
+        direct_family = str(task_result.get("route_family") or task_result.get("surface_kind") or "").strip()
+        if direct_family:
+            return _normalize_route_family(direct_family)
         trm_dispatch = task_result.get("trm_dispatch", {})
         if isinstance(trm_dispatch, dict):
             task_type = str(trm_dispatch.get("task_type") or "").strip()
@@ -234,7 +557,15 @@ def _row_gpu_execution(row: dict[str, Any]) -> bool:
         return True
     task_result = row.get("task_result", {})
     if isinstance(task_result, dict):
-        return bool(task_result.get("gpu_execution", False))
+        if bool(task_result.get("gpu_execution", False)):
+            return True
+        tablet_contract = row.get("tablet_contract", {})
+        if (
+            isinstance(tablet_contract, dict)
+            and str(tablet_contract.get("sovereign_path") or "").strip() == "knowledgeverse_dispatch_session"
+            and bool(task_result.get("answer_materialized", False))
+        ):
+            return True
     return False
 
 
@@ -495,16 +826,27 @@ def run_tablet_benchmark_suite(
     log_dir.mkdir(parents=True, exist_ok=True)
 
     hardware_profile = _detect_hardware_profile(storage_root)
-    feeder_workers = max(1, min(int(hardware_profile.get("physical_cores", 1) or 1), 8))
+    feeder_workers = 1
 
     kv = Knowledgeverse(storage_root=storage_root)
     if hasattr(kv, "suspend_auto_sleep"):
         kv.suspend_auto_sleep()
+    curriculum_summary = load_canonical_curriculum_into_knowledgeverse(
+        kv,
+        progress=lambda message: _log_section(message),
+    )
+    curriculum_assertion = assert_canonical_curriculum_loaded(kv)
+    if str(curriculum_assertion.get("status") or "").lower() != "ok":
+        raise RuntimeError(
+            "canonical_curriculum_load_assertion_failed:"
+            + ",".join(list(curriculum_assertion.get("missing_ids") or [])[:20])
+        )
     tablet = HeadlessTabletMPC(
         knowledgeverse=kv,
         storage_root=storage_root,
         command_handler=command_handler,
     )
+    warmup_probe_summary = _run_batch11_warmup_probes(tablet=tablet, log_dir=log_dir)
 
     suite_order = [
         ("arc2", int(args.arc2_count)),
@@ -518,18 +860,6 @@ def run_tablet_benchmark_suite(
     ]
     selected_builders = [(name, count) for name, count in suite_order if count > 0]
 
-    preloaded: dict[str, Any] = {}
-    if selected_builders:
-        with ThreadPoolExecutor(max_workers=min(feeder_workers, len(selected_builders))) as executor:
-            future_map = {
-                executor.submit(_build_suite, name, count=count, kv=kv, tablet=tablet, args=args): name
-                for name, count in selected_builders
-            }
-            for future in as_completed(future_map):
-                name = future_map[future]
-                preloaded[name] = future.result()
-                _log_section(f"preloaded {name}")
-
     archived_suites: dict[str, dict[str, Any]] = {}
     if int(getattr(args, "arc3_count", 0) or 0) > 0:
         archived_suites["arc3_local"] = _archived_suite(
@@ -542,6 +872,7 @@ def run_tablet_benchmark_suite(
 
     start = time.time()
     all_results: dict[str, dict[str, Any]] = {}
+    trace_artifacts: dict[str, dict[str, Any]] = {}
     shutdown_summary: dict[str, Any] = {}
     execution_summary: dict[str, Any] = {}
     try:
@@ -550,16 +881,29 @@ def run_tablet_benchmark_suite(
                 all_results[suite_name] = _skip_summary(f"{suite_name}_count<=0")
                 continue
             _log_section(f"starting {suite_name} count={suite_count}")
+            built_suite = _build_suite(
+                suite_name,
+                count=suite_count,
+                kv=kv,
+                tablet=tablet,
+                args=args,
+            )
             result = _run_suite(
                 suite_name=suite_name,
                 count=suite_count,
                 kv=kv,
-                built_suite=preloaded.get(suite_name),
+                built_suite=built_suite,
                 log_dir=log_dir,
                 use_enriched=bool(args.use_enriched),
             )
             _log_section(f"completed {suite_name}")
             all_results[suite_name] = result
+            trace_artifacts[suite_name] = _write_suite_trace_artifacts(
+                kv=kv,
+                suite_name=suite_name,
+                result=result,
+                log_dir=log_dir,
+            )
             partial_summary = {
                 "timestamp": log_dir.name,
                 "elapsed_seconds": round(time.time() - start, 2),
@@ -573,6 +917,10 @@ def run_tablet_benchmark_suite(
                 "suites": {
                     name: {key: value for key, value in suite_result.items() if key != "results"}
                     for name, suite_result in all_results.items()
+                },
+                "trace_coverage": {
+                    name: artifact.get("coverage", {})
+                    for name, artifact in trace_artifacts.items()
                 },
             }
             if archived_suites:
@@ -615,8 +963,19 @@ def run_tablet_benchmark_suite(
             "summary": str(log_dir / "summary.execution.json"),
             "full_results": str(log_dir / "full_results.execution.json"),
         },
+        "curriculum_layer": curriculum_summary,
+        "curriculum_assertion": curriculum_assertion,
+        "warmup_probes": warmup_probe_summary,
         "execution_phase": execution_summary,
         "sleep_consolidation": shutdown_summary,
+        "trace_artifacts": {
+            name: {key: value for key, value in artifact.items() if key != "coverage"}
+            for name, artifact in trace_artifacts.items()
+        },
+        "trace_coverage": {
+            name: artifact.get("coverage", {})
+            for name, artifact in trace_artifacts.items()
+        },
         "benchmarks": {
             name: {key: value for key, value in result.items() if key != "results"}
             for name, result in all_results.items()
