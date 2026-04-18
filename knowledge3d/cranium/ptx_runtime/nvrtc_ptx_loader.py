@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np  # type: ignore
+from knowledge3d.cranium.sovereign import loader
 
 
 logger = logging.getLogger(__name__)
@@ -47,24 +48,24 @@ class NVRTCPTXLoader:
         self._load_module()
 
     def _load_module(self) -> None:
+        # Sovereign invariant: single CUDA context from loader.
+        # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+        loader._ensure_init()
+
         cuda = self._cuda
         nvrtc = self._nvrtc
 
-        err, = cuda.cuInit(0)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuInit failed: {err}")
-
-        err, dev = cuda.cuDeviceGet(0)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuDeviceGet failed: {err}")
-
-        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-        if err != cuda.CUresult.CUDA_SUCCESS:
-            raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
-        self._ctx = ctx
+        err, ctx = cuda.cuCtxGetCurrent()
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+            raise RuntimeError("No CUDA context available after loader._ensure_init()")
         err, = cuda.cuCtxSetCurrent(ctx)
         if err != cuda.CUresult.CUDA_SUCCESS:
             raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+        self._ctx = ctx
+
+        err, dev = cuda.cuCtxGetDevice()
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxGetDevice failed: {err}")
         self._device = dev
 
         module = None

@@ -13,6 +13,8 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 
+from knowledge3d.cranium.sovereign import loader
+
 from knowledge3d.cranium.bridges.lightweight_rpn import LightweightRPNEngine
 
 
@@ -103,8 +105,9 @@ class MicroSpecialistPool:
                 nvcuda = ctypes.CDLL("libcuda.so.1")
             except OSError:
                 nvcuda = ctypes.CDLL("libcuda.so")
-            if int(nvcuda.cuInit(0)) != 0:
-                raise RuntimeError("cuInit_failed")
+            # Sovereign invariant: single CUDA context from loader.
+            # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+            loader._ensure_init()
             device = ctypes.c_int()
             if int(nvcuda.cuDeviceGet(ctypes.byref(device), int(gpu_id))) != 0:
                 raise RuntimeError("cuDeviceGet_failed")

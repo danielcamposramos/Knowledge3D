@@ -7,6 +7,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
+from knowledge3d.cranium.sovereign import loader
+
 
 @dataclass
 class MathCore:
@@ -220,8 +222,9 @@ class MathCorePool:
             except OSError:
                 nvcuda = ctypes.CDLL("libcuda.so")
 
-            # Initialize CUDA
-            nvcuda.cuInit(0)
+            # Initialize CUDA via sovereign loader (single-context invariant).
+            # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+            loader._ensure_init()
 
             # Get device handle
             device = ctypes.c_int()

@@ -10,6 +10,7 @@ import fcntl
 from typing import Dict, Tuple
 
 import numpy as np
+from knowledge3d.cranium.sovereign import loader
 
 
 class PTXModalityOps:
@@ -55,21 +56,23 @@ class PTXModalityOps:
             raise RuntimeError(f"{label} failed with error code {err}")
 
     def _initialise(self) -> None:
+        # Sovereign invariant: single CUDA context from loader.
+        # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+        loader._ensure_init()
+
         cuda = self._cuda
         nvrtc = self._nvrtc
 
-        err, = cuda.cuInit(0)
-        self._check(err, "cuInit")
-
-        err, dev = cuda.cuDeviceGet(0)
-        self._check(err, "cuDeviceGet")
-
-        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-        self._check(err, "cuDevicePrimaryCtxRetain")
+        err, ctx = cuda.cuCtxGetCurrent()
+        if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+            raise RuntimeError("No CUDA context available after loader._ensure_init()")
+        err, = cuda.cuCtxSetCurrent(ctx)
+        if err != cuda.CUresult.CUDA_SUCCESS:
+            raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
         self._ctx = ctx
 
-        err, = cuda.cuCtxSetCurrent(ctx)
-        self._check(err, "cuCtxSetCurrent")
+        err, dev = cuda.cuCtxGetDevice()
+        self._check(err, "cuCtxGetDevice")
 
         # Inter-process lock to avoid NVRTC races across concurrent runs
         lock_path = Path(os.getenv("K3D_NVRTC_LOCK", "/K3D/Knowledge3D.local/locks/k3d_nvrtc_modality.lock"))

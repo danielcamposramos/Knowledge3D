@@ -19,6 +19,7 @@ from knowledge3d.cranium.ptx.galaxy_buffer import (
     save_embeddings_to_json,
     save_meshes_to_glb,
 )
+from knowledge3d.cranium.sovereign import loader
 
 
 _MODULE_HANDLES: List[int] = []
@@ -26,24 +27,17 @@ _KERNEL_CACHE: Dict[str, int] = {}
 
 
 def _ensure_cuda_context() -> int:
-    # Prefer primary context to reduce driver teardown races across processes
+    # Sovereign invariant: single CUDA context from loader.
+    # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+    loader._ensure_init()
+
     err, ctx = cuda.cuCtxGetCurrent()
-    if err == cuda.CUresult.CUDA_SUCCESS and ctx:
-        return ctx
-    err, = cuda.cuInit(0)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuInit failed: {err}")
-    err, dev = cuda.cuDeviceGet(0)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuDeviceGet failed: {err}")
-    # Retain primary context instead of creating/destroying contexts
-    err, pctx = cuda.cuDevicePrimaryCtxRetain(dev)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
-    err, = cuda.cuCtxSetCurrent(pctx)
+    if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+        raise RuntimeError("No CUDA context available after loader._ensure_init()")
+    err, = cuda.cuCtxSetCurrent(ctx)
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
-    return pctx
+    return ctx
 
 
 def _compile_kernel(source: str, name: str) -> int:

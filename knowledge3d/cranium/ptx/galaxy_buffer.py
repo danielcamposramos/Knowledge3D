@@ -36,6 +36,8 @@ except Exception:
     except Exception as exc:  # pragma: no cover
         raise RuntimeError("cuda-python bindings unavailable: install cuda-python in k3d-cranium env") from exc
 
+from knowledge3d.cranium.sovereign import loader
+
 
 @dataclass
 class DeviceBuffer:
@@ -103,18 +105,20 @@ class GalaxyGPUMemory:
 
 
 def _ensure_context() -> Tuple[int, int]:
-    err, = cuda.cuInit(0)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuInit failed: {err}")
-    err, dev = cuda.cuDeviceGet(0)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuDeviceGet failed: {err}")
-    err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        raise RuntimeError(f"cuDevicePrimaryCtxRetain failed: {err}")
+    # Sovereign invariant: single CUDA context from loader.
+    # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md
+    loader._ensure_init()
+
+    err, ctx = cuda.cuCtxGetCurrent()
+    if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+        raise RuntimeError("No CUDA context available after loader._ensure_init()")
     err, = cuda.cuCtxSetCurrent(ctx)
     if err != cuda.CUresult.CUDA_SUCCESS:
         raise RuntimeError(f"cuCtxSetCurrent failed: {err}")
+
+    err, dev = cuda.cuCtxGetDevice()
+    if err != cuda.CUresult.CUDA_SUCCESS:
+        raise RuntimeError(f"cuCtxGetDevice failed: {err}")
     return ctx, dev
 
 
