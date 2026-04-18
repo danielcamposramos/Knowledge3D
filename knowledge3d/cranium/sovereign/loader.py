@@ -396,17 +396,6 @@ def _ensure_init():
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[loader] cuCtxGetCurrent -> {current}")
                 ctx = current
-                # Materialize lazy primary ctx: cuMemGetInfo requires active state
-                d_temp = CUdeviceptr()
-                warmup_res = _cuMemAlloc(ctypes.byref(d_temp), 0)
-                if warmup_res == 0 and d_temp.value:
-                    _cuMemFree(d_temp)
-                    if os.environ.get("K3D_RPN_DEBUG"):
-                        print("[loader] Primary context warmed up (zero-size alloc)")
-                else:
-                    if os.environ.get("K3D_RPN_DEBUG"):
-                        print(f"[loader] Context warmup failed with code {warmup_res}")
-                    ck(warmup_res)
                 try:
                     import cupy as _cupy  # type: ignore
 
@@ -425,9 +414,27 @@ def _ensure_init():
                 ck(res)
         else:
             ck(nvcuda.cuCtxSetCurrent(ctx))
+        # Materialize CUDA context (applies to both cuCtxCreate and primary-retain paths).
+        # 16-byte alloc+free is the NVIDIA-internal pattern for forcing lazy device-side
+        # state creation. Required before bookkeeping queries like cuMemGetInfo.
+        _warmup_d = CUdeviceptr()
+        warmup_res = _cuMemAlloc(ctypes.byref(_warmup_d), 16)
+        if warmup_res != 0:
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] Context warmup alloc failed with code {warmup_res}")
+            ck(warmup_res)
+        free_res = _cuMemFree(_warmup_d)
+        if free_res != 0:
+            if os.environ.get("K3D_RPN_DEBUG"):
+                print(f"[loader] Context warmup free failed with code {free_res}")
+            ck(free_res)
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print("[loader] Context materialized via 16-byte warmup alloc")
         _context = ctx
         _init_pid = current_pid  # Track which process owns this context
         _initialized = True
+        # One-shot boot diagnostic (always prints; runs exactly once per process).
+        print(f"[loader] CUDA context materialized (pid={current_pid}, device=0, ctx={int(ctx) if ctx else 0:#x})")
 
 def _ensure_current_context():
     if not _initialized or _context is None:
