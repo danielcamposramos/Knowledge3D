@@ -1,0 +1,23 @@
+{
+  "benchmark": "sovereign_bitnet_attention",
+  "n_queries": 100,
+  "latency_ms": {
+    "mean": 4.084953230071383,
+    "p50": 0.25878200540319085,
+    "p95": 20.1681544131133,
+    "stdev": 13.238252453877237
+  },
+  "throughput_qps": 244.80084438629555,
+  "top_k_consistency": 1.0,
+  "convergence_verified": true,
+  "sovereign_compliance": "PASS",
+  "sovereign_evidence": "PASS: No forbidden imports in hot path",
+  "vram_used_mb": 0.0,
+  "kernel_path_trace": {
+    "0x1AA": "TERNARY_MATMUL_ADDSUB",
+    "0x1AD": "VEC_NORM_L2_INT8",
+    "0x1AE_or_0x1AF": "ATTENTION_MARGIN (path A or B)"
+  },
+  "hardware": "RTX 3070 (sm_86)",
+  "cuda_version": "12.4+"
+}
