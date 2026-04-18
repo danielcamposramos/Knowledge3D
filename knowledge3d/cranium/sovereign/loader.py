@@ -412,8 +412,9 @@ def _ensure_init():
                         print(f"[loader] CuPy context bootstrap skipped: {cupy_exc}")
             else:
                 ck(res)
-        else:
-            ck(nvcuda.cuCtxSetCurrent(ctx))
+        # cuCtxCreate already pushes the new ctx onto the current-thread stack; a
+        # redundant cuCtxSetCurrent desynchronizes stack-top vs floating TLS on some
+        # CUDA 12.x builds, which later makes cuMemGetInfo_v2 return INVALID_CONTEXT.
         # Materialize CUDA context (applies to both cuCtxCreate and primary-retain paths).
         # 16-byte alloc+free is the NVIDIA-internal pattern for forcing lazy device-side
         # state creation. Required before bookkeeping queries like cuMemGetInfo.

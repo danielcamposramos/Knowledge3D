@@ -97,11 +97,9 @@ class GalaxyGPUMemory:
                 cuda.cuMemFree(self.normals.ptr)
         except Exception:
             pass
-        try:
-            if self.ctx:
-                cuda.cuDevicePrimaryCtxRelease(self.device)
-        except Exception:
-            pass
+        # Context ownership belongs exclusively to knowledge3d.cranium.sovereign.loader.
+        # Releasing the primary context here would drop refcount on a handle this object
+        # does not own, invalidating it for every other binding (cuMemGetInfo → 201).
 
 
 def _ensure_context() -> Tuple[int, int]:
@@ -462,8 +460,5 @@ def release_galaxy_memory(galaxy_memory: GalaxyGPUMemory) -> None:
     finally:
         galaxy_memory.normals = DeviceBuffer(ptr=0, size=0)
 
-    if galaxy_memory.ctx:
-        try:
-            cuda.cuDevicePrimaryCtxRelease(galaxy_memory.device)
-        finally:
-            galaxy_memory.ctx = 0
+    # Context ownership is loader.py's responsibility; do not Release it here.
+    galaxy_memory.ctx = 0
