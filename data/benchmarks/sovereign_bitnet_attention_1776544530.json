@@ -1,0 +1,28 @@
+{
+  "benchmark": "sovereign_bitnet_attention",
+  "n_queries": 30,
+  "seed": 42,
+  "sovereign_compliance": "PASS",
+  "sovereign_evidence": "PASS: benchmark source contains no forbidden framework imports",
+  "latency_ms_per_query": {
+    "mean": 0.0860533337496842,
+    "p50": 0.05543048609979451,
+    "p95": 0.21949101937934756,
+    "n_samples": 30
+  },
+  "top_k_consistency": 1.0,
+  "convergence_verified": true,
+  "min_sentinel_overwrites_per_query": 320,
+  "kernel_path_trace": [
+    "0x1AA:k3d_bitnet_attention_proj",
+    "0x1AC:unpack5(device,via_matmul_tile)",
+    "0x1AE:k3d_attention_contrastive_rank(path_a)",
+    "0x1AF:k3d_attention_contrastive_rank(path_b)"
+  ],
+  "vram_peak_mb": 119.125,
+  "hardware": "RTX 3070 (sm_86)",
+  "notes": {
+    "0x1AB_TERNARY_PACK5": "host-only helper at weight-upload; no __global__ wrapper in current surface",
+    "0x1AD_VEC_NORM_L2_INT8": "device function; no __global__ wrapper lands in this kernel set yet"
+  }
+}
