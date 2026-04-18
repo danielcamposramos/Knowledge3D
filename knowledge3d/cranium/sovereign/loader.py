@@ -434,7 +434,7 @@ def _ensure_init():
         _init_pid = current_pid  # Track which process owns this context
         _initialized = True
         # One-shot boot diagnostic (always prints; runs exactly once per process).
-        print(f"[loader] CUDA context materialized (pid={current_pid}, device=0, ctx={int(ctx) if ctx else 0:#x})")
+        print(f"[loader] CUDA context materialized (pid={current_pid}, device=0, ctx={(ctx.value or 0):#x})")
 
 def _ensure_current_context():
     if not _initialized or _context is None:
