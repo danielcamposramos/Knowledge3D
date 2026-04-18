@@ -208,15 +208,17 @@ int32_t bitnet_matmul_tile(
     for (int word_base = 0; word_base < n_words_total; word_base += 8) {
         int word_idx = word_base + word_group;
 
-        /* Step 1: Loader lane loads uint32; others receive via __shfl_sync. */
+        /* Step 1: Loader lane loads uint32; others receive via __shfl_sync.
+         * __shfl_sync(0xFFFFFFFF, ...) requires ALL 32 lanes to execute the
+         * shuffle together (sm_70+ independent thread scheduling). Guard the
+         * load but always participate in the shuffle — downstream use is
+         * gated by (trit_idx < K && word_idx < n_words_total). */
         uint32_t w32 = 0;
-        if (word_idx < n_words_total) {
-            if (byte_lane == 0) {
-                w32 = W32[word_idx];
-            }
-            int src_lane = word_group * 4;   /* Loader lane for this group */
-            w32 = __shfl_sync(0xFFFFFFFF, w32, src_lane);
+        if (word_idx < n_words_total && byte_lane == 0) {
+            w32 = W32[word_idx];
         }
+        int src_lane = word_group * 4;   /* Loader lane for this group */
+        w32 = __shfl_sync(0xFFFFFFFF, w32, src_lane);
 
         /* Step 2: Extract byte from word (each thread gets its assigned byte). */
         uint8_t packed_byte = (uint8_t)((w32 >> (byte_lane * 8)) & 0xFF);
