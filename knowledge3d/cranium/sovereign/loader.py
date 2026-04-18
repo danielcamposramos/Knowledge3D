@@ -43,25 +43,28 @@ try:
 except OSError:
     libcudart = None
 
-try:
-    _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo_v2")
-except AttributeError:
-    _cuMemGetInfo = getattr(nvcuda, "cuMemGetInfo", None)
+# libcuda.so.1 exports v1 and v2 variants of these entry points as SEPARATE
+# symbols at distinct addresses. The v1 (bare-name) versions are the historic
+# 32-bit-size deprecated entry points; the v2 versions are the 64-bit size_t
+# entry points introduced in CUDA 3.2+. cuCtxCreate / cuMemGetInfo / cuMemAlloc /
+# cuMemFree from the v1 family do not interoperate with each other or with the
+# v2 family — mixing (e.g. v1 cuCtxCreate + v2 cuMemGetInfo) returns
+# CUDA_ERROR_INVALID_CONTEXT (201) on a ctx that is otherwise valid. We bind
+# the v2 symbols unconditionally and fall back to v1 only if the driver is too
+# old to expose them.
+def _bind_v2(primary: str, fallback: str | None = None):
+    sym = getattr(nvcuda, primary, None)
+    if sym is not None:
+        return sym
+    if fallback is not None:
+        return getattr(nvcuda, fallback, None)
+    return None
 
-try:
-    _cuMemAlloc = getattr(nvcuda, "cuMemAlloc")
-except AttributeError:
-    _cuMemAlloc = getattr(nvcuda, "cuMemAlloc_v2")
 
-try:
-    _cuMemFree = getattr(nvcuda, "cuMemFree")
-except AttributeError:
-    _cuMemFree = getattr(nvcuda, "cuMemFree_v2")
-
-try:
-    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32")
-except AttributeError:  # pragma: no cover - legacy drivers
-    _cuMemsetD32 = getattr(nvcuda, "cuMemsetD32_v2")
+_cuMemGetInfo = _bind_v2("cuMemGetInfo_v2", "cuMemGetInfo")
+_cuMemAlloc = _bind_v2("cuMemAlloc_v2", "cuMemAlloc")
+_cuMemFree = _bind_v2("cuMemFree_v2", "cuMemFree")
+_cuMemsetD32 = _bind_v2("cuMemsetD32_v2", "cuMemsetD32")
 
 try:
     _cuMemcpyDtoD_v2 = getattr(nvcuda, "cuMemcpyDtoD_v2")
@@ -221,8 +224,13 @@ if _cuMemHostAlloc is not None:
 if _cuMemHostGetDevicePointer is not None:
     _cuMemHostGetDevicePointer.restype = ctypes.c_int
     _cuMemHostGetDevicePointer.argtypes = [ctypes.POINTER(CUdeviceptr), ctypes.c_void_p, ctypes.c_uint]
-nvcuda.cuCtxCreate.restype = ctypes.c_int
-nvcuda.cuCtxCreate.argtypes = [ctypes.POINTER(CUcontext), ctypes.c_uint, CUdevice]
+_cuCtxCreate = _bind_v2("cuCtxCreate_v2", "cuCtxCreate")
+_cuCtxCreate.restype = ctypes.c_int
+_cuCtxCreate.argtypes = [ctypes.POINTER(CUcontext), ctypes.c_uint, CUdevice]
+_cuCtxDestroy = _bind_v2("cuCtxDestroy_v2", "cuCtxDestroy")
+if _cuCtxDestroy is not None:
+    _cuCtxDestroy.restype = ctypes.c_int
+    _cuCtxDestroy.argtypes = [CUcontext]
 nvcuda.cuDevicePrimaryCtxSetFlags.restype = ctypes.c_int
 nvcuda.cuDevicePrimaryCtxSetFlags.argtypes = [CUdevice, ctypes.c_uint]
 nvcuda.cuDevicePrimaryCtxRetain.restype = ctypes.c_int
@@ -355,7 +363,7 @@ def _ensure_init():
         
         # Check if we should force Primary Context (to share with PyTorch)
         use_primary = os.environ.get("K3D_USE_PRIMARY_CTX", "0") == "1"
-        res = 201 if use_primary else nvcuda.cuCtxCreate(ctypes.byref(ctx), CU_CTX_MAP_HOST, device)
+        res = 201 if use_primary else _cuCtxCreate(ctypes.byref(ctx), CU_CTX_MAP_HOST, device)
         
         if res != 0:
             if os.environ.get("K3D_RPN_DEBUG") and not use_primary:
@@ -1024,7 +1032,8 @@ def cleanup():
     """Clean up CUDA context (called automatically at exit)."""
     global _initialized, _context
     if _initialized and _context:
-        nvcuda.cuCtxDestroy(_context)
+        if _cuCtxDestroy is not None:
+            _cuCtxDestroy(_context)
         _initialized = False
         _context = None
 
