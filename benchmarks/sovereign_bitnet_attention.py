@@ -275,10 +275,13 @@ class BitNetBenchmark:
 
             self.observe_vram()
 
-            # Build deterministic scores: simple ascending pattern so top-k is stable.
+            # Build deterministic scores in the realistic dp4a magnitude range for d=64
+            # (±d×127² = ±1,032,256). Path A's shift-normalize threshold (score >> 18)
+            # needs scores above ~262k to produce a nonzero normalized band; scale the
+            # ascending pattern accordingly so the margin gate actually fires.
             scores_host = (ctypes.c_int32 * scores_elems)()
             for i in range(scores_elems):
-                scores_host[i] = (i * 37 + 11) & 0x7FFFFFFF
+                scores_host[i] = ((i * 37 + 11) * 4096) & 0x7FFFFFFF
             loader.memcpy_htod(d_scores, host_ptr(scores_host), scores_elems * 4)
 
             for q_idx in range(self.n_queries):
