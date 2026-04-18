@@ -231,14 +231,32 @@ _cuCtxDestroy = _bind_v2("cuCtxDestroy_v2", "cuCtxDestroy")
 if _cuCtxDestroy is not None:
     _cuCtxDestroy.restype = ctypes.c_int
     _cuCtxDestroy.argtypes = [CUcontext]
-nvcuda.cuDevicePrimaryCtxSetFlags.restype = ctypes.c_int
-nvcuda.cuDevicePrimaryCtxSetFlags.argtypes = [CUdevice, ctypes.c_uint]
+_cuDevicePrimaryCtxSetFlags = _bind_v2(
+    "cuDevicePrimaryCtxSetFlags_v2", "cuDevicePrimaryCtxSetFlags"
+)
+_cuDevicePrimaryCtxSetFlags.restype = ctypes.c_int
+_cuDevicePrimaryCtxSetFlags.argtypes = [CUdevice, ctypes.c_uint]
+# cuDevicePrimaryCtxRetain exists only in one version (no _v2 on this driver).
 nvcuda.cuDevicePrimaryCtxRetain.restype = ctypes.c_int
 nvcuda.cuDevicePrimaryCtxRetain.argtypes = [ctypes.POINTER(CUcontext), CUdevice]
+# cuCtx{Set,Get}Current exist only in one version.
 nvcuda.cuCtxSetCurrent.restype = ctypes.c_int
 nvcuda.cuCtxSetCurrent.argtypes = [CUcontext]
 nvcuda.cuCtxGetCurrent.restype = ctypes.c_int
 nvcuda.cuCtxGetCurrent.argtypes = [ctypes.POINTER(CUcontext)]
+# Module-global/stream-destroy expose v1 AND v2 at distinct addresses; bind v2.
+_cuModuleGetGlobal = _bind_v2("cuModuleGetGlobal_v2", "cuModuleGetGlobal")
+_cuModuleGetGlobal.restype = ctypes.c_int
+_cuModuleGetGlobal.argtypes = [
+    ctypes.POINTER(CUdeviceptr),
+    ctypes.POINTER(ctypes.c_size_t),
+    CUmodule,
+    ctypes.c_char_p,
+]
+_cuStreamDestroy = _bind_v2("cuStreamDestroy_v2", "cuStreamDestroy")
+if _cuStreamDestroy is not None:
+    _cuStreamDestroy.restype = ctypes.c_int
+    _cuStreamDestroy.argtypes = [CUstream]
 
 CUDA_MEMCPY_HOST_TO_DEVICE = 1
 CUDA_MEMCPY_DEVICE_TO_HOST = 2
@@ -369,7 +387,7 @@ def _ensure_init():
             if os.environ.get("K3D_RPN_DEBUG") and not use_primary:
                 print(f"[loader] cuCtxCreate failed with code {res}")
             if res in (2, 201):  # out of memory or invalid context -> fall back to primary ctx
-                set_flags_res = nvcuda.cuDevicePrimaryCtxSetFlags(device, 0)
+                set_flags_res = _cuDevicePrimaryCtxSetFlags(device, 0)
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[loader] cuDevicePrimaryCtxSetFlags -> {set_flags_res}")
                 if set_flags_res not in (0, 708):  # 708: context already active
@@ -511,7 +529,7 @@ def get_global(module: CUmodule, symbol_name: str) -> Tuple[CUdeviceptr, int]:
     device_ptr = CUdeviceptr()
     size = ctypes.c_size_t()
     ck(
-        nvcuda.cuModuleGetGlobal(
+        _cuModuleGetGlobal(
             ctypes.byref(device_ptr),
             ctypes.byref(size),
             module,
@@ -989,7 +1007,10 @@ def destroy_stream(stream: CUstream) -> None:
         stream: Stream handle to destroy
     """
     if stream:
-        ck(nvcuda.cuStreamDestroy(stream))
+        if _cuStreamDestroy is not None:
+            ck(_cuStreamDestroy(stream))
+        else:
+            ck(nvcuda.cuStreamDestroy(stream))
 
 
 def stream_synchronize(stream: CUstream) -> None:
