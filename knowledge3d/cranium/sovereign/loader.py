@@ -396,6 +396,17 @@ def _ensure_init():
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[loader] cuCtxGetCurrent -> {current}")
                 ctx = current
+                # Materialize lazy primary ctx: cuMemGetInfo requires active state
+                d_temp = CUdeviceptr()
+                warmup_res = _cuMemAlloc(ctypes.byref(d_temp), 0)
+                if warmup_res == 0 and d_temp.value:
+                    _cuMemFree(d_temp)
+                    if os.environ.get("K3D_RPN_DEBUG"):
+                        print("[loader] Primary context warmed up (zero-size alloc)")
+                else:
+                    if os.environ.get("K3D_RPN_DEBUG"):
+                        print(f"[loader] Context warmup failed with code {warmup_res}")
+                    ck(warmup_res)
                 try:
                     import cupy as _cupy  # type: ignore
 

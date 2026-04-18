@@ -172,6 +172,14 @@ class K3DDaemon:
         )
         self._write_boot_status(stage="daemon_boot", progress=0.05, state="starting")
 
+        # Sovereign invariant: ONE CUDA context, established at daemon boot (not on first query).
+        # See TEMP/CLAUDE_SINGLE_CONTEXT_LIVING_AI_SPEC_04.18.2026.md §5.2.
+        from knowledge3d.cranium.sovereign import loader
+        loader.ensure_init()
+        _vram_used, _vram_total = loader.get_vram_usage()
+        if os.environ.get("K3D_RPN_DEBUG"):
+            print(f"[daemon] single-context boot: vram_used={_vram_used:.1f} MB / {_vram_total:.1f} MB")
+
         os.environ["K3D_REQUIRE_PTX_QUERY"] = "true" if config.require_ptx_query else "false"
         os.environ.setdefault(
             "K3D_RING_TRACE_PATH",
