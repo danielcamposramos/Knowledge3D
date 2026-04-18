@@ -3,7 +3,7 @@
 **Date**: April 6, 2026
 
 ```bash
-cd "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
+cd "/K3D/GitHub/Knowledge3D"
 export PYTHON_BIN="/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python"
 export K3D_ROOT="/K3D/Knowledge3D.local"
 ```

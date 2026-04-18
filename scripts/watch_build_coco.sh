@@ -2,7 +2,7 @@
 # Watch for the COCO CSV and build the GLB once ready.
 #
 # Usage:
-#   RAW=/home/daniel/K3D_llama_cpp/datasets BASE=../Knowledge3D.local/datasets \
+#   RAW=/home/daniel/K3D_llama_cpp/datasets BASE=/K3D/Knowledge3D.local/datasets \
 #   scripts/watch_build_coco.sh
 #
 # Notes:
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 RAW=${RAW:-/home/daniel/K3D_llama_cpp/datasets}
-BASE=${BASE:-../Knowledge3D.local/datasets}
+BASE=${BASE:-/K3D/Knowledge3D.local/datasets}
 LOGS=${LOGS:-/home/daniel/K3D_llama_cpp/logs}
 mkdir -p "$LOGS" "viewer/public"
 

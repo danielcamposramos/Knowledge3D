@@ -274,7 +274,7 @@ def main() -> None:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/global_benchmarks"),
+        default=Path("/K3D/Knowledge3D.local/datasets/global_benchmarks"),
         help="Root folder for all benchmark assets",
     )
     parser.add_argument(

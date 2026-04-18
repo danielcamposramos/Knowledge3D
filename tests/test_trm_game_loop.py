@@ -207,8 +207,84 @@ def test_knowledgeverse_eager_boot_is_sovereign_only(tmp_path: Path, monkeypatch
     kv = Knowledgeverse(storage_root=tmp_path / "kv_eager_boot", eager_load_default_galaxies=True)
 
     assert kv._default_galaxies_loaded is True
-    assert not hasattr(Knowledgeverse, "bind_gpu_galaxy_runtime")
+    assert hasattr(Knowledgeverse, "bind_gpu_galaxy_runtime")
     assert calls == ["sovereign_boot"]
+
+
+def test_knowledgeverse_execute_task_bypass_flag_skips_trm_game_loop(tmp_path: Path, monkeypatch):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_loop_bypass", eager_load_default_galaxies=False)
+
+    called: list[dict[str, object]] = []
+
+    def _fake_dispatch(*, task, route=None, specialist="auto", domain_hint=None, use_enriched=True):
+        called.append(
+            {
+                "task": dict(task),
+                "route": dict(route or {}),
+                "specialist": specialist,
+                "domain_hint": domain_hint,
+                "use_enriched": use_enriched,
+            }
+        )
+        return {"status": "ok", "answer": "bypass-shell"}
+
+    monkeypatch.setattr(kv, "_dispatch_sovereign_task", _fake_dispatch)
+    monkeypatch.setenv("K3D_BYPASS_GAME_LOOP", "1")
+    fake_bridge = _FakeFusedBridge()
+    kv._trm_game_loop.bridge = fake_bridge
+    kv._trm_game_loop.start()
+
+    result = kv.execute_task(
+        task={"type": "CHAT_TASK", "query": "hello"},
+        specialist="chat",
+        domain_hint="general",
+        use_enriched=False,
+    )
+
+    assert result["status"] == "ok"
+    assert result["answer"] == "bypass-shell"
+    assert len(called) == 1
+    assert fake_bridge.query_calls == 0
+
+
+def test_knowledgeverse_run_ticks_pumps_bridge_clock(tmp_path: Path):
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_loop_ticks", eager_load_default_galaxies=False)
+    fake_bridge = _FakeFusedBridge()
+    kv._trm_game_loop.bridge = fake_bridge
+    kv._trm_game_loop.start()
+
+    processed = kv.run_ticks(3)
+
+    assert processed == 3
+    assert fake_bridge.background_calls == 3
+
+
+def test_enqueue_task_wall_timeout(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("K3D_RING_TRACE_PATH", str(tmp_path / "ring_trace.jsonl"))
+    kv = Knowledgeverse(storage_root=tmp_path / "kv_loop_timeout", eager_load_default_galaxies=False)
+    fake_bridge = _FakeFusedBridge()
+    kv._trm_game_loop.bridge = fake_bridge
+    kv._trm_game_loop.start()
+    kv._external_tick_driver_active = True
+
+    request_id = kv.enqueue_task(
+        task={"type": "CHAT_TASK", "task_id": "timeout_case", "query": "wait forever"},
+        specialist="chat",
+        domain_hint="general",
+        use_enriched=False,
+        max_wall_ms=50,
+    )
+
+    result = kv.wait_output_buffer(request_id, max_ticks=0, max_wall_ms=50)
+
+    assert result["failure_code"] == "wall_timeout"
+    assert result["task_result"]["failure_code"] == "wall_timeout"
+    assert result["task_id"] == "timeout_case"
+    assert result["trm_io"]["request_id"] == request_id
+    assert kv._trm_game_loop.read_input_packet(request_id) is None
+    assert kv.trm_game_loop_status()["pending_inputs"] == 0
+    assert kv.trm_game_loop_status()["abandoned_requests"] == 0
+    assert fake_bridge.query_calls == 0
 
 
 def test_knowledgeverse_adaptive_swarm_adapters_expose_no_cpu_escape_hatch(tmp_path: Path):

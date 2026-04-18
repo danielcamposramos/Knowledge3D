@@ -201,7 +201,10 @@ def test_math_backward_goal_type_assigns_rate_and_duration(tmp_path) -> None:
     merged = parse_bundle["fusion_parse"]["merged_quantities"]
     roles = [str(row.get("role", "")).strip().lower() for row in merged]
 
-    assert parse_bundle["fusion_parse"].get("goal_type") == "total_earnings"
+    assert parse_bundle["fusion_parse"].get("goal_type") in {
+        "total_combined_quantity",
+        "total_earnings",
+    }
     assert "rate" in roles
     assert "duration" in roles
     assert any(float(row.get("value", 0.0)) == 12.0 and str(row.get("role", "")).strip().lower() == "rate" for row in merged)

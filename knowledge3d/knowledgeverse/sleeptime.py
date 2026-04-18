@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from .navigator_specialist import derive_symlink_histogram, meaning_class_from_symlink_votes
 from .resilience import SelfHealingWrapper
 from .temporal_metadata import TemporalMetadataManager
 
@@ -191,19 +192,15 @@ class SleepTimeConsolidation:
         if self.kv is None:
             return {"skipped": True, "reason": "no_knowledgeverse"}
         sovereign_runtime = getattr(self.kv, "_sovereign_hot_path", None)
+        device_learning: dict[str, Any] | None = None
         if sovereign_runtime is not None and hasattr(sovereign_runtime, "current_learning_state"):
             try:
-                learning_state = dict(sovereign_runtime.current_learning_state())
+                device_learning = dict(sovereign_runtime.current_learning_state())
             except Exception as exc:
                 return {
                     "skipped": True,
                     "reason": f"device_lesson_ring_error:{exc}",
                 }
-            return {
-                "skipped": True,
-                "reason": "device_lesson_ring_authoritative",
-                "device_learning": learning_state,
-            }
         swarm = getattr(self.kv, "adaptive_swarm", None)
         if swarm is None or not hasattr(swarm, "train_specialist_contrastive"):
             return {"skipped": True, "reason": "no_swarm"}
@@ -228,6 +225,8 @@ class SleepTimeConsolidation:
             "grammar": [],
             "chat": [],
         }
+        navigator = getattr(self.kv, "navigator_specialist", None)
+        navigator_samples: list[dict[str, Any]] = []
         for row in rows:
             suite = str(row.get("suite", "")).strip().lower()
             question = str(row.get("question", "")).strip()
@@ -249,6 +248,18 @@ class SleepTimeConsolidation:
                 if q_emb.size == 0 or e_emb.size == 0:
                     continue
                 specialist_positive[specialist_name].append((q_emb, e_emb))
+                if navigator is not None:
+                    navigator_sample = self._build_navigator_training_sample(
+                        question=question,
+                        expected=expected,
+                        correct=True,
+                        query_embedding=q_emb,
+                        knowledgeverse=self.kv,
+                        navigator=navigator,
+                        retrieved_stars=row.get("retrieved_stars"),
+                    )
+                    if isinstance(navigator_sample, dict):
+                        navigator_samples.append(navigator_sample)
                 continue
 
             answer = row.get("answer")
@@ -267,6 +278,18 @@ class SleepTimeConsolidation:
                 if q_emb.size == 0 or e_emb.size == 0:
                     continue
                 specialist_positive[specialist_name].append((q_emb, e_emb))
+                if navigator is not None:
+                    navigator_sample = self._build_navigator_training_sample(
+                        question=question,
+                        expected=expected,
+                        correct=True,
+                        query_embedding=q_emb,
+                        knowledgeverse=self.kv,
+                        navigator=navigator,
+                        retrieved_stars=row.get("retrieved_stars"),
+                    )
+                    if isinstance(navigator_sample, dict):
+                        navigator_samples.append(navigator_sample)
                 continue
             try:
                 question_values = engine.embed_sentence_gpu(question)
@@ -279,6 +302,18 @@ class SleepTimeConsolidation:
             if q_emb.size == 0 or a_emb.size == 0:
                 continue
             specialist_negative[specialist_name].append((q_emb, a_emb))
+            if navigator is not None:
+                navigator_sample = self._build_navigator_training_sample(
+                    question=question,
+                    expected=answer,
+                    correct=False,
+                    query_embedding=q_emb,
+                    knowledgeverse=self.kv,
+                    navigator=navigator,
+                    retrieved_stars=row.get("retrieved_stars"),
+                )
+                if isinstance(navigator_sample, dict):
+                    navigator_samples.append(navigator_sample)
 
         results: dict[str, Any] = {}
         trained_any = False
@@ -307,11 +342,47 @@ class SleepTimeConsolidation:
                 "trained": True,
                 "positives": len(positive_pairs),
                 "negatives": len(negative_pairs),
-                "avg_loss": float(stats.get("avg_loss", 0.0)),
-                "positive_loss": float(stats.get("positive_loss", 0.0)),
-                "negative_loss": float(stats.get("negative_loss", 0.0)),
+                "contrast_signal": float(stats.get("contrast_signal", stats.get("avg_loss", 0.0))),
+                "positive_contrast_signal": float(stats.get("positive_loss", 0.0)),
+                "negative_contrast_signal": float(stats.get("negative_loss", 0.0)),
                 "steps": int(stats.get("steps", 0)),
             }
+        if navigator is not None and navigator_samples:
+            for sample in navigator_samples:
+                navigator.update_from_trace(sample)
+            split_idx = max(1, int(len(navigator_samples) * 0.8))
+            navigator_train = navigator_samples[:split_idx]
+            navigator_val = navigator_samples[split_idx:] if split_idx < len(navigator_samples) else navigator_samples[-1:]
+            try:
+                stats = swarm.consolidate_specialist_dream_cycle(
+                    "navigator",
+                    consolidation_wave=navigator_train,
+                    gate_check_samples=navigator_val,
+                )
+            except Exception as exc:
+                results["navigator"] = {
+                    "trained": False,
+                    "positives": sum(1 for sample in navigator_train if bool(sample.get("correct", True))),
+                    "negatives": sum(1 for sample in navigator_train if not bool(sample.get("correct", True))),
+                    "error": str(exc),
+                }
+            else:
+                trained_any = True
+                navigator._training_state["last_training_stats"] = {
+                    "contrast_signal": float(stats.get("contrast_signal", stats.get("avg_loss", 0.0))),
+                    "steps": int(stats.get("steps", 0)),
+                    "gate_check_samples": int(stats.get("gate_check_samples", stats.get("validation_samples", 0))),
+                    "consolidation_wave_size": int(stats.get("consolidation_wave_size", len(navigator_train))),
+                }
+                navigator.save_state()
+                results["navigator"] = {
+                    "trained": True,
+                    "positives": sum(1 for sample in navigator_train if bool(sample.get("correct", True))),
+                    "negatives": sum(1 for sample in navigator_train if not bool(sample.get("correct", True))),
+                    "contrast_signal": float(stats.get("contrast_signal", stats.get("avg_loss", 0.0))),
+                    "steps": int(stats.get("steps", 0)),
+                    "gate_check_samples": int(stats.get("gate_check_samples", stats.get("validation_samples", 0))),
+                }
         checkpoint = {}
         if trained_any and hasattr(self.kv, "_save_adaptive_swarm_state"):
             try:
@@ -324,7 +395,57 @@ class SleepTimeConsolidation:
             "rows": len(rows),
             "specialists_trained": results,
             "checkpoint": checkpoint,
+            **({"device_learning": device_learning} if isinstance(device_learning, dict) else {}),
         }
+
+    @staticmethod
+    def _build_navigator_training_sample(
+        *,
+        question: str,
+        expected: Any,
+        correct: bool,
+        query_embedding: np.ndarray,
+        knowledgeverse: Any,
+        navigator: Any,
+        retrieved_stars: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        stars: list[dict[str, Any]] = [
+            dict(row)
+            for row in list(retrieved_stars or [])
+            if isinstance(row, dict)
+        ]
+        if not stars:
+            galaxy_manager = getattr(knowledgeverse, "galaxy_manager", None)
+            if galaxy_manager is not None and hasattr(galaxy_manager, "query"):
+                try:
+                    raw_rows = list(
+                        galaxy_manager.query(
+                            query_text=str(question),
+                            specialist="any",
+                            top_k=8,
+                        )
+                    )
+                except Exception:
+                    raw_rows = []
+                for row in raw_rows:
+                    if not isinstance(row, dict):
+                        continue
+                    entry = row.get("entry") if isinstance(row.get("entry"), dict) else row
+                    if isinstance(entry, dict):
+                        stars.append(dict(entry))
+        meaning_class = meaning_class_from_symlink_votes(stars) or "FACTUAL_RECALL"
+        trace = {
+            "query_text": str(question),
+            "query_embedding": [float(value) for value in list(query_embedding)[:64]],
+            "symlink_histogram": derive_symlink_histogram(stars),
+            "meaning_class": meaning_class,
+            "halting_weight_vec": [1.0] * 9,
+            "correct": bool(correct),
+            "task_payload": {},
+            "expected": expected,
+            "retrieved_stars": [dict(row) for row in stars if isinstance(row, dict)],
+        }
+        return navigator._trace_to_training_sample(trace)
 
     def _commit_transaction(self, payload: dict[str, Any]) -> None:
         self._append_journal({"event": "commit", **payload})

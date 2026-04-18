@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT=$(pwd)
-LOCAL=$(dirname "$ROOT")/Knowledge3D.local
+LOCAL=${K3D_LOCAL_DIR:-/K3D/Knowledge3D.local}
 PUB="$ROOT/viewer/public"
 
 # Remove large generated datasets in local folder (safe; outside repo)

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletSessionTape
+from knowledge3d.daemon.tick_driver import TickDriver
 from knowledge3d.local_paths import default_storage_root
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
@@ -172,6 +173,10 @@ class K3DDaemon:
         self._write_boot_status(stage="daemon_boot", progress=0.05, state="starting")
 
         os.environ["K3D_REQUIRE_PTX_QUERY"] = "true" if config.require_ptx_query else "false"
+        os.environ.setdefault(
+            "K3D_RING_TRACE_PATH",
+            str(self._repo_root / "TEMP" / "validation_sweep_2026-04-17" / "ring_trace.jsonl"),
+        )
 
         self._write_boot_status(stage="knowledgeverse_load", progress=0.2, state="loading")
         self.kv = knowledgeverse or Knowledgeverse(
@@ -198,6 +203,9 @@ class K3DDaemon:
             },
         )
         self._warmup_boot_runtime()
+        self._tick_driver = TickDriver(self.kv)
+        self._tick_driver.start()
+        self.kv._external_tick_driver_active = True
         self._write_boot_status(
             stage="ready",
             progress=1.0,
@@ -207,6 +215,7 @@ class K3DDaemon:
                 "geometry_warmup": dict(self._geometry_warmup),
                 "material_warmup": dict(self._material_warmup),
                 "gpu_binding": dict(self._boot_binding),
+                "tick_driver": self._tick_driver.stats(),
             },
         )
 
@@ -446,26 +455,76 @@ class K3DDaemon:
     def _all_default_galaxies(self) -> list[str]:
         return list(self.kv._discover_live_galaxy_names())
 
-    def _looks_like_math_prompt(self, text: str) -> bool:
-        prompt = str(text).strip().lower()
-        if not prompt:
-            return False
-        has_digit = any(ch.isdigit() for ch in prompt)
-        if has_digit and any(ch in prompt for ch in "+-*/=^"):
-            return True
-        math_markers = (
-            "solve ",
-            "calculate ",
-            "compute ",
-            "evaluate ",
-            "factorial",
-            "binomial",
-            "derivative",
-            "integral",
-            "quadratic",
-            "equation",
-        )
-        return has_digit and any(marker in prompt for marker in math_markers)
+    def _coalesce_query(
+        self,
+        payload: dict[str, Any],
+        task: dict[str, Any] | None,
+    ) -> str:
+        task_payload = dict(task or {})
+        if isinstance(task_payload.get("messages"), list):
+            for message in reversed(task_payload["messages"]):
+                if not isinstance(message, dict):
+                    continue
+                if str(message.get("role", "")).strip().lower() != "user":
+                    continue
+                content = str(message.get("content", "")).strip()
+                if content:
+                    return content
+        return str(
+            payload.get("query", "")
+            or task_payload.get("query", "")
+            or task_payload.get("question", "")
+            or task_payload.get("prompt", "")
+        ).strip()
+
+    def _meaning_route(
+        self,
+        *,
+        specialist: str,
+        domain_hint: str | None,
+        galaxy_names: list[str],
+        route_policy: str,
+    ) -> dict[str, Any]:
+        route: dict[str, Any] = {
+            "galaxy_names": list(galaxy_names),
+            "route_policy": route_policy or "all_live_galaxies",
+        }
+        specialist_name = str(specialist or "auto").strip().lower() or "auto"
+        if specialist_name != "auto":
+            route["specialist"] = specialist_name
+        domain_name = str(domain_hint or "").strip()
+        if domain_name:
+            route["domain_hint"] = domain_name
+        return route
+
+    def _meaning_task_payload(
+        self,
+        *,
+        task: dict[str, Any] | None,
+        query: str,
+        galaxies: list[str],
+        route_policy: str,
+    ) -> dict[str, Any]:
+        task_payload = dict(task or {})
+        for key in (
+            "surface_kind",
+            "type",
+            "task_type",
+            "question_mode",
+            "spatial_mode",
+            "math_mode",
+        ):
+            task_payload.pop(key, None)
+        task_payload["query"] = str(query)
+        if "question" in task_payload or not str(task_payload.get("prompt", "")).strip():
+            task_payload["question"] = str(query)
+        if "prompt" in task_payload or isinstance(task_payload.get("messages"), list):
+            task_payload["prompt"] = str(query)
+        if galaxies:
+            task_payload["galaxies"] = list(galaxies)
+        if route_policy:
+            task_payload["route_policy"] = str(route_policy)
+        return task_payload
 
     def _get_sleep_cluster_refiner(self):
         if self._sleep_cluster_refiner is False:
@@ -721,6 +780,14 @@ class K3DDaemon:
 
     def _finalize_shutdown(self) -> dict[str, Any]:
         summary: dict[str, Any] = {"status": "ok"}
+        tick_driver = getattr(self, "_tick_driver", None)
+        if tick_driver is not None:
+            try:
+                tick_driver.stop()
+                summary["tick_driver"] = tick_driver.stats()
+            except Exception as exc:
+                summary["tick_driver_error"] = str(exc)
+        self.kv._external_tick_driver_active = False
         boundary = self._tablet_boundary
         if boundary is not None:
             try:
@@ -765,6 +832,7 @@ class K3DDaemon:
             "last_sleep_tick": dict(self._last_sleep_tick),
             "sleep_tick_history": [dict(item) for item in self._sleep_tick_history],
             "boot_status_paths": [str(path) for path in self._boot_status_paths],
+            "tick_driver": getattr(self, "_tick_driver", None).stats() if getattr(self, "_tick_driver", None) is not None else {},
         }
 
     def _gpu_call_snapshot(self) -> int:
@@ -775,253 +843,44 @@ class K3DDaemon:
         except Exception:
             return 0
 
-    def _collect_parse_bundle(
+    def _dispatch_task(
         self,
-        query: str,
         *,
+        route: dict[str, Any],
+        task: dict[str, Any] | None,
+        query: str,
         specialist: str,
-        galaxy_names: list[str],
-        domain_hint: str | None = None,
+        domain_hint: str | None,
+        use_enriched: bool,
+        max_wall_ms: int | None = None,
     ) -> dict[str, Any]:
-        navigator = getattr(self.kv, "navigator_specialist", None)
-        if navigator is None:
-            navigator = getattr(self.trm, "navigator_specialist", None)
-        if navigator is None:
-            return {}
-        try:
-            routes = navigator.plan_routes(
-                query=query,
-                specialist=specialist,
-                galaxy_names=galaxy_names,
-                domain_hint=domain_hint,
-                use_forward_backward=True,
-            )
-        except Exception:
-            return {}
-        bundle: dict[str, Any] = {"route_plan": routes}
-        for key in ("forward_parse", "backward_parse", "fusion_parse"):
-            for route in routes:
-                if not isinstance(route, dict):
-                    continue
-                value = route.get(key)
-                if isinstance(value, dict):
-                        bundle[key] = value
-                        break
-        return bundle
-
-    def _dispatch_question_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        response = self.kv.execute_task(
-            task=task,
-            route=route,
-            specialist=str(route.get("specialist", "auto")),
-            domain_hint=task.get("domain_hint"),
-            use_enriched=use_enriched,
-        )
-        if isinstance(response, dict):
-            response.setdefault("runtime", "knowledgeverse_gpu_query")
-        return response
-
-    def _dispatch_task(self, *, route: dict[str, Any], task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        specialist = str(route.get("specialist", "grammar")).lower()
-        task_type = (
-            self.kv._normalize_semantic_task_type(str(task.get("surface_kind") or task.get("type", "")).upper())
-            if hasattr(self.kv, "_normalize_semantic_task_type")
-            else str(task.get("surface_kind") or task.get("type", "")).upper()
-        )
-        question_mode = task_type == "QUESTION"
-        spatial_mode = task_type == "GAME_2D"
-        math_mode = task_type == "MATH"
-        all_galaxies = self._all_default_galaxies()
-        route_policy = str(route.get("route_policy") or task.get("route_policy") or "").strip().lower()
-        preferred_galaxies = [
+        if not hasattr(self.kv, "execute_task"):
+            return {"status": "error", "error": "knowledgeverse_missing_execute_task"}
+        route_policy = str(route.get("route_policy") or "").strip().lower()
+        galaxy_names = [
             str(name)
-            for name in (route.get("galaxy_names") or task.get("galaxies") or [])
+            for name in (route.get("galaxy_names") or [])
             if str(name).strip()
         ]
-        route_galaxies = list(all_galaxies) if route_policy == "all_live_galaxies" else (
-            preferred_galaxies or list(all_galaxies)
+        task_payload = self._meaning_task_payload(
+            task=task,
+            query=query,
+            galaxies=galaxy_names,
+            route_policy=route_policy,
         )
-
-        if question_mode:
-            return self._dispatch_question_task(route=route, task=task, use_enriched=use_enriched)
-
-        if specialist == "visual":
-            if not spatial_mode:
-                return {"status": "not_implemented", "reason": "visual_specialist_expected_game2d_task"}
-            if not hasattr(self.kv, "execute_task"):
-                return {"status": "error", "error": "knowledgeverse_missing_execute_task"}
-            arc_route = {
-                "specialist": "visual",
-                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "visual"),
-                "galaxy_names": list(route_galaxies),
-                "route_policy": route_policy or None,
-            }
-            solved = self.kv.execute_task(
-                task=task,
-                route=arc_route,
-                specialist="visual",
-                domain_hint="visual",
-                use_enriched=use_enriched,
-            )
-            task_result = dict(solved.get("task_result") or {}) if isinstance(solved, dict) else {}
-            packet = task_result if task_result else (dict(solved) if isinstance(solved, dict) else {})
-            output_grid = packet.get("output_grid")
-            action_index = packet.get("action_index")
-            action_name = str(packet.get("action_name") or "").strip()
-            answer_materialized = bool(
-                packet.get("answer_materialized")
-                or output_grid is not None
-                or action_index is not None
-                or action_name
-            )
-            response = dict(solved or {})
-            response.update(
-                {
-                    "status": "ok"
-                    if str((solved or {}).get("status", "")).lower() == "ok" and answer_materialized
-                    else "error",
-                    "task_type": "GAME_2D",
-                    "task_id": task.get("task_id"),
-                    "program_type": str(packet.get("program_type") or (solved or {}).get("program_type") or "knowledgeverse_gpu_query"),
-                    "output_grid": output_grid,
-                    "action_index": action_index,
-                    "action_name": action_name,
-                    "answer_materialized": answer_materialized,
-                    "failure_code": str(packet.get("failure_code") or ""),
-                    "reasoning_trace": list(packet.get("reasoning_trace", packet.get("thinking_trace", (solved or {}).get("reasoning_trace", (solved or {}).get("thinking_trace", []))))),
-                    "thinking_trace": list(packet.get("thinking_trace", (solved or {}).get("thinking_trace", []))),
-                    "thinking_xml": packet.get("thinking_xml", (solved or {}).get("thinking_xml")),
-                    "solver": packet.get("solver", (solved or {}).get("solver", "knowledgeverse_gpu_query")),
-                    "patterns_used": int(packet.get("patterns_used", 1 if answer_materialized else 0)),
-                    "generated_pattern_count": int(packet.get("generated_pattern_count", 0)),
-                    "score": float(packet.get("score", 1.0 if answer_materialized else 0.0)),
-                    "fuzzy_score": float(packet.get("fuzzy_score", 1.0 if answer_materialized else 0.0)),
-                    "exact_match": bool(output_grid == task.get("expected_output")) if task.get("expected_output") is not None else False,
-                    "gpu_execution": bool(packet.get("gpu_execution", (solved or {}).get("gpu_execution", False))),
-                    "runtime": packet.get("runtime", (solved or {}).get("runtime", "knowledgeverse_gpu_query")),
-                    "program_id": packet.get("program_id", (solved or {}).get("program_id")),
-                    "route": packet.get("route", (solved or {}).get("route", arc_route)),
-                }
-            )
-            if task_result:
-                response["task_result"] = task_result
-            return response
-
-        if specialist == "math" or math_mode:
-            question = str(task.get("question", "") or task.get("query", "")).strip()
-            if not question:
-                return {"status": "error", "error": "math_task_missing_question"}
-            math_route = {
-                "specialist": "math",
-                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "math"),
-                "galaxy_names": list(route_galaxies),
-                "route_policy": route_policy or None,
-            }
-            solved = self.kv.execute_task(
-                task={
-                    **dict(task),
-                    "surface_kind": "MATH",
-                    "query": question,
-                    "question": question,
-                },
-                route=math_route,
-                specialist="math",
-                domain_hint="math",
-                use_enriched=use_enriched,
-            )
-            task_packet = dict(solved.get("task_result") or {}) if isinstance(solved, dict) else {}
-            gpu_execution = bool(
-                solved.get("gpu_execution", False)
-                or task_packet.get("gpu_execution", False)
-                or task_packet.get("trm_tick")
-                or task_packet.get("action_buffers")
-            )
-            if task_packet and "gpu_execution" not in task_packet:
-                task_packet["gpu_execution"] = gpu_execution
-            response = {
-                **solved,
-                "task_type": "MATH",
-                "task_id": task.get("task_id"),
-                "gpu_execution": gpu_execution,
-            }
-            if task_packet:
-                response["task_result"] = task_packet
-            response["status"] = "success" if str(solved.get("status", "")).lower() == "ok" else "error"
-            return response
-
-        if specialist in {"chat", "grammar", "any"}:
-            messages = task.get("messages")
-            if not isinstance(messages, list):
-                prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
-                if not prompt:
-                    return {"status": "error", "error": "chat_task_missing_prompt"}
-                messages = [{"role": "user", "content": prompt}]
-            chat_prompt = str(task.get("prompt", "") or task.get("query", "")).strip()
-            if not chat_prompt:
-                for message in reversed(messages):
-                    if not isinstance(message, dict):
-                        continue
-                    if str(message.get("role", "")).strip().lower() != "user":
-                        continue
-                    chat_prompt = str(message.get("content", "")).strip()
-                    if chat_prompt:
-                        break
-            if not chat_prompt:
-                return {"status": "error", "error": "chat_task_missing_prompt"}
-            if not question_mode and self._looks_like_math_prompt(chat_prompt):
-                math_route = {
-                    "specialist": "math",
-                    "domain_hint": "math",
-                    "galaxy_names": list(route_galaxies),
-                    "route_policy": route_policy or None,
-                }
-                solved = self.kv.execute_task(
-                    task={
-                        **dict(task),
-                        "surface_kind": "MATH",
-                        "query": chat_prompt,
-                        "question": chat_prompt,
-                    },
-                    route=math_route,
-                    specialist="math",
-                    domain_hint="math",
-                    use_enriched=use_enriched,
-                )
-                return {
-                    **solved,
-                    "task_type": "MATH",
-                    "task_id": task.get("task_id"),
-                }
-            chat_route = {
-                "specialist": "chat",
-                "domain_hint": str(route.get("domain") or route.get("domain_hint") or "general"),
-                "galaxy_names": list(route_galaxies),
-                "route_policy": route_policy or None,
-            }
-            solved = self.kv.execute_task(
-                task={
-                    **dict(task),
-                    "surface_kind": task_type or "CHAT",
-                    "prompt": chat_prompt,
-                    "query": chat_prompt,
-                    "messages": list(messages),
-                },
-                route=chat_route,
-                specialist="chat",
-                domain_hint=str(route.get("domain") or route.get("domain_hint") or "general"),
-                use_enriched=use_enriched,
-            )
-            return {
-                **solved,
-                "task_type": task_type or "CHAT",
-                "task_id": task.get("task_id"),
-            }
-
-        return {
-            "status": "not_implemented",
-            "reason": f"specialist_dispatch_not_implemented:{specialist}",
-            "task_type": task_type,
-        }
+        response = self.kv.execute_task(
+            task=task_payload,
+            route=route,
+            specialist=str(specialist or "auto"),
+            domain_hint=domain_hint,
+            use_enriched=use_enriched,
+            max_wall_ms=max_wall_ms,
+        )
+        result = dict(response or {})
+        if isinstance(task, dict) and task.get("task_id") is not None and "task_id" not in result:
+            result["task_id"] = task.get("task_id")
+        result.setdefault("runtime", "knowledgeverse_gpu_query")
+        return result
 
     def handle_command(self, payload: dict[str, Any]) -> dict[str, Any]:
         self._command_count += 1
@@ -1034,6 +893,13 @@ class K3DDaemon:
 
         if cmd == "VRAM_REPORT":
             return self._vram_report_payload()
+
+        if cmd == "TICK_STATUS":
+            tick_driver = getattr(self, "_tick_driver", None)
+            return {
+                "status": "ok",
+                "tick_driver": tick_driver.stats() if tick_driver is not None else {},
+            }
 
         if cmd == "SHUTDOWN":
             persist_result = self._persist_sleep_state()
@@ -1127,28 +993,9 @@ class K3DDaemon:
             if task is not None and not isinstance(task, dict):
                 return {"status": "error", "error": "task_must_be_object"}
             task_obj = task if isinstance(task, dict) else None
-            if task_obj is not None and not any(int(value) > 0 for value in self._default_counts.values()):
+            if not any(int(value) > 0 for value in self._default_counts.values()):
                 self._default_counts = self.kv.ensure_default_galaxies_loaded()
-            task_type = (
-                self.kv._normalize_semantic_task_type(
-                    str(
-                        (task_obj or {}).get("surface_kind")
-                        or (task_obj or {}).get("type", "")
-                    ).upper()
-                )
-                if hasattr(self.kv, "_normalize_semantic_task_type")
-                else str((task_obj or {}).get("surface_kind") or (task_obj or {}).get("type", "")).upper()
-            )
-            question_mode = task_type == "QUESTION"
-            spatial_mode = task_type == "GAME_2D"
-            math_mode = task_type == "MATH"
-            query = str(
-                payload.get("query", "")
-                or (task_obj or {}).get("query", "")
-                or (task_obj or {}).get("question", "")
-                or (task_obj or {}).get("prompt", "")
-                or task_type
-            ).strip()
+            query = self._coalesce_query(payload, task_obj)
             if not query:
                 return {"status": "error", "error": "missing_query_or_task"}
             use_enriched = bool(payload.get("use_enriched", True))
@@ -1168,78 +1015,32 @@ class K3DDaemon:
             route_galaxies = list(all_galaxies) if route_policy == "all_live_galaxies" else (
                 preferred_galaxies or list(all_galaxies)
             )
-            if spatial_mode:
-                route = {
-                    "specialist": "visual",
-                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "visual"),
-                    "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(route_galaxies),
-                    "route_policy": route_policy or None,
-                }
-            elif question_mode:
-                route = {
-                    "specialist": str(payload.get("specialist", "auto") or "auto"),
-                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or ""),
-                    "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(route_galaxies),
-                    "route_policy": route_policy or None,
-                }
-            elif math_mode:
-                route = {
-                    "specialist": "math",
-                    "domain": str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "math"),
-                    "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(route_galaxies),
-                    "route_policy": route_policy or None,
-                }
-            elif task_type in {"CHAT", "GENERAL", "GRAMMAR"}:
-                specialist = "math" if self._looks_like_math_prompt(query) else "chat"
-                domain = "math" if specialist == "math" else str(
-                    payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "general"
+            specialist = str(payload.get("specialist") or (task_obj or {}).get("specialist") or "auto").strip() or "auto"
+            domain_hint = str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "").strip() or None
+            route = self._meaning_route(
+                specialist=specialist,
+                domain_hint=domain_hint,
+                galaxy_names=list(route_galaxies),
+                route_policy=route_policy or "all_live_galaxies",
+            )
+            dispatched = dict(
+                self._dispatch_task(
+                    route=route,
+                    task=task_obj,
+                    query=query,
+                    specialist=specialist,
+                    domain_hint=domain_hint,
+                    use_enriched=use_enriched,
+                    max_wall_ms=payload.get("max_wall_ms"),
                 )
-                route = {
-                    "specialist": specialist,
-                    "domain": domain,
-                    "reason": "knowledgeverse_gpu_query",
-                    "galaxy_names": list(route_galaxies),
-                    "route_policy": route_policy or None,
-                }
-            else:
-                specialist_hint = str(payload.get("specialist", "") or "").strip()
-                domain_hint = str(payload.get("domain_hint") or (task_obj or {}).get("domain_hint") or "").strip()
-                if task_obj is None:
-                    specialist = specialist_hint or ("math" if self._looks_like_math_prompt(query) else "chat")
-                    domain = domain_hint or ("math" if specialist == "math" else "general")
-                    route = {
-                        "specialist": specialist,
-                        "domain": domain,
-                        "reason": "daemon_lightweight_route",
-                        "galaxy_names": list(route_galaxies),
-                        "route_policy": route_policy or None,
-                    }
-                else:
-                    route = self.trm.route(
-                        query=query,
-                        specialist=str(payload.get("specialist", "auto")),
-                        domain_hint=payload.get("domain_hint") or (task_obj or {}).get("domain_hint"),
-                        galaxy_names=payload.get("galaxies") or (task_obj or {}).get("galaxies"),
-                    )
-            response: dict[str, Any] = {"status": "ok", "route": route}
-            if task_obj is not None:
-                dispatched = dict(
-                    self._dispatch_task(
-                        route=route,
-                        task=task_obj,
-                        use_enriched=use_enriched,
-                    )
-                    or {}
-                )
-                dispatched_route = dispatched.get("route")
-                if isinstance(dispatched_route, dict) and dispatched_route:
-                    response["route"] = dict(dispatched_route)
-                dispatched_status = str(dispatched.get("status") or "ok").strip().lower()
-                response["status"] = "ok" if dispatched_status in {"", "ok", "success"} else dispatched_status
-                response["task_result"] = dispatched
+                or {}
+            )
+            response: dict[str, Any] = {
+                "status": "ok",
+                "route": dict(dispatched.get("route") or route),
+                "task_result": dispatched,
+            }
+            response["task_status"] = str(dispatched.get("status") or "ok").strip().lower() or "ok"
             return response
 
         if cmd == "QUERY":
@@ -1267,14 +1068,12 @@ class K3DDaemon:
             use_enriched = bool(payload.get("use_enriched", True))
             solved = self.kv.execute_task(
                 task={
-                    "surface_kind": "MATH",
                     "query": question,
                     "question": question,
                 },
                 route={
-                    "specialist": "math",
-                    "domain_hint": str(payload.get("domain_hint") or "math"),
                     "galaxy_names": self._all_default_galaxies(),
+                    "route_policy": "all_live_galaxies",
                 },
                 specialist="math",
                 domain_hint=str(payload.get("domain_hint") or "math"),
@@ -1313,43 +1112,15 @@ class K3DDaemon:
                         break
             if not prompt:
                 return {"status": "error", "error": "missing_messages_or_prompt"}
-            if self._looks_like_math_prompt(prompt):
-                solved = self.kv.execute_task(
-                    task={
-                        "surface_kind": "MATH",
-                        "question": prompt,
-                        "query": prompt,
-                    },
-                    route={
-                        "specialist": "math",
-                        "domain_hint": "math",
-                        "galaxy_names": self._all_default_galaxies(),
-                    },
-                    specialist="math",
-                    domain_hint="math",
-                    use_enriched=bool(payload.get("use_enriched", True)),
-                )
-                if str(solved.get("status", "")).lower() != "ok":
-                    return {"status": "error", "error": "knowledgeverse_math_query_failed", "detail": solved}
-                return {
-                    "status": "ok",
-                    "response": solved.get("response", solved.get("result", solved.get("answer", ""))),
-                    "runtime": solved.get("runtime"),
-                    "gpu_execution": bool(solved.get("gpu_execution", False)),
-                    "program_id": solved.get("program_id"),
-                    "task_result": solved,
-                }
             solved = self.kv.execute_task(
                 task={
-                    "surface_kind": "CHAT",
                     "prompt": prompt,
                     "query": prompt,
                     "messages": list(messages),
                 },
                 route={
-                    "specialist": "chat",
-                    "domain_hint": str(payload.get("domain_hint") or "general"),
                     "galaxy_names": self._all_default_galaxies(),
+                    "route_policy": "all_live_galaxies",
                 },
                 specialist="chat",
                 domain_hint=str(payload.get("domain_hint") or "general"),
@@ -1464,6 +1235,12 @@ class K3DDaemon:
                 server.handle_request()
                 had_request = int(self._command_count) != commands_before
                 self._advance_idle_clock(had_request=had_request)
+        tick_driver = getattr(self, "_tick_driver", None)
+        if tick_driver is not None:
+            try:
+                tick_driver.stop()
+            except Exception:
+                pass
         boundary = self._tablet_boundary
         if boundary is not None:
             try:

@@ -2,7 +2,7 @@
 set -euo pipefail
 IMG_NAME=${IMG_NAME:-k3d-gpu:latest}
 ROOT=$(pwd)
-LOCAL_DIR=$(dirname "$ROOT")/Knowledge3D.local
+LOCAL_DIR=${K3D_LOCAL_DIR:-/K3D/Knowledge3D.local}
 mkdir -p "$LOCAL_DIR/conda_pkgs" "$LOCAL_DIR/datasets" "$LOCAL_DIR/logs" "$LOCAL_DIR/models" "$LOCAL_DIR/mr"
 
 docker run --rm -it --gpus all \

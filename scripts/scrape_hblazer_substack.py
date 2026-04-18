@@ -174,7 +174,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/scrapes/hblazer_substack"),
+        default=Path("/K3D/Knowledge3D.local/scrapes/hblazer_substack"),
     )
     parser.add_argument("--min-delay-sec", type=int, default=60)
     parser.add_argument("--max-delay-sec", type=int, default=180)

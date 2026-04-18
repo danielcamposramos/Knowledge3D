@@ -20,8 +20,8 @@ TARGET=${VISION_CAPTION_TARGET:-200}
 BATCHES=${VISION_CAPTION_BATCHES:-12}
 QWEN_MODEL=${VISION_QWEN_MODEL:-qwen2.5vl:latest}
 LLAMA_MODEL=${VISION_LLAMA_MODEL:-llama3.2-vision:latest}
-QWEN_OUT=../Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl
-LLAMA_OUT=../Knowledge3D.local/datasets/image_captions_llama32vision.jsonl
+QWEN_OUT=/K3D/Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl
+LLAMA_OUT=/K3D/Knowledge3D.local/datasets/image_captions_llama32vision.jsonl
 
 ensure_count() {
   local file=$1

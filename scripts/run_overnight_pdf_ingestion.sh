@@ -15,8 +15,8 @@ set -euo pipefail
 
 PYTHON_BIN="/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python"
 DATABASE_ROOT="/mnt/arquivos/0 ChatGPTs/DataBase"
-OUTPUT_DIR="../Knowledge3D.local/fundamental_augmentation"
-CACHE_DIR="../Knowledge3D.local/pdf_cache"
+OUTPUT_DIR="/K3D/Knowledge3D.local/fundamental_augmentation"
+CACHE_DIR="/K3D/Knowledge3D.local/pdf_cache"
 LOG_FILE="/tmp/k3d_overnight_pdf_ingestion.log"
 
 # Output files
@@ -89,8 +89,8 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "Next step - Ingest to Galaxy:" | tee -a "$LOG_FILE"
     echo "PYTHONPATH=. $PYTHON_BIN scripts/fundamental_ingest_payloads.py \\" | tee -a "$LOG_FILE"
     echo "  --payload $PAYLOAD_OUTPUT \\" | tee -a "$LOG_FILE"
-    echo "  --storage-root ../Knowledge3D.local \\" | tee -a "$LOG_FILE"
-    echo "  --report ../Knowledge3D.local/results/overnight_pdf_ingestion_report.json" | tee -a "$LOG_FILE"
+    echo "  --storage-root /K3D/Knowledge3D.local \\" | tee -a "$LOG_FILE"
+    echo "  --report /K3D/Knowledge3D.local/results/overnight_pdf_ingestion_report.json" | tee -a "$LOG_FILE"
 fi
 
 exit $EXIT_CODE

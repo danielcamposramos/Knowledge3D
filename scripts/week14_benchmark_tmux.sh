@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SESSION_NAME="k3d_week14_benchmarks"
-PROJECT_DIR="/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
+PROJECT_DIR="${PROJECT_DIR:-$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 if tmux has-session -t "${SESSION_NAME}" 2>/dev/null; then
   tmux attach-session -t "${SESSION_NAME}"

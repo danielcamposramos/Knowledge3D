@@ -122,7 +122,6 @@ def _normalize_surface_kind(value: Any) -> str:
         "QUESTION": SURFACE_KIND_QUESTION,
         "QUESTION_TASK": SURFACE_KIND_QUESTION,
         "MMLU_TASK": SURFACE_KIND_QUESTION,
-        "LHE_TASK": SURFACE_KIND_QUESTION,
         "SPATIAL_3D": SURFACE_KIND_SPATIAL_3D,
         "CHAT": SURFACE_KIND_CHAT,
         "CHAT_TASK": SURFACE_KIND_CHAT,
@@ -688,7 +687,6 @@ class TabletIngest:
         normalized_result_kind = str(result_kind or "").strip().lower()
         action_option_values = [str(option) for option in (action_options or []) if str(option).strip()]
         task_payload = {
-            "type": "ARC_TASK",
             "surface_kind": SURFACE_KIND_GAME_2D,
             "task_id": str(task_id),
             "query": str(query),
@@ -735,14 +733,12 @@ class TabletIngest:
         task_id: str,
         question: str,
         expected_answer: Any | None = None,
-        competition: str | None = None,
         galaxies: Sequence[str] | None = None,
         route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
     ) -> TabletEnvelope:
         merged_metadata = dict(metadata or {})
         merged_metadata.setdefault("expected_answer", expected_answer)
-        merged_metadata.setdefault("competition", competition)
         return TabletEnvelope(
             surface_kind=SURFACE_KIND_MATH,
             task_id=str(task_id),
@@ -752,7 +748,6 @@ class TabletIngest:
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
             route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
-                "type": "MATH_TASK",
                 "surface_kind": SURFACE_KIND_MATH,
                 "task_id": str(task_id),
                 "query": str(question),
@@ -774,14 +769,16 @@ class TabletIngest:
         galaxies: Sequence[str] | None = None,
         route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
+        surface_kind: str = SURFACE_KIND_QUESTION,
     ) -> TabletEnvelope:
         option_list = [str(option) for option in (options or []) if str(option).strip()]
         merged_metadata = dict(metadata or {})
         merged_metadata.setdefault("expected_answer", expected_answer)
         merged_metadata.setdefault("options", list(option_list))
         merged_metadata.setdefault("question_domain", str(domain or "general"))
+        normalized_surface_kind = _normalize_surface_kind(surface_kind)
         return TabletEnvelope(
-            surface_kind=SURFACE_KIND_QUESTION,
+            surface_kind=normalized_surface_kind,
             task_id=str(task_id),
             query=str(question),
             specialist=str(specialist or "auto"),
@@ -789,8 +786,7 @@ class TabletIngest:
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
             route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
-                "type": "QUESTION_TASK",
-                "surface_kind": SURFACE_KIND_QUESTION,
+                "surface_kind": normalized_surface_kind,
                 "task_id": str(task_id),
                 "query": str(question),
                 "prompt": str(question),
@@ -813,7 +809,7 @@ class TabletIngest:
     ) -> TabletEnvelope:
         return TabletIngest.game2d_task(
             task_id=task_id,
-            query="2d game transformation",
+            query="Transform this grid using the examples.",
             training_examples=training_examples,
             input_grid=input_grid,
             goal_grid=expected_output,
@@ -825,13 +821,11 @@ class TabletIngest:
         *,
         task_id: str,
         question: str,
-        competition: str | None = None,
         expected_answer: Any | None = None,
     ) -> TabletEnvelope:
         return TabletIngest.math_task(
             task_id=task_id,
             question=question,
-            competition=competition,
             expected_answer=expected_answer,
         )
 
@@ -1270,6 +1264,39 @@ class HeadlessTabletMPC:
             "tablet_session_trace",
             trace_record,
         )
+        navigator = getattr(kv, "navigator_specialist", None)
+        if navigator is not None and hasattr(navigator, "update_from_trace"):
+            trace_star_ids = [
+                str(value).strip()
+                for value in list(task_result.get("trace_star_ids") or emitted.get("trace_star_ids") or [])
+                if str(value).strip()
+            ]
+            retrieved_stars: list[dict[str, Any]] = []
+            lookup = getattr(kv, "_catalog_entry_by_id", None)
+            if callable(lookup):
+                for star_id in trace_star_ids:
+                    try:
+                        row_entry = lookup(star_id)
+                    except Exception:
+                        row_entry = None
+                    if isinstance(row_entry, dict):
+                        retrieved_stars.append(dict(row_entry))
+            try:
+                navigator.update_from_trace(
+                    {
+                        "query_text": str(frame.envelope.query or frame.envelope.task.get("query") or ""),
+                        "meaning_class": str(task_result.get("meaning_class") or route.get("meaning_class") or ""),
+                        "halting_weight_vec": list(task_result.get("halting_weight_vec") or []),
+                        "query_embedding": list(task_result.get("query_embedding") or []),
+                        "symlink_histogram": list(task_result.get("symlink_histogram") or []),
+                        "correct": bool(emitted.get("correct", False)),
+                        "task_payload": dict(frame.envelope.task or {}),
+                        "options": list(frame.envelope.task.get("options") or []),
+                        "retrieved_stars": retrieved_stars,
+                    }
+                )
+            except Exception:
+                pass
 
     def _build_trace_record(
         self,
@@ -1481,13 +1508,27 @@ class HeadlessTabletMPC:
             "galaxy_names": list(envelope.galaxies),
             "route_policy": str(envelope.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
         }
-        response = kv.execute_task(
-            task=task_payload,
-            route=route,
-            specialist=str(envelope.specialist),
-            domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
-            use_enriched=bool(use_enriched),
+        bypass_enabled = bool(
+            hasattr(kv, "_bypass_game_loop_enabled") and kv._bypass_game_loop_enabled()
         )
+        loop_active = bool(hasattr(kv, "trm_game_loop_status") and kv.trm_game_loop_status().get("active"))
+        if bypass_enabled or not loop_active or not hasattr(kv, "enqueue_task"):
+            response = kv.execute_task(
+                task=task_payload,
+                route=route,
+                specialist=str(envelope.specialist),
+                domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+                use_enriched=bool(use_enriched),
+            )
+        else:
+            request_id = kv.enqueue_task(
+                task=task_payload,
+                route=route,
+                specialist=str(envelope.specialist),
+                domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+                use_enriched=bool(use_enriched),
+            )
+            response = kv.wait_output_buffer(request_id, max_ticks=1)
         return _canonicalize_live_runtime_response(response or {})
 
     def _bind_bridge_query_runtime(self) -> None:
@@ -1785,6 +1826,32 @@ class HeadlessTabletMPC:
         route_payload = envelope.to_route_payload(use_enriched=use_enriched)
         action_buffer = envelope.to_action_buffer()
         mutation_type, payload_words = action_buffer.extract_tablet_mutation()
+        kv = self._knowledgeverse
+        kv_bypass_enabled = bool(
+            kv is not None
+            and hasattr(kv, "_bypass_game_loop_enabled")
+            and kv._bypass_game_loop_enabled()
+        )
+        if kv is not None and hasattr(kv, "execute_task") and not kv_bypass_enabled:
+            response = self._run_live_envelope_via_knowledgeverse(envelope, use_enriched=use_enriched)
+            emitted = TabletEmit.emit(envelope, response)
+            return {
+                "envelope": envelope,
+                "route_payload": route_payload,
+                "response": response,
+                "raw_response": response,
+                "emitted": emitted,
+                "tablet_contract": {
+                    "action_type": action_buffer.get_action_type().name,
+                    "mutation_type": int(mutation_type),
+                    "payload_words": payload_words.tolist(),
+                    "surface_kind": _normalize_surface_kind(envelope.surface_kind),
+                    "sovereign_path": "knowledgeverse_trm_game_loop",
+                    "output_action_type": str(
+                        _as_dict(response.get("task_result")).get("action_type") or ""
+                    ),
+                },
+            }
         bridge = self._resolve_sovereign_bridge()
         if bridge is not None and hasattr(bridge, "submit_query"):
             self._tick_seq += 1

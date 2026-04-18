@@ -11,6 +11,9 @@ from knowledge3d.bridge.headless_tablet import (
 )
 
 
+_MATH_WIRE_META_DROP_KEYS = frozenset({"competition", "dataset", "source"})
+
+
 MATH_ROUTE_GALAXIES: tuple[str, ...] = (
     "Math",
     "Grammar",
@@ -44,7 +47,6 @@ def build_math_task(
     *,
     task_id: str,
     question: str,
-    competition: str | None = None,
     expected_answer: Any | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -52,7 +54,6 @@ def build_math_task(
         task_id=task_id,
         question=question,
         expected_answer=expected_answer,
-        competition=competition,
         metadata=metadata,
     )
     return dict(envelope.task), build_math_route(
@@ -67,14 +68,12 @@ def math_dataset_envelope(
     *,
     task_id: str,
     question: str,
-    competition: str | None = None,
     expected_answer: Any | None = None,
 ) -> TabletEnvelope:
     return TabletIngest.math_task(
         task_id=task_id,
         question=question,
         expected_answer=expected_answer,
-        competition=competition,
     )
 
 
@@ -87,7 +86,6 @@ def gsm8k_math_envelope(
     return math_dataset_envelope(
         task_id=task_id,
         question=question,
-        competition="GSM8K",
         expected_answer=expected_answer,
     )
 
@@ -101,7 +99,6 @@ def imo_math_envelope(
     return math_dataset_envelope(
         task_id=task_id,
         question=question,
-        competition="IMO",
         expected_answer=expected_answer,
     )
 
@@ -111,12 +108,10 @@ def amc_aime_math_envelope(
     task_id: str,
     question: str,
     expected_answer: Any | None = None,
-    competition: str | None = None,
 ) -> TabletEnvelope:
     return math_dataset_envelope(
         task_id=task_id,
         question=question,
-        competition=competition or "AMC-AIME",
         expected_answer=expected_answer,
     )
 
@@ -130,9 +125,16 @@ def omni_math_envelope(
     return math_dataset_envelope(
         task_id=task_id,
         question=question,
-        competition="Omni-MATH",
         expected_answer=expected_answer,
     )
+
+
+def _wire_safe_source_meta(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        str(key): value
+        for key, value in dict(row).items()
+        if str(key) not in _MATH_WIRE_META_DROP_KEYS
+    }
 
 
 def build_math_session_tape(
@@ -147,7 +149,6 @@ def build_math_session_tape(
         envelope = math_dataset_envelope(
             task_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
             question=str(row.get("problem_text") or row.get("question") or ""),
-            competition=str(row.get("competition") or ""),
             expected_answer=row.get("answer") if "answer" in row else row.get("expected_answer"),
         )
         frames.append(
@@ -155,7 +156,7 @@ def build_math_session_tape(
                 frame_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
                 envelope=envelope,
                 expected=row.get("answer") if "answer" in row else row.get("expected_answer"),
-                source_meta=dict(row),
+                source_meta=_wire_safe_source_meta(row),
             )
         )
     return TabletSessionTape(

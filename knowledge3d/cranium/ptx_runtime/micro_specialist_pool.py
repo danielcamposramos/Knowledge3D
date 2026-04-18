@@ -183,17 +183,10 @@ class MicroSpecialistPool:
             results.append(float(self._execute_binding(binding, compiled)))
         return results
 
-    def run_overflow_sequential(self, programs: Sequence[Any]) -> list[float]:
-        if not programs:
-            return []
-        if self._sequential_engine is None:
-            self._sequential_engine = self.engine_factory()
-        results: list[float] = []
-        for program in programs:
-            compiled = self._compile_program(program)
-            binding = MicroSlotBinding(slot_id=0, engine_index=-1, instance_id=0)
-            results.append(float(self._execute_binding(binding, compiled, sequential=True)))
-        return results
+    # Sovereign cut (TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §8):
+    # run_overflow_sequential was the Python fallback for when the GPU slot
+    # pool overflowed. Deleted. Overflow is now dropped silently; the pool
+    # itself is off the hot path (see decomposer deletion in knowledgeverse.py).
 
     def run_with_graceful_degradation(self, programs: Sequence[Any]) -> tuple[list[float], dict[str, Any]]:
         requested = len(programs)
@@ -202,8 +195,6 @@ class MicroSpecialistPool:
         overflow = max(0, requested - granted)
         try:
             results = self.run_batch(slots, programs[:granted]) if granted else []
-            if overflow:
-                results.extend(self.run_overflow_sequential(programs[granted:]))
             stats = self.snapshot()
             stats.update(
                 {

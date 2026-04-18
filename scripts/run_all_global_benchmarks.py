@@ -888,13 +888,13 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/results/global_benchmarks"),
+        default=Path("/K3D/Knowledge3D.local/results/global_benchmarks"),
         help="Output folder for reports.",
     )
     parser.add_argument(
         "--storage-root",
         type=Path,
-        default=Path("../Knowledge3D.local"),
+        default=Path("/K3D/Knowledge3D.local"),
         help="Knowledgeverse storage root.",
     )
     parser.add_argument(
@@ -932,7 +932,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset-root",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/global_benchmarks"),
+        default=Path("/K3D/Knowledge3D.local/datasets/global_benchmarks"),
         help="Downloaded benchmark universe root.",
     )
     parser.add_argument("--max-arc-tasks", type=int, default=100)

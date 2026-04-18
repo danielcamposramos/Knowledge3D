@@ -59,7 +59,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local/galaxies_enriched",
+        default="/K3D/Knowledge3D.local/galaxies_enriched",
         help="Knowledgeverse storage root to inspect",
     )
     parser.add_argument(

@@ -1,7 +1,7 @@
 # K3D Sovereign GPU Engine: 2D-to-3D Extension Specification
 
 **Document Status:** Research Spec | **Version:** 0.1.0  
-**Path:** `/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/research/2d_engine_techniques_spec.md`
+**Path:** `/K3D/GitHub/Knowledge3D/docs/research/2d_engine_techniques_spec.md`
 
 ## Executive Summary
 

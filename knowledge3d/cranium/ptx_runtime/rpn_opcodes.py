@@ -269,6 +269,25 @@ OP_CASE_FETCH = 0x100
 OP_CASE_REBIND = 0x101
 OP_CASE_REVISE = 0x102
 OP_CASE_RETAIN_HINT = 0x103
+OP_LORA_LOAD_BASE = 0x104
+OP_LORA_LOW_RANK_ADD = 0x105
+OP_LORA_SCALE = 0x106
+OP_LORA_TERNARY_MASK = 0x107
+OP_LORA_SHADOW_ABSORB = 0x108
+
+# ── BitNet b1.58 Attention Opcodes (0x1AA–0x1AF) ─────────────────────────────
+# Ternary-weight × INT8-activation projections + contrastive margin ranking.
+# Per: attention_opcode_expansion_v2.md (2026-04-18)
+# Kernels: knowledge3d/cranium/kernels/bitnet_attention.cu
+# Rules: Path B (0x1AF) mandatory smem-prefetch (RULING 1); silent d-mismatch rescale (RULING 2);
+#        Path A (0x1AE) default, lane-switch to Path B via opcode arg (RULING 3).
+
+OP_TERNARY_MATMUL_ADDSUB = 0x1AA       # ternary weight × INT8 activation (add/sub/skip, no mul)
+OP_TERNARY_PACK5 = 0x1AB               # pack 5 trits {-1,0,+1} → 1 byte (base-3)
+OP_TERNARY_UNPACK5 = 0x1AC             # unpack 1 byte → 5 trits via LUT
+OP_VEC_NORM_L2_INT8 = 0x1AD            # integer L2 normalization (scale=127 default, MANDATORY post-attn)
+OP_ATTENTION_MARGIN_SHIFT = 0x1AE      # Path A: normalize Q·K^T score DOWN (shift-based, 1 cycle)
+OP_ATTENTION_MARGIN_SCALED = 0x1AF     # Path B: pre-scaled confidence margin (smem-prefetch, 3 cycles)
 
 # Temporal/trit opcodes are the live modular-kernel owners of 0x70-0x76.
 OP_TADD = 0x70
@@ -607,6 +626,13 @@ __all__ = [
     "OP_TEMPORAL_COHERENCE",
     "OP_TEMPORAL_MASK",
     "OP_TEMPORAL_AGGREGATE",
+    # BitNet b1.58 Attention (0x1AA–0x1AF)
+    "OP_TERNARY_MATMUL_ADDSUB",
+    "OP_TERNARY_PACK5",
+    "OP_TERNARY_UNPACK5",
+    "OP_VEC_NORM_L2_INT8",
+    "OP_ATTENTION_MARGIN_SHIFT",
+    "OP_ATTENTION_MARGIN_SCALED",
     # Temporal / trit surface
     "OP_TADD",
     "OP_TMUL",
@@ -822,4 +848,9 @@ __all__ += [
     "OP_CASE_REBIND",
     "OP_CASE_REVISE",
     "OP_CASE_RETAIN_HINT",
+    "OP_LORA_LOAD_BASE",
+    "OP_LORA_LOW_RANK_ADD",
+    "OP_LORA_SCALE",
+    "OP_LORA_TERNARY_MASK",
+    "OP_LORA_SHADOW_ABSORB",
 ]

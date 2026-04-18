@@ -1048,7 +1048,6 @@ class UnifiedMathBenchmark:
         envelope = math_dataset_envelope(
             task_id=str(problem["id"]),
             question=str(problem["problem_text"]),
-            competition=str(problem.get("competition") or ""),
             expected_answer=problem.get("answer"),
         )
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)

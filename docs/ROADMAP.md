@@ -218,6 +218,8 @@ See: [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](vocabulary/FOUNDATIONAL_KNOWLEDGE
 - [HYPER_PARALLEL_PROCESSING.md](vocabulary/HYPER_PARALLEL_PROCESSING.md) — specialist swarm paradigm
 
 **Benchmark state entering Phase E (D.3, 2026-03-26):**
+
+> Status note (2026-04-16): **Meaning-Centric Router Landed**. Hot-path benchmark-name routing scaffolding is being replaced by an internal navigator lane on `AdaptiveSwarmTRM`, with meaning-class dispatch sourced from Galaxy symlinks and sleep-time-trained halting weights.
 - Combined: 857/5954 (14.39%) — warm 35%
 - ARC: 2/42, Math: 1/500, GSM8K: 3/462, LHE: 1/35, MMLU: 850/4915
 - Sleep-time: checkpoint saved, 18,189 specialist routes updated

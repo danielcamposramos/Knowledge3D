@@ -99,24 +99,34 @@ def test_e28_world_model_threads_physics_signal_into_candidates(tmp_path, monkey
     assert kv._gpu_scalar_literal(local_candidates[0]["specialist_world_model"]) in expr
 
 
-def test_e30_cognitive_executive_threads_trust_into_swarm_candidates(tmp_path, monkeypatch):
+def test_e30_n_chain_swarm_threads_trust_into_swarm_candidates(tmp_path, monkeypatch):
     kv = Knowledgeverse(
-        storage_root=tmp_path / "kv_e30_cognitive",
+        storage_root=tmp_path / "kv_e30_n_chain_swarm",
         eager_load_default_galaxies=False,
         bootstrap_foundational_galaxies=False,
     )
 
-    class _FakeExecutive:
+    class _FakeNChainSwarm:
         def __init__(self):
-            self.calls = []
+            self.tick_calls = []
 
-        def compute_trust_weights(self, resonance_matrix, chain_norms):
-            matrix = np.asarray(resonance_matrix, dtype=np.float32)
-            norms = np.asarray(chain_norms, dtype=np.float32)
-            self.calls.append({"matrix_shape": tuple(matrix.shape), "norms_shape": tuple(norms.shape)})
-            return np.asarray([0.91, 0.17, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32), 0.75
+        def tick(self, packet, timeout_s=2.0):
+            self.tick_calls.append({"packet": dict(packet), "timeout_s": float(timeout_s)})
+            return {"n_active": 9, "halting_flag": 1, "halting_counter": 9, "tick_epoch": 1, "halt_epoch": 1}
 
-    fake_executive = _FakeExecutive()
+        def read_lane_output(self, lane_index=0):
+            belief_q15 = 28672 if (int(lane_index) % 2 == 0) else 8192
+            return {
+                "halt_flag": 1,
+                "result_handle": int(lane_index) + 1,
+                "belief_q15": belief_q15,
+                "payload0": 0,
+                "payload1": 0,
+                "payload2": 0,
+                "payload3": 0,
+            }
+
+    fake_swarm = _FakeNChainSwarm()
     monkeypatch.setattr(kv, "get_vector_resonator", lambda: None)
     monkeypatch.setattr(kv, "get_galaxy_resonance_engine", lambda: None)
     monkeypatch.setattr(kv, "get_graph_crystallizer", lambda: None)
@@ -126,7 +136,12 @@ def test_e30_cognitive_executive_threads_trust_into_swarm_candidates(tmp_path, m
     monkeypatch.setattr(kv, "get_temporal_reasoning", lambda: None)
     monkeypatch.setattr(kv, "get_fractal_emitter", lambda: None)
     monkeypatch.setattr(kv, "get_atomic_fission_fusion", lambda: None)
-    monkeypatch.setattr(kv, "get_cognitive_executive", lambda: fake_executive)
+    monkeypatch.setattr(kv, "get_n_chain_swarm", lambda: fake_swarm)
+    monkeypatch.setattr(
+        kv,
+        "get_cognitive_executive",
+        lambda: (_ for _ in ()).throw(AssertionError("cognitive_executive_path_should_not_run")),
+    )
 
     local_candidates = [
         {
@@ -166,16 +181,20 @@ def test_e30_cognitive_executive_threads_trust_into_swarm_candidates(tmp_path, m
         local_candidates=local_candidates,
         reference_embedding=[1.0] + [0.0] * 15,
         task_type="ARC_TASK",
-        path={"label": "primary", "domain_hint": "visual"},
+        path={"label": "primary", "domain_hint": "visual", "query_text": "identity grid"},
         selection_steps=selection_steps,
     )
 
-    assert len(fake_executive.calls) == 1
-    assert fake_executive.calls[0]["matrix_shape"] == (8, 8)
-    assert fake_executive.calls[0]["norms_shape"] == (8,)
+    assert len(fake_swarm.tick_calls) == 1
+    packet = fake_swarm.tick_calls[0]["packet"]
+    assert packet["n_floor"] >= 9
+    assert packet["n_cand_frustum"] >= packet["n_floor"]
+    assert packet["paradigm_mask"].bit_count() == len(kv.N_CHAIN_REASONING_SLOTS)
     assert local_candidates[0]["specialist_trust"] > local_candidates[1]["specialist_trust"]
     assert local_candidates[0]["specialist_coherence"] > local_candidates[1]["specialist_coherence"]
-    assert "gre_cognitive_executive" in local_candidates[0]["specialist_worker"]
+    assert local_candidates[0]["specialist_swarm_n_active"] == 9
+    assert "n_chain_swarm(n=9)" in local_candidates[0]["specialist_worker_active"]
+    assert any("N-chain swarm trust:" in step for step in selection_steps)
 
     expr = kv._build_gpu_candidate_score_expression(
         candidate=local_candidates[0],

@@ -32,7 +32,7 @@ step () { echo; echo "[GPU-PIPELINE] $1" | tee -a "$LOG"; }
 step "Ingest PDFs/JSON with previews + OCR"
 # DEPRECATED: phase25.ingest_pdf_corpus was removed. Use inject_pdf_to_galaxy instead.
 python -m knowledge3d.tools.training_pipelines.inject_pdf_to_galaxy \
-  --galaxy-path ../Knowledge3D.local/galaxy/working/galaxy.glb \
+  --galaxy-path /K3D/Knowledge3D.local/galaxy/working/galaxy.glb \
   --roots "/mnt/arquivos/0 ChatGPTs/DataBase/Encyclopedias,/mnt/arquivos/0 ChatGPTs/DataBase/EchoSystems Default Libraries" \
   --recursive --limit 0 | tee -a "$LOG"
 
@@ -42,36 +42,36 @@ TOPICS="physics,biology,engineering,ethics,ai,systems,mathematics,economics,hist
 step "Generate text with exaone3.5"
 python -m knowledge3d.tools.gen_text_ollama \
   --ollama "$OLLAMA_URL" --models exaone3.5:latest --topics "$TOPICS" --per-topic 60 \
-  --out ../Knowledge3D.local/datasets/text_exaone3p5_v1.txt | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/text_exaone3p5_v1.txt | tee -a "$LOG"
 
 step "Generate text with granite3.3:8b"
 python -m knowledge3d.tools.gen_text_ollama \
   --ollama "$OLLAMA_URL" --models granite3.3:8b --topics "$TOPICS" --per-topic 60 \
-  --out ../Knowledge3D.local/datasets/text_granite3p3_8b_v1.txt | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/text_granite3p3_8b_v1.txt | tee -a "$LOG"
 
 step "Generate text with gemma3:12b"
 python -m knowledge3d.tools.gen_text_ollama \
   --ollama "$OLLAMA_URL" --models gemma3:12b --topics "$TOPICS" --per-topic 60 \
-  --out ../Knowledge3D.local/datasets/text_gemma3_12b_v1.txt | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/text_gemma3_12b_v1.txt | tee -a "$LOG"
 
 step "Generate text with gemma3n"
 python -m knowledge3d.tools.gen_text_ollama \
   --ollama "$OLLAMA_URL" --models gemma3n --topics "$TOPICS" --per-topic 60 \
-  --out ../Knowledge3D.local/datasets/text_gemma3n_v1.txt | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/text_gemma3n_v1.txt | tee -a "$LOG"
 
 # 2) Convert generated text into K3D GLBs
 mkdir -p "$ROOT_DIR/viewer/public/text"
 step "Convert exaone3.5 text → GLB"
-python -m k3dgen --text ../Knowledge3D.local/datasets/text_exaone3p5_v1.txt \
+python -m k3dgen --text /K3D/Knowledge3D.local/datasets/text_exaone3p5_v1.txt \
   --gltf viewer/public/text/text_exaone3p5_v1.glb --k 10 | tee -a "$LOG"
 step "Convert granite3.3:8b text → GLB"
-python -m k3dgen --text ../Knowledge3D.local/datasets/text_granite3p3_8b_v1.txt \
+python -m k3dgen --text /K3D/Knowledge3D.local/datasets/text_granite3p3_8b_v1.txt \
   --gltf viewer/public/text/text_granite3p3_8b_v1.glb --k 10 | tee -a "$LOG"
 step "Convert gemma3:12b text → GLB"
-python -m k3dgen --text ../Knowledge3D.local/datasets/text_gemma3_12b_v1.txt \
+python -m k3dgen --text /K3D/Knowledge3D.local/datasets/text_gemma3_12b_v1.txt \
   --gltf viewer/public/text/text_gemma3_12b_v1.glb --k 10 | tee -a "$LOG"
 step "Convert gemma3n text → GLB"
-python -m k3dgen --text ../Knowledge3D.local/datasets/text_gemma3n_v1.txt \
+python -m k3dgen --text /K3D/Knowledge3D.local/datasets/text_gemma3n_v1.txt \
   --gltf viewer/public/text/text_gemma3n_v1.glb --k 10 | tee -a "$LOG"
 
 # 3) Image captions (one model at a time)
@@ -79,13 +79,13 @@ step "Image captions with qwen2.5vl"
 python -m knowledge3d.tools.gen_image_captions_ollama \
   --ollama "$OLLAMA_URL" --model qwen2.5vl:7b-q8_0 \
   --images-root viewer/public/house/materialized_objects/docs --limit 200 \
-  --out ../Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/image_captions_qwen25vl.jsonl | tee -a "$LOG"
 
 step "Image captions with llama3.2-vision"
 python -m knowledge3d.tools.gen_image_captions_ollama \
   --ollama "$OLLAMA_URL" --model llama3.2-vision \
   --images-root viewer/public/house/materialized_objects/docs --limit 200 \
-  --out ../Knowledge3D.local/datasets/image_captions_llama32vision.jsonl | tee -a "$LOG"
+  --out /K3D/Knowledge3D.local/datasets/image_captions_llama32vision.jsonl | tee -a "$LOG"
 
 # 4) Embedding comparison table (small encoders; still run sequentially)
 step "Embedding comparison — qwen3-embedding, embeddinggemma, snowflake-arctic-embed2"
@@ -124,7 +124,7 @@ python -m knowledge3d.tools.merge_jsonl \
 step "RLWHF policy training (distilgpt2, 10 epochs)"
 python -m knowledge3d.tools.train_rlwhf_policy \
   --dataset docs/reports/training/rlwhf_dataset_unified.jsonl \
-  --out ../Knowledge3D.local/models/rlwhf_policy \
+  --out /K3D/Knowledge3D.local/models/rlwhf_policy \
   --model distilgpt2 --epochs 10 --batch 4 --max_len 384 --lr 5e-5 | tee -a "$LOG"
 
 step "Done"

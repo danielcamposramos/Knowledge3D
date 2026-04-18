@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import json
+import math
 from pathlib import Path
 import re
 from typing import Any, Sequence
@@ -102,6 +103,135 @@ _SEMANTIC_TEMPORAL_UNITS = {
     "week",
     "year",
 }
+_SEMANTIC_STAR_REF_FIELDS: tuple[str, ...] = (
+    "_ref_ids",
+    "grammar_refs",
+    "meta_refs",
+    "reality_refs",
+    "math_refs",
+    "visual_refs",
+    "dialog_refs",
+    "taxonomy_refs",
+    "component_refs",
+    "router_refs",
+    "executor_refs",
+    "validator_refs",
+    "anti_pattern_refs",
+    "composite_of",
+)
+_SEMANTIC_ROLE_REF_TOKENS: dict[str, frozenset[str]] = {
+    "initial": frozenset({"quantity_role_initial"}),
+    "part": frozenset({"quantity_role_part", "meaning_relation_part_of", "meaning_quantity_fractional_part"}),
+    "count": frozenset({"quantity_role_count"}),
+    "duration": frozenset({"quantity_role_duration"}),
+    "divisor": frozenset(
+        {
+            "quantity_role_divisor",
+            "quantity_role_multiplier",
+            "meaning_quantity_multiplier",
+            "meaning_relation_times_more",
+        }
+    ),
+    "percentage": frozenset({"quantity_role_percentage", "percentage_application"}),
+    "price": frozenset({"meaning_quantity_unit_price", "form_marker_currency"}),
+    "rate": frozenset(
+        {
+            "quantity_role_rate",
+            "rate_application",
+            "meaning_relation_rate_to_total",
+            "meaning_quantity_unit_price",
+        }
+    ),
+    "target": frozenset({"quantity_role_target"}),
+    "threshold": frozenset({"quantity_role_threshold"}),
+    "total": frozenset({"quantity_role_total", "meaning_quantity_total", "sum_all"}),
+}
+_SEMANTIC_CUE_REF_TOKENS: dict[str, frozenset[str]] = {
+    "currency": frozenset({"form_marker_currency", "meaning_quantity_unit_price"}),
+    "percentage": frozenset({"quantity_role_percentage", "percentage_application"}),
+    "rate": frozenset({"quantity_role_rate", "rate_application", "meaning_relation_rate_to_total", "meaning_quantity_unit_price"}),
+    "ratio": frozenset({"quantity_role_divisor", "quantity_role_multiplier", "meaning_quantity_multiplier", "meaning_relation_times_more"}),
+    "speed": frozenset({"quantity_role_rate", "rate_application"}),
+    "temporal": frozenset({"quantity_role_duration", "quantity_role_threshold"}),
+    "threshold": frozenset({"quantity_role_threshold"}),
+}
+_SEMANTIC_ROLE_PRIORITY: tuple[str, ...] = (
+    "percentage",
+    "threshold",
+    "duration",
+    "rate",
+    "price",
+    "divisor",
+    "part",
+    "total",
+    "initial",
+    "count",
+    "target",
+)
+MEANING_CLASSES: tuple[str, ...] = (
+    "FACTUAL_RECALL",
+    "MULTI_HOP_INFERENCE",
+    "NUMERIC_COMPUTE",
+    "SPATIAL_TRANSFORM",
+    "DEFINITION_LOOKUP",
+    "COMPARATIVE_CHOICE",
+    "GENERATIVE_COMPOSITION",
+    "GROUNDED_DIALOG",
+)
+MEANING_CLASS_CONFIDENCE_FLOOR = 0.15
+MEANING_CLASS_INDEX = {name: idx for idx, name in enumerate(MEANING_CLASSES)}
+HALTING_WEIGHT_PRIOR_UNIFORM: tuple[float, ...] = (1.0,) * 9
+NAVIGATOR_SWARM_NAME = "navigator"
+NAVIGATOR_SWARM_DIMS = 64
+NAVIGATOR_SWARM_RANK = 8
+NAVIGATOR_OUTPUT_DIMS = len(MEANING_CLASSES) + len(HALTING_WEIGHT_PRIOR_UNIFORM)
+
+
+def derive_symlink_histogram(stars: list[dict[str, Any]] | None) -> list[float]:
+    histogram = [0.0] * len(MEANING_CLASSES)
+    for star in list(stars or []):
+        if not isinstance(star, dict):
+            continue
+        metadata = star.get("metadata") if isinstance(star.get("metadata"), dict) else {}
+        for key, meaning_class in (
+            ("math_refs", "NUMERIC_COMPUTE"),
+            ("visual_refs", "SPATIAL_TRANSFORM"),
+            ("grammar_refs", "DEFINITION_LOOKUP"),
+            ("meta_refs", "MULTI_HOP_INFERENCE"),
+            ("dialog_refs", "GROUNDED_DIALOG"),
+            ("reality_refs", "FACTUAL_RECALL"),
+        ):
+            values = metadata.get(key, star.get(key))
+            if isinstance(values, list) and values:
+                histogram[MEANING_CLASS_INDEX[meaning_class]] += float(len(values))
+    total = sum(histogram)
+    if total <= 0.0:
+        return [0.0] * len(histogram)
+    return [float(value) / total for value in histogram]
+
+
+def meaning_class_from_symlink_votes(stars: list[dict[str, Any]] | None) -> str | None:
+    histogram = derive_symlink_histogram(stars)
+    if not histogram or max(histogram) <= 0.0:
+        return None
+    top_index = max(range(len(histogram)), key=lambda idx: float(histogram[idx]))
+    return MEANING_CLASSES[top_index]
+
+
+def resolve_meaning_class_distribution(
+    meaning_dist: Sequence[float] | None,
+    *,
+    floor: float = MEANING_CLASS_CONFIDENCE_FLOOR,
+) -> tuple[str, bool]:
+    values = [float(value) for value in list(meaning_dist or [])[: len(MEANING_CLASSES)]]
+    if len(values) < len(MEANING_CLASSES):
+        values.extend([0.0] * (len(MEANING_CLASSES) - len(values)))
+    if not values:
+        return "FACTUAL_RECALL", True
+    top_index = max(range(len(values)), key=values.__getitem__)
+    if top_index >= len(MEANING_CLASSES) or float(values[top_index]) < float(floor):
+        return "FACTUAL_RECALL", True
+    return MEANING_CLASSES[top_index], False
 
 
 @dataclass
@@ -149,6 +279,9 @@ class NavigatorSpecialist:
         self.routing_topology: dict[str, dict[str, dict[str, int]]] = {}
         self._update_count = 0
         self._auto_save_interval = 10
+        self._recent_trace_limit = 256
+        self._recent_traces: list[dict[str, Any]] = []
+        self._training_state: dict[str, Any] = {}
         state_path = None
         if self.knowledgeverse is not None and hasattr(self.knowledgeverse, "storage_root"):
             state_path = Path(getattr(self.knowledgeverse, "storage_root")) / "checkpoints" / "trm_routing_state.json"
@@ -378,6 +511,7 @@ class NavigatorSpecialist:
         specialist: str,
         success: bool | None = None,
         ternary_outcome: int | None = None,
+        trace: dict[str, Any] | None = None,
     ) -> None:
         """Update topology memory with route outcome signal."""
         outcome = _resolve_ternary(success, ternary_outcome)
@@ -393,6 +527,8 @@ class NavigatorSpecialist:
             self.router.adjust_specialist_bias(specialist, -0.01)
         else:
             bucket["uncertain"] += 1
+        if isinstance(trace, dict) and trace:
+            self.update_from_trace(trace)
         self._update_count += 1
         if self._update_count % self._auto_save_interval == 0:
             self.save_state()
@@ -607,6 +743,7 @@ class NavigatorSpecialist:
             semantic_entities, goal_entity = self._annotate_semantic_roles(
                 merged_quantities,
                 unified_goal=unified_goal,
+                base_route=base_route,
             )
 
         var_str = ", ".join(f"{k}={v}" for k, v in merged_vars.items())
@@ -903,6 +1040,92 @@ class NavigatorSpecialist:
             return normalized_surface
         return None
 
+    @staticmethod
+    def _semantic_has_token_overlap(tokens: list[str], candidates: set[str] | frozenset[str]) -> bool:
+        return bool({str(token).strip().lower() for token in list(tokens or []) if str(token).strip()}.intersection(candidates))
+
+    @staticmethod
+    def _semantic_star_ref_tokens(star: dict[str, Any] | None) -> set[str]:
+        payload = dict(star or {})
+        metadata = payload.get("metadata") if isinstance(payload.get("metadata"), dict) else {}
+        tokens: set[str] = set()
+        for raw_value in (payload.get("id"), metadata.get("id")):
+            token = str(raw_value or "").strip().lower()
+            if token:
+                tokens.add(token)
+        quantity_role = str(metadata.get("quantity_role") or payload.get("quantity_role") or "").strip().lower()
+        if quantity_role:
+            tokens.add(f"quantity_role_{quantity_role}")
+        for field in _SEMANTIC_STAR_REF_FIELDS:
+            values = payload.get(field)
+            if not isinstance(values, list):
+                values = metadata.get(field) if isinstance(metadata.get(field), list) else []
+            for value in values:
+                token = str(value).strip().lower()
+                if token:
+                    tokens.add(token)
+        return tokens
+
+    def _semantic_retrieved_stars(
+        self,
+        query_text: str,
+        *,
+        base_route: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        query = str(query_text or "").strip()
+        if not query or self.knowledgeverse is None or not hasattr(self.knowledgeverse, "galaxy_manager"):
+            return []
+        specialist = str(base_route.get("specialist") or "math").strip() or "math"
+        galaxy_names = [
+            str(name).strip()
+            for name in list(base_route.get("galaxy_names") or [])
+            if str(name).strip()
+        ]
+        if not galaxy_names:
+            galaxy_names = ["Math", "Grammar", "Number", "Word", "Reality", "Tool", "reasoning_strategies"]
+        try:
+            rows = self.knowledgeverse.galaxy_manager.query(
+                query_text=query,
+                specialist=specialist,
+                top_k=6,
+                galaxies=galaxy_names,
+            )
+        except Exception:
+            return []
+        return [
+            dict(entry)
+            for row in list(rows or [])
+            for entry in [row.get("entry") if isinstance(row, dict) and isinstance(row.get("entry"), dict) else row]
+            if isinstance(entry, dict)
+        ]
+
+    def _semantic_symlink_votes(
+        self,
+        stars: list[dict[str, Any]] | None,
+    ) -> tuple[dict[str, float], dict[str, float], str]:
+        cue_votes = {name: 0.0 for name in _SEMANTIC_CUE_REF_TOKENS}
+        role_votes = {name: 0.0 for name in _SEMANTIC_ROLE_REF_TOKENS}
+        for star in list(stars or []):
+            if not isinstance(star, dict):
+                continue
+            ref_tokens = self._semantic_star_ref_tokens(star)
+            if not ref_tokens:
+                continue
+            for cue_name, ref_ids in _SEMANTIC_CUE_REF_TOKENS.items():
+                if ref_tokens.intersection(ref_ids):
+                    cue_votes[cue_name] += 1.0
+            for role_name, ref_ids in _SEMANTIC_ROLE_REF_TOKENS.items():
+                if ref_tokens.intersection(ref_ids):
+                    role_votes[role_name] += 1.0
+        dominant_role = ""
+        best_score = 0.0
+        for role_name in _SEMANTIC_ROLE_PRIORITY:
+            score = float(role_votes.get(role_name, 0.0))
+            if score > best_score:
+                dominant_role = role_name
+                best_score = score
+        return cue_votes, role_votes, dominant_role
+
     def _find_nearest_referent(
         self,
         index: int,
@@ -1014,8 +1237,10 @@ class NavigatorSpecialist:
         merged_quantities: list[dict[str, Any]],
         *,
         unified_goal: dict[str, Any],
+        base_route: dict[str, Any],
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         semantic_entities: list[dict[str, Any]] = []
+        retrieved_star_cache: dict[str, tuple[list[dict[str, Any]], dict[str, float], dict[str, float], str]] = {}
         sorted_rows = sorted(
             [dict(row) for row in merged_quantities if isinstance(row, dict)],
             key=lambda row: (int(row.get("offset", 0) or 0), str(row.get("surface", ""))),
@@ -1042,6 +1267,25 @@ class NavigatorSpecialist:
             role = str(row.get("role", "")).strip().lower()
             if role in {"", "quantity", "target"}:
                 role = ""
+            retrieval_query = " ".join(
+                part
+                for part in (
+                    snippet,
+                    str(unified_goal.get("raw") or unified_goal.get("expression") or "").strip(),
+                )
+                if part
+            ).strip()
+            cache_key = retrieval_query or f"{raw_text}::{offset}"
+            cached = retrieved_star_cache.get(cache_key)
+            if cached is None:
+                retrieved_stars = self._semantic_retrieved_stars(
+                    retrieval_query or snippet or raw_text,
+                    base_route=base_route,
+                )
+                cue_votes, role_votes, dominant_role = self._semantic_symlink_votes(retrieved_stars)
+                cached = (retrieved_stars, cue_votes, role_votes, dominant_role)
+                retrieved_star_cache[cache_key] = cached
+            retrieved_stars, cue_votes, role_votes, dominant_role = cached
             raw_lower = raw_text.lower()
             temporal_tokens = [
                 self._normalize_semantic_token(token)
@@ -1061,7 +1305,7 @@ class NavigatorSpecialist:
                 or normalized_surface.endswith("%")
                 or normalized_surface in {"percent", "percentage"}
             )
-            has_temporal_cue = any(token in _SEMANTIC_TEMPORAL_UNITS for token in temporal_tokens)
+            has_temporal_cue = float(cue_votes.get("temporal", 0.0)) > 0.0
             surface_temporal_unit = next(
                 (
                     token
@@ -1071,17 +1315,13 @@ class NavigatorSpecialist:
                 "",
             )
             has_rate_cue = (
-                "/" in local_window
-                or " per " in f" {local_window} "
+                float(cue_votes.get("rate", 0.0)) > 0.0
                 or bool(scope)
-                or any(token in {"per", "hour", "hourly", "minute", "daily", "weekly", "rate"} for token in nearby_tokens)
             )
             has_speed_cue = (
-                " mph" in f" {local_window} "
+                float(cue_votes.get("speed", 0.0)) > 0.0
+                or " mph" in f" {local_window} "
                 or "mph" in normalized_surface
-                or "speed" in local_window
-                or "/minute" in local_window
-                or "/hour" in local_window
             )
             has_tight_rate_cue = (
                 "mph" in tight_window
@@ -1091,25 +1331,27 @@ class NavigatorSpecialist:
                 or "/hour" in tight_window
             )
             has_currency_cue = (
-                "$" in tight_window
-                or any(token in {"dollar", "dollars", "cent", "cents", "price"} for token in temporal_tokens)
+                float(cue_votes.get("currency", 0.0)) > 0.0
+                or "$" in tight_window
             )
-            has_threshold_cue = any(token in {"first", "before", "until", "up", "limit", "threshold"} for token in nearby_tokens)
+            has_threshold_cue = float(cue_votes.get("threshold", 0.0)) > 0.0
             has_ratio_cue = (
-                " times " in f" {local_window} "
-                or any(token in {"times", "double", "triple", "ratio", "multiplier"} for token in nearby_tokens)
+                float(cue_votes.get("ratio", 0.0)) > 0.0
+                or " times " in f" {local_window} "
             )
             if not role and explicit_percent_surface:
                 role = "percentage"
                 unit = "percent"
                 scope = ""
+            elif not role and dominant_role:
+                role = dominant_role
             elif not role and has_speed_cue and not explicit_percent_surface:
                 role = "rate"
             elif not role and has_currency_cue and has_rate_cue:
                 role = "rate"
                 unit = "currency"
                 scope = scope or "per_time"
-            elif not role and has_ratio_cue and any(token in {"rate", "hourly", "regular"} for token in nearby_tokens):
+            elif not role and has_ratio_cue and self._semantic_has_token_overlap(nearby_tokens, {"rate", "hourly", "regular"}):
                 role = "divisor"
                 scope = ""
             elif not role and has_temporal_cue and has_threshold_cue:
@@ -1134,21 +1376,21 @@ class NavigatorSpecialist:
                 unit = "currency"
             if not role:
                 currency_window = raw_text[max(offset - 1, 0) : offset + max(len(surface), 1) + 16].lower()
-                if "$" in currency_window or any(token in {"dollar", "dollars", "cent", "cents"} for token in after_tokens[:3]):
+                if "$" in currency_window or self._semantic_has_token_overlap(after_tokens[:3], {"dollar", "dollars", "cent", "cents"}):
                     role = "price"
                     unit = "currency"
                 elif reference is not None:
                     role = "count"
-                elif any(token in {"file", "files"} for token in temporal_tokens) and "download" in raw_lower:
+                elif self._semantic_has_token_overlap(temporal_tokens, {"file", "files"}) and "download" in raw_lower:
                     role = "total"
                 elif "remaining" in raw_lower or "left" in raw_lower or "after" in raw_lower:
                     role = "result"
                 elif after_tokens and after_tokens[0] == "times":
                     role = "frequency"
                     unit = "session"
-                elif any(token in _SEMANTIC_SCOPE_CUES for token in after_tokens[:3]):
+                elif has_rate_cue:
                     role = "rate"
-                elif any(token in {"total", "altogether"} for token in before_tokens + after_tokens):
+                elif self._semantic_has_token_overlap(before_tokens + after_tokens, {"total", "altogether"}):
                     role = "goal"
                 else:
                     role = "count"
@@ -1159,14 +1401,14 @@ class NavigatorSpecialist:
                     scope = self._semantic_scope_from_tokens(before_tokens, ["times", *after_tokens])
                 if not unit:
                     unit = "session"
-                if has_ratio_cue and any(token in {"rate", "hourly", "regular"} for token in nearby_tokens):
+                if has_ratio_cue and self._semantic_has_token_overlap(nearby_tokens, {"rate", "hourly", "regular"}):
                     role = "divisor"
                     scope = ""
             if role == "price":
-                if any(token in {"buy", "buys", "bought", "purchase", "purchased", "cost", "for"} for token in before_tokens[-5:]):
+                if self._semantic_has_token_overlap(before_tokens[-5:], {"buy", "buys", "bought", "purchase", "purchased", "cost", "for"}):
                     role = "initial"
                 elif (
-                    any(token in {"repair", "repairs", "spent", "spend", "renovation"} for token in nearby_tokens)
+                    self._semantic_has_token_overlap(nearby_tokens, {"repair", "repairs", "spent", "spend", "renovation"})
                     or ("puts" in nearby_tokens and "in" in nearby_tokens)
                 ):
                     role = "part"
@@ -1176,7 +1418,7 @@ class NavigatorSpecialist:
                     scope = ""
                 elif (
                     "worked for" in raw_lower
-                    and any(token in raw_lower for token in ("earnings", "earned", "pay"))
+                    and ("earnings" in raw_lower or "earned" in raw_lower or "pay" in raw_lower)
                 ):
                     role = "total"
                     scope = ""
@@ -1231,6 +1473,16 @@ class NavigatorSpecialist:
                     "reference": reference,
                     "offset": offset,
                     "raw_block": raw_text,
+                    "retrieved_star_ids": [
+                        str(star.get("id", "")).strip()
+                        for star in retrieved_stars
+                        if isinstance(star, dict) and str(star.get("id", "")).strip()
+                    ],
+                    "symlink_role_votes": {
+                        key: float(value)
+                        for key, value in role_votes.items()
+                        if float(value) > 0.0
+                    },
                 }
             )
         semantic_entities = self._resolve_reference_entities(semantic_entities)
@@ -1430,7 +1682,7 @@ class NavigatorSpecialist:
                     q = q / 100.0
                 return max(0.0, min(q, 1.0))
             except (TypeError, ValueError):
-                pass
+                return 0.5
         return 0.5
 
     def _path_composition_depth(self, path: PathCandidate) -> int:
@@ -1510,6 +1762,12 @@ class NavigatorSpecialist:
         payload = self.weight_store.load()
         self.routing_topology = dict(payload.get("routing_topology", {}))
         self._update_count = int(payload.get("update_count", 0))
+        self._recent_traces = [
+            dict(row)
+            for row in list(payload.get("navigator_recent_traces") or [])
+            if isinstance(row, dict)
+        ][-self._recent_trace_limit :]
+        self._training_state = dict(payload.get("navigator_training_state") or {})
         specialist_bias = payload.get("specialist_bias", {})
         if isinstance(specialist_bias, dict):
             for specialist, value in specialist_bias.items():
@@ -1521,5 +1779,169 @@ class NavigatorSpecialist:
             "specialist_bias": self.router.get_specialist_bias(),
             "routing_topology": self.routing_topology,
             "update_count": self._update_count,
+            "navigator_recent_traces": list(self._recent_traces[-self._recent_trace_limit :]),
+            "navigator_training_state": dict(self._training_state),
         }
         self.weight_store.save(payload)
+
+    def _ensure_swarm_lane(self) -> Any | None:
+        knowledgeverse = self.knowledgeverse
+        swarm = getattr(knowledgeverse, "adaptive_swarm", None) if knowledgeverse is not None else None
+        if swarm is None:
+            return None
+        specialists = getattr(getattr(swarm, "base", None), "specialists", {})
+        if NAVIGATOR_SWARM_NAME not in specialists:
+            swarm.register_specialist(
+                NAVIGATOR_SWARM_NAME,
+                required_dims=NAVIGATOR_SWARM_DIMS,
+                rank=NAVIGATOR_SWARM_RANK,
+            )
+        return swarm
+
+    @staticmethod
+    def _build_input_vector(
+        query_embedding: Sequence[float] | None,
+        symlink_histogram: Sequence[float] | None,
+    ) -> list[float]:
+        vector = [float(value) for value in list(query_embedding or [])[:NAVIGATOR_SWARM_DIMS]]
+        if len(vector) < NAVIGATOR_SWARM_DIMS:
+            vector.extend([0.0] * (NAVIGATOR_SWARM_DIMS - len(vector)))
+        histogram_values = [float(value) for value in list(symlink_histogram or [])[: len(MEANING_CLASSES)]]
+        for idx, value in enumerate(histogram_values):
+            vector[idx] += float(value)
+        if histogram_values:
+            top_index = max(range(len(histogram_values)), key=lambda idx: float(histogram_values[idx]))
+            if float(histogram_values[top_index]) > 0.0:
+                vector[top_index] += 0.25
+        return vector
+
+    @staticmethod
+    def _build_target_vector(
+        *,
+        meaning_class: str,
+        halting_weights: Sequence[float] | None = None,
+    ) -> list[float]:
+        target = [0.0] * NAVIGATOR_SWARM_DIMS
+        token = str(meaning_class or "").strip().upper()
+        if token not in MEANING_CLASS_INDEX:
+            token = "FACTUAL_RECALL"
+        target[MEANING_CLASS_INDEX[token]] = 1.0
+        weights = [float(value) for value in list(halting_weights or HALTING_WEIGHT_PRIOR_UNIFORM)]
+        if len(weights) < len(HALTING_WEIGHT_PRIOR_UNIFORM):
+            weights.extend([1.0] * (len(HALTING_WEIGHT_PRIOR_UNIFORM) - len(weights)))
+        for idx, value in enumerate(weights[: len(HALTING_WEIGHT_PRIOR_UNIFORM)]):
+            target[len(MEANING_CLASSES) + idx] = max(0.05, float(value))
+        return target
+
+    @staticmethod
+    def _negative_meaning_class(meaning_class: str) -> str:
+        token = str(meaning_class or "").strip().upper()
+        if token not in MEANING_CLASS_INDEX:
+            return "MULTI_HOP_INFERENCE"
+        return MEANING_CLASSES[(MEANING_CLASS_INDEX[token] + 1) % len(MEANING_CLASSES)]
+
+    def _trace_to_training_sample(self, trace: dict[str, Any]) -> dict[str, Any] | None:
+        payload = dict(trace or {})
+        retrieved_stars = [
+            dict(row)
+            for row in list(payload.get("retrieved_stars") or [])
+            if isinstance(row, dict)
+        ]
+        meaning_class = meaning_class_from_symlink_votes(retrieved_stars)
+        if not meaning_class:
+            return None
+        query_embedding = [
+            float(value)
+            for value in list(payload.get("query_embedding") or payload.get("embedding") or [])[:NAVIGATOR_SWARM_DIMS]
+        ]
+        if len(query_embedding) < NAVIGATOR_SWARM_DIMS:
+            query_embedding.extend([0.0] * (NAVIGATOR_SWARM_DIMS - len(query_embedding)))
+        symlink_histogram = derive_symlink_histogram(retrieved_stars)
+        if len(symlink_histogram) < len(MEANING_CLASSES):
+            symlink_histogram.extend([0.0] * (len(MEANING_CLASSES) - len(symlink_histogram)))
+        halting = [
+            float(value)
+            for value in list(payload.get("halting_weight_vec") or payload.get("halting_weights") or HALTING_WEIGHT_PRIOR_UNIFORM)
+        ]
+        sample = {
+            "query_text": str(payload.get("query_text") or payload.get("query") or "").strip(),
+            "meaning_class": meaning_class,
+            "correct": bool(payload.get("correct", False)),
+            "query_embedding": query_embedding,
+            "symlink_histogram": symlink_histogram,
+            "input_embedding": self._build_input_vector(
+                query_embedding,
+                symlink_histogram,
+            ),
+            "target_embedding": self._build_target_vector(
+                meaning_class=meaning_class,
+                halting_weights=halting,
+            ),
+            "negative_embedding": self._build_target_vector(
+                meaning_class=self._negative_meaning_class(meaning_class),
+                halting_weights=HALTING_WEIGHT_PRIOR_UNIFORM,
+            ),
+            "task_payload": dict(payload.get("task_payload") or {}),
+            "options": list(payload.get("options") or []),
+            "retrieved_stars": retrieved_stars,
+        }
+        return sample
+
+    def recent_training_samples(self) -> list[dict[str, Any]]:
+        return [dict(row) for row in self._recent_traces]
+
+    @staticmethod
+    def _softmax(logits: list[float]) -> list[float]:
+        if not logits:
+            return []
+        maximum = max(logits)
+        exps = [math.exp(float(value) - maximum) for value in logits]
+        total = sum(exps)
+        if total <= 0.0:
+            return [1.0 / float(len(logits))] * len(logits)
+        return [float(value) / total for value in exps]
+
+    def emit(
+        self,
+        query_embedding: list[float],
+        symlink_histogram: list[float],
+        *,
+        query_text: str = "",
+        options: list[str] | None = None,
+        task_payload: dict[str, Any] | None = None,
+    ) -> tuple[list[float], list[float]]:
+        del query_text, options, task_payload
+        swarm = self._ensure_swarm_lane()
+        if swarm is None or int(getattr(swarm, "specialist_steps", {}).get(NAVIGATOR_SWARM_NAME, 0) or 0) <= 0:
+            return (
+                [1.0 / float(len(MEANING_CLASSES))] * len(MEANING_CLASSES),
+                [float(value) for value in HALTING_WEIGHT_PRIOR_UNIFORM],
+            )
+        vector = self._build_input_vector(
+            query_embedding,
+            symlink_histogram,
+        )
+        try:
+            output = swarm.forward(vector, specialist=NAVIGATOR_SWARM_NAME)
+            raw = [float(output[idx]) for idx in range(min(len(output), NAVIGATOR_OUTPUT_DIMS))]
+        except Exception:
+            raw = []
+        if len(raw) < NAVIGATOR_OUTPUT_DIMS:
+            return (
+                [1.0 / float(len(MEANING_CLASSES))] * len(MEANING_CLASSES),
+                [float(value) for value in HALTING_WEIGHT_PRIOR_UNIFORM],
+            )
+        meaning = self._softmax(raw[: len(MEANING_CLASSES)])
+        halting_logits = raw[len(MEANING_CLASSES) : len(MEANING_CLASSES) + len(HALTING_WEIGHT_PRIOR_UNIFORM)]
+        halting = [max(0.05, (1.0 / (1.0 + math.exp(-float(value)))) * 2.0) for value in halting_logits]
+        return meaning, halting
+
+    def update_from_trace(self, trace: dict[str, Any]) -> None:
+        sample = self._trace_to_training_sample(trace)
+        if sample is None:
+            return
+        self._recent_traces.append(sample)
+        self._recent_traces = self._recent_traces[-self._recent_trace_limit :]
+        self._training_state["last_trace_query"] = str(sample.get("query_text") or "")
+        self._training_state["recent_trace_count"] = len(self._recent_traces)
+        self.save_state()

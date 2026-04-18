@@ -266,7 +266,7 @@ def _run_batch11_warmup_probes(*, tablet: HeadlessTabletMPC, log_dir: Path) -> d
                     frame_id="warmup_arc_1",
                     envelope=TabletIngest.game2d_task(
                         task_id="warmup_arc_1",
-                        query="horizontal reflection grid transform",
+                        query="Transform this grid using the examples.",
                         training_examples=[{"input": [[1, 0], [0, 1]], "output": [[0, 1], [1, 0]]}],
                         input_grid=[[2, 0], [0, 3]],
                         expected_output=[[0, 2], [3, 0]],
@@ -288,7 +288,6 @@ def _run_batch11_warmup_probes(*, tablet: HeadlessTabletMPC, log_dir: Path) -> d
                     envelope=TabletIngest.math_problem(
                         task_id="warmup_math_1",
                         question="What is 2 + 2?",
-                        competition="Warmup",
                         expected_answer="4",
                     ),
                     expected="4",
@@ -828,25 +827,49 @@ def run_tablet_benchmark_suite(
     hardware_profile = _detect_hardware_profile(storage_root)
     feeder_workers = 1
 
-    kv = Knowledgeverse(storage_root=storage_root)
+    try:
+        kv = Knowledgeverse(storage_root=storage_root, defer_sovereign_boot=True)
+    except TypeError as exc:
+        if "defer_sovereign_boot" not in str(exc):
+            raise
+        kv = Knowledgeverse(storage_root=storage_root)
     if hasattr(kv, "suspend_auto_sleep"):
         kv.suspend_auto_sleep()
-    curriculum_summary = load_canonical_curriculum_into_knowledgeverse(
-        kv,
-        progress=lambda message: _log_section(message),
-    )
-    curriculum_assertion = assert_canonical_curriculum_loaded(kv)
-    if str(curriculum_assertion.get("status") or "").lower() != "ok":
-        raise RuntimeError(
-            "canonical_curriculum_load_assertion_failed:"
-            + ",".join(list(curriculum_assertion.get("missing_ids") or [])[:20])
+    if hasattr(kv, "galaxy_manager"):
+        curriculum_summary = load_canonical_curriculum_into_knowledgeverse(
+            kv,
+            progress=lambda message: _log_section(message),
         )
+        curriculum_assertion = assert_canonical_curriculum_loaded(kv)
+        if str(curriculum_assertion.get("status") or "").lower() != "ok":
+            raise RuntimeError(
+                "canonical_curriculum_load_assertion_failed:"
+                + ",".join(list(curriculum_assertion.get("missing_ids") or [])[:20])
+            )
+    else:
+        curriculum_summary = {"status": "skipped", "reason": "knowledgeverse_missing_galaxy_manager"}
+        curriculum_assertion = {"status": "skipped", "reason": "knowledgeverse_missing_galaxy_manager"}
+    if hasattr(kv, "_boot_sovereign_runtime"):
+        runtime_boot_summary = dict(kv._boot_sovereign_runtime(force_reload=False))
+        _log_section(
+            "runtime_boot "
+            f"status={str(runtime_boot_summary.get('status') or '')} "
+            f"mode={str(runtime_boot_summary.get('mode') or '')} "
+            f"stars={int(runtime_boot_summary.get('star_count', 0) or 0)}"
+        )
+    else:
+        runtime_boot_summary = {"status": "skipped", "reason": "knowledgeverse_missing_sovereign_boot"}
+        _log_section("runtime_boot status=skipped mode=unavailable stars=0")
     tablet = HeadlessTabletMPC(
         knowledgeverse=kv,
         storage_root=storage_root,
         command_handler=command_handler,
     )
-    warmup_probe_summary = _run_batch11_warmup_probes(tablet=tablet, log_dir=log_dir)
+    if hasattr(kv, "galaxy_manager") and hasattr(kv, "_boot_sovereign_runtime"):
+        warmup_probe_summary = _run_batch11_warmup_probes(tablet=tablet, log_dir=log_dir)
+    else:
+        warmup_probe_summary = {"status": "skipped", "reason": "knowledgeverse_stub_mode"}
+        _log_section("warmup_probes status=skipped reason=knowledgeverse_stub_mode")
 
     suite_order = [
         ("arc2", int(args.arc2_count)),
@@ -875,6 +898,7 @@ def run_tablet_benchmark_suite(
     trace_artifacts: dict[str, dict[str, Any]] = {}
     shutdown_summary: dict[str, Any] = {}
     execution_summary: dict[str, Any] = {}
+    runtime_artifact_save_summary: dict[str, Any] = {}
     try:
         for suite_name, suite_count in suite_order:
             if suite_count <= 0:
@@ -930,6 +954,17 @@ def run_tablet_benchmark_suite(
                 encoding="utf-8",
             )
     finally:
+        runtime = getattr(kv, "_sovereign_hot_path", None)
+        if runtime is not None and getattr(runtime.star_table, "star_count", 0) > 0:
+            try:
+                runtime_artifact_save_summary = dict(runtime.save_runtime_artifacts())
+            except Exception as exc:
+                runtime_artifact_save_summary = {"saved": False, "error": f"{type(exc).__name__}: {exc}"}
+            _log_section(
+                "runtime_artifacts_save "
+                f"saved={bool(runtime_artifact_save_summary.get('saved', True))} "
+                f"mode={str(runtime_artifact_save_summary.get('mode') or '')}"
+            )
         execution_summary = _write_execution_artifacts(
             log_dir=log_dir,
             start=start,
@@ -965,6 +1000,8 @@ def run_tablet_benchmark_suite(
         },
         "curriculum_layer": curriculum_summary,
         "curriculum_assertion": curriculum_assertion,
+        "runtime_boot": runtime_boot_summary,
+        "runtime_artifact_save": runtime_artifact_save_summary,
         "warmup_probes": warmup_probe_summary,
         "execution_phase": execution_summary,
         "sleep_consolidation": shutdown_summary,

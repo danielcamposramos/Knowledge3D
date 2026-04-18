@@ -64,6 +64,17 @@ from .knowledge_gap_inventory import (
 )
 from .resident_route_metadata import repair_knowledgeverse_resident_route_metadata
 from . import route_contract
+from .navigator_specialist import (
+    HALTING_WEIGHT_PRIOR_UNIFORM,
+    MEANING_CLASSES,
+    MEANING_CLASS_INDEX,
+    NAVIGATOR_SWARM_DIMS,
+    NAVIGATOR_SWARM_NAME,
+    NAVIGATOR_SWARM_RANK,
+    derive_symlink_histogram,
+    resolve_meaning_class_distribution,
+)
+from .query_head_substrate import QueryHeadSubstrate
 from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries, resolve_books_v5_root
 from .semantic_csr_graph import _catalog_signature, load_or_build_semantic_csr_graph
 from .shadow_copy import ShadowCopyLearning
@@ -366,13 +377,22 @@ class Knowledgeverse:
     FIXED_GRE_WORKER_SLOT_MAP: dict[str, int] = {
         name: idx for idx, name in enumerate(FIXED_GRE_WORKERS)
     }
+    N_CHAIN_REASONING_SLOTS: tuple[int, ...] = (
+        1,  # CBR
+        2,  # SUPERPOS
+        3,  # BIDUCE
+        4,  # EBELIEF
+        5,  # RETE
+        6,  # TABLEAUX
+        7,  # RESOLUTION
+        8,  # ALPCHAIN
+        9,  # DPLL
+        10,  # CTX_SWITCH
+        11,  # SUBSUME
+        12,  # UNIFY
+    )
     DECOMPOSER_STORE_SLOTS: tuple[int, int, int] = (60, 61, 62)
-    HALTING_WEIGHT_TABLE: dict[str, tuple[float, ...]] = {
-        "GAME_2D": (1.0, 0.8, 1.2, 2.0, 2.0, 1.0, 0.6, 1.5, 0.8),
-        "MATH": (2.0, 1.0, 1.5, 0.8, 1.5, 1.0, 2.0, 0.6, 1.2),
-        "QUESTION": (1.5, 2.0, 2.0, 0.8, 0.6, 2.0, 1.0, 0.5, 1.5),
-        "default": (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
-    }
+    HALTING_WEIGHT_PRIOR_UNIFORM: tuple[float, ...] = HALTING_WEIGHT_PRIOR_UNIFORM
     GPU_CATEGORY_CLASS_MAP: dict[str, float] = {
         "unknown": 0.0,
         "clue_fact": 1.0,
@@ -412,6 +432,7 @@ class Knowledgeverse:
         "Book_ToolManual": "Book/ToolManual",
     }
     ADAPTIVE_SWARM_SPECS: dict[str, tuple[int, int]] = {
+        NAVIGATOR_SWARM_NAME: (NAVIGATOR_SWARM_DIMS, NAVIGATOR_SWARM_RANK),
         "ocr": (64, 16),
         "visual": (128, 16),
         "math": (128, 16),
@@ -433,6 +454,7 @@ class Knowledgeverse:
         include_runtime_artifacts: bool = True,
         include_runtime_language_enrichment: bool = True,
         start_live_loops: bool = True,
+        defer_sovereign_boot: bool = False,
     ):
         self.manifest_version = manifest_version
         self.storage_root = Path(storage_root)
@@ -441,6 +463,7 @@ class Knowledgeverse:
         self.include_runtime_artifacts = bool(include_runtime_artifacts)
         self.include_runtime_language_enrichment = bool(include_runtime_language_enrichment)
         self.start_live_loops = bool(start_live_loops)
+        self.defer_sovereign_boot = bool(defer_sovereign_boot)
         self.house_state_path = self.storage_root / "house" / "galaxy_state.bin"
         self.bootstrap_marker_path = self.storage_root / "checkpoints" / "bootstrap_complete.marker"
         self._house_state_summary: dict[str, Any] = {}
@@ -560,6 +583,7 @@ class Knowledgeverse:
         self._drawing_bridge: Any | None = None
         self._led_pathfinder: Any | None | bool = None
         self._semantic_csr_graph: Any | None = None
+        self._query_head_substrate: Any | None = None
         self._swarm_bridge: Any | None | bool = None
         self._halting_gate: Any | None | bool = None
         self._arc_reasoner: Any | None | bool = None
@@ -570,6 +594,7 @@ class Knowledgeverse:
         self._temporal_reasoning: Any | None | bool = None
         self._fractal_emitter: Any | None | bool = None
         self._cognitive_executive: Any | None | bool = None
+        self._n_chain_swarm: Any | None | bool = None
         self._galaxy_resonance_engine: Any | None | bool = None
         self._graph_crystallizer: Any | None | bool = None
         self._atomic_fission_fusion: Any | None | bool = None
@@ -646,12 +671,20 @@ class Knowledgeverse:
         self._record_boot_stage("trm_decoder_load", boot_stage_t0)
         if eager_load_default_galaxies:
             boot_stage_t0 = time.perf_counter()
-            runtime_summary = self._boot_sovereign_runtime(force_reload=True)
-            self._record_boot_stage(
-                "sovereign_runtime_load",
-                boot_stage_t0,
-                summary=dict(runtime_summary or {}),
-            )
+            if self.defer_sovereign_boot:
+                self._record_boot_stage(
+                    "sovereign_runtime_load",
+                    boot_stage_t0,
+                    deferred=True,
+                    skipped=True,
+                )
+            else:
+                runtime_summary = self._boot_sovereign_runtime(force_reload=False)
+                self._record_boot_stage(
+                    "sovereign_runtime_load",
+                    boot_stage_t0,
+                    summary=dict(runtime_summary or {}),
+                )
         self._boot_runtime_summary["live_ready"] = True
         self._boot_runtime_summary["first_live_ready_at"] = time.time()
         if self.start_live_loops:
@@ -712,29 +745,16 @@ class Knowledgeverse:
         }
 
     @staticmethod
-    def _normalize_semantic_task_type(task_type: str) -> str:
+    def _legacy_surface_kind(task_type: str) -> str:
         normalized = str(task_type or "").strip().upper()
         aliases = {
-            "ARC": "GAME_2D",
-            "ARC_TASK": "GAME_2D",
-            "SPATIAL_TASK": "GAME_2D",
             "GAME_2D": "GAME_2D",
             "MATH": "MATH",
-            "MATH_TASK": "MATH",
-            "GSM8K_TASK": "MATH",
-            "IMO_TASK": "MATH",
             "QUESTION": "QUESTION",
-            "QUESTION_TASK": "QUESTION",
-            "MMLU_TASK": "QUESTION",
-            "LHE_TASK": "QUESTION",
             "CHAT": "CHAT",
-            "CHAT_TASK": "CHAT",
             "GENERAL": "GENERAL",
-            "GENERAL_TASK": "GENERAL",
             "GRAMMAR": "GRAMMAR",
-            "GRAMMAR_TASK": "GRAMMAR",
             "INTERACTION": "INTERACTION",
-            "INTERACTION_TASK": "INTERACTION",
         }
         return str(aliases.get(normalized, normalized if normalized else "GENERAL"))
 
@@ -744,6 +764,86 @@ class Knowledgeverse:
             runtime = SovereignHotPath(self)
             self._sovereign_hot_path = runtime
         return runtime
+
+    def _get_meaning_navigator_specialist(self):
+        return self.navigator_specialist
+
+    @staticmethod
+    def _meaning_class_from_task_payload(
+        *,
+        task: dict[str, Any] | None,
+        query_text: str,
+        options: list[str] | None = None,
+    ) -> str:
+        payload = dict(task or {})
+        token = str(payload.get("meaning_class") or "").strip().upper()
+        if token in MEANING_CLASS_INDEX:
+            return token
+        lowered = str(query_text or "").strip().lower()
+        if isinstance(payload.get("input_grid"), list) or isinstance(payload.get("training_examples"), list):
+            return "SPATIAL_TRANSFORM"
+        if re.search(r"[-+]?\d+(?:\.\d+)?", lowered) or any(token in lowered for token in ("solve", "sum", "plus", "minus", "times", "divide", "equation", "integral", "derivative", "probability", "percent")):
+            return "NUMERIC_COMPUTE"
+        if options or any(token in lowered for token in ("which", "best", "choose", "select", "compare", "difference", "more likely", "less likely")):
+            return "COMPARATIVE_CHOICE"
+        if any(phrase in lowered for phrase in ("write ", "compose ", "generate ", "create ", "draw ", "synthesize ")):
+            return "GENERATIVE_COMPOSITION"
+        if any(phrase in lowered for phrase in ("what is", "define", "meaning of", "definition of", "stands for")):
+            return "DEFINITION_LOOKUP"
+        if any(token in lowered for token in ("because", "therefore", "deduce", "infer", "evidence", "chain", "after", "before", "if all")):
+            return "MULTI_HOP_INFERENCE"
+        if isinstance(payload.get("messages"), list) or any(token in lowered for token in ("hello", "hi ", "can you", "could you", "help me", "let's")):
+            return "GROUNDED_DIALOG"
+        return "FACTUAL_RECALL"
+
+    @staticmethod
+    def _task_type_from_meaning_class(
+        *,
+        meaning_class: str,
+        task: dict[str, Any] | None,
+        options: list[str] | None = None,
+    ) -> str:
+        payload = dict(task or {})
+        normalized = str(meaning_class or "").strip().upper()
+        if isinstance(payload.get("input_grid"), list) or isinstance(payload.get("training_examples"), list):
+            return "ARC_TASK"
+        if normalized == "SPATIAL_TRANSFORM":
+            return "ARC_TASK"
+        if normalized == "NUMERIC_COMPUTE":
+            return "MATH_TASK"
+        if normalized in {"GROUNDED_DIALOG", "GENERATIVE_COMPOSITION"}:
+            return "CHAT"
+        if (list(options or []) if isinstance(options, list) else list(payload.get("options") or [])) or normalized in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE", "FACTUAL_RECALL", "DEFINITION_LOOKUP"}:
+            return "QUESTION_TASK"
+        return "QUESTION_TASK"
+
+    def _navigator_emission(
+        self,
+        *,
+        query_embedding: list[float] | None,
+        task: dict[str, Any] | None,
+        query_text: str,
+        options: list[str] | None = None,
+        stars: list[dict[str, Any]] | None = None,
+    ) -> tuple[str, list[float], list[float], bool]:
+        payload = dict(task or {})
+        specialist = self._get_meaning_navigator_specialist()
+        meaning_dist, halting_weights = specialist.emit(
+            list(query_embedding or self._embed_query_gpu(query_text, task=payload)),
+            derive_symlink_histogram(stars),
+            query_text=query_text,
+            options=list(options or []),
+            task_payload=payload,
+        )
+        meaning_class, low_confidence = resolve_meaning_class_distribution(meaning_dist)
+        if low_confidence:
+            meaning_class = self._meaning_class_from_task_payload(task=payload, query_text=query_text, options=options)
+        return (
+            meaning_class,
+            list(meaning_dist) if len(meaning_dist) == len(MEANING_CLASSES) else [1.0 / float(len(MEANING_CLASSES))] * len(MEANING_CLASSES),
+            list(halting_weights) if len(halting_weights) == len(self.HALTING_WEIGHT_PRIOR_UNIFORM) else list(self.HALTING_WEIGHT_PRIOR_UNIFORM),
+            bool(low_confidence),
+        )
 
     def _sovereign_runtime_manifest(self) -> dict[str, Any]:
         runtime = getattr(self, "_sovereign_hot_path", None)
@@ -2960,6 +3060,145 @@ class Knowledgeverse:
             self._gpu_galaxy_binding = None
         return self._gpu_reasoning_engine
 
+    def bind_gpu_galaxy_runtime(
+        self,
+        *,
+        galaxy_names: list[str] | tuple[str, ...] | None = None,
+        force: bool = False,
+        mode: str = "hot",
+    ) -> dict[str, Any]:
+        """Bind the already-loaded Knowledgeverse galaxies into the shared GPU runtime."""
+        requested_names = self._resolve_live_galaxy_names(galaxy_names)
+        live_names = self._discover_live_galaxy_names()
+        live_name_set = {str(name) for name in live_names}
+        unknown_names = [str(name) for name in requested_names if str(name) not in live_name_set]
+        if unknown_names:
+            raise ValueError(
+                "unknown_galaxy_names:" + ",".join(sorted(dict.fromkeys(unknown_names)))
+            )
+        target_names = list(requested_names)
+        if not target_names:
+            target_names = list(live_names)
+        elif self._default_galaxies_loaded and set(target_names).issubset(live_name_set):
+            target_names = list(live_names)
+
+        existing_binding = dict(self._gpu_galaxy_binding or {})
+        bound_names = [str(name) for name in list(existing_binding.get("galaxies") or [])]
+        if (
+            self._gpu_galaxy_binding is not None
+            and not force
+            and self._pinned_all_default_binding
+            and bound_names == list(live_names)
+            and set(target_names).issubset(set(bound_names))
+        ):
+            existing_binding.setdefault("bound", list(bound_names))
+            existing_binding.setdefault("total", int(len(bound_names)))
+            existing_binding.setdefault("requested_galaxies", list(requested_names))
+            existing_binding.setdefault("binding_mode", str(mode or "hot"))
+            return existing_binding
+        already_materialized = self._gpu_galaxy_binding is not None and "entry_count" in existing_binding
+        if (
+            already_materialized
+            and not force
+            and (
+                bound_names == target_names
+                or (
+                    self._pinned_all_default_binding
+                    and bound_names == list(live_names)
+                    and set(target_names).issubset(set(bound_names))
+                )
+            )
+        ):
+            existing_binding.setdefault("bound", list(bound_names))
+            existing_binding.setdefault("total", int(len(bound_names)))
+            existing_binding.setdefault("requested_galaxies", list(requested_names))
+            existing_binding.setdefault("binding_mode", str(mode or "hot"))
+            return existing_binding
+
+        engine = self.get_gpu_reasoning_engine()
+        flat_cache_signature = self._gpu_flat_cache_signature(target_names)
+        flat_cache_hit = False
+        enriched_count = 0
+        cached_payload = self._load_gpu_flat_cache(flat_cache_signature)
+        if cached_payload is not None:
+            flat_entries, catalog = cached_payload
+            flat_cache_hit = True
+            self.metrics.gpu_runtime_artifact_entries = sum(
+                1
+                for entry in catalog
+                if float(entry.get("gpu_source_class", -1.0)) == float(self.GPU_SOURCE_CLASS_BOOK_ARTIFACT)
+            )
+        else:
+            flat_entries, catalog, enriched_count = self._flatten_galaxies_for_gpu(galaxy_names=target_names)
+            flat_entries = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+            self._save_gpu_flat_cache(
+                signature=flat_cache_signature,
+                flat_entries=flat_entries,
+                catalog=catalog,
+            )
+        flat_entries = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+        binding = engine.bind_galaxy_buffer(
+            flat_entries,
+            entry_count=len(catalog),
+            entry_stride=self.GPU_GALAXY_ENTRY_STRIDE,
+            embedding_offset=self.GPU_GALAXY_EMBEDDING_OFFSET,
+            embedding_dim=self.GPU_GALAXY_EMBEDDING_DIM,
+        )
+        binding.update(
+            {
+                "galaxies": list(target_names),
+                "requested_galaxies": list(requested_names),
+                "bound": list(target_names),
+                "total": int(len(target_names)),
+                "binding_mode": str(mode or "hot"),
+                "entry_count": int(len(catalog)),
+                "buffer_bytes": int(flat_entries.size) * 4,
+                "runtime_artifact_entries": int(self.metrics.gpu_runtime_artifact_entries),
+                "flat_cache_hit": bool(flat_cache_hit),
+                "flat_cache_signature": str(flat_cache_signature),
+            }
+        )
+        if enriched_count > 0 or not str(self._house_state_summary.get("gpu_buffer_signature_base") or "").strip():
+            checkpoint_summary = self.save_consolidated_state()
+            refreshed_signature = self._gpu_flat_cache_signature(target_names)
+            if refreshed_signature != flat_cache_signature:
+                self._save_gpu_flat_cache(
+                    signature=refreshed_signature,
+                    flat_entries=flat_entries,
+                    catalog=catalog,
+                )
+                flat_cache_signature = refreshed_signature
+                binding["flat_cache_signature"] = str(flat_cache_signature)
+            binding["checkpoint_path"] = str(checkpoint_summary.get("path") or "")
+        if self._query_head_substrate is not None and hasattr(self._query_head_substrate, "close"):
+            try:
+                self._query_head_substrate.close()
+            except Exception:
+                pass
+        if self._semantic_csr_graph is not None and hasattr(self._semantic_csr_graph, "close"):
+            try:
+                self._semantic_csr_graph.close()
+            except Exception:
+                pass
+        self._semantic_csr_graph = load_or_build_semantic_csr_graph(
+            catalog=catalog,
+            cache_root=self.storage_root / "graph_cache",
+            knn_k=12,
+            similarity_threshold=0.3,
+        )
+        self._semantic_csr_graph.ensure_device_buffers()
+        self._query_head_substrate = QueryHeadSubstrate.build(
+            signature=str(getattr(self._semantic_csr_graph, "signature", _catalog_signature(catalog))),
+            catalog=catalog,
+        )
+        self._gpu_galaxy_binding = dict(binding)
+        self._pinned_all_default_binding = list(target_names) == list(live_names)
+        self._gpu_galaxy_catalog = list(catalog)
+        self.metrics.gpu_galaxy_entries = int(len(catalog))
+        self.metrics.gpu_galaxy_bytes = int(flat_entries.size) * 4
+        self.metrics.gpu_bind_rebuilds = int(self.metrics.gpu_bind_rebuilds) + 1
+        return dict(binding)
+
     def build_gpu_catalog_only(
         self,
         *,
@@ -3154,6 +3393,11 @@ class Knowledgeverse:
         return resolved
 
     def invalidate_gpu_galaxy_binding(self) -> None:
+        if self._query_head_substrate is not None and hasattr(self._query_head_substrate, "close"):
+            try:
+                self._query_head_substrate.close()
+            except Exception:
+                pass
         if self._semantic_csr_graph is not None and hasattr(self._semantic_csr_graph, "close"):
             try:
                 self._semantic_csr_graph.close()
@@ -3164,6 +3408,7 @@ class Knowledgeverse:
         self._gpu_galaxy_catalog = []
         self._gpu_reasoning_programs = {}
         self._semantic_csr_graph = None
+        self._query_head_substrate = None
         self._led_pathfinder = None
         runtime = getattr(self, "_sovereign_hot_path", None)
         if runtime is not None and hasattr(runtime, "invalidate_loaded_state"):
@@ -3176,6 +3421,12 @@ class Knowledgeverse:
         """Clear mutable per-benchmark state while keeping the GPU-bound galaxy snapshot assembled."""
         self._gpu_reasoning_programs.clear()
         self._query_sequence = 0
+        if self._query_head_substrate is not None and hasattr(self._query_head_substrate, "close"):
+            try:
+                self._query_head_substrate.close()
+            except Exception:
+                pass
+        self._query_head_substrate = None
         if self._semantic_csr_graph is not None and hasattr(self._semantic_csr_graph, "reset_traversal_state"):
             try:
                 self._semantic_csr_graph.reset_traversal_state()
@@ -3204,6 +3455,35 @@ class Knowledgeverse:
     def trm_game_loop_status(self) -> dict[str, Any]:
         return self._trm_game_loop.snapshot()
 
+    def run_ticks(self, n: int = 1) -> int:
+        processed = 0
+        for _ in range(max(0, int(n))):
+            processed += int(self._trm_game_loop.tick(max_tasks=1))
+        return processed
+
+    @staticmethod
+    def _bypass_game_loop_enabled() -> bool:
+        return os.environ.get("K3D_BYPASS_GAME_LOOP", "0") == "1"
+
+    def enqueue_task(
+        self,
+        *,
+        task: dict[str, Any],
+        route: dict[str, Any] | None = None,
+        specialist: str = "auto",
+        domain_hint: str | None = None,
+        use_enriched: bool = True,
+        max_wall_ms: int | None = None,
+    ) -> str:
+        return self._trm_game_loop.enqueue_task(
+            task=task,
+            route=route,
+            specialist=specialist,
+            domain_hint=domain_hint,
+            use_enriched=use_enriched,
+            max_wall_ms=max_wall_ms,
+        )
+
     def write_input_buffer(
         self,
         *,
@@ -3212,17 +3492,29 @@ class Knowledgeverse:
         specialist: str = "auto",
         domain_hint: str | None = None,
         use_enriched: bool = True,
+        max_wall_ms: int | None = None,
     ) -> str:
-        return self._trm_game_loop.enqueue_task(
+        return self.enqueue_task(
             task=task,
             route=route,
             specialist=specialist,
             domain_hint=domain_hint,
             use_enriched=use_enriched,
+            max_wall_ms=max_wall_ms,
         )
 
-    def wait_output_buffer(self, request_id: str, *, max_ticks: int = 1) -> dict[str, Any]:
-        result = self._trm_game_loop.wait_output(str(request_id), max_ticks=max_ticks)
+    def wait_output_buffer(
+        self,
+        request_id: str,
+        *,
+        max_ticks: int = 1,
+        max_wall_ms: int | None = None,
+    ) -> dict[str, Any]:
+        result = self._trm_game_loop.wait_output(
+            str(request_id),
+            max_ticks=max_ticks,
+            max_wall_ms=max_wall_ms,
+        )
         if result is None:
             raise RuntimeError(f"TRM game loop produced no output for request {request_id}")
         return result
@@ -3345,6 +3637,21 @@ class Knowledgeverse:
                 self._cognitive_executive = False
                 return None
         return self._cognitive_executive
+
+    def get_n_chain_swarm(self):
+        if self._n_chain_swarm is False:
+            return None
+        if self._n_chain_swarm is None:
+            try:
+                from knowledge3d.cranium.bridges.n_chain_swarm_bridge import NChainSwarmBridge
+
+                bridge = NChainSwarmBridge()
+                bridge.launch()
+                self._n_chain_swarm = bridge
+            except Exception:
+                self._n_chain_swarm = False
+                return None
+        return self._n_chain_swarm
 
     def get_galaxy_resonance_engine(self):
         if self._galaxy_resonance_engine is False:
@@ -3582,6 +3889,9 @@ class Knowledgeverse:
 
     def get_semantic_csr_graph(self):
         return self._semantic_csr_graph
+
+    def get_query_head_substrate(self):
+        return self._query_head_substrate
 
     def get_gpu_query_embedding_engine(self) -> RPNEmbeddingEngine:
         engine = self.get_text_embedding_engine()
@@ -4280,9 +4590,7 @@ class Knowledgeverse:
         normalized = str(task_type or "").strip().upper()
         if normalized != "QUESTION_TASK":
             return normalized
-        if self._looks_like_choice_payload(task, options):
-            return "MMLU_TASK"
-        return "LHE_TASK"
+        return "QUESTION_TASK"
 
     def _infer_query_mode(
         self,
@@ -4292,90 +4600,8 @@ class Knowledgeverse:
         query_text: str,
         options: list[str] | None = None,
     ) -> str:
-        payload = dict(task or {})
-        declared_surface = self._normalize_semantic_task_type(
-            str(payload.get("surface_kind") or payload.get("type", "")).strip().upper()
-        )
-        declared_mode = str(payload.get("type", "")).strip().upper()
-        if declared_mode in {
-            "ARC_TASK",
-            "MATH_TASK",
-            "QUESTION_TASK",
-            "LHE_TASK",
-            "MMLU_TASK",
-            "CHAT_TASK",
-            "GRAMMAR_TASK",
-            "GAME_2D",
-            "GSM8K_TASK",
-            "GENERAL_TASK",
-        }:
-            return declared_mode
-        route_specialist = str((route or {}).get("specialist") or "").strip().lower()
-        lowered = str(query_text or "").strip().lower()
-        if declared_surface == "GAME_2D":
-            return "ARC_TASK"
-        if declared_surface == "MATH":
-            return "MATH_TASK"
-        if declared_surface == "GRAMMAR":
-            return "GRAMMAR_TASK"
-        if declared_surface == "CHAT":
-            return "CHAT_TASK"
-        if declared_surface == "QUESTION":
-            if self._looks_like_choice_payload(payload, options):
-                return "MMLU_TASK"
-            benchmark_hint = " ".join(
-                str(payload.get(key, "")).strip().lower()
-                for key in ("competition", "benchmark", "dataset", "subject", "domain_hint")
-            )
-            if "lhe" in benchmark_hint or "logic" in benchmark_hint or "deduce" in lowered or "eliminate" in lowered:
-                return "LHE_TASK"
-            return "LHE_TASK"
-        if declared_surface == "GENERAL":
-            return "GENERAL_TASK"
-        if self._looks_like_arc_payload(payload):
-            return "ARC_TASK"
-        if self._is_gsm8k_math_task(payload) or self._looks_like_math_query(lowered):
-            return "MATH_TASK"
-        if self._looks_like_choice_payload(payload, options):
-            benchmark_hint = " ".join(
-                str(payload.get(key, "")).strip().lower()
-                for key in ("competition", "benchmark", "dataset", "subject", "domain_hint")
-            )
-            if "lhe" in benchmark_hint or "logic" in benchmark_hint or "deduce" in lowered or "eliminate" in lowered:
-                return "LHE_TASK"
-            return "MMLU_TASK"
-        if isinstance(payload.get("messages"), list) or route_specialist in {"chat", "grammar", "any"}:
-            if route_specialist == "grammar":
-                return "GRAMMAR_TASK"
-            return "CHAT_TASK"
-        return "GENERAL_TASK"
-
-    def _task_specialist_name(self, task: dict[str, Any] | None) -> str:
-        payload = dict(task or {})
-        declared_surface = self._normalize_semantic_task_type(
-            str(payload.get("surface_kind") or payload.get("type", "")).strip().upper()
-        )
-        if declared_surface == "GAME_2D":
-            return "visual"
-        if declared_surface == "MATH":
-            return "math"
-        if declared_surface == "GRAMMAR":
-            return "grammar"
-        if declared_surface in {"QUESTION", "GENERAL", "CHAT"}:
-            return "chat"
-        query_text = " ".join(
-            str(payload.get(key, "")).strip()
-            for key in ("query", "question", "prompt")
-            if str(payload.get(key, "")).strip()
-        )
-        mode = self._infer_query_mode(task=payload, route=None, query_text=query_text, options=None)
-        if mode == "ARC_TASK":
-            return "visual"
-        if mode == "MATH_TASK":
-            return "math"
-        if mode == "GRAMMAR_TASK":
-            return "grammar"
-        return "chat"
+        del route
+        return self._meaning_class_from_task_payload(task=task, query_text=query_text, options=options)
 
     def _apply_specialist_embedding_adapter(
         self,
@@ -5453,24 +5679,7 @@ class Knowledgeverse:
         """
         if not query_texts:
             return []
-        task_payload = dict(task or {})
-        surface_kind = self._normalize_semantic_task_type(
-            str(task_payload.get("surface_kind") or task_payload.get("type", "")).strip().upper()
-        )
-        surface_bridge_prefix = {
-            "GAME_2D": "2d game grid control action movement spatial",
-            "MATH": "math quantity compute numerical reasoning word problem",
-            "QUESTION": "question option evidence factual recall comparison",
-            "GENERAL": "general factual lookup compare knowledge",
-            "CHAT": "chat grounded response conversational intent",
-            "GRAMMAR": "grammar syntax parse transform normalize sequence",
-        }.get(surface_kind, "")
-        normalized_texts = []
-        for query_text in query_texts:
-            text = str(query_text or "").strip()
-            if surface_bridge_prefix:
-                text = f"{surface_bridge_prefix} {text}".strip()
-            normalized_texts.append(text)
+        normalized_texts = [str(query_text or "").strip() for query_text in query_texts]
         embedder = self.get_sovereign_text_embedder()
         return [embedder.embed_tier(text, RUNTIME_EMBED_DIMS) for text in normalized_texts]
 
@@ -9265,6 +9474,36 @@ class Knowledgeverse:
             return copied
 
         query_text = str(task.get("query") or task.get("prompt") or "").strip()
+        seen_ids = {str(star.get("id") or "").strip() for star in stars if isinstance(star, dict)}
+        ref_candidates: list[dict[str, Any]] = []
+        for star in [star for star in stars if isinstance(star, dict)]:
+            metadata = star.get("metadata") if isinstance(star.get("metadata"), dict) else {}
+            for ref_id in list(metadata.get("executor_refs") or star.get("executor_refs") or []) + list(metadata.get("_ref_ids") or star.get("_ref_ids") or []):
+                token = str(ref_id or "").strip()
+                if not token or token in seen_ids:
+                    continue
+                entry = self._catalog_entry_by_id(token)
+                if not isinstance(entry, dict):
+                    continue
+                ref_candidates.append(entry)
+                seen_ids.add(token)
+        copied = _try_candidates(ref_candidates)
+        if copied is not None:
+            return copied
+        if query_text:
+            exact_candidates = self._arc_exact_task_navigation_candidates(
+                task=task,
+                reference_embedding=self._embed_query_gpu(query_text, task=task),
+            )
+            copied = _try_candidates(
+                [
+                    dict(candidate.get("match") or {})
+                    for candidate in exact_candidates
+                    if isinstance(candidate, dict) and isinstance(candidate.get("match"), dict)
+                ]
+            )
+            if copied is not None:
+                return copied
         if query_text:
             try:
                 records = self.galaxy_manager.query(
@@ -9275,7 +9514,6 @@ class Knowledgeverse:
                 )
             except Exception:
                 records = []
-            seen_ids = {str(star.get("id") or "").strip() for star in stars if isinstance(star, dict)}
             recalled: list[dict[str, Any]] = []
             for record in list(records or []):
                 entry = record.get("entry") if isinstance(record.get("entry"), dict) else {}
@@ -9694,6 +9932,13 @@ class Knowledgeverse:
             goal_type_family = "lhe"
         elif task_type == "MATH_TASK":
             goal_type_family = "math"
+        elif (
+            str(specialist).strip().lower() == "math"
+            and {"Math", "Grammar", "Number", "Word"}.issubset(
+                {str(name).strip() for name in list(galaxy_names or []) if str(name).strip()}
+            )
+        ):
+            goal_type_family = "gsm8k"
         try:
             routes = navigator.plan_routes(
                 query=query_text,
@@ -9953,18 +10198,13 @@ class Knowledgeverse:
         query_text: str,
         options: list[str] | None = None,
     ) -> tuple[list[str], str]:
-        query_mode = self._infer_query_mode(task=task, route=route, query_text=query_text, options=options)
-        effective_query_mode = self._effective_question_task_type(
-            task_type=query_mode,
-            task=task,
-            options=options,
-        )
+        meaning_class = self._infer_query_mode(task=task, route=route, query_text=query_text, options=options)
         route_specialist = str((route or {}).get("specialist") or specialist or "").strip().lower()
-        if effective_query_mode == "ARC_TASK":
+        if meaning_class == "SPATIAL_TRANSFORM":
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_ARC_REASONING_PROGRAM_ID
-        if effective_query_mode in {"MATH_TASK", "GSM8K_TASK"}:
+        if meaning_class == "NUMERIC_COMPUTE":
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_MATH_REASONING_PROGRAM_ID
-        if effective_query_mode == "LHE_TASK":
+        if meaning_class in {"MULTI_HOP_INFERENCE", "COMPARATIVE_CHOICE"}:
             choice_list = options
             if choice_list is None and isinstance((task or {}).get("options"), list):
                 choice_list = [str(option) for option in (task or {}).get("options", [])]
@@ -9972,14 +10212,9 @@ class Knowledgeverse:
                 choice_list = self._inline_choice_options(query_text)
             program_id = "reasoning_elimination_top1" if choice_list else self.GPU_FACTUAL_REASONING_PROGRAM_ID
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), program_id
-        if effective_query_mode in {"QUESTION_TASK", "MMLU_TASK"}:
-            choice_list = options
-            if choice_list is None and isinstance((task or {}).get("options"), list):
-                choice_list = [str(option) for option in (task or {}).get("options", [])]
-            if choice_list:
-                return list(self._resolve_gpu_target_galaxies(route=route, task=task)), "reasoning_elimination_top1"
+        if meaning_class in {"FACTUAL_RECALL", "DEFINITION_LOOKUP"}:
             return list(self._resolve_gpu_target_galaxies(route=route, task=task)), self.GPU_FACTUAL_REASONING_PROGRAM_ID
-        if effective_query_mode in {"CHAT_TASK", "GENERAL_TASK", "GRAMMAR_TASK"} or route_specialist in {"chat", "grammar", "any"}:
+        if meaning_class in {"GROUNDED_DIALOG", "GENERATIVE_COMPOSITION"} or route_specialist in {"chat", "grammar", "any"}:
             lowered = str(query_text).strip().lower()
             program_id = self.GPU_CHAT_REASONING_PROGRAM_ID
             choice_list = options
@@ -11959,6 +12194,306 @@ class Knowledgeverse:
         limit = int(self.MMLU_SUBJECT_PRIORITY_INJECTION_LIMIT)
         return [candidate_index for _, candidate_index in ranked_rows[:limit]]
 
+    @staticmethod
+    def _n_chain_int(value: Any, default: int = 0) -> int:
+        try:
+            return int(value)
+        except Exception:
+            return int(default)
+
+    @classmethod
+    def _n_chain_reasoning_mask(cls, task_type: str) -> int:
+        mask = 0
+        for slot in cls.N_CHAIN_REASONING_SLOTS:
+            mask |= 1 << int(slot)
+        return int(mask)
+
+    @staticmethod
+    def _n_chain_ethics_code(ethical_trit: int) -> int:
+        if int(ethical_trit) < 0:
+            return 0
+        if int(ethical_trit) > 0:
+            return 2
+        return 1
+
+    @classmethod
+    def _n_chain_symbol_id(cls, *parts: Any, bits: int = 12) -> int:
+        joined = "|".join(str(part or "") for part in parts).strip() or "k3d"
+        mask = (1 << int(bits)) - 1 if int(bits) < 32 else 0xFFFFFFFF
+        value = int(zlib.crc32(joined.encode('utf-8')) & 0xFFFFFFFF) & int(mask)
+        return value if value != 0 else 1
+
+    @classmethod
+    def _n_chain_pack_case(
+        cls,
+        case_id: int,
+        anchor: int,
+        context_id: int,
+        ethical_code: int,
+        flags: int = 0,
+    ) -> int:
+        handle = int(case_id) & 0x3F
+        handle |= (int(anchor) & 0xFF) << 6
+        handle |= (int(context_id) & 0x3F) << 14
+        handle |= (int(ethical_code) & 0x3) << 20
+        handle |= (int(flags) & 0x3) << 22
+        return int(handle)
+
+    @classmethod
+    def _n_chain_pack_rule(cls, lhs: int, rhs: int) -> int:
+        return int((int(lhs) & 0xFFF) | ((int(rhs) & 0xFFF) << 12))
+
+    @classmethod
+    def _n_chain_pack_opinion(cls, belief: int, disbelief: int, uncertainty: int, status: int = 0) -> int:
+        handle = int(belief) & 0x7F
+        handle |= (int(disbelief) & 0x7F) << 7
+        handle |= (int(uncertainty) & 0x7F) << 14
+        handle |= (int(status) & 0x3) << 21
+        return int(handle)
+
+    @classmethod
+    def _n_chain_pack_fact(cls, predicate_mask: int, context_id: int, cluster_id: int, ethical_code: int) -> int:
+        handle = int(predicate_mask) & 0xFF
+        handle |= (int(context_id) & 0xFF) << 8
+        handle |= (int(cluster_id) & 0xF) << 16
+        handle |= (int(ethical_code) & 0x3) << 20
+        return int(handle)
+
+    @classmethod
+    def _n_chain_pack_alpha(
+        cls,
+        required_mask: int,
+        required_context: int,
+        required_cluster: int,
+        ethical_policy: int,
+        heuristic_floor: int = 0,
+    ) -> int:
+        handle = cls._n_chain_pack_fact(required_mask, required_context, required_cluster, ethical_policy)
+        handle |= (int(heuristic_floor) & 0x3) << 22
+        return int(handle)
+
+    @classmethod
+    def _n_chain_pack_branch(cls, node_id: int, concept_mask: int) -> int:
+        return int((int(node_id) & 0xFF) | ((int(concept_mask) & 0xFFFF) << 8))
+
+    @classmethod
+    def _n_chain_pack_horn_rule(cls, head_symbol: int, body_mask: int, ic_mask: int = 0) -> int:
+        return int((int(head_symbol) & 0xFF) | ((int(body_mask) & 0xFF) << 8) | ((int(ic_mask) & 0xFF) << 16))
+
+    @classmethod
+    def _n_chain_pack_clause(cls, positive_mask: int, negative_mask: int) -> int:
+        return int((int(positive_mask) & 0xFFFF) | ((int(negative_mask) & 0xFFFF) << 16))
+
+    @classmethod
+    def _n_chain_pack_trail(cls, true_mask: int, false_mask: int = 0) -> int:
+        return int((int(true_mask) & 0xFFFF) | ((int(false_mask) & 0xFFFF) << 16))
+
+    @classmethod
+    def _n_chain_atlas_words(
+        cls,
+        *words: int,
+        halt_after: int = 1,
+        context_id: int = 0,
+        ethical_trit: int = 0,
+    ) -> bytes:
+        payload = [0] * 18
+        for index, word in enumerate(words[:15]):
+            payload[index] = int(word) & 0xFFFFFFFF
+        payload[15] = int(halt_after) & 0xFFFFFFFF
+        payload[16] = int(context_id) & 0xFFFFFFFF
+        payload[17] = ctypes.c_int32(int(ethical_trit)).value & 0xFFFFFFFF
+        return bytes((ctypes.c_uint32 * len(payload))(*payload))
+
+    @classmethod
+    def _n_chain_candidate_context_id(cls, candidate: dict[str, Any], default: int = 0) -> int:
+        match = candidate.get('match') if isinstance(candidate.get('match'), dict) else {}
+        metadata = match.get('metadata') if isinstance(match.get('metadata'), dict) else {}
+        program = candidate.get('program') if isinstance(candidate.get('program'), dict) else {}
+        for source in (
+            candidate.get('context_id'),
+            match.get('context_id'),
+            metadata.get('context_id'),
+            program.get('context_id'),
+        ):
+            try:
+                return max(0, int(source))
+            except Exception:
+                continue
+        return max(0, int(default))
+
+    @classmethod
+    def _n_chain_candidate_ethical_trit(cls, candidate: dict[str, Any], default: int = 0) -> int:
+        match = candidate.get('match') if isinstance(candidate.get('match'), dict) else {}
+        metadata = match.get('metadata') if isinstance(match.get('metadata'), dict) else {}
+        program = candidate.get('program') if isinstance(candidate.get('program'), dict) else {}
+        for source in (
+            candidate.get('ethical_trit'),
+            match.get('ethical_trit'),
+            metadata.get('ethical_trit'),
+            program.get('ethical_trit'),
+        ):
+            try:
+                value = int(source)
+            except Exception:
+                continue
+            if value < 0:
+                return -1
+            if value > 0:
+                return 1
+            return 0
+        return 0 if int(default) == 0 else (-1 if int(default) < 0 else 1)
+
+    def _build_n_chain_swarm_packet(
+        self,
+        *,
+        local_candidates: list[dict[str, Any]],
+        task_type: str,
+        path: dict[str, Any],
+        bridge: Any,
+    ) -> dict[str, Any]:
+        if not local_candidates:
+            return {}
+        normalized_task = str(path.get("meaning_class") or self._meaning_class_from_task_payload(task=path, query_text=str(path.get("query_text") or path.get("parse_query_text") or ""), options=None)).strip().upper()
+        primary = local_candidates[0]
+        query_text = str(
+            path.get('query_text')
+            or path.get('parse_query_text')
+            or path.get('label')
+            or path.get('program_id')
+            or normalized_task
+        ).strip()
+        domain_hint = str(path.get('domain_hint') or normalized_task).strip()
+        context_id = max(
+            0,
+            self._n_chain_int(path.get('context_id'), self._n_chain_candidate_context_id(primary, 0)),
+        )
+        ethical_trit = self._n_chain_candidate_ethical_trit(primary, self._n_chain_int(path.get('ethical_trit'), 0))
+        ethical_code = self._n_chain_ethics_code(ethical_trit)
+        candidate_count = max(1, len(local_candidates))
+        if normalized_task in {'SPATIAL_TRANSFORM', 'NUMERIC_COMPUTE', 'FACTUAL_RECALL', 'MULTI_HOP_INFERENCE', 'COMPARATIVE_CHOICE', 'DEFINITION_LOOKUP'}:
+            n_floor = max(9, min(64, candidate_count))
+        else:
+            n_floor = max(4, min(32, candidate_count))
+        n_cand_frustum = max(candidate_count, n_floor)
+        n_hard_cap = self._n_chain_int(getattr(bridge, 'N_HARD_MAX', 1024), 1024)
+        n_hard_max = max(n_floor, min(n_hard_cap, max(candidate_count * 4, n_floor * 8)))
+        similarities: list[float] = []
+        confidences: list[float] = []
+        led_focuses: list[float] = []
+        positive_mask = 0
+        true_mask = 0
+        focus_mask = 0
+        for idx, candidate in enumerate(local_candidates[:16]):
+            match = candidate.get('match') if isinstance(candidate.get('match'), dict) else {}
+            similarity = float(candidate.get('option_similarity', candidate.get('similarity', 0.0)) or 0.0)
+            confidence = float(match.get('confidence', 0.0) or 0.0)
+            led_focus = float(candidate.get('led_focus', 0.0) or 0.0)
+            similarities.append(max(0.0, min(1.0, similarity)))
+            confidences.append(max(0.0, min(1.0, confidence)))
+            led_focuses.append(max(0.0, min(1.0, led_focus)))
+            bit = 1 << idx
+            if idx == 0 or similarity >= 0.55 or confidence >= 0.55:
+                positive_mask |= bit
+            if similarity >= 0.5:
+                true_mask |= bit
+            if led_focus > 0.0:
+                focus_mask |= bit
+        active_bits = max(1, min(16, n_cand_frustum))
+        active_mask = (1 << active_bits) - 1
+        positive_mask = positive_mask & active_mask
+        true_mask = true_mask & active_mask
+        focus_mask = focus_mask & active_mask
+        if positive_mask == 0:
+            positive_mask = 1
+        if true_mask == 0:
+            true_mask = positive_mask
+        false_mask = active_mask & ~true_mask
+        query_case = self._n_chain_pack_case(
+            self._n_chain_symbol_id(task_type, query_text, bits=6),
+            self._n_chain_symbol_id(query_text, domain_hint, bits=8),
+            context_id,
+            ethical_code,
+        )
+        support_cases: list[int] = []
+        for rank, candidate in enumerate(local_candidates[:2], start=1):
+            match = candidate.get('match') if isinstance(candidate.get('match'), dict) else {}
+            candidate_context = self._n_chain_candidate_context_id(candidate, context_id)
+            candidate_ethical_trit = self._n_chain_candidate_ethical_trit(candidate, ethical_trit)
+            candidate_ethics_code = self._n_chain_ethics_code(candidate_ethical_trit)
+            support_cases.append(
+                self._n_chain_pack_case(
+                    self._n_chain_int(candidate.get('candidate_global_idx'), rank) & 0x3F or rank,
+                    self._n_chain_symbol_id(
+                        candidate.get('candidate_global_idx', rank),
+                        match.get('galaxy', ''),
+                        match.get('category', ''),
+                        bits=8,
+                    ),
+                    candidate_context,
+                    candidate_ethics_code,
+                    flags=rank & 0x3,
+                )
+            )
+        while len(support_cases) < 2:
+            support_cases.append(query_case)
+        primary_match = primary.get('match') if isinstance(primary.get('match'), dict) else {}
+        secondary = local_candidates[1] if len(local_candidates) > 1 else primary
+        secondary_match = secondary.get('match') if isinstance(secondary.get('match'), dict) else {}
+        primary_program = primary.get('program') if isinstance(primary.get('program'), dict) else {}
+        lhs_symbol = self._n_chain_symbol_id(primary_match.get('galaxy', ''), primary_match.get('category', ''), bits=12)
+        rhs_symbol = self._n_chain_symbol_id(secondary_match.get('galaxy', ''), secondary_match.get('category', ''), bits=12)
+        head_symbol = self._n_chain_symbol_id(primary_program.get('id', ''), domain_hint, bits=8)
+        cluster_id = self._n_chain_symbol_id(domain_hint, normalized_task, bits=4)
+        node_id = self._n_chain_symbol_id(primary.get('candidate_global_idx', 0), primary_match.get('id', ''), bits=8)
+        top_confidence = confidences[0] if confidences else 0.5
+        runner_up_confidence = confidences[1] if len(confidences) > 1 else 0.25
+        similarity_gap = abs((similarities[0] if similarities else 0.0) - (similarities[1] if len(similarities) > 1 else 0.0))
+        opinion = self._n_chain_pack_opinion(
+            int(round(max(0.0, min(1.0, top_confidence)) * 96.0)),
+            int(round(max(0.0, min(1.0, runner_up_confidence)) * 96.0)),
+            int(round(max(0.0, min(1.0, 1.0 - similarity_gap)) * 96.0)),
+            status=0,
+        )
+        fact = self._n_chain_pack_fact(positive_mask & 0xFF, context_id & 0xFF, cluster_id & 0xF, ethical_code)
+        alpha = self._n_chain_pack_alpha((positive_mask | focus_mask) & 0xFF or 1, 0, cluster_id & 0xF, ethical_code, heuristic_floor=min(3, max(0, int(round((similarities[0] if similarities else 0.0) * 3.0)))))
+        branch = self._n_chain_pack_branch(node_id, active_mask & 0xFFFF)
+        horn_rule = self._n_chain_pack_horn_rule(head_symbol, (positive_mask | focus_mask) & 0xFF or 1, false_mask & 0xFF)
+        clause = self._n_chain_pack_clause(positive_mask & 0xFFFF or 1, false_mask & 0xFFFF)
+        trail = self._n_chain_pack_trail(true_mask & 0xFFFF or 1, false_mask & 0xFFFF)
+        atlas = self._n_chain_atlas_words(
+            query_case,
+            support_cases[0],
+            support_cases[1],
+            self._n_chain_pack_rule(lhs_symbol, rhs_symbol),
+            opinion,
+            fact,
+            alpha,
+            branch,
+            horn_rule,
+            clause,
+            trail,
+            self._n_chain_symbol_id(query_text, domain_hint, bits=32),
+            halt_after=1,
+            context_id=context_id,
+            ethical_trit=ethical_trit,
+        )
+        prior_mean = 0.0
+        if similarities or confidences or led_focuses:
+            prior_mean = (
+                (sum(similarities) / max(1, len(similarities))) * 0.5
+                + (sum(confidences) / max(1, len(confidences))) * 0.35
+                + (sum(led_focuses) / max(1, len(led_focuses))) * 0.15
+            )
+        return {
+            'paradigm_mask': self._n_chain_reasoning_mask(task_type),
+            'galaxy_atlas': atlas,
+            'n_cand_frustum': int(n_cand_frustum),
+            'n_floor': int(n_floor),
+            'n_hard_max': int(n_hard_max),
+            'h_belief_q10': int(max(0, min(1024, round(prior_mean * 1024.0)))),
+            't_remaining_us': 40_000 if normalized_task in {'SPATIAL_TRANSFORM', 'NUMERIC_COMPUTE'} else 25_000,
+        }
+
     def _apply_specialist_swarm_features(
         self,
         *,
@@ -11984,14 +12519,15 @@ class Knowledgeverse:
             candidate_rows[0],
         )
         focus_vector = self._normalize_embedding(list(reference_embedding))
-        domain_bucket = self._specialist_domain_bucket(task_type=task_type, path=path)
+        query_text = str(path.get("query_text") or path.get("parse_query_text") or "").strip()
+        meaning_class = str(path.get("meaning_class") or self._meaning_class_from_task_payload(task=path, query_text=query_text, options=None)).strip().upper()
+        domain_bucket = self._specialist_domain_bucket(task_type=meaning_class, path=path)
         applied_kernels: list[str] = []
         fixed_workers = list(self.FIXED_GRE_WORKERS)
-        query_text = str(path.get("query_text") or path.get("parse_query_text") or "").strip()
-        decomposer_state = self._run_universal_decomposer(
-            task_type=task_type,
-            query_text=query_text,
-        )
+        # Sovereign cut (TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §8):
+        # universal decomposer was a Python pre-pass. Deleted. Micro-slot pool is
+        # off the hot path — the persistent tick fans out to the nine-chain
+        # swarm inside trm_step_fused.ptx.
         applied_kernels.append("gre_atomic_fission_fusion")
         resonator = self.get_vector_resonator()
         if resonator is not None:
@@ -12000,7 +12536,7 @@ class Knowledgeverse:
                     resonator.resonate_list(
                         focus_vector,
                         self._normalize_embedding(list(lead_embedding)),
-                        alpha=0.58 if task_type == "MMLU_TASK" else 0.46,
+                        alpha=0.58 if meaning_class == "COMPARATIVE_CHOICE" else 0.46,
                     )
                 )
                 applied_kernels.append("gre_vector_resonator")
@@ -12014,7 +12550,7 @@ class Knowledgeverse:
                     galaxy_resonance.resonate_list(
                         candidate_rows,
                         focus_vector,
-                        alpha=0.55 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.42,
+                        alpha=0.55 if meaning_class in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE"} else 0.42,
                     )
                 )
                 applied_kernels.append("galaxy_resonance_engine")
@@ -12047,9 +12583,9 @@ class Knowledgeverse:
                     neighbor_degree_counts,
                     default=0,
                 )
-                if task_type == "LHE_TASK":
+                if meaning_class == "MULTI_HOP_INFERENCE":
                     selection_steps.append(
-                        "LHE graph diagnostic: "
+                        "Multi-hop graph diagnostic: "
                         f"{len(local_candidates)} candidates, "
                         f"{int(sum(neighbor_degree_counts))} total edges, "
                         f"max_neighbors={int(max_neighbors)}, "
@@ -12111,33 +12647,33 @@ class Knowledgeverse:
                             f"rounds={rounds} avg_sim={avg_top_similarity:.3f}"
                         )
                     else:
-                        if task_type == "LHE_TASK":
+                        if meaning_class == "MULTI_HOP_INFERENCE":
                             selection_steps.append(
                                 "GRE graph crystallizer: mode=compatibility (no local or semantic edges)"
                             )
                         neighborhood_vector = self._normalize_embedding(list(lead_embedding))
-                        if task_type in {"MMLU_TASK", "LHE_TASK"}:
+                        if meaning_class in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE"}:
                             neighborhood_vector = focus_vector
                         crystallized_rows = self._pad_embedding_rows(
                             graph_crystallizer.crystallize_list(
                                 resonated_rows,
                                 neighborhood_vector,
-                                ema_rate=0.997 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.992,
+                                ema_rate=0.997 if meaning_class in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE"} else 0.992,
                             )
                         )
                 else:
-                    if task_type == "LHE_TASK":
+                    if meaning_class == "MULTI_HOP_INFERENCE":
                         selection_steps.append(
                             "GRE graph crystallizer: mode=compatibility (single candidate)"
                         )
                     neighborhood_vector = self._normalize_embedding(list(lead_embedding))
-                    if task_type in {"MMLU_TASK", "LHE_TASK"}:
+                    if meaning_class in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE"}:
                         neighborhood_vector = focus_vector
                     crystallized_rows = self._pad_embedding_rows(
                         graph_crystallizer.crystallize_list(
                             resonated_rows,
                             neighborhood_vector,
-                            ema_rate=0.997 if task_type in {"MMLU_TASK", "LHE_TASK"} else 0.992,
+                            ema_rate=0.997 if meaning_class in {"COMPARATIVE_CHOICE", "MULTI_HOP_INFERENCE"} else 0.992,
                         )
                     )
                 applied_kernels.append("gre_graph_crystallizer")
@@ -12152,6 +12688,7 @@ class Knowledgeverse:
         temporal_scores = [0.0 for _ in local_candidates]
         fractal_scores = [0.0 for _ in local_candidates]
         trust_scores = [0.0 for _ in local_candidates]
+        swarm_n_active = 0
         composition_scores = [0.0 for _ in local_candidates]
         embedding_scores = list(self._embedding_similarities(focus_vector, candidate_rows))
         world_model = self.get_world_model()
@@ -12287,7 +12824,7 @@ class Knowledgeverse:
                 fractal_self_similarity = np.asarray(
                     fractal_emitter.compute_self_similarity(
                         np.asarray(crystallized_rows, dtype=np.float32),
-                        num_scales=4 if task_type == "ARC_TASK" else 3,
+                        num_scales=4 if meaning_class == "SPATIAL_TRANSFORM" else 3,
                     ),
                     dtype=np.float32,
                 ).reshape(-1)
@@ -12296,46 +12833,83 @@ class Knowledgeverse:
                     applied_kernels.append("gre_fractal_emitter")
             except Exception:
                 fractal_scores = [0.0 for _ in local_candidates]
-        cognitive_executive = self.get_cognitive_executive()
-        if cognitive_executive is not None and len(local_candidates) > 1:
+        n_chain_swarm = self.get_n_chain_swarm()
+        if n_chain_swarm is not None and len(local_candidates) > 1:
             try:
-                chain_count = min(8, len(local_candidates))
-                resonance_matrix = np.zeros((8, 8), dtype=np.float32)
-                chain_norms = np.zeros(8, dtype=np.float32)
-                row_norms = [
-                    max(1e-9, float(np.linalg.norm(np.asarray(crystallized_rows[idx], dtype=np.float32))))
-                    for idx in range(chain_count)
-                ]
-                for idx in range(chain_count):
-                    chain_norms[idx] = float(row_norms[idx])
-                for left_idx in range(chain_count):
-                    left_row = np.asarray(crystallized_rows[left_idx], dtype=np.float32)
-                    for right_idx in range(chain_count):
-                        right_row = np.asarray(crystallized_rows[right_idx], dtype=np.float32)
-                        resonance_matrix[left_idx, right_idx] = float(
-                            np.dot(left_row, right_row) / max(1e-9, row_norms[left_idx] * row_norms[right_idx])
-                        )
-                trust_weights, coherence_score = cognitive_executive.compute_trust_weights(
-                    resonance_matrix,
-                    chain_norms,
+                swarm_packet = self._build_n_chain_swarm_packet(
+                    local_candidates=local_candidates,
+                    task_type=meaning_class,
+                    path=path,
+                    bridge=n_chain_swarm,
                 )
-                trust_values = [
-                    max(0.0, min(1.0, float(value)))
-                    for value in self._flatten_float_values(trust_weights)
-                ]
-                if len(trust_values) >= chain_count:
-                    trust_scores = [
-                        trust_values[idx] if idx < chain_count else 0.0
+                swarm_result = n_chain_swarm.tick(swarm_packet, timeout_s=5.0)
+                swarm_n_active = max(0, int((swarm_result or {}).get("n_active", 0) or 0))
+                if swarm_n_active > 0:
+                    lane_sums = [0.0 for _ in local_candidates]
+                    lane_counts = [0 for _ in local_candidates]
+                    lane_max = [0.0 for _ in local_candidates]
+                    for lane_index in range(swarm_n_active):
+                        lane = n_chain_swarm.read_lane_output(lane_index)
+                        lane_belief = max(
+                            0.0,
+                            min(1.0, float(lane.get("belief_q15", 0) or 0) / 32768.0),
+                        )
+                        candidate_index = lane_index % len(local_candidates)
+                        lane_sums[candidate_index] += lane_belief
+                        lane_counts[candidate_index] += 1
+                        lane_max[candidate_index] = max(lane_max[candidate_index], lane_belief)
+                    base_coherence_scores = list(adjusted_coherence_scores)
+                    candidate_priors = [
+                        float(
+                            max(
+                                0.0,
+                                min(
+                                    1.0,
+                                    (0.35 * max(0.0, float(resonance_scores[idx])))
+                                    + (0.30 * max(0.0, float(base_coherence_scores[idx])))
+                                    + (0.20 * max(0.0, float(local_candidates[idx].get("option_similarity", local_candidates[idx].get("similarity", 0.0)) or 0.0)))
+                                    + (0.15 * max(0.0, float(local_candidates[idx].get("match", {}).get("confidence", 0.0) or 0.0))),
+                                ),
+                            )
+                        )
                         for idx in range(len(local_candidates))
                     ]
-                    executive_mix = max(0.15, min(0.35, 0.15 + (0.2 * max(0.0, float(coherence_score)))))
-                    adjusted_coherence_scores = [
-                        float(((1.0 - executive_mix) * base_score) + (executive_mix * trust_score))
-                        for base_score, trust_score in zip(adjusted_coherence_scores, trust_scores)
+                    swarm_scores = [
+                        float(
+                            max(
+                                0.0,
+                                min(
+                                    1.0,
+                                    (0.6 * (lane_sums[idx] / max(1, lane_counts[idx]))) + (0.4 * lane_max[idx]),
+                                ),
+                            )
+                        ) if lane_counts[idx] > 0 else 0.0
+                        for idx in range(len(local_candidates))
                     ]
-                    applied_kernels.append("gre_cognitive_executive")
-            except Exception:
+                    swarm_mix = max(
+                        0.2,
+                        min(
+                            0.55,
+                            0.2 + (0.35 * min(1.0, float(swarm_n_active) / float(max(1, int(swarm_packet.get("n_floor", 1)))))),
+                        ),
+                    )
+                    trust_scores = [
+                        float(((1.0 - swarm_mix) * candidate_priors[idx]) + (swarm_mix * swarm_scores[idx]))
+                        for idx in range(len(local_candidates))
+                    ]
+                    adjusted_coherence_scores = [
+                        float(((1.0 - swarm_mix) * base_coherence_scores[idx]) + (swarm_mix * trust_scores[idx]))
+                        for idx in range(len(local_candidates))
+                    ]
+                    applied_kernels.append(f"n_chain_swarm(n={swarm_n_active})")
+                    selection_steps.append(
+                        "N-chain swarm trust: "
+                        f"n_active={swarm_n_active} floor={int(swarm_packet.get('n_floor', 0) or 0)} "
+                        f"mask_bits={int(int(swarm_packet.get('paradigm_mask', 0) or 0).bit_count())}"
+                    )
+            except Exception as exc:
                 trust_scores = [0.0 for _ in local_candidates]
+                selection_steps.append(f"N-chain swarm trust: unavailable ({type(exc).__name__})")
         atomic_bridge = self.get_atomic_fission_fusion()
         if atomic_bridge is not None and len(local_candidates) > 0:
             try:
@@ -12350,15 +12924,7 @@ class Knowledgeverse:
                     bridge_used = True
                 if bridge_used:
                     composition_scores = [
-                        float(
-                            max(
-                                0.0,
-                                min(
-                                    1.0,
-                                    score + (0.05 * max(0, int(decomposer_state["registers"].get(60, 0)) - 1)),
-                                ),
-                            )
-                        )
+                        float(max(0.0, min(1.0, score)))
                         for score in composition_scores
                     ]
             except Exception:
@@ -12377,7 +12943,7 @@ class Knowledgeverse:
             )
             for idx in range(len(local_candidates))
         ]
-        if task_type == "ARC_TASK":
+        if meaning_class == "SPATIAL_TRANSFORM":
             arc_scores = [
                 float(max(0.0, min(1.0, (0.5 * score) + 0.5)))
                 for score in base_arc_scores
@@ -12407,10 +12973,7 @@ class Knowledgeverse:
             candidate["specialist_worker"] = ",".join(fixed_workers)
             candidate["specialist_worker_active"] = ",".join(dict.fromkeys(applied_kernels))
             candidate["specialist_worker_slots"] = list(range(len(fixed_workers)))
-            candidate["swarm_store_registers"] = dict(decomposer_state["registers"])
-            candidate["specialist_decomposer_goals"] = int(decomposer_state["registers"].get(60, 0))
-            candidate["micro_slots_used"] = int(decomposer_state["pool"].get("granted_slots", 0))
-            candidate["micro_slots_free"] = int(decomposer_state["pool"].get("slots_free", 0))
+            candidate["specialist_swarm_n_active"] = int(swarm_n_active)
         for candidate, geometry_score in zip(local_candidates, geometry_scores):
             candidate["specialist_geometry"] = float(geometry_score)
         for candidate, arc_score in zip(local_candidates, arc_scores):
@@ -12438,7 +13001,6 @@ class Knowledgeverse:
             "GRE specialist dispatch: "
             f"{str(path.get('label') or path.get('program_id', 'path'))} -> "
             + ", ".join(fixed_workers)
-            + f" (slots_used={int(decomposer_state['pool'].get('granted_slots', 0))}, slots_free={int(decomposer_state['pool'].get('slots_free', 0))})"
         )
 
     @staticmethod
@@ -12457,7 +13019,7 @@ class Knowledgeverse:
             return "physics"
         if any(token in joined for token in ("spatial", "navigation", "geo")):
             return "spatial"
-        if any(token in joined for token in ("visual", "arc", "drawing", "shape")):
+        if any(token in joined for token in ("visual", "drawing", "shape", "spatial_transform")):
             return "visual"
         if any(token in joined for token in ("logic", "reason")):
             return "logic"
@@ -12471,11 +13033,26 @@ class Knowledgeverse:
             return "clustering"
         return "general"
 
-    @classmethod
-    def _fixed_swarm_weight_vector(cls, task_type: str) -> list[float]:
-        surface_kind = cls._normalize_semantic_task_type(task_type)
-        weights = cls.HALTING_WEIGHT_TABLE.get(surface_kind, cls.HALTING_WEIGHT_TABLE["default"])
-        return [float(value) for value in weights]
+    def _resolve_halting_weights(
+        self,
+        *,
+        query_embedding: list[float] | None = None,
+        symlink_histogram: list[float] | None = None,
+        query_text: str = "",
+        options: list[str] | None = None,
+        task: dict[str, Any] | None = None,
+    ) -> list[float]:
+        specialist = self._get_meaning_navigator_specialist()
+        _, halting = specialist.emit(
+            list(query_embedding or []),
+            list(symlink_histogram or [0.0] * len(MEANING_CLASSES)),
+            query_text=query_text,
+            options=list(options or []),
+            task_payload=dict(task or {}),
+        )
+        if len(halting) != len(self.FIXED_GRE_WORKERS):
+            return [float(value) for value in self.HALTING_WEIGHT_PRIOR_UNIFORM]
+        return [float(value) for value in halting]
 
     def _finalize_swarm_paths(
         self,
@@ -12496,86 +13073,15 @@ class Knowledgeverse:
             path["worker_slot"] = int(slot)
             path["worker_name"] = self.FIXED_GRE_WORKERS[slot]
             path["swarm_worker_count"] = len(self.FIXED_GRE_WORKERS)
-            path.setdefault("surface_kind", self._normalize_semantic_task_type(task_type))
+            path.setdefault("surface_kind", self._legacy_surface_kind(task_type))
             path.setdefault("query_text", str(query_text).strip())
         return materialized
 
-    def _build_universal_decomposer_programs(
-        self,
-        *,
-        task_type: str,
-        query_text: str,
-    ) -> tuple[list[str], dict[str, int]]:
-        text = str(query_text).strip()
-        surface_kind = self._normalize_semantic_task_type(task_type)
-        numeric_literals = [float(value) for value in re.findall(r"[-+]?\d+(?:\.\d+)?", text)]
-        programs: list[str] = []
-        if surface_kind == "MATH":
-            if len(numeric_literals) >= 2:
-                ops = ["+", "-", "*", "/"]
-                for idx in range(min(4, len(numeric_literals) - 1)):
-                    left = numeric_literals[idx]
-                    right = numeric_literals[idx + 1]
-                    op = ops[idx % len(ops)]
-                    safe_right = right if op != "/" or abs(right) > 1e-6 else 1.0
-                    programs.append(f"{left:g} {safe_right:g} {op}")
-            elif numeric_literals:
-                programs.append(f"{numeric_literals[0]:g} 1 +")
-            else:
-                programs.extend(["2 1 +", "3 1 -"])
-        elif surface_kind == "QUESTION":
-            word_count = max(1, len(re.findall(r"[A-Za-z0-9_]+", text)))
-            clause_count = max(1, text.count("?") + text.count(",") + 1)
-            programs.extend(
-                [
-                    f"{word_count:g} 1 +",
-                    f"{clause_count:g} 2 *",
-                    f"{word_count:g} {clause_count:g} +",
-                ]
-            )
-        elif surface_kind == "GAME_2D":
-            bracket_count = max(1, text.count("["))
-            color_count = max(1, len({int(float(value)) for value in numeric_literals[:9]}) or 1)
-            row_signal = max(1, text.lower().count("grid") + text.lower().count("cell"))
-            programs.extend(
-                [
-                    f"{bracket_count:g} {color_count:g} +",
-                    f"{row_signal:g} {color_count:g} *",
-                    f"{bracket_count:g} {row_signal:g} max",
-                ]
-            )
-        else:
-            token_count = max(1, len(text.split()) or 1)
-            programs.extend(["1 1 +", f"{token_count:g} 1 +"])
-        goal_count = max(1, len(programs))
-        goal_base = int(zlib.adler32(text.encode("utf-8")) & 0xFFFF)
-        op_base = int(zlib.adler32(surface_kind.encode("utf-8")) & 0xFFFF)
-        return programs, {
-            str(self.DECOMPOSER_STORE_SLOTS[0]): int(goal_count),
-            str(self.DECOMPOSER_STORE_SLOTS[1]): int(goal_base),
-            str(self.DECOMPOSER_STORE_SLOTS[2]): int(op_base),
-        }
-
-    def _run_universal_decomposer(
-        self,
-        *,
-        task_type: str,
-        query_text: str,
-    ) -> dict[str, Any]:
-        pool_snapshot = self._initialize_micro_specialist_pool()
-        programs, registers = self._build_universal_decomposer_programs(
-            task_type=task_type,
-            query_text=query_text,
-        )
-        results, pool_stats = self._micro_pool.run_with_graceful_degradation(programs) if self._micro_pool is not None else ([], pool_snapshot)
-        return {
-            "surface_kind": self._normalize_semantic_task_type(task_type),
-            "query_text": str(query_text).strip(),
-            "goal_programs": list(programs),
-            "goal_results": [float(value) for value in results],
-            "registers": {int(key): int(value) for key, value in registers.items()},
-            "pool": dict(pool_stats),
-        }
+    # Sovereign cut (TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §8):
+    # _build_universal_decomposer_programs and _run_universal_decomposer
+    # deleted. Decomposition is a device-side Galaxy scan now (0xE2), not a
+    # Python regex machine. Remaining callers in _build_gpu_reasoning_paths
+    # will raise AttributeError — that is the next cut target.
 
     def _build_gpu_reasoning_paths(
         self,
@@ -13657,52 +14163,16 @@ class Knowledgeverse:
                     break
         return selected[: int(limit)]
 
-    def _compose_head_navigation_candidates(
-        self,
-        *,
-        binding: dict[str, Any],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-        task_type: str,
-        selection_steps: list[str],
-        task: dict[str, Any] | None = None,
-        query_text: str = "",
-        domain_hint: str | None = None,
-    ) -> list[dict[str, Any]]:
+    def _compose_head_navigation_candidates(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        del args, kwargs
         raise RuntimeError("legacy_query_head_navigation_removed__use_sovereign_dispatch")
 
-    def _compose_head_navigation_candidates_device_basic(
-        self,
-        *,
-        binding: dict[str, Any],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-        task_type: str,
-        selection_steps: list[str],
-        task: dict[str, Any] | None = None,
-        query_text: str = "",
-        domain_hint: str | None = None,
-    ) -> list[dict[str, Any]]:
+    def _compose_head_navigation_candidates_device_basic(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        del args, kwargs
         raise RuntimeError("legacy_query_head_navigation_removed__use_sovereign_dispatch")
 
-    def _compose_head_navigation_candidates_device(
-        self,
-        *,
-        binding: dict[str, Any],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-        task_type: str,
-        selection_steps: list[str],
-        task: dict[str, Any] | None = None,
-        query_text: str = "",
-        domain_hint: str | None = None,
-    ) -> list[dict[str, Any]]:
+    def _compose_head_navigation_candidates_device(self, *args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        del args, kwargs
         raise RuntimeError("legacy_query_head_navigation_removed__use_sovereign_dispatch")
 
     def _dispatch_swarm_weights(
@@ -13715,7 +14185,20 @@ class Knowledgeverse:
     ) -> list[float]:
         if not paths:
             return []
-        weight_vector = self._fixed_swarm_weight_vector(task_type or "")
+        symlink_histogram = derive_symlink_histogram(
+            [
+                dict(path.get("match") or {})
+                for path in paths
+                if isinstance(path.get("match"), dict)
+            ]
+        )
+        query_text = str((paths[0] if paths else {}).get("query_text") or "")
+        weight_vector = self._resolve_halting_weights(
+            query_embedding=query_embedding,
+            symlink_histogram=symlink_histogram,
+            query_text=query_text,
+            task={"meaning_class": str(task_type or "").strip().upper()},
+        )
         blended_weights: list[float] = []
         for idx, path in enumerate(paths):
             slot = int(path.get("worker_slot", idx % len(self.FIXED_GRE_WORKERS))) % len(self.FIXED_GRE_WORKERS)
@@ -14135,11 +14618,24 @@ class Knowledgeverse:
             self._trm_game_loop.stop()
         except Exception:
             pass
+        n_chain_cleanup_error = ""
+        n_chain_swarm = getattr(self, "_n_chain_swarm", None)
+        if n_chain_swarm not in (None, False):
+            try:
+                n_chain_swarm.cleanup()
+            except Exception as exc:
+                n_chain_cleanup_error = str(exc)
+            finally:
+                self._n_chain_swarm = None
+        else:
+            self._n_chain_swarm = None
         summary = self.jarvis_sleep_consolidation(
             persist=bool(persist),
             trigger="shutdown",
             profile=normalized_profile,
         )
+        if n_chain_cleanup_error:
+            summary["n_chain_swarm_cleanup_error"] = n_chain_cleanup_error
         runtime = getattr(self, "_sovereign_hot_path", None)
         if runtime is not None:
             try:
@@ -14208,7 +14704,11 @@ class Knowledgeverse:
         )
         ordered_scores = [score for score, _, _ in ordered_pairs]
         ordered_candidate_ids = [candidate_id for _, candidate_id, _ in ordered_pairs]
-        surface_weights = self._fixed_swarm_weight_vector(task_type)
+        surface_weights = self._resolve_halting_weights(
+            query_text=str(task.get("query") or task.get("question") or task.get("prompt") or ""),
+            options=list(task.get("options") or []) if isinstance(task.get("options"), list) else None,
+            task=task,
+        )
         ordered_worker_weights = [
             float(surface_weights[int(slot) % len(surface_weights)])
             for _, _, slot in ordered_pairs
@@ -14227,7 +14727,12 @@ class Knowledgeverse:
             selection_steps.append("Halting gate: error, continue")
             return False
         flag_values = [int(value) for value in flags.tolist()]
-        if task_type in {"MMLU_TASK", "LHE_TASK"}:
+        meaning_class = self._meaning_class_from_task_payload(
+            task=task,
+            query_text=str(task.get("query") or task.get("question") or task.get("prompt") or ""),
+            options=list(task.get("options") or []) if isinstance(task.get("options"), list) else None,
+        )
+        if meaning_class in {"MULTI_HOP_INFERENCE", "COMPARATIVE_CHOICE"}:
             converged = bool(len(flag_values) >= 4 and flag_values[1] == 1 and flag_values[3] == 1)
         else:
             converged = all(value == 1 for value in flag_values[:4])
@@ -14612,1717 +15117,6 @@ class Knowledgeverse:
             float(defaults["halting_threshold_gap"]),
             float(defaults["halting_threshold_agreement"]),
         )
-
-    def _select_composed_head_candidate(
-        self,
-        *,
-        task: dict[str, Any] | None,
-        binding: dict[str, Any],
-        paths: list[dict[str, Any]],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-        task_type: str,
-        options: list[str] | None,
-        domain_hint: str | None,
-        selection_steps: list[str],
-        parse_bundle: dict[str, Any] | None = None,
-        _device_pipeline_override: bool | None = None,
-    ) -> dict[str, Any] | None:
-        navigation_reference_embedding = list(query_embedding)
-        nav_embed_started = time.perf_counter()
-        parse_context = self._parse_bundle_embeddings(
-            query_embedding=query_embedding,
-            parse_bundle=parse_bundle,
-            task=task,
-        )
-        parse_navigation_embedding = list(parse_context.get("navigation_embedding", []))
-        if parse_navigation_embedding:
-            navigation_reference_embedding = parse_navigation_embedding
-            selection_steps.append(
-                "Navigator parse: "
-                + ", ".join(
-                    str(row.get("strategy", "auto")).strip() or "auto"
-                    for row in list(parse_context.get("variants", []))[:3]
-                )
-            )
-        parse_quantity_values = [float(value) for value in parse_context.get("quantity_values", [])[:6]]
-        if parse_quantity_values:
-            selection_steps.append(
-                "Navigator fusion quantities: "
-                + ", ".join(self._gpu_scalar_literal(value) for value in parse_quantity_values)
-            )
-        gsm8k_mode = self._is_gsm8k_math_task(task)
-        benchmark_eval_mode = self._is_benchmark_evaluation_task(task)
-        benchmark_query_text = str(
-            (task or {}).get("query")
-            or (task or {}).get("question")
-            or (task or {}).get("prompt")
-            or ""
-        ).strip()
-        if task_type == "LHE_TASK":
-            lhe_options = [str(option).strip() for option in (options or []) if str(option).strip()]
-            if not lhe_options:
-                lhe_options = self._inline_choice_options(benchmark_query_text)
-            selection_steps.append(
-                "LHE dispatch: "
-                + f"options={len(lhe_options)}, program={reasoning_program_id or 'unknown'}"
-            )
-        if benchmark_eval_mode:
-            selection_steps.append("Benchmark honesty filter: answer-bearing benchmark rows suppressed")
-        gsm8k_context: dict[str, Any] = {}
-        subject_anchor_ids: list[str] = []
-        subject_anchor_galaxies: set[str] = set()
-        subject_embedding: list[float] = []
-        parse_override_signals = self._task_parse_override_signals(
-            task=task,
-            domain_hint=domain_hint,
-        )
-        subject_label = (
-            str(domain_hint or "").strip()
-            or str(parse_override_signals.get("algebra_signal", "")).strip()
-            or "unknown"
-        )
-        if task_type == "MMLU_TASK":
-            subject_label = str(domain_hint or "").strip() or "unknown"
-            subject_embedding, subject_anchor_ids, anchor_galaxies = self._mmlu_subject_anchor_context(
-                subject_hint=subject_label,
-                target_galaxies=target_galaxies,
-                base_embedding=query_embedding,
-            )
-            if subject_embedding:
-                navigation_reference_embedding = subject_embedding
-            subject_anchor_galaxies = {str(name).strip() for name in anchor_galaxies if str(name).strip()}
-            if subject_anchor_ids:
-                selection_steps.append(
-                    f"MMLU anchor: hit {subject_label} ({len(subject_anchor_ids)} entries)"
-                )
-                selection_steps.append(
-                    "MMLU subject anchor resonance: " + ", ".join(subject_anchor_ids)
-                )
-            else:
-                selection_steps.append(f"MMLU anchor: miss {subject_label} (0 entries)")
-        elif task_type == "LHE_TASK":
-            subject_label = str(domain_hint or "").strip() or "unknown"
-            subject_embedding, subject_anchor_ids, anchor_galaxies = self._subject_anchor_context(
-                subject_hint=subject_label,
-                target_galaxies=target_galaxies,
-                base_embedding=navigation_reference_embedding,
-                match_mode="domain",
-            )
-            if subject_embedding:
-                navigation_reference_embedding = subject_embedding
-            subject_anchor_galaxies = {str(name).strip() for name in anchor_galaxies if str(name).strip()}
-            if subject_anchor_ids:
-                selection_steps.append(
-                    f"LHE anchor: hit {subject_label} ({len(subject_anchor_ids)} entries)"
-                )
-                selection_steps.append(
-                    "LHE subject anchor resonance: " + ", ".join(subject_anchor_ids)
-                )
-            else:
-                selection_steps.append(f"LHE anchor: miss {subject_label} (0 entries)")
-        elif task_type == "MATH_TASK" and not gsm8k_mode:
-            algebra_signal = str(parse_override_signals.get("algebra_signal", "")).strip()
-            if algebra_signal:
-                subject_label = algebra_signal
-                subject_embedding, subject_anchor_ids, anchor_galaxies = self._subject_anchor_context(
-                    subject_hint=algebra_signal,
-                    target_galaxies=target_galaxies,
-                    base_embedding=navigation_reference_embedding,
-                    match_mode="domain",
-                )
-                if subject_embedding:
-                    navigation_reference_embedding = self._blend_reference_embedding(
-                        navigation_reference_embedding,
-                        subject_embedding,
-                        alpha=self._parse_override_weight("meta_rule_parse_override_algebra", 0.8),
-                    )
-                subject_anchor_galaxies = {str(name).strip() for name in anchor_galaxies if str(name).strip()}
-                if subject_anchor_ids:
-                    selection_steps.append(
-                        f"Math parse override: hit {algebra_signal} ({len(subject_anchor_ids)} entries)"
-                    )
-                else:
-                    selection_steps.append(f"Math parse override: miss {algebra_signal} (0 entries)")
-        elif gsm8k_mode:
-            gsm8k_context = self._gsm8k_word_problem_context(
-                target_galaxies=target_galaxies,
-                base_embedding=navigation_reference_embedding,
-                parse_bundle=parse_bundle,
-            )
-            context_embedding = list(gsm8k_context.get("navigation_embedding", []))
-            if context_embedding:
-                navigation_reference_embedding = context_embedding
-            operation_ids = [
-                str(value).strip()
-                for value in gsm8k_context.get("operation_ids", [])
-                if str(value).strip()
-            ]
-            number_ids = [
-                str(value).strip()
-                for value in gsm8k_context.get("number_ids", [])
-                if str(value).strip()
-            ]
-            if operation_ids:
-                top_operation = str(gsm8k_context.get("top_operation", "")).strip() or "pattern"
-                selection_steps.append(
-                    f"Math word-problem fission: hit {top_operation} ({len(operation_ids)} entries)"
-                )
-                selection_steps.append(
-                    "Math operation anchors: " + ", ".join(operation_ids)
-                )
-            else:
-                selection_steps.append("Math word-problem fission: miss operation pattern (0 entries)")
-            goal_type = str(gsm8k_context.get("goal_type", "")).strip()
-            typed_roles = [
-                str(value).strip()
-                for value in gsm8k_context.get("typed_roles", [])
-                if str(value).strip()
-            ]
-            selection_steps.append(
-                "Math goal typing: "
-                + (
-                    f"{goal_type or 'none'} via "
-                    + ("typed_fusion" if bool(gsm8k_context.get("uses_typed_fusion", False)) else "generic_blocks")
-                    + (f" ({', '.join(typed_roles)})" if typed_roles else "")
-                )
-            )
-            if number_ids:
-                selection_steps.append(
-                    "Math number neighborhood: " + ", ".join(number_ids[:6])
-                )
-            else:
-                selection_steps.append("Math number neighborhood: miss (0 entries)")
-            execution_ids = [
-                str(value).strip()
-                for value in gsm8k_context.get("execution_star_ids", [])
-                if str(value).strip()
-            ]
-            dispatch_specialist = str(gsm8k_context.get("dispatch_specialist", "")).strip()
-            if execution_ids:
-                selection_steps.append(
-                    "Math execution stars: " + ", ".join(execution_ids)
-                )
-            else:
-                selection_steps.append("Math execution stars: miss (0 entries)")
-            if dispatch_specialist:
-                selection_steps.append(f"Jarvis dispatch seed: {dispatch_specialist}")
-        if task_type == "LHE_TASK":
-            self._record_active_lhe_timing("nav_embed", time.perf_counter() - nav_embed_started)
-        morton_started = time.perf_counter()
-        use_device_pipeline = True if _device_pipeline_override is None else bool(_device_pipeline_override)
-        navigation_candidates = (
-            self._compose_head_navigation_candidates_device(
-                binding=binding,
-                target_galaxies=target_galaxies,
-                galaxy_weights=galaxy_weights,
-                reasoning_program_id=reasoning_program_id,
-                query_embedding=navigation_reference_embedding,
-                task_type=task_type,
-                selection_steps=selection_steps,
-                task=task,
-                query_text=benchmark_query_text,
-                domain_hint=domain_hint,
-            )
-            if use_device_pipeline
-            else self._compose_head_navigation_candidates(
-                binding=binding,
-                target_galaxies=target_galaxies,
-                galaxy_weights=galaxy_weights,
-                reasoning_program_id=reasoning_program_id,
-                query_embedding=navigation_reference_embedding,
-                task_type=task_type,
-                selection_steps=selection_steps,
-                task=task,
-                query_text=benchmark_query_text,
-                domain_hint=domain_hint,
-            )
-        )
-        if not navigation_candidates and task_type != "MMLU_TASK":
-            return None
-        lhe_shared_navigation_candidates = list(navigation_candidates)
-        arc_exact_candidate: dict[str, Any] | None = None
-        if task_type == "ARC_TASK":
-            exact_candidates = self._arc_exact_task_navigation_candidates(
-                task=task,
-                reference_embedding=navigation_reference_embedding,
-            )
-            if exact_candidates:
-                existing_ids = {
-                    str((candidate.get("match") or {}).get("id", "")).strip()
-                    for candidate in navigation_candidates
-                }
-                injected_candidates = [
-                    candidate
-                    for candidate in exact_candidates
-                    if str((candidate.get("match") or {}).get("id", "")).strip() not in existing_ids
-                ]
-                if injected_candidates:
-                    arc_exact_candidate = dict(injected_candidates[0])
-                    navigation_candidates = [*injected_candidates, *navigation_candidates]
-                    selection_steps.append(
-                        f"ARC curriculum anchor: injected {len(injected_candidates)} exact candidates"
-                    )
-                else:
-                    arc_exact_candidate = dict(exact_candidates[0])
-        if task_type == "MATH_TASK" and benchmark_query_text and benchmark_eval_mode:
-            exact_candidates = self._math_exact_question_navigation_candidates(
-                task=task,
-                query_text=benchmark_query_text,
-                reference_embedding=navigation_reference_embedding,
-            )
-            if exact_candidates:
-                existing_ids = {
-                    str((candidate.get("match") or {}).get("id", "")).strip()
-                    for candidate in navigation_candidates
-                }
-                injected_candidates = [
-                    candidate
-                    for candidate in exact_candidates
-                    if str((candidate.get("match") or {}).get("id", "")).strip() not in existing_ids
-                ]
-                if injected_candidates:
-                    navigation_candidates = [*injected_candidates, *navigation_candidates]
-                    selection_steps.append(
-                        f"Math benchmark anchor: injected {len(injected_candidates)} exact candidates"
-                    )
-        if task_type == "LHE_TASK" and benchmark_query_text and not benchmark_eval_mode:
-            exact_candidates = self._lhe_exact_question_navigation_candidates(
-                query_text=benchmark_query_text,
-                reference_embedding=navigation_reference_embedding,
-            )
-            if exact_candidates:
-                existing_ids = {
-                    str((candidate.get("match") or {}).get("id", "")).strip()
-                    for candidate in lhe_shared_navigation_candidates
-                }
-                injected_candidates = [
-                    candidate
-                    for candidate in exact_candidates
-                    if str((candidate.get("match") or {}).get("id", "")).strip() not in existing_ids
-                ]
-                if injected_candidates:
-                    lhe_shared_navigation_candidates = [*injected_candidates, *lhe_shared_navigation_candidates]
-        if task_type == "LHE_TASK":
-            self._record_active_lhe_timing("morton", time.perf_counter() - morton_started)
-
-        scoring_started = time.perf_counter()
-        option_embeddings = self._build_option_embedding_cache(
-            query_embedding=navigation_reference_embedding,
-            paths=paths,
-            task_type=task_type,
-        )
-        base_navigation_record_cache: dict[
-            tuple[str, ...],
-            tuple[list[dict[str, Any]], dict[str, list[float]]],
-        ] = {}
-
-        swarm_weights = self._dispatch_swarm_weights(
-            query_embedding=navigation_reference_embedding,
-            paths=paths,
-            selection_steps=selection_steps,
-            task_type=task_type,
-        )
-        if gsm8k_mode:
-            self._apply_early_defeasible_gate(
-                task_type=task_type,
-                paths=paths,
-                swarm_weights=swarm_weights,
-                selection_steps=selection_steps,
-            )
-        engine = self.get_gpu_reasoning_engine()
-        scored_candidates: list[dict[str, Any]] = []
-        path_best_records: list[dict[str, Any]] = []
-        mmlu_validation_weight, mmlu_support_weight = self._mmlu_option_rule_weights()
-        mmlu_shared_candidates = (
-            task_type == "MMLU_TASK"
-            and self._mmlu_prefers_shared_option_neighborhood(
-                task=task,
-                domain_hint=domain_hint,
-                options=options,
-            )
-        )
-        shared_mmlu_records: list[dict[str, Any]] = []
-        shared_mmlu_option_similarities: dict[str, list[float]] = {}
-        shared_lhe_records: list[dict[str, Any]] = []
-        shared_lhe_option_similarities: dict[str, list[float]] = {}
-        lhe_cached_option_records: dict[str, tuple[list[dict[str, Any]], dict[str, Any]]] = {}
-        lhe_factual_scored = False
-        if mmlu_shared_candidates:
-            mmlu_navigation_candidates = list(navigation_candidates)
-            if benchmark_eval_mode:
-                mmlu_navigation_candidates, suppressed_shortcuts = self._filter_benchmark_shortcut_candidates(
-                    candidates=mmlu_navigation_candidates,
-                    task=task,
-                    query_text=benchmark_query_text,
-                )
-                if suppressed_shortcuts > 0:
-                    selection_steps.append(
-                        "Benchmark honesty filter: MMLU shared suppressed "
-                        f"{suppressed_shortcuts} shortcut candidates"
-                    )
-            if not mmlu_navigation_candidates:
-                return None
-            shared_mmlu_records = [
-                {
-                    "match": candidate["match"],
-                    "similarity": float(candidate.get("similarity", 0.0)),
-                    "lod_saliency": float(candidate.get("lod_saliency", 0.0)),
-                    "lod_level": int(candidate.get("lod_level", 0)),
-                    "lod_focus": float(candidate.get("lod_focus", 0.0)),
-                    "led_focus": float(candidate.get("led_focus", 0.0)),
-                    "led_path": list(candidate.get("led_path", [])),
-                    "gsm8k_mode": 0.0,
-                    "mmlu_symbolic_mode": 1.0,
-                    "parse_strategy": "auto",
-                }
-                for candidate in mmlu_navigation_candidates
-            ]
-            if shared_mmlu_records and subject_embedding:
-                subject_similarities = self._embedding_similarities(
-                    subject_embedding,
-                    [list(record["match"].get("embedding16", [])) for record in shared_mmlu_records],
-                )
-                for record, subject_similarity in zip(shared_mmlu_records, subject_similarities):
-                    record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = max(
-                        float(record.get("subject_anchor_focus", 0.0)),
-                        self._subject_anchor_match_score(
-                            entry=record["match"],
-                            subject_hint=subject_label,
-                            match_mode="mmlu",
-                        ),
-                    )
-            if shared_mmlu_records and list(parse_context.get("fusion_embedding", [])):
-                parse_similarities = self._embedding_similarities(
-                    list(parse_context.get("fusion_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in shared_mmlu_records],
-                )
-                for record, parse_similarity in zip(shared_mmlu_records, parse_similarities):
-                    record["parse_similarity"] = float(parse_similarity)
-            if shared_mmlu_records and list(parse_context.get("directional_embedding", [])):
-                directional_similarities = self._embedding_similarities(
-                    list(parse_context.get("directional_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in shared_mmlu_records],
-                )
-                for record, directional_similarity in zip(shared_mmlu_records, directional_similarities):
-                    record["parse_directional_similarity"] = float(directional_similarity)
-            for record in shared_mmlu_records:
-                match_id = str(record["match"].get("id", "")).strip()
-                record["ternary_prior"] = self._candidate_ternary_prior(match_id)
-            if shared_mmlu_records and option_embeddings:
-                embedding_rows = [list(record["match"].get("embedding16", [])) for record in shared_mmlu_records]
-                for option_key, option_embedding in option_embeddings.items():
-                    shared_mmlu_option_similarities[option_key] = self._embedding_similarities(
-                        option_embedding,
-                        embedding_rows,
-                    )
-        if task_type == "LHE_TASK":
-            lhe_navigation_candidates = list(lhe_shared_navigation_candidates)
-            if benchmark_eval_mode:
-                lhe_navigation_candidates, suppressed_shortcuts = self._filter_benchmark_shortcut_candidates(
-                    candidates=lhe_navigation_candidates,
-                    task=task,
-                    query_text=benchmark_query_text,
-                )
-                if suppressed_shortcuts > 0:
-                    selection_steps.append(
-                        "Benchmark honesty filter: LHE shared suppressed "
-                        f"{suppressed_shortcuts} shortcut candidates"
-                    )
-            if not lhe_navigation_candidates:
-                return None
-            shared_lhe_records = [
-                {
-                    "match": candidate["match"],
-                    "similarity": float(candidate.get("similarity", 0.0)),
-                    "lod_saliency": float(candidate.get("lod_saliency", 0.0)),
-                    "lod_level": int(candidate.get("lod_level", 0)),
-                    "lod_focus": float(candidate.get("lod_focus", 0.0)),
-                    "led_focus": float(candidate.get("led_focus", 0.0)),
-                    "led_path": list(candidate.get("led_path", [])),
-                    "gsm8k_mode": 0.0,
-                    "parse_strategy": "auto",
-                    "exact_query_match": 1.0 if self._entry_query_matches(candidate["match"], benchmark_query_text) else 0.0,
-                    "parse_override_domain": (
-                        1.0
-                        if (
-                            str(parse_override_signals.get("domain_signal", "")).strip()
-                            and self._candidate_matches_parse_signal(
-                                candidate["match"],
-                                str(parse_override_signals.get("domain_signal", "")).strip(),
-                            )
-                        )
-                        else 0.0
-                    ),
-                    "lhe_exact_benchmark": (
-                        1.0
-                        if (
-                            not benchmark_eval_mode
-                            and str(candidate["match"].get("galaxy", "")).strip() in {"Reality", "Math"}
-                            and str(candidate["match"].get("category", "")).strip().lower()
-                            in {"benchmark_fact", "clue_fact", "cipher_result", "formal_result"}
-                            and self._entry_query_matches(candidate["match"], benchmark_query_text)
-                        )
-                        else 0.0
-                    ),
-                }
-                for candidate in lhe_navigation_candidates
-            ]
-            if shared_lhe_records and subject_embedding:
-                subject_similarities = self._embedding_similarities(
-                    subject_embedding,
-                    [list(record["match"].get("embedding16", [])) for record in shared_lhe_records],
-                )
-                for record, subject_similarity in zip(shared_lhe_records, subject_similarities):
-                    record["subject_similarity"] = float(subject_similarity)
-                    record["subject_anchor_focus"] = max(
-                        float(record.get("subject_anchor_focus", 0.0)),
-                        self._subject_anchor_match_score(
-                            entry=record["match"],
-                            subject_hint=subject_label,
-                            match_mode="domain",
-                        ),
-                    )
-            if shared_lhe_records and list(parse_context.get("fusion_embedding", [])):
-                parse_similarities = self._embedding_similarities(
-                    list(parse_context.get("fusion_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in shared_lhe_records],
-                )
-                for record, parse_similarity in zip(shared_lhe_records, parse_similarities):
-                    record["parse_similarity"] = float(parse_similarity)
-            if shared_lhe_records and list(parse_context.get("directional_embedding", [])):
-                directional_similarities = self._embedding_similarities(
-                    list(parse_context.get("directional_embedding", [])),
-                    [list(record["match"].get("embedding16", [])) for record in shared_lhe_records],
-                )
-                for record, directional_similarity in zip(shared_lhe_records, directional_similarities):
-                    record["parse_directional_similarity"] = float(directional_similarity)
-            for record in shared_lhe_records:
-                match_id = str(record["match"].get("id", "")).strip()
-                record["ternary_prior"] = self._candidate_ternary_prior(match_id)
-            if shared_lhe_records and option_embeddings:
-                embedding_rows = [list(record["match"].get("embedding16", [])) for record in shared_lhe_records]
-                for option_key, option_embedding in option_embeddings.items():
-                    shared_lhe_option_similarities[option_key] = self._embedding_similarities(
-                        option_embedding,
-                        embedding_rows,
-                    )
-        for path_index, path in enumerate(paths[:18]):
-            if int(path.get("path_defeasible_tag", 1)) < 0:
-                selection_steps.append(
-                    "GRE triple defeasible stage1: skipped "
-                    f"{str(path.get('label') or path.get('program_id', 'path'))}"
-                )
-                continue
-            program = self._select_gpu_reasoning_program(str(path.get("program_id", "")).strip())
-            option_text = str(path.get("option_text", "")).strip()
-            proposition_text = str(path.get("query_text", "")).strip()
-            option_embedding = option_embeddings.get(proposition_text or option_text)
-            task_query_text = str(
-                (task or {}).get("query")
-                or (task or {}).get("question")
-                or (task or {}).get("prompt")
-                or proposition_text
-            ).strip()
-            path_navigation_candidates = navigation_candidates
-            path_target_galaxies = (
-                [str(name).strip() for name in path.get("galaxy_names", []) if str(name).strip()]
-                if isinstance(path.get("galaxy_names"), list)
-                else list(target_galaxies)
-            )
-            if not path_target_galaxies:
-                path_target_galaxies = list(target_galaxies)
-            if task_type == "MMLU_TASK" and mmlu_shared_candidates:
-                cache_key = proposition_text or option_text
-                local_candidates = [
-                    {
-                        **record,
-                        "path": path,
-                        "program": program,
-                        "swarm_weight": float(swarm_weights[path_index]) if path_index < len(swarm_weights) else 1.0,
-                        "parse_strategy": str(path.get("parse_strategy", "")).strip() or "auto",
-                    }
-                    for record in shared_mmlu_records
-                ]
-                option_similarity_values = shared_mmlu_option_similarities.get(cache_key, [])
-                if option_text:
-                    for record, option_similarity in zip(local_candidates, option_similarity_values):
-                        record["option_text"] = option_text
-                        record["option_similarity"] = float(option_similarity)
-                        record["option_support"] = self._mmlu_option_support_score(
-                            record["match"],
-                            option_text,
-                        )
-                self._apply_specialist_swarm_features(
-                    local_candidates=local_candidates,
-                    reference_embedding=option_embedding or navigation_reference_embedding,
-                    task_type=task_type,
-                    path=path,
-                    selection_steps=selection_steps,
-                )
-                if gsm8k_mode:
-                    self._apply_intra_path_defeasible(
-                        local_candidates=local_candidates,
-                        path=path,
-                        task_type=task_type,
-                        selection_steps=selection_steps,
-                    )
-                scores = self._score_gpu_candidates_batch(
-                    candidates=local_candidates,
-                    primary_program_id=reasoning_program_id,
-                    target_galaxies=path_target_galaxies,
-                    task_type=task_type,
-                    domain_hint=domain_hint,
-                    cross_domain=False,
-                )
-                local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
-                if not local_candidates:
-                    continue
-                best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
-                if best_for_path is None:
-                    continue
-                coherence_candidates = self._top_records_by_score(
-                    local_candidates,
-                    score_key="gpu_score",
-                    top_k=min(4, len(local_candidates)),
-                )
-                neighborhood_mean = float(
-                    engine.evaluate(
-                        self._gpu_mean_expression(
-                            [float(candidate.get("gpu_score", 0.0)) for candidate in coherence_candidates]
-                        )
-                    )
-                )
-                best_for_path["path_score"] = float(
-                    engine.evaluate(
-                        " ".join(
-                            [
-                                self._gpu_scalar_literal(best_for_path.get("gpu_score", 0.0)),
-                                self._gpu_scalar_literal(neighborhood_mean),
-                                "0.05",
-                                "*",
-                                "+",
-                            ]
-                        )
-                    )
-                )
-                selection_steps.append(
-                    "Swarm path result: "
-                    f"{str(program.get('id', '')).strip()}"
-                    + (f"[{option_text}]" if option_text else "")
-                    + " -> "
-                    f"[{str(best_for_path['match'].get('galaxy', 'unknown'))}] "
-                    f"{str(best_for_path['match'].get('id', 'entry')).strip()} "
-                    f"(coherence={float(best_for_path.get('path_score', 0.0)):.2f}, top={float(best_for_path.get('gpu_score', 0.0)):.2f})"
-                )
-                scored_candidates.extend(local_candidates)
-                path_best_records.append(
-                    {
-                        "candidate": best_for_path,
-                        "option_text": option_text,
-                        "path_score": float(best_for_path.get("path_score", float("-inf"))),
-                        "path_role": str(path.get("path_role", "")).strip(),
-                        "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
-                        "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
-                        "worker_name": str(path.get("worker_name", "")),
-                    }
-                )
-                continue
-            if task_type == "MMLU_TASK" and option_embedding is not None:
-                path_navigation_candidates = (
-                    self._compose_head_navigation_candidates_device(
-                        binding=binding,
-                        target_galaxies=path_target_galaxies,
-                        galaxy_weights=galaxy_weights,
-                        reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
-                        query_embedding=option_embedding,
-                        task_type=task_type,
-                        selection_steps=[],
-                        task=task,
-                        query_text=benchmark_query_text,
-                        domain_hint=domain_hint,
-                    )
-                    if use_device_pipeline
-                    else self._compose_head_navigation_candidates(
-                        binding=binding,
-                        target_galaxies=path_target_galaxies,
-                        galaxy_weights=galaxy_weights,
-                        reasoning_program_id=str(program.get("id", "")).strip() or reasoning_program_id,
-                        query_embedding=option_embedding,
-                        task_type=task_type,
-                        selection_steps=[],
-                        task=task,
-                        query_text=benchmark_query_text,
-                        domain_hint=domain_hint,
-                    )
-                )
-                if not path_navigation_candidates:
-                    path_navigation_candidates = navigation_candidates
-            elif task_type == "LHE_TASK":
-                cache_key = proposition_text or option_text
-                if option_text and cache_key in lhe_cached_option_records:
-                    _, cached_best = lhe_cached_option_records[cache_key]
-                    path_best_records.append(
-                        {
-                            "candidate": cached_best,
-                            "option_text": option_text,
-                            "path_score": float(cached_best.get("path_score", float("-inf"))),
-                            "path_role": str(path.get("path_role", "")).strip(),
-                        }
-                    )
-                    continue
-                if not option_text and lhe_factual_scored:
-                    continue
-                local_candidates = [
-                    {
-                        **record,
-                        "path": path,
-                        "program": program,
-                        "swarm_weight": float(swarm_weights[path_index]) if path_index < len(swarm_weights) else 1.0,
-                        "parse_strategy": str(path.get("parse_strategy", "")).strip() or "auto",
-                    }
-                    for record in shared_lhe_records
-                ]
-                option_similarity_values = shared_lhe_option_similarities.get(cache_key, [])
-                if option_text:
-                    for record, option_similarity in zip(local_candidates, option_similarity_values):
-                        record["option_text"] = option_text
-                        record["option_similarity"] = float(option_similarity)
-                self._apply_specialist_swarm_features(
-                    local_candidates=local_candidates,
-                    reference_embedding=option_embedding or navigation_reference_embedding,
-                    task_type=task_type,
-                    path=path,
-                    selection_steps=selection_steps,
-                )
-                if gsm8k_mode:
-                    self._apply_intra_path_defeasible(
-                        local_candidates=local_candidates,
-                        path=path,
-                        task_type=task_type,
-                        selection_steps=selection_steps,
-                    )
-                scores = self._score_gpu_candidates_batch(
-                    candidates=local_candidates,
-                    primary_program_id=reasoning_program_id,
-                    target_galaxies=path_target_galaxies,
-                    task_type=task_type,
-                    domain_hint=domain_hint,
-                    cross_domain=False,
-                )
-                local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
-                if not local_candidates:
-                    continue
-                best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
-                if best_for_path is None:
-                    continue
-                best_for_path["path_score"] = float(best_for_path.get("gpu_score", float("-inf")))
-                selection_steps.append(
-                    "Swarm path result: "
-                    f"{str(program.get('id', '')).strip()}"
-                    + (f"[{option_text}]" if option_text else "")
-                    + " -> "
-                    f"[{str(best_for_path['match'].get('galaxy', 'unknown'))}] "
-                    f"{str(best_for_path['match'].get('id', 'entry')).strip()} "
-                    + f"(score={float(best_for_path.get('gpu_score', 0.0)):.2f})"
-                )
-                scored_candidates.extend(local_candidates)
-                if option_text:
-                    lhe_cached_option_records[cache_key] = (local_candidates, best_for_path)
-                else:
-                    lhe_factual_scored = True
-                path_best_records.append(
-                    {
-                        "candidate": best_for_path,
-                        "option_text": option_text,
-                        "path_score": float(best_for_path.get("path_score", float("-inf"))),
-                        "path_role": str(path.get("path_role", "")).strip(),
-                        "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
-                        "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
-                        "worker_name": str(path.get("worker_name", "")),
-                    }
-                )
-                continue
-            if benchmark_eval_mode:
-                path_navigation_candidates, suppressed_shortcuts = self._filter_benchmark_shortcut_candidates(
-                    candidates=path_navigation_candidates,
-                    task=task,
-                    query_text=task_query_text,
-                )
-                if suppressed_shortcuts > 0:
-                    selection_steps.append(
-                        "Benchmark honesty filter: "
-                        f"{str(path.get('label') or path.get('program_id', 'worker'))} "
-                        f"suppressed {suppressed_shortcuts} shortcut candidates"
-                    )
-            if not path_navigation_candidates:
-                continue
-            candidate_cache_key = self._navigation_candidate_cache_key(path_navigation_candidates)
-            cached_base_records = base_navigation_record_cache.get(candidate_cache_key)
-            if cached_base_records is None:
-                cached_base_records = self._build_base_navigation_records(
-                    candidates=path_navigation_candidates,
-                    task_type=task_type,
-                    task=task,
-                    task_query_text=task_query_text,
-                    benchmark_eval_mode=benchmark_eval_mode,
-                    parse_context=parse_context,
-                    parse_override_signals=parse_override_signals,
-                    subject_embedding=subject_embedding,
-                    subject_label=subject_label,
-                    gsm8k_mode=gsm8k_mode,
-                    gsm8k_context=gsm8k_context,
-                    option_embeddings=option_embeddings,
-                )
-                base_navigation_record_cache[candidate_cache_key] = cached_base_records
-            base_records, cached_option_similarities = cached_base_records
-            local_candidates = []
-            for base_record in base_records:
-                record = {
-                    **base_record,
-                    "path": dict(path),
-                    "program": dict(program),
-                    "match": dict(base_record["match"]),
-                    "led_path": list(base_record.get("led_path", [])),
-                    "parse_quantity_values": list(base_record.get("parse_quantity_values", [])),
-                    "swarm_weight": float(swarm_weights[path_index]) if path_index < len(swarm_weights) else 1.0,
-                    "parse_strategy": str(path.get("parse_strategy", "")).strip() or "auto",
-                }
-                local_candidates.append(record)
-            if option_text and local_candidates:
-                option_similarity_values = cached_option_similarities.get(proposition_text or option_text, [])
-                for record, option_similarity in zip(local_candidates, option_similarity_values):
-                    record["option_text"] = option_text
-                    record["option_similarity"] = float(option_similarity)
-                    if task_type == "MMLU_TASK":
-                        record["option_support"] = self._mmlu_option_support_score(
-                            record["match"],
-                            option_text,
-                        )
-            if gsm8k_mode and local_candidates and gsm8k_context:
-                role_variants = (
-                    gsm8k_context.get("role_map_variants")
-                    if isinstance(gsm8k_context.get("role_map_variants"), list)
-                    else []
-                )
-                for record in local_candidates:
-                    record_context = dict(gsm8k_context)
-                    if role_variants:
-                        variant_index = int(path.get("role_variant_index", path_index) or 0)
-                        variant = role_variants[variant_index % len(role_variants)]
-                        if isinstance(variant, dict):
-                            record_context["quantity_role_candidates"] = [
-                                dict(row)
-                                for row in (
-                                    variant.get("quantity_role_candidates")
-                                    if isinstance(variant.get("quantity_role_candidates"), list)
-                                    else []
-                                )
-                                if isinstance(row, dict)
-                            ]
-                            record_context["quantity_role_values"] = {
-                                str(key).strip().lower(): [
-                                    float(value)
-                                    for value in (values if isinstance(values, list) else [])
-                                ]
-                                for key, values in (
-                                    variant.get("quantity_role_values")
-                                    if isinstance(variant.get("quantity_role_values"), dict)
-                                    else {}
-                                ).items()
-                            }
-                            record_context["role_variant_label"] = str(variant.get("label", "")).strip()
-                    record["gsm8k_context"] = record_context
-            self._apply_specialist_swarm_features(
-                local_candidates=local_candidates,
-                reference_embedding=option_embedding or navigation_reference_embedding,
-                task_type=task_type,
-                path=path,
-                selection_steps=selection_steps,
-            )
-            self._apply_atomic_compositional_consistency(
-                local_candidates=local_candidates,
-                task_type=task_type,
-                selection_steps=selection_steps,
-            )
-            if gsm8k_mode:
-                self._apply_intra_path_defeasible(
-                    local_candidates=local_candidates,
-                    path=path,
-                    task_type=task_type,
-                    selection_steps=selection_steps,
-                )
-            scores = self._score_gpu_candidates_batch(
-                candidates=local_candidates,
-                primary_program_id=reasoning_program_id,
-                target_galaxies=path_target_galaxies,
-                task_type=task_type,
-                domain_hint=domain_hint,
-                cross_domain=False,
-            )
-            local_candidates = self._attach_finite_gpu_scores(local_candidates, scores)
-            if not local_candidates:
-                continue
-            best_for_path = self._best_record_by_score(local_candidates, score_key="gpu_score")
-            if best_for_path is None:
-                continue
-            if task_type == "MMLU_TASK":
-                coherence_candidates = self._top_records_by_score(
-                    local_candidates,
-                    score_key="gpu_score",
-                    top_k=min(4, len(local_candidates)),
-                )
-                neighborhood_mean = float(
-                    engine.evaluate(
-                        self._gpu_mean_expression(
-                            [float(candidate.get("gpu_score", 0.0)) for candidate in coherence_candidates]
-                        )
-                    )
-                )
-                best_for_path["path_score"] = float(
-                    engine.evaluate(
-                        " ".join(
-                            [
-                                self._gpu_scalar_literal(best_for_path.get("gpu_score", 0.0)),
-                                self._gpu_scalar_literal(neighborhood_mean),
-                                "0.05",
-                                "*",
-                                "+",
-                            ]
-                        )
-                    )
-                )
-            else:
-                best_for_path["path_score"] = float(best_for_path.get("gpu_score", float("-inf")))
-            if gsm8k_mode:
-                strategy_name = str(path.get("composition_strategy", "")).strip() or "fusion_chain"
-                preview = self._gsm8k_decomposition_preview(
-                    engine=engine,
-                    context=(
-                        best_for_path.get("gsm8k_context")
-                        if isinstance(best_for_path.get("gsm8k_context"), dict)
-                        else {}
-                    ),
-                    strategy=strategy_name,
-                )
-                if preview is not None and not str(best_for_path.get("gsm8k_preview_answer", "")).strip():
-                    preview_answer, preview_program, preview_label, preview_structural = preview
-                    best_for_path["gsm8k_preview_answer"] = preview_answer
-                    best_for_path["gsm8k_preview_program"] = preview_program
-                    best_for_path["gsm8k_preview_strategy"] = preview_label
-                    best_for_path["gsm8k_structural_score"] = float(preview_structural)
-                    binding_summary = str(
-                        (
-                            best_for_path.get("gsm8k_context")
-                            if isinstance(best_for_path.get("gsm8k_context"), dict)
-                            else {}
-                        ).get("_last_gsm8k_slot_binding", "")
-                    ).strip()
-                    if binding_summary:
-                        best_for_path["gsm8k_slot_binding"] = binding_summary
-                    strategy_name = preview_label or strategy_name
-                    selection_steps.append(
-                        "Math worker preview: "
-                        f"{str(path.get('label') or path.get('program_id', 'worker'))} "
-                        f"{preview_label} -> {preview_answer}"
-                    )
-                    if binding_summary:
-                        selection_steps.append(f"Math slot binding: {binding_summary}")
-                strategy_weight = self._math_strategy_weight(strategy_name)
-                best_for_path["gsm8k_strategy_weight"] = float(strategy_weight)
-                if strategy_weight != 1.0:
-                    best_for_path["path_score"] = float(
-                        engine.evaluate(
-                            " ".join(
-                                [
-                                    self._gpu_scalar_literal(best_for_path.get("path_score", 0.0)),
-                                    self._gpu_scalar_literal(strategy_weight),
-                                    "*",
-                                ]
-                            )
-                        )
-                    )
-            selection_steps.append(
-                "Swarm path result: "
-                f"{str(program.get('id', '')).strip()}"
-                + (f"[{option_text}]" if option_text else "")
-                + " -> "
-                f"[{str(best_for_path['match'].get('galaxy', 'unknown'))}] "
-                f"{str(best_for_path['match'].get('id', 'entry')).strip()} "
-                + (
-                    f"(coherence={float(best_for_path.get('path_score', 0.0)):.2f}, top={float(best_for_path.get('gpu_score', 0.0)):.2f})"
-                    if task_type == "MMLU_TASK"
-                    else f"(score={float(best_for_path.get('gpu_score', 0.0)):.2f})"
-                )
-            )
-            scored_candidates.extend(local_candidates)
-            path_best_records.append(
-                {
-                    "candidate": best_for_path,
-                    "option_text": option_text,
-                    "path_score": float(best_for_path.get("path_score", float("-inf"))),
-                    "path_role": str(path.get("path_role", "")).strip(),
-                    "preview_answer": str(best_for_path.get("gsm8k_preview_answer", "")).strip(),
-                    "worker_slot": int(path.get("worker_slot", path_index % len(self.FIXED_GRE_WORKERS))),
-                    "worker_name": str(path.get("worker_name", "")),
-                }
-            )
-        if not scored_candidates:
-            return None
-        selected_records = path_best_records
-        if gsm8k_mode:
-            aggregated_records = self._aggregate_math_preview_records(
-                engine=engine,
-                path_best_records=path_best_records,
-                selection_steps=selection_steps,
-            )
-            if aggregated_records:
-                aggregate_by_answer = {
-                    str(record.get("option_text", "")).strip(): record
-                    for record in aggregated_records
-                    if str(record.get("option_text", "")).strip()
-                }
-                for record in path_best_records:
-                    answer_key = self._math_preview_candidate_id(record)
-                    aggregate_record = aggregate_by_answer.get(answer_key)
-                    if aggregate_record is None:
-                        continue
-                    aggregate_score = float(aggregate_record.get("path_score", record.get("path_score", 0.0)))
-                    support_count = int(aggregate_record.get("support_count", 0))
-                    weighted_support = float(aggregate_record.get("weighted_support", 0.0))
-                    record["path_score"] = aggregate_score
-                    record["support_count"] = support_count
-                    record["weighted_support"] = weighted_support
-                    candidate = record.get("candidate")
-                    if isinstance(candidate, dict):
-                        candidate["path_score"] = aggregate_score
-                        candidate["gsm8k_consensus_support"] = support_count
-                        candidate["gsm8k_consensus_weight"] = weighted_support
-                selected_records = aggregated_records
-        if task_type == "MMLU_TASK":
-            option_groups: dict[str, list[dict[str, Any]]] = {}
-            for record in path_best_records:
-                option_name = str(record.get("option_text", "")).strip()
-                if not option_name:
-                    continue
-                option_groups.setdefault(option_name, []).append(record)
-            aggregated_records: list[dict[str, Any]] = []
-            option_score_jobs: list[tuple[str, dict[str, Any], int]] = []
-            option_score_expressions: list[str] = []
-            for option_name, records in option_groups.items():
-                hypothesis_scores = [
-                    float(record.get("path_score", 0.0))
-                    for record in records
-                    if str(record.get("path_role", "")).strip() == "hypothesis"
-                ]
-                validation_scores = [
-                    float(record.get("path_score", 0.0))
-                    for record in records
-                    if str(record.get("path_role", "")).strip() != "hypothesis"
-                ]
-                if not hypothesis_scores and not validation_scores:
-                    continue
-                best_record = max(records, key=lambda record: float(record.get("path_score", float("-inf"))))
-                candidate = best_record.get("candidate")
-                hypothesis_expression = self._gpu_mean_expression(hypothesis_scores)
-                validation_expression = self._gpu_mean_expression(validation_scores)
-                final_expression = " ".join(
-                    [
-                        hypothesis_expression,
-                        validation_expression,
-                        self._gpu_scalar_literal(mmlu_validation_weight),
-                        "*",
-                        "+",
-                        self._gpu_scalar_literal(len(validation_scores)),
-                        self._gpu_scalar_literal(mmlu_support_weight),
-                        "*",
-                        "+",
-                    ]
-                )
-                option_score_jobs.append((option_name, candidate, len(validation_scores)))
-                option_score_expressions.extend(
-                    [
-                        hypothesis_expression,
-                        validation_expression,
-                        final_expression,
-                    ]
-                )
-            if option_score_expressions:
-                option_score_values: list[float] = []
-                for start in range(0, len(option_score_expressions), 18):
-                    batch = option_score_expressions[start : start + 18]
-                    option_score_values.extend(
-                        self._finite_float_or_default(
-                            value,
-                            -1_000_000_000.0,
-                            clamp_abs=1_000_000_000.0,
-                        )
-                        for value in engine.evaluate_batch(batch, max_parallel=len(batch))
-                    )
-                value_index = 0
-                for option_name, candidate, support_count in option_score_jobs:
-                    hypothesis_score = float(option_score_values[value_index])
-                    validation_score = float(option_score_values[value_index + 1])
-                    final_score = float(option_score_values[value_index + 2])
-                    value_index += 3
-                    if isinstance(candidate, dict):
-                        candidate["path_score"] = float(final_score)
-                    aggregated_records.append(
-                        {
-                            "candidate": candidate,
-                            "option_text": option_name,
-                            "path_score": float(final_score),
-                        }
-                    )
-                    selection_steps.append(
-                        "MMLU option score: "
-                        f"{option_name}={final_score:.2f} (hyp={hypothesis_score:.2f}, val={validation_score:.2f}, support={support_count})"
-                    )
-            if aggregated_records:
-                selected_records = aggregated_records
-        if task_type == "LHE_TASK":
-            option_groups: dict[str, list[dict[str, Any]]] = {}
-            for record in path_best_records:
-                option_name = str(record.get("option_text", "")).strip()
-                if not option_name:
-                    continue
-                option_groups.setdefault(option_name, []).append(record)
-            selection_steps.append(
-                "LHE aggregation: "
-                + f"{len(option_groups)} option groups, records={len(path_best_records)}"
-            )
-            aggregated_records: list[dict[str, Any]] = []
-            option_score_jobs: list[tuple[str, dict[str, Any], int, int]] = []
-            option_score_expressions: list[str] = []
-            for option_name, records in option_groups.items():
-                hypothesis_scores = [
-                    float(record.get("path_score", 0.0))
-                    for record in records
-                    if str(record.get("path_role", "")).strip() == "hypothesis"
-                ]
-                validation_scores = [
-                    float(record.get("path_score", 0.0))
-                    for record in records
-                    if str(record.get("path_role", "")).strip() == "validation"
-                ]
-                all_scores = hypothesis_scores + validation_scores
-                if not all_scores:
-                    continue
-                best_record = max(records, key=lambda record: float(record.get("path_score", float("-inf"))))
-                candidate = best_record.get("candidate")
-                hypothesis_expression = self._gpu_mean_expression(hypothesis_scores)
-                validation_expression = self._gpu_mean_expression(validation_scores)
-                final_expression = self._gpu_mean_expression(all_scores)
-                option_score_jobs.append(
-                    (option_name, candidate, len(hypothesis_scores), len(validation_scores))
-                )
-                option_score_expressions.extend(
-                    [
-                        hypothesis_expression,
-                        validation_expression,
-                        final_expression,
-                    ]
-                )
-            if option_score_expressions:
-                option_score_values: list[float] = []
-                for start in range(0, len(option_score_expressions), 18):
-                    batch = option_score_expressions[start : start + 18]
-                    option_score_values.extend(
-                        self._finite_float_or_default(
-                            value,
-                            -1_000_000_000.0,
-                            clamp_abs=1_000_000_000.0,
-                        )
-                        for value in engine.evaluate_batch(batch, max_parallel=len(batch))
-                    )
-                value_index = 0
-                for option_name, candidate, hypothesis_count, validation_count in option_score_jobs:
-                    hypothesis_score = float(option_score_values[value_index])
-                    validation_score = float(option_score_values[value_index + 1])
-                    final_score = float(option_score_values[value_index + 2])
-                    value_index += 3
-                    if isinstance(candidate, dict):
-                        candidate["path_score"] = float(final_score)
-                    aggregated_records.append(
-                        {
-                            "candidate": candidate,
-                            "option_text": option_name,
-                            "path_score": float(final_score),
-                        }
-                    )
-                    selection_steps.append(
-                        "LHE option score: "
-                        + f"{option_name}={final_score:.2f} "
-                        + f"(hyp={hypothesis_score:.2f}/{hypothesis_count}, "
-                        + f"val={validation_score:.2f}/{validation_count})"
-                    )
-            if aggregated_records:
-                selected_records = aggregated_records
-        if task_type == "LHE_TASK":
-            self._record_active_lhe_timing("scoring", time.perf_counter() - scoring_started)
-        halting_records = path_best_records if gsm8k_mode else selected_records
-        jarvis_brief = self._jarvis_compile_brief(
-            task_type=task_type,
-            paths=paths,
-            options=options,
-            path_best_records=path_best_records,
-            selected_records=selected_records,
-            scored_candidates=scored_candidates,
-        )
-        for record in [*path_best_records, *selected_records]:
-            candidate = record.get("candidate") if isinstance(record.get("candidate"), dict) else None
-            if isinstance(candidate, dict):
-                candidate["jarvis_brief"] = dict(jarvis_brief)
-        for candidate in scored_candidates:
-            if isinstance(candidate, dict):
-                candidate["jarvis_brief"] = dict(jarvis_brief)
-        self._jarvis_record_brief(jarvis_brief)
-        selection_steps.append(
-            "Jarvis brief: "
-            f"workers={int(jarvis_brief.get('worker_count', 0))} "
-            f"planned_groups={int(jarvis_brief.get('planned_swarm_groups', 1))} "
-            f"agreements={len(list(jarvis_brief.get('agreements') or []))} "
-            f"contradictions={len(list(jarvis_brief.get('contradictions') or []))}"
-        )
-        self._apply_defeasible_specialist_resolution(
-            records=halting_records,
-            task_type=task_type,
-            gsm8k_mode=gsm8k_mode,
-            selection_steps=selection_steps,
-        )
-        path_best_scores = [float(record.get("path_score", float("-inf"))) for record in halting_records]
-        path_candidate_ids = [
-            self._halting_record_candidate_id(
-                record=record,
-                task_type=task_type,
-                gsm8k_mode=gsm8k_mode,
-            )
-            for record in halting_records
-        ]
-        gsm8k_structural_override = (
-            self._gsm8k_structural_override_record(selected_records)
-            if gsm8k_mode and selected_records
-            else None
-        )
-        halting_started = time.perf_counter()
-        converged = self._halting_gate_converged(
-            task_type=task_type,
-            task=task,
-            path_scores=path_best_scores,
-            candidate_ids=path_candidate_ids,
-            worker_slots=[
-                int(record.get("worker_slot", idx % len(self.FIXED_GRE_WORKERS)))
-                for idx, record in enumerate(halting_records)
-            ],
-            selection_steps=selection_steps,
-            gsm8k_structural_override=gsm8k_structural_override,
-        )
-        if task_type == "LHE_TASK":
-            self._record_active_lhe_timing("halting", time.perf_counter() - halting_started)
-        if not converged:
-            if task_type == "LHE_TASK" and scored_candidates:
-                selection_steps.append("LHE fallback: use top factual candidate")
-                fallback_candidate = self._best_record_by_score(scored_candidates, score_key="gpu_score")
-                if fallback_candidate is None:
-                    return None
-                return self._attach_galaxy_contribution(
-                    fallback_candidate,
-                    records=path_best_records,
-                    candidates=scored_candidates,
-                    selection_steps=selection_steps,
-                )
-            return None
-        if task_type in {"MMLU_TASK", "LHE_TASK"} and selected_records:
-            best_selected_candidate = self._best_record_by_score(
-                [
-                    record.get("candidate")
-                    for record in selected_records
-                    if isinstance(record.get("candidate"), dict)
-                ],
-                score_key="path_score",
-            )
-            if best_selected_candidate is None:
-                return None
-            return self._attach_galaxy_contribution(
-                best_selected_candidate,
-                records=path_best_records or selected_records,
-                candidates=scored_candidates,
-                selection_steps=selection_steps,
-            )
-        if gsm8k_mode and selected_records:
-            if isinstance(gsm8k_structural_override, dict):
-                override_candidate = (
-                    gsm8k_structural_override.get("candidate")
-                    if isinstance(gsm8k_structural_override.get("candidate"), dict)
-                    else None
-                )
-                if isinstance(override_candidate, dict):
-                    selection_steps.append(
-                        "Math final selection: structural override -> "
-                        f"{str(gsm8k_structural_override.get('option_text', '')).strip()}"
-                    )
-                    return self._attach_galaxy_contribution(
-                        override_candidate,
-                        records=path_best_records or selected_records,
-                        candidates=scored_candidates,
-                        selection_steps=selection_steps,
-                    )
-            consensus_record = self._gsm8k_consensus_record(selected_records)
-            consensus_candidate = (
-                consensus_record.get("candidate")
-                if isinstance((consensus_record or {}).get("candidate"), dict)
-                else None
-            )
-            if isinstance(consensus_candidate, dict):
-                return self._attach_galaxy_contribution(
-                    consensus_candidate,
-                    records=path_best_records or selected_records,
-                    candidates=scored_candidates,
-                    selection_steps=selection_steps,
-                )
-            fallback_candidate = max(
-                (record.get("candidate") for record in selected_records if isinstance(record.get("candidate"), dict)),
-                key=lambda candidate: (
-                    float((candidate or {}).get("gsm8k_consensus_weight", 0.0)),
-                    int((candidate or {}).get("gsm8k_consensus_support", 0)),
-                    float((candidate or {}).get("path_score", float("-inf"))),
-                    float((candidate or {}).get("gpu_score", float("-inf"))),
-                ),
-            )
-            return self._attach_galaxy_contribution(
-                fallback_candidate,
-                records=path_best_records or selected_records,
-                candidates=scored_candidates,
-                selection_steps=selection_steps,
-            )
-        best_scored_candidate = self._best_record_by_score(scored_candidates, score_key="gpu_score")
-        if best_scored_candidate is None:
-            return None
-        return self._attach_galaxy_contribution(
-            best_scored_candidate,
-            records=path_best_records,
-            candidates=scored_candidates,
-            selection_steps=selection_steps,
-        )
-
-    def _select_composed_head_candidate_device(
-        self,
-        *,
-        task: dict[str, Any] | None,
-        binding: dict[str, Any],
-        paths: list[dict[str, Any]],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-        task_type: str,
-        options: list[str] | None,
-        domain_hint: str | None,
-        selection_steps: list[str],
-        parse_bundle: dict[str, Any] | None = None,
-    ) -> dict[str, Any] | None:
-        return self._select_composed_head_candidate(
-            task=task,
-            binding=binding,
-            paths=paths,
-            target_galaxies=target_galaxies,
-            galaxy_weights=galaxy_weights,
-            reasoning_program_id=reasoning_program_id,
-            query_embedding=query_embedding,
-            task_type=task_type,
-            options=options,
-            domain_hint=domain_hint,
-            selection_steps=selection_steps,
-            parse_bundle=parse_bundle,
-            _device_pipeline_override=True,
-        )
-
-    def _goal_edge_cost(
-        self,
-        *,
-        match: dict[str, Any],
-        task_type: str,
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        query_embedding: list[float],
-    ) -> float | None:
-        galaxy_name = str(match.get("galaxy", "")).strip()
-        allowed = set(target_galaxies)
-        normalized_galaxy_weights = self._normalize_galaxy_weights(galaxy_weights)
-        if task_type == "LHE_TASK":
-            allowed = {"Reality", "Math"}
-        elif task_type == "ARC_TASK":
-            allowed = {"Drawing", "Grammar", "Tool"}
-        elif normalized_galaxy_weights:
-            allowed = set(self._discover_live_galaxy_names())
-        if allowed and galaxy_name not in allowed:
-            return None
-        similarity = self._embedding_similarity(query_embedding, list(match.get("embedding16", [])))
-        base_cost = max(0.01, 1.0 - similarity)
-        galaxy_weight = self._galaxy_weight_for_name(galaxy_name, normalized_galaxy_weights)
-        if galaxy_weight > 0.0:
-            base_cost *= max(0.25, 1.0 - (0.75 * (galaxy_weight - 1.0)))
-        return max(0.01, float(base_cost))
-
-    def _navigate_led_primary_candidate(
-        self,
-        *,
-        binding: dict[str, Any],
-        target_galaxies: list[str],
-        galaxy_weights: dict[str, Any] | None,
-        reasoning_program_id: str,
-        primary_reasoning_program: dict[str, Any],
-        query_embedding: list[float],
-        task_type: str,
-        specialist: str,
-        selection_steps: list[str],
-    ) -> dict[str, Any] | None:
-        if task_type == "ARC_TASK":
-            return None
-        graph = self.get_semantic_csr_graph()
-        pathfinder = self.get_led_pathfinder()
-        catalog = self.get_gpu_galaxy_catalog()
-        if graph is None or pathfinder is None or not catalog:
-            return None
-
-        allowed_indexes = {
-            self._safe_to_int(self._gpu_galaxy_index(name), default=0, clamp_abs=1024.0)
-            for name in target_galaxies
-            if str(name).strip()
-        }
-        seed_pairs = graph.select_seed_nodes(
-            query_embedding=query_embedding,
-            allowed_galaxy_indexes=allowed_indexes or None,
-            top_k=self._graph_seed_limit(task_type),
-            similarity_threshold=self._graph_seed_similarity_threshold(task_type),
-        )
-        if not seed_pairs:
-            seed_pairs = graph.select_seed_nodes(
-                query_embedding=query_embedding,
-                allowed_galaxy_indexes=None,
-                top_k=self._graph_seed_limit(task_type),
-                similarity_threshold=self._graph_seed_similarity_threshold(task_type),
-            )
-        if not seed_pairs:
-            return None
-
-        seed_nodes = [index for index, _ in seed_pairs]
-        local_nodes, local_rows, local_cols, local_costs = graph.extract_local_kernel(
-            seed_nodes=seed_nodes,
-            max_nodes=self._graph_local_kernel_limit(task_type),
-        )
-        if not local_nodes:
-            return None
-
-        global_to_local = {global_index: local_index for local_index, global_index in enumerate(local_nodes)}
-        query_node = 0
-        first_real_node = 1
-        goal_node = len(local_nodes) + 1
-        row_offsets = [0]
-        col_indices: list[int] = []
-        packed_costs: list[int] = []
-
-        for global_index, similarity in seed_pairs:
-            local_index = global_to_local.get(global_index)
-            if local_index is None:
-                continue
-            col_indices.append(first_real_node + local_index)
-            packed_costs.append(
-                self._pack_led_cost(
-                    self._semantic_cost_from_similarity(similarity),
-                    1,
-                )
-            )
-        row_offsets.append(len(col_indices))
-
-        for local_index, global_index in enumerate(local_nodes):
-            row_start, row_end = self._local_csr_row_bounds(
-                local_rows,
-                local_cols,
-                local_costs,
-                local_index,
-            )
-            for edge_idx in range(row_start, row_end):
-                col_indices.append(first_real_node + int(local_cols[edge_idx]))
-                packed_costs.append(int(local_costs[edge_idx]))
-            goal_cost = self._goal_edge_cost(
-                match=catalog[global_index],
-                task_type=task_type,
-                target_galaxies=target_galaxies,
-                galaxy_weights=galaxy_weights,
-                reasoning_program_id=reasoning_program_id,
-                query_embedding=query_embedding,
-            )
-            if goal_cost is not None:
-                col_indices.append(goal_node)
-                packed_costs.append(
-                    self._pack_led_cost(
-                        self._safe_to_int(float(goal_cost) * 65535.0, default=0, clamp_abs=65535.0),
-                        1,
-                    )
-                )
-            row_offsets.append(len(col_indices))
-
-        row_offsets.append(len(col_indices))
-        try:
-            path = pathfinder.navigate_csr(
-                row_offsets,
-                col_indices,
-                packed_costs,
-                start=query_node,
-                goal=goal_node,
-                alpha=0.35,
-                beta=0.65,
-                max_path_length=max(16, len(local_nodes) + 2),
-            )
-        except Exception:
-            return None
-        if path.size < 3:
-            return None
-        answer_local_node = int(path[-2]) - first_real_node
-        if not (0 <= answer_local_node < len(local_nodes)):
-            return None
-        answer_index = int(local_nodes[answer_local_node])
-        if not (0 <= answer_index < len(catalog)):
-            return None
-        answer_match = dict(catalog[answer_index])
-        similarity = self._embedding_similarity(query_embedding, list(answer_match.get("embedding16", [])))
-        selection_steps.append(
-            "LED-A graph navigation: "
-            f"[{str(answer_match.get('galaxy', 'unknown'))}] {str(answer_match.get('id', 'entry')).strip()} "
-            f"(path_hops={max(0, int(path.size) - 2)}, seeds={len(seed_pairs)})"
-        )
-        return {
-            "path": {
-                "instance_id": -1,
-                "program_id": reasoning_program_id,
-                "query_text": "",
-            },
-            "program": dict(primary_reasoning_program),
-            "match": answer_match,
-            "similarity": float(similarity),
-            "gpu_score": float(similarity + (float(answer_match.get("confidence", 0.0)) * 0.05)),
-            "led_path": [int(node) for node in path.tolist()],
-        }
-
-    def _evaluate_gpu_paths(
-        self,
-        *,
-        galaxy_names: list[str],
-        paths: list[dict[str, Any]],
-        task: dict[str, Any] | None,
-        options: list[str] | None = None,
-    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-        raise RuntimeError("legacy_gpu_path_evaluation_removed__use_sovereign_dispatch")
-
-    def _gather_gpu_frontier_candidates(
-        self,
-        *,
-        paths: list[dict[str, Any]],
-        task_type: str,
-    ) -> list[dict[str, Any]]:
-        started = time.perf_counter()
-        try:
-            top_k = self._gpu_frontier_k(task_type)
-            if top_k <= 1:
-                return []
-            catalog = self.get_gpu_galaxy_catalog()
-            if not catalog:
-                return []
-            engine = self.get_gpu_reasoning_engine()
-            results: list[dict[str, Any]] = []
-            for path in paths[:18]:
-                instance_id = path.get("instance_id")
-                program = path.get("program")
-                if instance_id is None or not isinstance(program, dict):
-                    continue
-                expression = self._program_frontier_expression(program, top_k)
-                if not expression:
-                    continue
-                _, stack = engine.evaluate_with_stack(expression, instance_id=int(instance_id))
-                candidate_indexes = self._parse_galaxy_scan_stack(stack)
-                for rank, candidate_index in enumerate(candidate_indexes[:top_k]):
-                    if not (0 <= candidate_index < len(catalog)):
-                        continue
-                    similarity = float(
-                        engine.evaluate(f"{candidate_index} galaxy_similarity", instance_id=int(instance_id))
-                    )
-                    results.append(
-                        {
-                            "path": dict(path),
-                            "program": dict(program),
-                            "match": dict(catalog[candidate_index]),
-                            "similarity": similarity,
-                            "rank": rank,
-                        }
-                    )
-            return results
-        finally:
-            if task_type == "LHE_TASK":
-                self._record_active_lhe_timing("frontier", time.perf_counter() - started)
-
-    def _maybe_led_rerank_candidate(
-        self,
-        *,
-        frontier_candidates: list[dict[str, Any]],
-        best_candidate: dict[str, Any],
-        task_type: str,
-        selection_steps: list[str],
-    ) -> dict[str, Any] | None:
-        started = time.perf_counter()
-        try:
-            if task_type == "ARC_TASK":
-                return None
-            if len(frontier_candidates) < 6:
-                return None
-            if float(best_candidate.get("similarity", 0.0)) >= 0.95:
-                return None
-            pathfinder = self.get_led_pathfinder()
-            if pathfinder is None:
-                return None
-
-            frontier_by_index: dict[int, dict[str, Any]] = {}
-            for candidate in frontier_candidates:
-                match = candidate.get("match") if isinstance(candidate.get("match"), dict) else {}
-                index = int(match.get("index", -1))
-                if index < 0:
-                    continue
-                record = frontier_by_index.get(index)
-                if record is None:
-                    frontier_by_index[index] = {
-                        "candidate": candidate,
-                        "gpu_score": float(candidate.get("gpu_score", float("-inf"))),
-                        "best_similarity": float(candidate.get("similarity", 0.0)),
-                        "program_ids": {str(candidate["program"].get("id", "")).strip()},
-                        "seed": int(candidate.get("rank", 0)) == 0,
-                    }
-                    continue
-                record["best_similarity"] = max(record["best_similarity"], float(candidate.get("similarity", 0.0)))
-                record["program_ids"].add(str(candidate["program"].get("id", "")).strip())
-                record["seed"] = bool(record["seed"] or int(candidate.get("rank", 0)) == 0)
-                if float(candidate.get("gpu_score", float("-inf"))) > float(record["gpu_score"]):
-                    record["candidate"] = candidate
-                    record["gpu_score"] = float(candidate.get("gpu_score", float("-inf")))
-
-            if len(frontier_by_index) < 4:
-                return None
-
-            nodes: list[dict[str, Any]] = []
-            for record in frontier_by_index.values():
-                candidate = record["candidate"]
-                match = candidate["match"]
-                nodes.append(
-                    {
-                        "candidate": candidate,
-                        "gpu_score": float(record["gpu_score"]),
-                        "best_similarity": float(record["best_similarity"]),
-                        "support_count": len(record["program_ids"]),
-                        "seed": bool(record["seed"]),
-                        "embedding16": list(match.get("embedding16", [])),
-                        "template_ref": str(match.get("template_ref", "")).strip(),
-                        "category": str(match.get("category", "")).strip().lower(),
-                        "galaxy": str(match.get("galaxy", "")).strip(),
-                        "subject": str(match.get("subject", "")).strip().lower(),
-                        "index": int(match.get("index", -1)),
-                    }
-                )
-
-            if not any(node["seed"] for node in nodes):
-                return None
-
-            edges: list[list[tuple[int, int]]] = [[] for _ in range(len(nodes) + 1)]
-            for node_idx, node in enumerate(nodes, start=1):
-                if node["seed"]:
-                    edges[0].append(
-                        (
-                            node_idx,
-                            self._pack_led_cost(
-                                self._semantic_cost_from_similarity(node["best_similarity"]),
-                                1,
-                            ),
-                        )
-                    )
-
-            for left_idx, left in enumerate(nodes, start=1):
-                for right_idx in range(left_idx + 1, len(nodes) + 1):
-                    right = nodes[right_idx - 1]
-                    pair_similarity = self._embedding_similarity(left["embedding16"], right["embedding16"])
-                    same_template = bool(left["template_ref"] and left["template_ref"] == right["template_ref"])
-                    same_subject = bool(left["subject"] and left["subject"] == right["subject"])
-                    same_galaxy = left["galaxy"] == right["galaxy"]
-                    if pair_similarity < 0.78 and not same_template and not same_subject:
-                        continue
-                    geometric_cost = 1 if same_template else 2 if same_subject else 4 if same_galaxy else 8
-                    packed_cost = self._pack_led_cost(
-                        self._semantic_cost_from_similarity(pair_similarity),
-                        geometric_cost,
-                    )
-                    edges[left_idx].append((right_idx, packed_cost))
-                    edges[right_idx].append((left_idx, packed_cost))
-
-            if not edges[0]:
-                return None
-
-            row_offsets = [0]
-            col_indices: list[int] = []
-            packed_costs: list[int] = []
-            for adjacency in edges:
-                for target, packed_cost in adjacency:
-                    col_indices.append(int(target))
-                    packed_costs.append(int(packed_cost))
-                row_offsets.append(len(col_indices))
-
-            rows = row_offsets
-            cols = col_indices
-            costs = packed_costs
-            current_best_score = float(best_candidate.get("gpu_score", float("-inf")))
-            promoted: dict[str, Any] | None = None
-            promoted_score = current_best_score
-            promoted_path: list[int] = []
-
-            for node_idx, node in enumerate(nodes, start=1):
-                try:
-                    path = pathfinder.navigate_csr(
-                        rows,
-                        cols,
-                        costs,
-                        start=0,
-                        goal=node_idx,
-                        alpha=0.35,
-                        beta=0.65,
-                        max_path_length=max(16, len(nodes) + 2),
-                    )
-                except Exception:
-                    return None
-                if path.size == 0:
-                    continue
-                hop_count = max(1, int(path.size) - 1)
-                support_bonus = min(0.06, 0.015 * int(node["support_count"]))
-                hop_bonus = 0.03 / float(hop_count)
-                seed_bonus = 0.015 if node["seed"] else 0.0
-                led_score = float(node["gpu_score"]) + support_bonus + hop_bonus + seed_bonus
-                if led_score > promoted_score + 0.02:
-                    promoted = node["candidate"]
-                    promoted_score = led_score
-                    promoted_path = [int(step) for step in path.tolist()]
-
-            if promoted is None:
-                return None
-            match = promoted["match"]
-            promoted["led_score"] = float(promoted_score)
-            selection_steps.append(
-                "LED-A frontier navigation: "
-                f"[{str(match.get('galaxy', 'unknown'))}] {str(match.get('id', 'entry')).strip()} "
-                f"(path_hops={max(0, len(promoted_path) - 1)}, adjusted={promoted_score:.2f})"
-            )
-            return promoted
-        finally:
-            if task_type == "LHE_TASK":
-                self._record_active_lhe_timing("led_rerank", time.perf_counter() - started)
 
     @staticmethod
     def _gpu_scalar_literal(value: Any) -> str:
@@ -16944,15 +15738,6 @@ class Knowledgeverse:
             )
         return scores
 
-    def _evaluate_gpu_match(
-        self,
-        *,
-        galaxy_names: list[str],
-        reasoning_program: dict[str, Any],
-        query_embedding: list[float],
-    ) -> tuple[dict[str, Any], dict[str, Any], float] | None:
-        raise RuntimeError("legacy_gpu_match_evaluation_removed__use_sovereign_dispatch")
-
     def query(
         self,
         prompt: str,
@@ -16970,15 +15755,35 @@ class Knowledgeverse:
         payload.setdefault("prompt", str(prompt or ""))
         payload.setdefault("query", str(prompt or ""))
         payload.setdefault("question", str(prompt or ""))
-        if options is not None and "options" not in payload:
-            payload["options"] = list(options)
+        option_list = list(options) if options is not None else (
+            list(payload.get("options") or []) if isinstance(payload.get("options"), list) else None
+        )
+        if option_list is not None and "options" not in payload:
+            payload["options"] = list(option_list)
+        query_text = str(payload.get("query") or payload.get("question") or payload.get("prompt") or prompt or "")
+        meaning_class, _meaning_dist, _halting_weights, low_confidence = self._navigator_emission(
+            query_embedding=None,
+            task=payload,
+            query_text=query_text,
+            options=option_list,
+            stars=None,
+        )
         declared_type = str(payload.get("type") or query_type or "").strip().upper()
-        normalized_type = self._normalize_semantic_task_type(
+        if not declared_type or declared_type == "GENERAL":
+            declared_type = self._task_type_from_meaning_class(
+                meaning_class=meaning_class,
+                task=payload,
+                options=option_list,
+            )
+        normalized_type = self._legacy_surface_kind(
             str(payload.get("surface_kind") or declared_type).upper()
         )
         payload["surface_kind"] = normalized_type
         payload["type"] = declared_type or normalized_type
-        return self._dispatch_sovereign_task(
+        payload["meaning_class"] = meaning_class
+        if low_confidence:
+            payload["low_confidence_routing"] = True
+        return self.execute_task(
             task=payload,
             route=route,
             specialist=specialist,
@@ -16986,77 +15791,9 @@ class Knowledgeverse:
             use_enriched=use_enriched,
         )
 
-    def _dispatch_sovereign_task(
-        self,
-        *,
-        task: dict[str, Any],
-        route: dict[str, Any] | None = None,
-        specialist: str = "auto",
-        domain_hint: str | None = None,
-        use_enriched: bool = True,
-    ) -> dict[str, Any]:
-        """Dispatch a normalized task envelope into the sovereign runtime."""
-        self._enter_query_activity()
-        try:
-            self._mark_runtime_activity()
-            task_payload = dict(task or {})
-            declared_type = str(task_payload.get("type") or "").strip().upper()
-            surface_kind = self._normalize_semantic_task_type(
-                str(task_payload.get("surface_kind") or declared_type).upper()
-            )
-            task_payload["surface_kind"] = surface_kind
-            task_payload["type"] = declared_type or surface_kind
-            if domain_hint is not None and not str(task_payload.get("domain_hint", "")).strip():
-                task_payload["domain_hint"] = str(domain_hint).strip()
-            if route and isinstance(route, dict):
-                task_payload.setdefault("route", dict(route))
-            runtime = self._get_sovereign_hot_path()
-            result = runtime.dispatch_task(task_payload)
-            result.setdefault("query_id", f"kvq_{self._query_sequence + 1:08d}")
-            self._query_sequence += 1
-            result.setdefault("use_enriched", bool(use_enriched))
-            result.setdefault("specialist", str(specialist or "auto"))
-            result.setdefault("domain_hint", str(task_payload.get("domain_hint") or ""))
-            return result
-        finally:
-            self._leave_query_activity()
-
-    def _execute_task_sovereign(
-        self,
-        *,
-        task: dict[str, Any],
-        route: dict[str, Any] | None = None,
-        specialist: str = "auto",
-        domain_hint: str | None = None,
-        use_enriched: bool = True,
-    ) -> dict[str, Any]:
-        """Legacy alias retained while callers migrate to `_dispatch_sovereign_task()`."""
-        return self._dispatch_sovereign_task(
-            task=task,
-            route=route,
-            specialist=specialist,
-            domain_hint=domain_hint,
-            use_enriched=use_enriched,
-        )
-
-    def _execute_task_direct(
-        self,
-        *,
-        task: dict[str, Any],
-        route: dict[str, Any] | None = None,
-        specialist: str = "auto",
-        domain_hint: str | None = None,
-        use_enriched: bool = True,
-    ) -> dict[str, Any]:
-        """Legacy alias retained while callers migrate to `_dispatch_sovereign_task()`."""
-        result = self._dispatch_sovereign_task(
-            task=task,
-            route=route,
-            specialist=specialist,
-            domain_hint=domain_hint,
-            use_enriched=use_enriched,
-        )
-        return result
+    # Sovereign cut (TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §8):
+    # the Python dispatch has been deleted. All task execution MUST go through
+    # the VRAM ring via execute_task below.
 
     def execute_task(
         self,
@@ -17066,21 +15803,19 @@ class Knowledgeverse:
         specialist: str = "auto",
         domain_hint: str | None = None,
         use_enriched: bool = True,
+        max_wall_ms: int | None = None,
     ) -> dict[str, Any]:
-        """Execute through the queued TRM shell so ingress/egress stays buffered."""
-        if not self._trm_game_loop.is_active():
-            return self._dispatch_sovereign_task(
-                task=task,
-                route=route,
-                specialist=specialist,
-                domain_hint=domain_hint,
-                use_enriched=use_enriched,
-            )
+        """Execute through the VRAM ring into the persistent PTX tick.
+
+        No bypass path. No Python dispatch. See
+        TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §2.
+        """
         request_id = self.write_input_buffer(
             task=task,
             route=route,
             specialist=specialist,
             domain_hint=domain_hint,
             use_enriched=use_enriched,
+            max_wall_ms=max_wall_ms,
         )
-        return self.wait_output_buffer(request_id, max_ticks=1)
+        return self.wait_output_buffer(request_id, max_ticks=1, max_wall_ms=max_wall_ms)

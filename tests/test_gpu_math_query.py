@@ -98,7 +98,6 @@ def test_headless_tablet_math_boundary_uses_gpu_query(tmp_path) -> None:
     envelope = TabletIngest.math_problem(
         task_id="gsm8k_0",
         question=GSM8K_0_QUESTION,
-        competition="GSM8K",
         expected_answer="18",
     )
 
@@ -109,8 +108,10 @@ def test_headless_tablet_math_boundary_uses_gpu_query(tmp_path) -> None:
     assert submitted["emitted"]["correct"] is True
     task_result = submitted["response"]["task_result"]
     assert task_result["gpu_execution"] is True
-    assert task_result["program_id"] == Knowledgeverse.GPU_MATH_REASONING_PROGRAM_ID
     assert task_result["runtime"] == "knowledgeverse_gpu_query"
+    assert task_result["answer"] == "18"
+    assert submitted["response"]["mode"] == "query_tick"
+    assert submitted["response"]["trm_io"]["request_id"].startswith("trmio_")
 
 
 def test_knowledgeverse_generic_linear_math_routes_without_specialist_fallback(tmp_path) -> None:

@@ -104,9 +104,11 @@ def build_question_session_tape(
     suite_name: str,
     rows: Sequence[Mapping[str, Any]],
     use_enriched: bool = True,
+    surface_kind: str = "QUESTION",
 ) -> TabletSessionTape:
     frames: list[TabletSessionFrame] = []
     for index, row in enumerate(rows):
+        normalized_surface_kind = "QUESTION"
         envelope = TabletIngest.question_task(
             task_id=str(row.get("id") or row.get("task_id") or f"{suite_name}_{index}"),
             question=str(row.get("question_text") or row.get("question") or ""),
@@ -118,6 +120,7 @@ def build_question_session_tape(
                 or ""
             ).strip()
             or None,
+            surface_kind=normalized_surface_kind,
         )
         frames.append(
             TabletSessionFrame(
@@ -130,7 +133,7 @@ def build_question_session_tape(
     return TabletSessionTape(
         session_id=str(session_id),
         suite_name=str(suite_name),
-        surface_kind="QUESTION",
+        surface_kind=str(surface_kind or "QUESTION"),
         frames=tuple(frames),
         use_enriched=bool(use_enriched),
     )

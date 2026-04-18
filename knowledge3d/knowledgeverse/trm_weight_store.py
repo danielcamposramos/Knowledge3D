@@ -20,6 +20,8 @@ class TRMWeightStore:
                 "specialist_bias": {},
                 "routing_topology": {},
                 "update_count": 0,
+                "navigator_recent_traces": [],
+                "navigator_training_state": {},
             }
         try:
             raw = json.loads(self.path.read_text(encoding="utf-8"))
@@ -29,6 +31,8 @@ class TRMWeightStore:
                 "specialist_bias": {},
                 "routing_topology": {},
                 "update_count": 0,
+                "navigator_recent_traces": [],
+                "navigator_training_state": {},
             }
         if not isinstance(raw, dict):
             return {
@@ -36,12 +40,16 @@ class TRMWeightStore:
                 "specialist_bias": {},
                 "routing_topology": {},
                 "update_count": 0,
+                "navigator_recent_traces": [],
+                "navigator_training_state": {},
             }
         return {
             "version": int(raw.get("version", 1)),
             "specialist_bias": dict(raw.get("specialist_bias", {})),
             "routing_topology": dict(raw.get("routing_topology", {})),
             "update_count": int(raw.get("update_count", 0)),
+            "navigator_recent_traces": list(raw.get("navigator_recent_traces", [])),
+            "navigator_training_state": dict(raw.get("navigator_training_state", {})),
         }
 
     def save(self, payload: dict[str, Any]) -> None:

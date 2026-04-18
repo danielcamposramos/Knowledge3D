@@ -13,8 +13,8 @@ fi
 # Optional env:
 #   INCLUDE_BENCHMARK_AUGMENTATION=1
 
-STORAGE_ROOT="${1:-../Knowledge3D.local}"
-OUTPUT_ROOT="${2:-../Knowledge3D.local/datasets/external_payloads}"
+STORAGE_ROOT="${1:-/K3D/Knowledge3D.local}"
+OUTPUT_ROOT="${2:-/K3D/Knowledge3D.local/datasets/external_payloads}"
 PAYLOAD_DIR="${OUTPUT_ROOT%/}/$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$PAYLOAD_DIR"
 

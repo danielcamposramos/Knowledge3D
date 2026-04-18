@@ -10,7 +10,7 @@ base_model_id.txt to load at inference time.
 Usage:
   scripts/k3d_env.sh run python -m knowledge3d.models.rlwhf_lora \
     --dataset docs/reports/training/rlwhf_dataset.jsonl \
-    --out ../Knowledge3D.local/models/rlwhf_lora_tinyllama \
+    --out /K3D/Knowledge3D.local/models/rlwhf_lora_tinyllama \
     --base TinyLlama/TinyLlama-1.1B-Chat-v1.0 --epochs 1 --batch 2 --max_len 384 --lr 2e-4 --qlora
 """
 

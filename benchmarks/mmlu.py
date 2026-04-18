@@ -287,7 +287,6 @@ class MMLUBenchmark:
         )
         task_result = self.kv.execute_task(
             task={
-                "type": "QUESTION_TASK",
                 "surface_kind": "QUESTION",
                 "task_id": question["id"],
                 "query": question["question_text"],
@@ -296,8 +295,6 @@ class MMLUBenchmark:
                 "messages": [{"role": "user", "content": question["question_text"]}],
                 "options": list(question["options"]),
                 "choices": list(question["options"]),
-                "benchmark": "mmlu",
-                "dataset": "mmlu",
                 "subject": question["subject"],
                 "expected_answer": question["correct_answer"],
             },

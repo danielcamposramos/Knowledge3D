@@ -1,7 +1,7 @@
 import asyncio, json, pathlib
 import websockets
 
-out = pathlib.Path('../Knowledge3D.local/datasets/ws_test.log')
+out = pathlib.Path('/K3D/Knowledge3D.local/datasets/ws_test.log')
 
 async def main():
     try:

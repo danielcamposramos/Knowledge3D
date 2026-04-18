@@ -271,7 +271,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Execute Knowledge Preparation Phase 1B")
     parser.add_argument(
         "--output-root",
-        default="../Knowledge3D.local/datasets/knowledge_prep_phase1b",
+        default="/K3D/Knowledge3D.local/datasets/knowledge_prep_phase1b",
         help="Output root for materialized corpus and reports",
     )
     parser.add_argument(

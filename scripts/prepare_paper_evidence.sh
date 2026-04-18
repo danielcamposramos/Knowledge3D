@@ -12,16 +12,16 @@ mkdir -p docs/paper-evidence/rdf_exports
 
 # 1. Copy benchmark results
 echo "[1/6] Copying benchmark results..."
-if [ -f "../Knowledge3D.local/results/week21_3_architecture_fixed_full/math_competitions_enriched.json" ]; then
-    cp "../Knowledge3D.local/results/week21_3_architecture_fixed_full/math_competitions_enriched.json" \
+if [ -f "/K3D/Knowledge3D.local/results/week21_3_architecture_fixed_full/math_competitions_enriched.json" ]; then
+    cp "/K3D/Knowledge3D.local/results/week21_3_architecture_fixed_full/math_competitions_enriched.json" \
        "docs/paper-evidence/math_competitions_week21_3.json"
     echo "  ✓ Math competitions results copied"
 else
     echo "  ⚠ Math competitions results not found"
 fi
 
-if [ -f "../Knowledge3D.local/results/week21_3_architecture_fixed_full/last_humanity_exam_enriched.json" ]; then
-    cp "../Knowledge3D.local/results/week21_3_architecture_fixed_full/last_humanity_exam_enriched.json" \
+if [ -f "/K3D/Knowledge3D.local/results/week21_3_architecture_fixed_full/last_humanity_exam_enriched.json" ]; then
+    cp "/K3D/Knowledge3D.local/results/week21_3_architecture_fixed_full/last_humanity_exam_enriched.json" \
        "docs/paper-evidence/last_humanity_exam_week21_3.json"
     echo "  ✓ Last Humanity Exam results copied"
 else
@@ -42,24 +42,24 @@ fi
 # 3. Create galaxy samples
 echo ""
 echo "[3/6] Creating galaxy samples..."
-if [ -f "../Knowledge3D.local/galaxies/Drawing.jsonl" ]; then
-    head -100 ../Knowledge3D.local/galaxies/Drawing.jsonl > \
+if [ -f "/K3D/Knowledge3D.local/galaxies/Drawing.jsonl" ]; then
+    head -100 /K3D/Knowledge3D.local/galaxies/Drawing.jsonl > \
         docs/paper-evidence/drawing_galaxy_sample.jsonl
     echo "  ✓ Drawing Galaxy sample (100 entries)"
 else
     echo "  ⚠ Drawing Galaxy not found"
 fi
 
-if [ -f "../Knowledge3D.local/galaxies/Grammar.jsonl" ]; then
-    head -100 ../Knowledge3D.local/galaxies/Grammar.jsonl > \
+if [ -f "/K3D/Knowledge3D.local/galaxies/Grammar.jsonl" ]; then
+    head -100 /K3D/Knowledge3D.local/galaxies/Grammar.jsonl > \
         docs/paper-evidence/grammar_galaxy_sample.jsonl
     echo "  ✓ Grammar Galaxy sample (100 entries)"
 else
     echo "  ⚠ Grammar Galaxy not found"
 fi
 
-if [ -f "../Knowledge3D.local/galaxies/Math.jsonl" ]; then
-    head -50 ../Knowledge3D.local/galaxies/Math.jsonl > \
+if [ -f "/K3D/Knowledge3D.local/galaxies/Math.jsonl" ]; then
+    head -50 /K3D/Knowledge3D.local/galaxies/Math.jsonl > \
         docs/paper-evidence/math_galaxy_sample.jsonl
     echo "  ✓ Math Galaxy sample (50 entries)"
 else
@@ -69,7 +69,7 @@ fi
 # 4. Check for test logs (MVP Phase 1)
 echo ""
 echo "[4/6] Checking for test logs..."
-TEST_LOGS=$(find ../Knowledge3D.local -name "*test*" -type f 2>/dev/null | grep -E "mvp|28.*test" | head -5 || true)
+TEST_LOGS=$(find /K3D/Knowledge3D.local -name "*test*" -type f 2>/dev/null | grep -E "mvp|28.*test" | head -5 || true)
 if [ -n "$TEST_LOGS" ]; then
     echo "  ✓ Found test logs:"
     echo "$TEST_LOGS" | while read log; do
@@ -83,7 +83,7 @@ fi
 # 5. Check for GPU logs
 echo ""
 echo "[5/6] Checking for GPU utilization logs..."
-GPU_LOGS=$(find ../Knowledge3D.local -name "*gpu*" -o -name "*nvidia*" 2>/dev/null | head -5 || true)
+GPU_LOGS=$(find /K3D/Knowledge3D.local -name "*gpu*" -o -name "*nvidia*" 2>/dev/null | head -5 || true)
 if [ -n "$GPU_LOGS" ]; then
     echo "  ✓ Found GPU logs:"
     echo "$GPU_LOGS" | while read log; do

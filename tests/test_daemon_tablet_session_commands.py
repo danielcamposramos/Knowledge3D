@@ -80,7 +80,6 @@ def test_daemon_runs_serializable_tablet_tape() -> None:
                 envelope=TabletIngest.math_problem(
                     task_id="m1",
                     question="What is 2 + 2?",
-                    competition="AMC",
                     expected_answer="4",
                 ),
                 expected="4",

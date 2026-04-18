@@ -76,20 +76,25 @@ ROLE_ID_BY_NAME = {
     "answer": ROLE_ANSWER,
     "anti_pattern": ROLE_ANTI_PATTERN,
 }
-MEANING_FAMILY_ROUTE_MINIMA = {
-    "GRAMMAR": {"routers": 1, "executors": 4, "validators": 2, "anti_patterns": 2},
-    "GENERAL": {"routers": 1, "executors": 3, "validators": 2, "anti_patterns": 2},
-    "CHAT": {"routers": 1, "executors": 2, "validators": 2, "anti_patterns": 2},
-    "QUESTION": {"routers": 1, "executors": 2, "validators": 2, "anti_patterns": 2},
-    "MATH": {"routers": 1, "executors": 5, "validators": 3, "anti_patterns": 2},
-    "GAME_2D": {"routers": 1, "executors": 4, "validators": 2, "anti_patterns": 3},
+MEANING_CLASS_ROUTE_MINIMA = {
+    "FACTUAL_RECALL": {"routers": 1, "executors": 2, "validators": 2, "anti_patterns": 2},
+    "MULTI_HOP_INFERENCE": {"routers": 1, "executors": 4, "validators": 3, "anti_patterns": 2},
+    "NUMERIC_COMPUTE": {"routers": 1, "executors": 5, "validators": 3, "anti_patterns": 2},
+    "SPATIAL_TRANSFORM": {"routers": 1, "executors": 4, "validators": 2, "anti_patterns": 3},
+    "DEFINITION_LOOKUP": {"routers": 1, "executors": 2, "validators": 2, "anti_patterns": 2},
+    "COMPARATIVE_CHOICE": {"routers": 1, "executors": 3, "validators": 3, "anti_patterns": 3},
+    "GENERATIVE_COMPOSITION": {"routers": 1, "executors": 3, "validators": 2, "anti_patterns": 2},
+    "GROUNDED_DIALOG": {"routers": 1, "executors": 2, "validators": 2, "anti_patterns": 2},
 }
-MEANING_ROUTE_CLOSURE_MINIMA = {
-    "GAME_2D": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 2, "anti_patterns": 3},
-    "MATH": {"surface_bridges": 1, "routers": 1, "executors": 6, "materializers": 1, "validators": 3, "anti_patterns": 3},
-    "QUESTION": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
-    "GENERAL": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
-    "GRAMMAR": {"surface_bridges": 1, "routers": 1, "executors": 5, "materializers": 1, "validators": 2, "anti_patterns": 2},
+MEANING_CLASS_ROUTE_CLOSURE_MINIMA = {
+    "FACTUAL_RECALL": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "MULTI_HOP_INFERENCE": {"surface_bridges": 1, "routers": 1, "executors": 5, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "NUMERIC_COMPUTE": {"surface_bridges": 1, "routers": 1, "executors": 6, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "SPATIAL_TRANSFORM": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 2, "anti_patterns": 3},
+    "DEFINITION_LOOKUP": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "COMPARATIVE_CHOICE": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "GENERATIVE_COMPOSITION": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
+    "GROUNDED_DIALOG": {"surface_bridges": 1, "routers": 1, "executors": 4, "materializers": 1, "validators": 3, "anti_patterns": 3},
 }
 
 EXPLICIT_POLARITY_MASK = 0x01
@@ -167,6 +172,37 @@ def _route_family_id(route_family: Any) -> int:
     if not token:
         return 0
     return int(VRAMTaskBuffer.task_type_id(token))
+
+
+def _meaning_class_from_surface(route_family: Any, metadata: dict[str, Any] | None = None, source: dict[str, Any] | None = None) -> str:
+    token = str(route_family or "").strip().upper()
+    if token in MEANING_CLASS_ROUTE_MINIMA:
+        return token
+    aliases = {
+        "GAME_2D": "SPATIAL_TRANSFORM",
+        "ARC": "SPATIAL_TRANSFORM",
+        "MATH": "NUMERIC_COMPUTE",
+        "MATH_TASK": "NUMERIC_COMPUTE",
+        "QUESTION": "FACTUAL_RECALL",
+        "CHAT": "GROUNDED_DIALOG",
+        "GENERAL": "FACTUAL_RECALL",
+        "GRAMMAR": "DEFINITION_LOOKUP",
+        "INTERACTION": "GROUNDED_DIALOG",
+    }
+    if token in aliases:
+        return aliases[token]
+    for container in (metadata or {}, source or {}):
+        for ref_key, meaning_class in (
+            ("math_refs", "NUMERIC_COMPUTE"),
+            ("visual_refs", "SPATIAL_TRANSFORM"),
+            ("grammar_refs", "DEFINITION_LOOKUP"),
+            ("meta_refs", "MULTI_HOP_INFERENCE"),
+            ("dialog_refs", "GROUNDED_DIALOG"),
+        ):
+            values = container.get(ref_key)
+            if isinstance(values, list) and values:
+                return meaning_class
+    return "FACTUAL_RECALL"
 
 
 def _encode_runtime_flags(flags: int, route_family: Any) -> int:
@@ -329,7 +365,7 @@ class SovereignHotPath:
 
     def close(self, *, profile: str = "service") -> dict[str, Any]:
         normalized_profile = str(profile or "service").strip().lower() or "service"
-        if normalized_profile == "benchmark":
+        if normalized_profile.startswith("bench"):
             return {
                 "status": "fast_exit",
                 "profile": normalized_profile,
@@ -1362,12 +1398,14 @@ class SovereignHotPath:
             route_family = str(VRAMTaskBuffer.normalize_task_type(route_family))
         elif galaxy_id.strip().upper() in {"GAME_2D", "MATH", "QUESTION", "CHAT", "GENERAL", "GRAMMAR", "INTERACTION"}:
             route_family = str(VRAMTaskBuffer.normalize_task_type(galaxy_id))
+        meaning_class = _meaning_class_from_surface(route_family, metadata, source)
         star = {
             "id": star_id,
             "name": str(source.get("name") or catalog_row.get("name") or star_id),
             "galaxy_id": galaxy_id,
             "galaxy_id_u32": _fnv1a32(galaxy_id),
             "route_family": route_family,
+            "meaning_class": meaning_class,
             "star_type": int(catalog_row.get("gpu_source_class", 0) or 0),
             "selection_role": selection_role,
             "selection_role_id": int(ROLE_ID_BY_NAME.get(selection_role, 0)),
@@ -1793,19 +1831,18 @@ class SovereignHotPath:
         }
 
     def _route_family_name(self, star: dict[str, Any]) -> str:
+        explicit_meaning = str(star.get("meaning_class") or "").strip().upper()
+        if explicit_meaning:
+            return explicit_meaning
         explicit = str(star.get("route_family") or "").strip()
         if explicit:
-            normalized = VRAMTaskBuffer.normalize_task_type(explicit)
-            return str(normalized or explicit.upper())
+            return _meaning_class_from_surface(explicit, star.get("metadata") if isinstance(star.get("metadata"), dict) else {}, star)
         galaxy_id = star.get("galaxy_id")
         if isinstance(galaxy_id, str):
             token = galaxy_id.strip()
             if token:
-                normalized = VRAMTaskBuffer.normalize_task_type(token)
-                if normalized != "GENERAL" or token.strip().upper() == "GENERAL":
-                    return str(normalized)
-                return token
-        return "unknown"
+                return _meaning_class_from_surface(token, star.get("metadata") if isinstance(star.get("metadata"), dict) else {}, star)
+        return "FACTUAL_RECALL"
 
     def _summarize_route_family_health(
         self,
@@ -1943,7 +1980,7 @@ class SovereignHotPath:
         families: dict[str, Any] = {}
         minima_passed = True
         total_missing_materializer_paths = 0
-        for family, minima in MEANING_ROUTE_CLOSURE_MINIMA.items():
+        for family, minima in MEANING_CLASS_ROUTE_CLOSURE_MINIMA.items():
             actual = dict(family_health.get(family) or {})
             meets_minima = {
                 key: int(actual.get(key) or 0) >= int(expected)
@@ -1961,7 +1998,7 @@ class SovereignHotPath:
                 "missing_reciprocal_links": int(actual.get("missing_reciprocal_links") or 0),
                 "incomplete_validator_coverage": int(actual.get("incomplete_validator_coverage") or 0),
             }
-        governed_families = set(MEANING_ROUTE_CLOSURE_MINIMA)
+        governed_families = set(MEANING_CLASS_ROUTE_CLOSURE_MINIMA)
         total_missing_reciprocal_links = sum(
             int((family_health.get(family) or {}).get("missing_reciprocal_links") or 0)
             for family in governed_families
@@ -2070,7 +2107,7 @@ class SovereignHotPath:
                     role_counts["executors"] > 0
                     and role_counts["validators"] > 0
                     and has_materializers
-                    and (role_counts["routers"] > 0 or family in {"MATH", "QUESTION", "GENERAL"})
+                    and (role_counts["routers"] > 0 or family in {"NUMERIC_COMPUTE", "FACTUAL_RECALL", "MULTI_HOP_INFERENCE", "COMPARATIVE_CHOICE"})
                 )
             packet_passed = bool(not missing_ids and has_materializers and has_anti_patterns and route_chain_complete)
             if not packet_passed:
@@ -2144,7 +2181,7 @@ class SovereignHotPath:
         )
         families: dict[str, Any] = {}
         minima_passed = True
-        for family, minima in MEANING_FAMILY_ROUTE_MINIMA.items():
+        for family, minima in MEANING_CLASS_ROUTE_MINIMA.items():
             actual = dict(family_health.get(family) or {})
             meets_minima = {
                 key: int(actual.get(key) or 0) >= int(expected)
@@ -3628,6 +3665,7 @@ class SovereignHotPath:
     def _task_payload(self, task: dict[str, Any]) -> dict[str, Any]:
         query_text = str(task.get("query") or task.get("prompt") or task.get("question") or "").strip()
         family = VRAMTaskBuffer.normalize_task_type(task.get("surface_kind") or task.get("type") or "")
+        dispatch_family = family
         expected_result_kind = str(task.get("expected_result_kind") or "").strip().lower()
         grid_expected = bool(
             family == "GAME_2D"
@@ -3673,8 +3711,9 @@ class SovereignHotPath:
                     expected_index = index
                     break
         return {
-            "surface_kind": family,
-            "type": family,
+            "surface_kind": dispatch_family,
+            "type": dispatch_family,
+            "requested_surface_kind": family,
             "query_embedding": list(task.get("query_embedding") or self.knowledgeverse._embed_query_gpu(query_text, task=task)),
             "option_embeddings": option_embeddings,
             "option_hashes": option_hashes,
@@ -3765,8 +3804,13 @@ class SovereignHotPath:
             or (router_star or {}).get("route_family")
             or payload["surface_kind"]
         )
-        if resolved_route_family == "QUESTION" and effective_task_type in {"MMLU_TASK", "LHE_TASK"}:
-            resolved_route_family = effective_task_type.replace("_TASK", "")
+        resolved_meaning_class = str(
+            (winner_star or {}).get("meaning_class")
+            or (validator_star or {}).get("meaning_class")
+            or (executor_star or {}).get("meaning_class")
+            or (router_star or {}).get("meaning_class")
+            or _meaning_class_from_surface(task.get("meaning_class") or payload["surface_kind"], task, payload)
+        ).strip().upper() or "FACTUAL_RECALL"
         trace_star_ids = [
             str((self._host_star(index) or {}).get("id", ""))
             for index in list(trace.route_trace_star_indices or [])
@@ -3843,6 +3887,7 @@ class SovereignHotPath:
                 "winner_star_id": str((winner_star or {}).get("id", "")),
                 "winner_role": str((winner_star or {}).get("selection_role", "")),
                 "route_family": resolved_route_family,
+                "meaning_class": resolved_meaning_class,
                 "route_depth": int(trace.route_depth),
                 "anti_pattern_signal": int(trace.anti_pattern_signal),
                 "route_budget_used": int(trace.route_budget_used),
@@ -3868,6 +3913,7 @@ class SovereignHotPath:
                 "validator_star": str((validator_star or {}).get("id", "")),
                 "winner_star": str((winner_star or {}).get("id", "")),
                 "route_family": resolved_route_family,
+                "meaning_class": resolved_meaning_class,
                 "trace_star_ids": list(trace_star_ids),
                 "trace_role_ids": list(trace_role_ids),
                 "trace_roles": _trace_role_names(trace_role_ids),

@@ -4,15 +4,18 @@ This repository uses AI partners (both external AI assistants and internal Synth
 
 ## MCP Infrastructure — USE THIS FIRST (All Agents)
 
-**Two MCP servers run locally. Query them BEFORE reading spec files from disk — save your context.**
+**Three MCP servers run locally. Query them BEFORE reading spec files from disk — save your context.**
 
-- **`k3d-knowledge`** — Qdrant semantic search over all 35 `docs/vocabulary/*.md` specs (1319 chunked points). Tool: `mcp__k3d-knowledge__qdrant-find`. Pattern: `qdrant-find("What does the spec say about X?")` → returns relevant excerpts + source paths.
-- **`ollama-specialists`** — Delegate implementation, planning, research, and multi-angle analysis to local Ollama models. Tools include `kimi_swarm`, `ask_coder`, `plan_task`, `flesh_out_code`, `extract_facts`, `summarize`, `web_search`, `route_specialist`, `ask_cloud`, `mvcic`, `memory_harvest`.
+- **`k3d-knowledge`** — Qdrant semantic search over all 35 `docs/vocabulary/*.md` specs (1319 chunked points), served on `:8501`. Tool: `mcp__k3d-knowledge__qdrant-find`. Pattern: `qdrant-find("What does the spec say about X?")` → returns relevant excerpts + source paths.
+- **`k3d-ptx`** — Qdrant semantic search over PTX ISA + CUDA C Guide + Inline PTX reference (11,298 points), served on `:8503`. Tool: `mcp__k3d-ptx__qdrant-find`. Use this before touching `.cu`, `.ptx`, or CUDA bridge code.
+- **`ollama-specialists`** — Delegate implementation, planning, research, and multi-angle analysis to local Ollama models, served on `:8502`. Tools include `kimi_swarm`, `ask_coder`, `plan_task`, `flesh_out_code`, `extract_facts`, `summarize`, `web_search`, `route_specialist`, `ask_cloud`, `mvcic`, `memory_harvest`.
 - **Standing directive from Daniel**: "Always dispatch ollama specialists instead of burning your tokens."
 
-**Workflow**: `qdrant-find` spec lookups → `plan_task` / `ask_coder` for implementation → read full files only if MCP results are insufficient.
+**Rule of three**: `qdrant-find` specs → `qdrant-find` PTX (if kernel-touching) → `plan_task`. Then code.
 
-Both MCP servers are available to Claude Code, Codex, and Cline via streamable-http transport (ports 8501/8502). Config lives in `/home/daniel/.claude/settings.json`, `/home/daniel/.codex/config.toml`, and Cline's `cline_mcp_settings.json`. Launch script: `/home/daniel/.claude/launch_mcp_containers.sh`.
+**Timeout rule**: for `kimi_swarm` and deep `ask_cloud`, use timeouts of at least `240000 ms`.
+
+All three MCP servers are available to Claude Code, Codex, and Cline via streamable-http transport (ports `8501/8502/8503`). Config lives in `/home/daniel/.claude/settings.json`, `/home/daniel/.codex/config.toml`, and Cline's `cline_mcp_settings.json`. Launch script: `/home/daniel/.claude/launch_mcp_containers.sh`.
 
 ---
 

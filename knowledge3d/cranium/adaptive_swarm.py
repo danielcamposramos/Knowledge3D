@@ -28,8 +28,8 @@ Usage:
     # Train base on general reasoning
     swarm.train_base_epoch(general_samples, validation_samples)
 
-    # Train specialist on domain-specific data
-    swarm.train_specialist_epoch('ocr', ocr_samples, ocr_validation)
+    # Consolidate specialist during sleep-time
+    swarm.consolidate_specialist_dream_cycle('ocr', ocr_samples, ocr_validation)
 
     # Inference with automatic specialist selection
     output = swarm.forward(input_data, specialist='auto')
@@ -57,12 +57,36 @@ class SwarmConfig:
     """Configuration for adaptive swarm."""
     base_dims: int = 2048                    # Base model dimension
     min_dims: int = 64                       # Minimum dimension
-    base_learning_rate: float = 0.001        # Base model LR
-    specialist_learning_rate: float = 0.002  # Specialist LR (can be higher)
-    validation_split: float = 0.1            # Validation holdout
+    base_learning_rate: float = 0.001        # Deprecated shim: use base_absorption_rate
+    specialist_learning_rate: float = 0.002  # Deprecated shim: use specialist_absorption_rate
+    validation_split: float = 0.1            # Deprecated shim: use gate_check_split
     checkpoint_interval: int = 100           # Save every N steps
     enable_auto_expansion: bool = True       # Auto-expand dims when needed
     expansion_threshold: float = 0.95        # Expand if complexity > threshold
+
+    @property
+    def base_absorption_rate(self) -> float:
+        return float(self.base_learning_rate)
+
+    @base_absorption_rate.setter
+    def base_absorption_rate(self, value: float) -> None:
+        self.base_learning_rate = float(value)
+
+    @property
+    def specialist_absorption_rate(self) -> float:
+        return float(self.specialist_learning_rate)
+
+    @specialist_absorption_rate.setter
+    def specialist_absorption_rate(self, value: float) -> None:
+        self.specialist_learning_rate = float(value)
+
+    @property
+    def gate_check_split(self) -> float:
+        return float(self.validation_split)
+
+    @gate_check_split.setter
+    def gate_check_split(self, value: float) -> None:
+        self.validation_split = float(value)
 
 
 class AdaptiveSwarmTRM:
@@ -169,24 +193,54 @@ class AdaptiveSwarmTRM:
 
     def train_specialist_epoch(self, specialist_name: str,
                               train_samples: List[Dict],
-                              eval_fn: Callable[[Any, List], float],
+                              eval_fn: Callable[[Any, List], float] | List[Dict] | None,
                               use_self_update: bool = True) -> Dict[str, float]:
+        """Deprecated shim for consolidate_specialist_dream_cycle()."""
+        return self.consolidate_specialist_dream_cycle(
+            specialist_name,
+            consolidation_wave=train_samples,
+            gate_check_samples=eval_fn,
+            use_shadow_absorption=use_self_update,
+        )
+
+    def consolidate_specialist_dream_cycle(
+        self,
+        specialist_name: str,
+        consolidation_wave: List[Dict],
+        gate_check_samples: Callable[[Any, List], float] | List[Dict] | None,
+        use_shadow_absorption: bool = True,
+    ) -> Dict[str, float]:
         """
-        Train specialist for one epoch.
+        Consolidate specialist shadow weights for one dream cycle.
 
         Args:
             specialist_name: Which specialist to train
-            train_samples: Training samples
-            eval_fn: Evaluation function
-            use_self_update: If True, use shadow weights + validation
+            consolidation_wave: Trace samples to absorb in this cycle
+            gate_check_samples: Gate-check traces or callback
+            use_shadow_absorption: Deprecated compatibility flag
 
         Returns:
-            Training statistics
+            Consolidation statistics
         """
-        raise RuntimeError(
-            "Specialist epoch training still depends on placeholder host-side gradients. "
-            "Phase 1 removes that fake path; contrastive training remains the active sovereign path."
+        del use_shadow_absorption
+        validation_samples = gate_check_samples if isinstance(gate_check_samples, list) else []
+        positive_pairs, negative_pairs = self._build_contrastive_pairs_from_samples(
+            specialist_name,
+            list(consolidation_wave or []),
+            list(validation_samples or []),
         )
+        stats = self.train_specialist_contrastive(
+            specialist_name,
+            positive_pairs=positive_pairs,
+            negative_pairs=negative_pairs,
+        )
+        stats["validation_samples"] = len(validation_samples)
+        stats["update_accepted"] = bool(positive_pairs or negative_pairs)
+        stats["gate_check_samples"] = int(len(validation_samples))
+        stats["contrast_signal"] = float(stats.get("avg_loss", 0.0))
+        stats["absorption_rate"] = float(self.config.specialist_absorption_rate)
+        stats["consolidation_wave_size"] = int(len(consolidation_wave or []))
+        return stats
 
     def forward(self, input_data: Any,
                 specialist: Optional[str] = None,
@@ -308,7 +362,10 @@ class AdaptiveSwarmTRM:
                 'base_dims': self.config.base_dims,
                 'min_dims': self.config.min_dims,
                 'base_learning_rate': self.config.base_learning_rate,
-                'specialist_learning_rate': self.config.specialist_learning_rate
+                'specialist_learning_rate': self.config.specialist_learning_rate,
+                'base_absorption_rate': self.config.base_absorption_rate,
+                'specialist_absorption_rate': self.config.specialist_absorption_rate,
+                'gate_check_split': self.config.gate_check_split,
             },
             'training_state': {
                 'base_step': self.base_step,
@@ -484,6 +541,63 @@ class AdaptiveSwarmTRM:
             return values[:dims]
         return values + ([0.0] * (dims - len(values)))
 
+    def _build_contrastive_pairs_from_samples(
+        self,
+        specialist_name: str,
+        train_samples: List[Dict[str, Any]],
+        validation_samples: List[Dict[str, Any]],
+    ) -> Tuple[List[Tuple[List[float], List[float]]], List[Tuple[List[float], List[float]]]]:
+        specialist = self.base.specialists.get(specialist_name, {})
+        dims = int(specialist.get("dims", self.config.min_dims))
+        positive_pairs: List[Tuple[List[float], List[float]]] = []
+        negative_pairs: List[Tuple[List[float], List[float]]] = []
+
+        for sample in list(train_samples or []):
+            input_embedding = self._training_vector_from_sample(sample, "input_embedding", dims)
+            target_embedding = self._training_vector_from_sample(sample, "target_embedding", dims)
+            if input_embedding is None or target_embedding is None:
+                continue
+            is_correct = bool(sample.get("correct", True))
+            negative_embedding = self._training_vector_from_sample(sample, "negative_embedding", dims)
+            if is_correct:
+                positive_pairs.append((input_embedding, target_embedding))
+                if negative_embedding is not None:
+                    negative_pairs.append((input_embedding, negative_embedding))
+            else:
+                negative_pairs.append((input_embedding, target_embedding))
+                if negative_embedding is not None:
+                    positive_pairs.append((input_embedding, negative_embedding))
+
+        for sample in list(validation_samples or []):
+            input_embedding = self._training_vector_from_sample(sample, "input_embedding", dims)
+            target_embedding = self._training_vector_from_sample(sample, "target_embedding", dims)
+            if input_embedding is None or target_embedding is None:
+                continue
+            negative_pairs.append((input_embedding, target_embedding))
+
+        return positive_pairs, negative_pairs
+
+    @classmethod
+    def _training_vector_from_sample(
+        cls,
+        sample: Dict[str, Any],
+        key: str,
+        dims: int,
+    ) -> Optional[List[float]]:
+        values = sample.get(key)
+        if values is None:
+            if key == "input_embedding":
+                values = sample.get("input")
+            elif key == "target_embedding":
+                values = sample.get("target")
+        if values is None:
+            return None
+        if isinstance(values, HostTensorF32):
+            values = values.to_flat_list()
+        if not isinstance(values, (list, tuple)):
+            return None
+        return cls._pad_or_truncate(values, dims)
+
     @staticmethod
     def _apply_adapter_gradient(adapter: Any, gradient: Any, lr: float) -> None:
         if hasattr(adapter, 'apply_gradient'):
@@ -566,7 +680,11 @@ class SwarmTrainingProtocol:
             swarm.set_specialist_validation_samples(specialist_name, val_spec)
 
             # Train
-            spec_stats = swarm.train_specialist_epoch(specialist_name, train_spec, eval_fn)
+            spec_stats = swarm.consolidate_specialist_dream_cycle(
+                specialist_name,
+                consolidation_wave=train_spec,
+                gate_check_samples=eval_fn,
+            )
             specialist_stats[specialist_name] = spec_stats
 
         return {

@@ -133,7 +133,7 @@ def collect_shadow_traces(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Train TRM galaxy-navigation decoder from shadow traces.")
-    parser.add_argument("--storage-root", type=Path, default=Path("../Knowledge3D.local"))
+    parser.add_argument("--storage-root", type=Path, default=Path("/K3D/Knowledge3D.local"))
     parser.add_argument("--trace-output", type=Path, default=Path("build/trm_traces.jsonl"))
     parser.add_argument("--trace-navigation-mode", choices=("dormant", "live", "inherit"), default="dormant")
     parser.add_argument("--checkpoint-output", type=Path, default=None)

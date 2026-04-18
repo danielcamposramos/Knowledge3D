@@ -55,8 +55,8 @@ def main() -> int:
     parser.add_argument(
         "--storage-root",
         type=Path,
-        default=Path("../Knowledge3D.local"),
-        help="Runtime workspace root (default: ../Knowledge3D.local)",
+        default=Path("/K3D/Knowledge3D.local"),
+        help="Runtime workspace root (default: /K3D/Knowledge3D.local)",
     )
     parser.add_argument(
         "--backup-root",

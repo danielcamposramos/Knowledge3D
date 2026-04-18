@@ -134,13 +134,13 @@ def main():
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("../Knowledge3D.local/fundamental_augmentation/overnight_pdfs"),
+        default=Path("/K3D/Knowledge3D.local/fundamental_augmentation/overnight_pdfs"),
         help="Output directory for payloads",
     )
     parser.add_argument(
         "--cache-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/pdf_cache"),
+        default=Path("/K3D/Knowledge3D.local/pdf_cache"),
         help="Cache directory for page classifications",
     )
     parser.add_argument(
@@ -306,8 +306,8 @@ def main():
     print(f"1. Ingest to Galaxy:")
     print(f"   PYTHONPATH=. {args.python_bin} scripts/fundamental_ingest_payloads.py \\")
     print(f"     --payload {merged_output} \\")
-    print(f"     --storage-root ../Knowledge3D.local \\")
-    print(f"     --report ../Knowledge3D.local/results/overnight_pdf_ingestion_report.json")
+    print(f"     --storage-root /K3D/Knowledge3D.local \\")
+    print(f"     --report /K3D/Knowledge3D.local/results/overnight_pdf_ingestion_report.json")
 
 
 if __name__ == "__main__":

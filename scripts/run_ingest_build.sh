@@ -2,7 +2,7 @@
 # Multimodal 50k orchestrator (COCO, Clotho, VATEX) with logs and optional auto-build.
 #
 # Usage:
-#   RAW=/custom/raw BASE=../Knowledge3D.local/datasets LOGS=/custom/logs \
+#   RAW=/custom/raw BASE=/K3D/Knowledge3D.local/datasets LOGS=/custom/logs \
 #     scripts/run_ingest_build.sh [--autobuild-coco]
 #
 # Notes:
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 RAW=${RAW:-/home/daniel/K3D_llama_cpp/datasets}
-BASE=${BASE:-../Knowledge3D.local/datasets}
+BASE=${BASE:-/K3D/Knowledge3D.local/datasets}
 LOGS=${LOGS:-/home/daniel/K3D_llama_cpp/logs}
 AUTOBUILD=0
 if [[ "${1:-}" == "--autobuild-coco" ]]; then AUTOBUILD=1; fi

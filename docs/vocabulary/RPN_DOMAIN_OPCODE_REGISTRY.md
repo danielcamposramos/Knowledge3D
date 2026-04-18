@@ -177,6 +177,9 @@ The principle from Section 1 ("programs before opcodes") is formalized here as a
 - Show that a dedicated opcode reduces complexity materially.
 
 ### Stage 3: PTX Kernel Admission
+
+**Pre-reservation prerequisite (Ruling 5, 2026-04-18)**: before a Stage 3 admission writes an opcode number into the registry, the lane MUST verify its reservation exists in §11 (Reserved Future Blocks). If no reservation covers the target number, the admission is blocked until the Reservation Table is amended. See `TEMP/CLAUDE_CODEX_OPCODE_RANGE_RESERVATION_DOCTRINE_04.18.2026.md` for the full workflow.
+
 - Add kernel only after ALL of the following are satisfied:
 
 | Criterion | Requirement |
@@ -291,6 +294,57 @@ case-based-reasoning primitives below.
 | `0x101` | `CASE_REBIND` | CBR | `[case_handle, rebind_spec] -> [bound_case]` | Clone/rebind a stored case program or solution handle to current symbols/facts. | Bound case preserves source support and rewrites value/context fields only. |
 | `0x102` | `CASE_REVISE` | CBR/Casuistry | `[bound_case, revise_constraint] -> [revised_case]` | Run bounded revise logic and ethical gating; returns `0` on failure. | Ethical polarity is preserved and may be vetoed by stage-3 style gate semantics. |
 | `0x103` | `CASE_RETAIN_HINT` | CBR | `[revised_case] -> [retain_hint]` | Emit a bounded shadow-copy retention hint for sleep-time materialisation. | Hint carries confidence/polarity but does not write permanent state in hot path. |
+| `0x104` | `LORA_LOAD_BASE` | Procedural Adapter | `[] -> [base_weights_ref]` | Push the referenced base-weight star for the active specialist adapter. | Residency/support of the base star determines confidence. |
+| `0x105` | `LORA_LOW_RANK_ADD` | Procedural Adapter | `[left_factor, right_factor] -> [delta]` | Materialize a low-rank adapter delta from factor pair(s). | Delta inherits factor confidence and sign. |
+| `0x106` | `LORA_SCALE` | Procedural Adapter | `[delta, alpha] -> [scaled_delta]` | Scale the adapter delta by the absorption factor. | Magnitude changes, polarity preserved. |
+| `0x107` | `LORA_TERNARY_MASK` | Procedural Adapter | `[delta, mask] -> [masked_delta]` | Apply {-1, 0, +1} gating per output row/dimension. | Mask trits map directly to polarity lanes. |
+| `0x108` | `LORA_SHADOW_ABSORB` | Procedural Adapter | `[shadow_delta, contrast_signal] -> [updated_shadow_delta]` | Absorb sleep-time contrast signal into the shadow adapter program. | Signal ternary-packs promote/hold/reject pressure. |
+
+### 7.2 Procedural Adapter Note
+
+The `0x104–0x108` block keeps the **programs before opcodes** doctrine intact:
+specialist deltas are still small executable programs over shared base weights,
+not an external tensor-training stack. These opcodes make the adapter program
+first-class, auditable, and sleep-time-updatable inside the sovereign RPN/TRM
+substrate.
+
+---
+
+### 7.3 WINE I/O Contract Block (0x180–0x18F)
+
+**Authority**: `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md` §4.2–4.3
+and `docs/vocabulary/CANONICAL_REGISTRY_SPECIFICATION.md` §8.5.
+
+These opcodes implement the Translation Surface: the device-side path from
+external bytes (DOM, ARC3, stdin, audio, image) through a Galaxy-resident
+`WineContractStar` and back. All execution is on-device. Python on the hot path
+never calls these ops directly — it only pushes bytes into the input ring.
+
+Admission class: **Class A** (immediately executable via existing `GALAXY_SCAN`
+and RPN dispatch infrastructure). `wine_contract_scan.cu` is the companion kernel.
+
+| Opcode | Mnemonic | Stack diagram | Semantics | Ternary packing |
+| --- | --- | --- | --- | --- |
+| `0x180` | `WINE_INGRESS_DECODE` | `[input_bytes_ptr, length, contract_ptr] -> [galaxy_form_ptr]` | Execute the `ingress_rpn_addr` program stored in the active `WineContractStar`. Reads raw I/O bytes, produces a Galaxy form pointer consumed by downstream phases. | `galaxy_form_ptr` confidence reflects parse completeness; polarity `+1` clean, `0` partial, `-1` decode error. |
+| `0x181` | `WINE_EGRESS_ENCODE` | `[galaxy_form_ptr, contract_ptr] -> [bytes_ptr, length]` | Execute the `egress_rpn_addr` program stored in the active `WineContractStar`. Serialises a Galaxy form to output bytes for the Tablet output ring. | `length` confidence reflects encode completeness; polarity mirrors `WINE_INGRESS_DECODE` convention. |
+| `0x182` | `WINE_RESOLVE` | `[paradigm_type] -> [contract_ptr]` | Scan the `WineContractStar` table (via `wine_contract_scan.cu`) for the entry whose `paradigm_type` field matches the input. Returns the contract VRAM pointer, or `0` if no contract is registered for that paradigm. On miss, the kernel writes `tick_status = CONTRACT_MISS`; sleep-time handles the craft ticket. | `contract_ptr` polarity: `+1` resolved, `0` miss (no matching paradigm), `-1` ambiguous (two entries share paradigm — loader conflict, see §8.5.5 invariant 2). |
+| `0x183–0x18F` | *(reserved)* | — | Reserved for future contract ops: audio frame windowing, image tile ingress, video keyframe sync, multi-modal interleave. Opcodes are placeholders; no PTX kernel is admitted until the Stage 0–3 promotion pipeline is complete for each. | — |
+
+### 7.4 Physics-to-Visual Bridge (0x190)
+
+**Authority**: `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md` §12
+(Nemotron warp-shuffle patterns, post-chain MVCIC note).
+
+This opcode closes the loop between the PHYSICS phase output and the Tablet
+visual surface, enabling live physics state rendering without any Python
+involvement.
+
+| Opcode | Mnemonic | Stack diagram | Semantics | Ternary packing |
+| --- | --- | --- | --- | --- |
+| `0x190` | `PHYSICS_EMIT_VISUAL` | `[phys_state_ptr] -> [draw_op_count]` | Pops a physics state struct pointer (`{float3 position, float3 velocity, float3 acceleration, uint32_t entity_id}`). Emits a sequence of Drawing Galaxy ops (`CIRCLE` for position, `LINE` for velocity vector, optional `LINE` for acceleration) targeting the Tablet surface buffer. Draw ops are pushed directly to the RPN stack for consumption by the act_phase renderer. | `draw_op_count` confidence reflects how many ops were emitted; polarity `+1` full, `0` partial (clipped by LOD), `-1` suppressed (entity culled by frustum). |
+
+`0x191–0x19F` are reserved for future physics visual ops (rigid-body wireframe,
+field-line render, heat-map overlay). Same admission gating applies.
 
 ---
 
@@ -326,4 +380,64 @@ All candidates MUST pass the Stage 0-3 pipeline documented above.
 - `knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py`  
 - `knowledge3d/cranium/ptx_runtime/rpn_math_core.py`  
 - `docs/vocabulary/MATH_CORE_SPECIFICATION.md`  
+
+---
+
+## 11. Reserved Future Blocks (Range Reservation Table)
+
+**Authority**: `TEMP/CLAUDE_CODEX_OPCODE_RANGE_RESERVATION_DOCTRINE_04.18.2026.md` (Ruling 5, 2026-04-18).
+**Status**: Normative — this table is the single source of truth for opcode range reservations.
+
+Per the Opcode Range Reservation Doctrine, any parallel-lane task that will mint new opcodes MUST pre-reserve its block in this table before dispatching spec or implementation work. Opcodes assigned outside a reserved block fail the Gate R acceptance check. A reservation written only in a design doc is not a reservation.
+
+**Cross-reference**: §6.3 (Stage 3: PTX Kernel Admission) — the pre-reservation prerequisite blocks admission until §11 is amended.
+
+### 11.1 Schema
+
+| Field | Type | Meaning |
+|---|---|---|
+| `block_start` | hex u16 | Lowest opcode number in the block (inclusive) |
+| `block_end` | hex u16 | Highest opcode number in the block (inclusive) |
+| `owner_spec` | path | Relative path to the spec file governing opcode assignments inside this block |
+| `date_reserved` | YYYY-MM-DD | Date the reservation was appended |
+| `status` | enum | `active` (lane working) / `released` (lane done, opcodes permanent) / `superseded` (spec withdrawn, range free) |
+
+### 11.2 Initial Reservations (reconstructed 2026-04-18)
+
+| block_start | block_end | owner_spec | date_reserved | status |
+|---|---|---|---|---|
+| `0x100` | `0x10F` | `docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md §7.1` | 2026-04-13 | released |
+| `0x170` | `0x17F` | `TEMP/CLAUDE_CODEX_TRANSFER_YARD_AND_EMBEDDING_SOVEREIGNTY_04.18.2026.md` | 2026-04-18 | active |
+| `0x178` | `0x17A` | `TEMP/CLAUDE_CODEX_INSTANTIABLE_CORE_ISOLATION_04.18.2026.md` (queue ops — sub-reservation within 0x170–0x17F) | 2026-04-18 | active |
+| `0x180` | `0x18F` | `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §4.2–4.3` (WINE I/O) | 2026-04-18 | active |
+| `0x190` | `0x19F` | `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §12` (physics-to-visual bridge) | 2026-04-18 | active |
+| `0x1A0` | `0x1A6` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (math/utility) | 2026-04-18 | active |
+| `0x1AA` | `0x1AF` | **BitNet b1.58 Attention** — 0x1AA (TERNARY_MATMUL_ADDSUB), 0x1AB (TERNARY_PACK5), 0x1AC (TERNARY_UNPACK5), 0x1AD (VEC_NORM_L2_INT8), 0x1AE (ATTENTION_MARGIN_SHIFT), 0x1AF (ATTENTION_MARGIN_SCALED). Corrected 2026-04-18: 0x1AD matches production kernel (`knowledge3d/cranium/kernels/bitnet_attention.cu`). | 2026-04-18 | active |
+| `0x1B0` | `0x1B0` | Reserved for future attention expansion (was draft assignment for VEC_NORM_L2_INT8; superseded by 0x1AD actual production). | 2026-04-18 | active |
+| `0x1B1` | `0x1B5` | **Attention Future Expansion** — halting gate variants, sparse-K attention, per `TEMP/supersession_patches_04.18.2026_v4.md §4` (Ruling 4, turn-6) | 2026-04-18 | active |
+| `0x1B6` | `0x1B9` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (TENSOR_INTERPOLATE, KMEANS_PLUS_INIT, CTYPES_VIEW_AS_PTX, CUDA_MALLOC_ASYNC — minted; not renumberable per expand-not-replace) | 2026-04-18 | active |
+| `0x1BA` | `0x1BF` | future normalization/attention headroom (narrowed from 0x1B1-0x1BF by v4 sub-reservation) | 2026-04-18 | active |
+| `0x1C0` | `0x1C5` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (IMAGE/SPARSE — relocated from 0x1AA–0x1AF per v2 supersession) | 2026-04-18 | active |
+| `0x1C6` | `0x1CF` | future physics expansion headroom (tied to §7.4) | 2026-04-18 | active |
+
+**Note on 0xA0–0xF1**: the reasoning-paradigm block (§7) predates this doctrine; its reservation authority is `TEMP/CLAUDE_REASONING_PARADIGMS_AND_N_SWARM_SPEC_2026-04-13.md §4` and is treated as `released`.
+
+### 11.3 Maintenance Rules
+
+1. **Append-only.** Never delete a row.
+2. **Status transitions are one-way**: `active → released → superseded`. A `released` block's opcodes are permanent (expand-not-replace). A `superseded` range may be re-reserved by a new owner in a new row, but previously-assigned opcodes inside it remain permanent.
+3. **No overlapping `active` rows.** Gate R rejects them.
+4. **Size-1 reservations are valid.** Emergency single-opcode additions still require a row in the same commit as the opcode assignment.
+5. **The registry wins when specs disagree.** Patch the specs; never patch the registry to match a spec.
+
+### 11.4 Attention-Family Normative Notes (Turn-6 Rulings, 2026-04-18)
+
+Per `TEMP/supersession_patches_04.18.2026_v4.md`:
+
+- **0x1A9 `CONTRASTIVE_RANK_TOPK`** (Ruling 3 v4): accepts a 1-bit `margin_path` operand. Default `0` = Path A (SHIFT, 1-cycle SHR, no metadata load). Opt-in `1` = Path B (SCALED, smem-prefetch-mandatory, silent d-mismatch rescale). Lane-switchable mid-program.
+- **0x1A9 `CONTRASTIVE_RANK_TOPK`** (Ruling 2 v4): when invoked in Path B mode and `d_active != star.d_tier`, kernel applies `margin × d_active / d_tier` inline. No warning, no log, no exit.
+- **0x1AF `ATTENTION_MARGIN_SCALED`** (Ruling 1 v4): every kernel that invokes 0x1AF MUST cooperatively prefetch `confidence_margin` into shared memory before the scoring loop and issue `__syncthreads()`. This is part of the opcode's contract, not an optimization. Gate R-prefetch enforces.
+- **0x1AF `ATTENTION_MARGIN_SCALED`** (Ruling 2 v4): handles d-mismatch via silent in-kernel rescale (1 IMUL + 1 SHR; tier ratios are powers of 2). No log output.
+- **0x1B1-0x1B5 Sub-reservation** (Ruling 4 v4): "Attention Future Expansion — halting gate variants / sparse-K attention". Narrowed from pre-v4 generic "normalization/attention headroom". No opcodes minted yet; lane may pre-reserve per doctrine.
+
 - `docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md`  

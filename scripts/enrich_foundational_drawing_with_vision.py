@@ -443,15 +443,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Vision-enhanced drawing enrichment.")
     parser.add_argument(
         "--image-catalog",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/image_catalog.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/image_catalog.jsonl",
     )
     parser.add_argument(
         "--output",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/vision_enrichment.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/vision_enrichment.jsonl",
     )
     parser.add_argument(
         "--summary",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/vision_enrichment_summary.json",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/vision_enrichment_summary.json",
     )
     parser.add_argument("--vision-model", default="qwen3-vl:latest")
     parser.add_argument("--ensemble-model", default="", help="Optional second vision model")

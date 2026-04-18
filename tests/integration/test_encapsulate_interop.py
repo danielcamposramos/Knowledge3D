@@ -9,9 +9,7 @@ from knowledge3d.ingestion.encapsulate_exporter import EncapsulateExporter
 from knowledge3d.ingestion.encapsulate_importer import EncapsulateImporter
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 
-_ENCAPSULATE_REPO = Path(
-    "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/encapsulate"
-)
+_ENCAPSULATE_REPO = Path(__file__).resolve().parents[3] / "encapsulate"
 
 
 def _write_json(path: Path, payload: dict) -> Path:

@@ -76,7 +76,7 @@ def main() -> None:
     parser.add_argument("--split", default="test", help="HF split name")
     parser.add_argument(
         "--output-dir",
-        default="../Knowledge3D.local/datasets/last_humanity_exam",
+        default="/K3D/Knowledge3D.local/datasets/last_humanity_exam",
         help="Directory to write questions.json for K3D benchmark loader",
     )
     parser.add_argument("--limit", type=int, default=0, help="Optional max rows to convert (0 = all)")

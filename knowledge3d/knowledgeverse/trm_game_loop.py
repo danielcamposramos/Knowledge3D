@@ -5,6 +5,9 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 import json
+import os
+from pathlib import Path
+import threading
 import time
 from typing import Any
 
@@ -18,6 +21,7 @@ class TRMQueuedInput:
     length: int
     payload: dict[str, Any]
     created_at: float
+    max_wall_ms: int | None
 
 
 @dataclass(frozen=True)
@@ -46,15 +50,19 @@ class TRMGameLoop:
         self.bridge = bridge
         self.input_ring = input_ring or RingBuffer(size_mb=input_size_mb)
         self.output_ring = output_ring or RingBuffer(size_mb=output_size_mb)
+        self._lock = threading.RLock()
         self._pending_inputs: deque[TRMQueuedInput] = deque()
         self._completed_outputs: deque[TRMQueuedOutput] = deque()
         self._inputs_by_request: dict[str, TRMQueuedInput] = {}
         self._outputs_by_request: dict[str, TRMQueuedOutput] = {}
+        self._inflight_requests: set[str] = set()
+        self._abandoned_requests: set[str] = set()
         self._sequence = 0
         self._tick = 0
         self._active = False
         self._last_tick_result: dict[str, Any] = {}
         self._last_action_buffers: list[list[int]] = []
+        self._trace_handle = self._open_trace_handle()
 
     def start(self) -> None:
         self._active = True
@@ -79,9 +87,11 @@ class TRMGameLoop:
         specialist: str,
         domain_hint: str | None,
         use_enriched: bool,
+        max_wall_ms: int | None = None,
     ) -> str:
-        self._sequence += 1
-        request_id = f"trmio_{self._sequence:08d}"
+        with self._lock:
+            self._sequence += 1
+            request_id = f"trmio_{self._sequence:08d}"
         payload = {
             "request_id": request_id,
             "task": dict(task or {}),
@@ -90,6 +100,7 @@ class TRMGameLoop:
             "domain_hint": str(domain_hint).strip() if domain_hint is not None else None,
             "use_enriched": bool(use_enriched),
             "queued_at": time.time(),
+            "max_wall_ms": int(max_wall_ms) if max_wall_ms is not None else None,
         }
         raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
         offset = self.input_ring.write(raw)
@@ -99,9 +110,18 @@ class TRMGameLoop:
             length=int(len(raw)),
             payload=payload,
             created_at=float(payload["queued_at"]),
+            max_wall_ms=int(max_wall_ms) if max_wall_ms is not None else None,
         )
-        self._pending_inputs.append(record)
-        self._inputs_by_request[request_id] = record
+        with self._lock:
+            self._pending_inputs.append(record)
+            self._inputs_by_request[request_id] = record
+        self._trace_event(
+            "enqueue",
+            request_id=request_id,
+            task_id=payload.get("task", {}).get("task_id"),
+            elapsed_ms=0.0,
+            max_wall_ms=record.max_wall_ms,
+        )
         return request_id
 
     def tick(self, *, max_tasks: int = 1) -> int:
@@ -109,8 +129,12 @@ class TRMGameLoop:
             return 0
         bridge = self._resolve_bridge()
         processed = 0
-        while self._pending_inputs and processed < max(1, int(max_tasks)):
-            record = self._pending_inputs.popleft()
+        while processed < max(1, int(max_tasks)):
+            with self._lock:
+                if not self._pending_inputs:
+                    break
+                record = self._pending_inputs.popleft()
+                self._inflight_requests.add(record.request_id)
             result = self._run_query_tick(bridge, record)
             result.setdefault(
                 "trm_io",
@@ -140,33 +164,68 @@ class TRMGameLoop:
                 payload=output_payload,
                 emitted_at=float(output_payload["emitted_at"]),
             )
-            self._completed_outputs.append(output)
-            self._outputs_by_request[record.request_id] = output
+            with self._lock:
+                self._inflight_requests.discard(record.request_id)
+                if record.request_id in self._abandoned_requests:
+                    self._abandoned_requests.discard(record.request_id)
+                    self._inputs_by_request.pop(record.request_id, None)
+                    self._tick += 1
+                    processed += 1
+                    continue
+                self._completed_outputs.append(output)
+                self._outputs_by_request[record.request_id] = output
             self._tick += 1
             processed += 1
+            self._trace_event(
+                "output",
+                request_id=record.request_id,
+                task_id=record.payload.get("task", {}).get("task_id"),
+                tick=self._tick,
+                elapsed_ms=max(0.0, (output.emitted_at - record.created_at) * 1000.0),
+            )
         if processed <= 0:
             self._run_background_tick(bridge)
-            self._tick += 1
+            with self._lock:
+                self._tick += 1
             processed = 1
         return processed
 
-    def wait_output(self, request_id: str, *, max_ticks: int = 1) -> dict[str, Any] | None:
-        if request_id not in self._outputs_by_request:
-            self.tick(max_tasks=max(1, int(max_ticks)))
-        output = self._outputs_by_request.get(str(request_id))
-        if output is None:
-            return None
-        return dict(output.payload.get("result") or {})
+    def wait_output(
+        self,
+        request_id: str,
+        *,
+        max_ticks: int = 1,
+        max_wall_ms: int | None = None,
+    ) -> dict[str, Any] | None:
+        request_key = str(request_id)
+        inline_ticks_remaining = max(0, int(max_ticks))
+        while True:
+            with self._lock:
+                output = self._outputs_by_request.get(request_key)
+            if output is not None:
+                return dict(output.payload.get("result") or {})
+            timeout_payload = self._maybe_timeout_request(request_key, max_wall_ms=max_wall_ms)
+            if timeout_payload is not None:
+                return timeout_payload
+            if self._should_inline_wait_tick() and inline_ticks_remaining > 0:
+                inline_ticks_remaining -= 1
+                self.tick(max_tasks=1)
+                continue
+            if inline_ticks_remaining <= 0 and not self._has_live_request(request_key):
+                return None
+            time.sleep(0.005)
 
     def read_input_packet(self, request_id: str) -> dict[str, Any] | None:
-        record = self._inputs_by_request.get(str(request_id))
+        with self._lock:
+            record = self._inputs_by_request.get(str(request_id))
         if record is None:
             return None
         raw = self.input_ring.read_at(record.offset, record.length)
         return json.loads(raw.decode("utf-8"))
 
     def read_output_packet(self, request_id: str) -> dict[str, Any] | None:
-        output = self._outputs_by_request.get(str(request_id))
+        with self._lock:
+            output = self._outputs_by_request.get(str(request_id))
         if output is None:
             return None
         raw = self.output_ring.read_at(output.offset, output.length)
@@ -174,18 +233,30 @@ class TRMGameLoop:
 
     def pump_until_idle(self, *, max_batch: int = 8) -> int:
         processed = 0
-        while self._pending_inputs:
+        while True:
+            with self._lock:
+                has_pending = bool(self._pending_inputs)
+            if not has_pending:
+                break
             processed += self.tick(max_tasks=max(1, int(max_batch)))
         return processed
 
     def snapshot(self) -> dict[str, Any]:
         input_window = self.input_ring.readable_window()
         output_window = self.output_ring.readable_window()
+        with self._lock:
+            pending_inputs = int(len(self._pending_inputs))
+            completed_outputs = int(len(self._completed_outputs))
+            inflight_requests = int(len(self._inflight_requests))
+            abandoned_requests = int(len(self._abandoned_requests))
+            tick = int(self._tick)
         return {
             "active": bool(self._active),
-            "tick": int(self._tick),
-            "pending_inputs": int(len(self._pending_inputs)),
-            "completed_outputs": int(len(self._completed_outputs)),
+            "tick": tick,
+            "pending_inputs": pending_inputs,
+            "completed_outputs": completed_outputs,
+            "inflight_requests": inflight_requests,
+            "abandoned_requests": abandoned_requests,
             "input_size": int(self.input_ring.size()),
             "output_size": int(self.output_ring.size()),
             "input_window": self._window_payload(input_window),
@@ -244,34 +315,145 @@ class TRMGameLoop:
     def _run_query_tick(self, bridge: Any, record: TRMQueuedInput) -> dict[str, Any]:
         tick_result = dict(bridge.run_query_tick(delta_time=0.02))
         action_buffers = self._action_buffer_payload(bridge)
-        payload = dict(record.payload)
-        dispatch = self.knowledgeverse._dispatch_sovereign_task(
-            task=dict(payload.get("task") or {}),
-            route=dict(payload.get("route") or {}),
-            specialist=str(payload.get("specialist") or "auto"),
-            domain_hint=payload.get("domain_hint"),
-            use_enriched=bool(payload.get("use_enriched", True)),
-        )
-        dispatch_result = dict(dispatch or {})
-        route_payload = dict(payload.get("route") or {})
-        if route_payload and not isinstance(dispatch_result.get("route"), dict):
-            dispatch_result["route"] = route_payload
-        task_result = dispatch_result.get("task_result")
-        if not isinstance(task_result, dict):
-            task_result = {
-                key: value
-                for key, value in dispatch_result.items()
-                if key not in {"task_result", "trm_tick", "action_buffers", "trm_io", "mode"}
-            }
-        else:
-            task_result = dict(task_result)
-        if route_payload and not isinstance(task_result.get("route"), dict):
-            task_result["route"] = route_payload
-        dispatch_result["task_result"] = task_result
         self._last_tick_result = dict(tick_result)
         self._last_action_buffers = [list(row) for row in action_buffers]
-        dispatch_result.setdefault("status", "ok")
-        dispatch_result["mode"] = "query_tick"
-        dispatch_result["trm_tick"] = tick_result
-        dispatch_result["action_buffers"] = action_buffers
-        return dispatch_result
+        return {
+            "status": "ok",
+            "mode": "query_tick",
+            "trm_tick": tick_result,
+            "action_buffers": action_buffers,
+        }
+
+    def _has_live_request(self, request_id: str) -> bool:
+        with self._lock:
+            return (
+                request_id in self._inputs_by_request
+                or request_id in self._inflight_requests
+                or request_id in self._outputs_by_request
+            )
+
+    def _should_inline_wait_tick(self) -> bool:
+        return not bool(getattr(self.knowledgeverse, "_external_tick_driver_active", False))
+
+    def _maybe_timeout_request(self, request_id: str, *, max_wall_ms: int | None) -> dict[str, Any] | None:
+        with self._lock:
+            output = self._outputs_by_request.get(request_id)
+            if output is not None:
+                return dict(output.payload.get("result") or {})
+            record = self._inputs_by_request.get(request_id)
+            inflight = request_id in self._inflight_requests
+            tick = int(self._tick)
+        if record is None:
+            return None
+        effective_max_wall_ms = record.max_wall_ms if max_wall_ms is None else int(max_wall_ms)
+        if effective_max_wall_ms is None or effective_max_wall_ms <= 0:
+            return None
+        elapsed_ms = max(0.0, (time.time() - record.created_at) * 1000.0)
+        if elapsed_ms < float(effective_max_wall_ms):
+            return None
+        with self._lock:
+            self._inputs_by_request.pop(request_id, None)
+            if inflight:
+                self._abandoned_requests.add(request_id)
+            else:
+                self._pending_inputs = deque(
+                    item for item in self._pending_inputs if item.request_id != request_id
+                )
+        payload = self._wall_timeout_payload(record, elapsed_ms=elapsed_ms, tick=tick)
+        self._trace_event(
+            "wall_timeout",
+            request_id=request_id,
+            task_id=record.payload.get("task", {}).get("task_id"),
+            tick=tick,
+            elapsed_ms=elapsed_ms,
+            max_wall_ms=effective_max_wall_ms,
+        )
+        return payload
+
+    def _wall_timeout_payload(
+        self,
+        record: TRMQueuedInput,
+        *,
+        elapsed_ms: float,
+        tick: int,
+    ) -> dict[str, Any]:
+        task_payload = dict(record.payload.get("task") or {})
+        task_id = task_payload.get("task_id")
+        meaning_class = str(task_payload.get("meaning_class") or "FACTUAL_RECALL").strip().upper() or "FACTUAL_RECALL"
+        low_confidence = bool(task_payload.get("low_confidence_routing", False))
+        timeout_result = {
+            "status": "error",
+            "failure_code": "wall_timeout",
+            "elapsed_ms": float(elapsed_ms),
+            "task_id": task_id,
+            "request_id": record.request_id,
+            "meaning_class": meaning_class,
+            "answer": "",
+            "predicted_answer": "",
+            "response": "",
+            "result": "",
+        }
+        if low_confidence:
+            timeout_result["low_confidence_routing"] = True
+        payload = {
+            "status": "error",
+            "failure_code": "wall_timeout",
+            "elapsed_ms": float(elapsed_ms),
+            "task_id": task_id,
+            "request_id": record.request_id,
+            "mode": "query_tick",
+            "gpu_execution": True,
+            "meaning_class": meaning_class,
+            "answer": "",
+            "predicted_answer": "",
+            "response": "",
+            "result": "",
+            "trm_io": {
+                "request_id": record.request_id,
+                "tick": int(tick),
+                "input_offset": int(record.offset),
+                "input_length": int(record.length),
+            },
+            "trm_tick": {"tick": int(tick)},
+            "action_buffers": [],
+            "task_result": timeout_result,
+        }
+        if low_confidence:
+            payload["low_confidence_routing"] = True
+        return payload
+
+    def _open_trace_handle(self):
+        trace_path = str(os.environ.get("K3D_RING_TRACE_PATH", "")).strip()
+        if not trace_path:
+            return None
+        path = Path(trace_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path.open("a", encoding="utf-8", buffering=1)
+
+    def _trace_event(
+        self,
+        event: str,
+        *,
+        request_id: str,
+        task_id: Any = None,
+        tick: int | None = None,
+        elapsed_ms: float | None = None,
+        max_wall_ms: int | None = None,
+    ) -> None:
+        if self._trace_handle is None:
+            return
+        payload: dict[str, Any] = {
+            "ts": time.time(),
+            "event": str(event),
+            "request_id": str(request_id),
+        }
+        if task_id not in (None, ""):
+            payload["task_id"] = str(task_id)
+        if tick is not None:
+            payload["tick"] = int(tick)
+        if elapsed_ms is not None:
+            payload["elapsed_ms"] = float(elapsed_ms)
+        if max_wall_ms is not None:
+            payload["max_wall_ms"] = int(max_wall_ms)
+        self._trace_handle.write(json.dumps(payload, ensure_ascii=True, separators=(",", ":")) + "\n")
+        self._trace_handle.flush()

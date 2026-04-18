@@ -94,7 +94,7 @@ def arc2_game_envelope(
 ) -> TabletEnvelope:
     return TabletIngest.game2d_task(
         task_id=task_id,
-        query="2d game transformation",
+        query="Transform this grid using the examples.",
         input_grid=input_grid,
         goal_grid=expected_output,
         training_examples=training_examples,
@@ -111,7 +111,7 @@ def arc3_game_envelope(
     available_actions: Sequence[int] | None = None,
     action_options: Sequence[str] | None = None,
     training_examples: Sequence[dict[str, Any]] | None = None,
-    query: str = "arc3 interactive game frame",
+    query: str = "Continue this game frame using the available actions.",
     query_embedding: Sequence[float] | None = None,
     goal_embedding: Sequence[float] | None = None,
     step_count: int = 0,

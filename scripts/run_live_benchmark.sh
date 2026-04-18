@@ -10,7 +10,7 @@ PATH="$HOME/miniconda3/bin:$PATH"
 
 echo "[1/8] Killing prior K3D live_server (safe)…"
 # Only kill our own previously launched servers via PID files; do not touch other apps (e.g., ComfyUI on 8787)
-for pf in "$ROOT_DIR"/../Knowledge3D.local/datasets/live_server_*.pid; do
+for pf in "$ROOT_DIR"//K3D/Knowledge3D.local/datasets/live_server_*.pid; do
   [[ -f "$pf" ]] || continue
   if [[ -r "$pf" ]]; then
     PID=$(cat "$pf" || true)
@@ -30,7 +30,7 @@ PORT=""; for p in $PORTS; do
   if ! ss -ltnp | rg "$p" >/dev/null; then
     export K3D_LIVE_PORT=$p
     nohup "$ROOT_DIR/scripts/k3d_env.sh" run python -m knowledge3d.bridge.live_server \
-      > "$ROOT_DIR/../Knowledge3D.local/datasets/live_server_${p}.log" 2>&1 & echo $! > "$ROOT_DIR/../Knowledge3D.local/datasets/live_server_${p}.pid"
+      > "$ROOT_DIR//K3D/Knowledge3D.local/datasets/live_server_${p}.log" 2>&1 & echo $! > "$ROOT_DIR//K3D/Knowledge3D.local/datasets/live_server_${p}.pid"
     # Wait for TCP LISTEN, then probe WS healthz to confirm readiness
     for i in 1 2 3 4 5 6 7 8 9 10; do
       sleep 1
@@ -96,7 +96,7 @@ echo "[5/8] Publishing live session logs to repo..."
 echo "[6/8] Building RLWHF dataset..."
 if [[ "$LIVE_OK" == "1" ]]; then
   "$ROOT_DIR/scripts/k3d_env.sh" run python -m knowledge3d.tools.build_rlwhf_dataset \
-    --logs "$ROOT_DIR/../Knowledge3D.local/logs" \
+    --logs "$ROOT_DIR//K3D/Knowledge3D.local/logs" \
     --out "$ROOT_DIR/docs/reports/training/rlwhf_dataset.jsonl" \
     --summary "$ROOT_DIR/docs/reports/status/rlwhf_summary.json"
 else
@@ -112,7 +112,7 @@ echo "[7/8] Training Answer Ranker from RLWHF dataset..."
 if [[ -s "$ROOT_DIR/docs/reports/training/rlwhf_dataset.jsonl" ]]; then
   "$ROOT_DIR/scripts/k3d_env.sh" run python -m knowledge3d.models.answer_ranker \
     --dataset "$ROOT_DIR/docs/reports/training/rlwhf_dataset.jsonl" \
-    --out "$ROOT_DIR/../Knowledge3D.local/models/answer_ranker.pkl"
+    --out "$ROOT_DIR//K3D/Knowledge3D.local/models/answer_ranker.pkl"
 fi
 
 echo "[8/8] Done. Summaries:"

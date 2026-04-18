@@ -6,6 +6,8 @@
 
 set -e
 
+REPO_ROOT="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -45,7 +47,7 @@ if [ "$1" == "--inside-tmux" ]; then
     echo ""
 
     # Set working directory
-    cd "/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
+    cd "${REPO_ROOT}"
     export PYTHONPATH=.
 
     # Enable telemetry for this test

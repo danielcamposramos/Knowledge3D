@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
 PATH="$HOME/miniconda3/bin:$PATH"
 
-OUT_DIR="$ROOT_DIR/../Knowledge3D.local/models/rlwhf_policy"
+OUT_DIR="$ROOT_DIR//K3D/Knowledge3D.local/models/rlwhf_policy"
 DATASET="$ROOT_DIR/docs/reports/training/rlwhf_dataset.jsonl"
 
 echo "[RLWHF] Ensuring dataset at $DATASET..."

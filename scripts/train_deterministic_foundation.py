@@ -124,8 +124,8 @@ def train_deterministic_foundation(
     iterations: int = 10,
     tasks_per_category: int = 100,
     seed: int = 2026,
-    storage_root: str | Path = "../Knowledge3D.local",
-    output_dir: str | Path = "../Knowledge3D.local/results/foundation_training",
+    storage_root: str | Path = "/K3D/Knowledge3D.local",
+    output_dir: str | Path = "/K3D/Knowledge3D.local/results/foundation_training",
     enable_transfer_gates: bool = False,
     transfer_probe_arc_tasks: int = 10,
     enable_ternary_quality: bool = False,
@@ -347,8 +347,8 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--tasks-per-category", type=int, default=100)
     parser.add_argument("--seed", type=int, default=2026)
-    parser.add_argument("--storage-root", default="../Knowledge3D.local")
-    parser.add_argument("--output-dir", default="../Knowledge3D.local/results/foundation_training")
+    parser.add_argument("--storage-root", default="/K3D/Knowledge3D.local")
+    parser.add_argument("--output-dir", default="/K3D/Knowledge3D.local/results/foundation_training")
     parser.add_argument("--enable-transfer-gates", action="store_true")
     parser.add_argument("--transfer-probe-arc-tasks", type=int, default=10)
     parser.add_argument("--enable-ternary-quality", action="store_true")
