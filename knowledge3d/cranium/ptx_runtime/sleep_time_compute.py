@@ -418,41 +418,13 @@ class SleepTimeCompute:
         Returns:
             List of clusters, each cluster is list of star indices
         """
-        try:
-            from knowledge3d.cranium.clustering_rpn import cluster_by_similarity_rpn
-            import numpy as np
-
-            # Extract embeddings
-            embeddings = []
-            for star in stars:
-                emb = star.get('embedding', [])
-                if emb and len(emb) > 0:
-                    embeddings.append(np.array(emb, dtype=np.float32))
-
-            if len(embeddings) < 2:
-                return [[i] for i in range(len(stars))]
-
-            # Convert to array
-            embeddings_array = np.array(embeddings, dtype=np.float32)
-
-            # Normalize
-            norms = np.linalg.norm(embeddings_array, axis=1, keepdims=True)
-            embeddings_array /= (norms + 1e-8)
-
-            # Cluster using RPN kernel
-            clusters = cluster_by_similarity_rpn(
-                embeddings_array,
-                threshold=0.7,
-                min_cluster_size=2
-            )
-
-            print(f"🧮 RPN clustering: {len(stars)} stars → {len(clusters)} semantic clusters")
-            return clusters
-
-        except Exception as exc:
-            print(f"⚠️  RPN clustering unavailable, using fallback: {exc}")
-            # Fallback: each star is its own cluster
-            return [[i] for i in range(len(stars))]
+        # Sovereign successor: PTX cosine-similarity clustering kernel reading
+        # Galaxy embeddings directly from VRAM. The prior numpy+clustering_rpn
+        # path is archived at Old_Attempts/2026-04-18/knowledge3d/cranium/
+        # clustering_rpn.py. Until the sovereign kernel lands, cluster each
+        # star into its own singleton so downstream consumers still get a
+        # valid clustering shape.
+        return [[i] for i in range(len(stars))]
 
     def compute_nightly_adjustments(self) -> Dict[str, Any]:
         """
@@ -493,46 +465,11 @@ class SleepTimeCompute:
                 for i, cluster in enumerate(clusters)
             ]
 
-            # Compute semantic depth for each cluster using RPN
-            try:
-                from knowledge3d.cranium.semantic_depth_rpn import compute_semantic_depth_rpn
-                import numpy as np
-
-                for i, cluster in enumerate(clusters):
-                    if len(cluster) < 2:
-                        continue
-
-                    # Extract cluster embeddings
-                    cluster_embs = []
-                    for idx in cluster:
-                        if idx < len(stars):
-                            emb = stars[idx].get('embedding', [])
-                            if emb and len(emb) > 0:
-                                cluster_embs.append(np.array(emb, dtype=np.float32))
-
-                    if len(cluster_embs) < 2:
-                        continue
-
-                    cluster_embs_array = np.array(cluster_embs, dtype=np.float32)
-
-                    # Normalize
-                    norms = np.linalg.norm(cluster_embs_array, axis=1, keepdims=True)
-                    cluster_embs_array /= (norms + 1e-8)
-
-                    # Compute semantic depth via RPN
-                    semantic_depth = compute_semantic_depth_rpn(
-                        cluster_embeddings=cluster_embs_array,
-                        cluster_size=len(cluster),
-                        min_depth=2,
-                        max_depth=12
-                    )
-
-                    adjustments['semantic_clusters'][i]['semantic_depth'] = int(semantic_depth)
-
-                print(f"🌳 RPN semantic depth: Computed for {len(clusters)} clusters")
-
-            except Exception as exc:
-                print(f"⚠️  RPN semantic depth unavailable: {exc}")
+            # Sovereign successor: PTX semantic-depth kernel reading cluster
+            # embeddings from Galaxy VRAM directly. Prior numpy+semantic_depth_rpn
+            # path is archived at Old_Attempts/2026-04-18/knowledge3d/cranium/
+            # semantic_depth_rpn.py. Depth field is simply omitted until the
+            # sovereign successor lands.
 
         # Adjust zone positions based on honesty-weighted alignment to star positions
         for z in zones:
@@ -593,51 +530,11 @@ class SleepTimeCompute:
                 if p:
                     adjustments['materialized_objects'].append({'type': 'fractal_tree', 'path': p, 'zone': 'Zone 5 (Knowledge Garden)', 'star_id': s.get('id')})
 
-        # Week 3-4 Enhancement: Grow fractal trees in Knowledge Garden from clusters
-        if adjustments.get('semantic_clusters'):
-            try:
-                from knowledge3d.tools.test_scripts.garden_fractal_growth import grow_fractal_trees
-                import numpy as np
-
-                # Extract cluster data
-                cluster_embeddings_list = []
-                cluster_qualities_list = []
-
-                for cluster_info in adjustments['semantic_clusters']:
-                    cluster_indices = cluster_info['star_indices']
-
-                    # Get embeddings for this cluster
-                    embs = []
-                    qualities = []
-                    for idx in cluster_indices:
-                        if idx < len(stars):
-                            star = stars[idx]
-                            emb = star.get('embedding', [])
-                            if emb and len(emb) > 0:
-                                embs.append(np.array(emb, dtype=np.float32))
-                                qualities.append(float(star.get('honesty_score', 0.5)))
-
-                    if len(embs) > 0:
-                        cluster_embeddings_list.append(np.array(embs))
-                        # Average quality for cluster
-                        cluster_qualities_list.append(np.mean(qualities))
-
-                # Grow Garden fractals with RPN φ constraints
-                if len(cluster_embeddings_list) > 0:
-                    print("🌳 Growing Knowledge Garden fractals with φ constraints...")
-                    garden_data = grow_fractal_trees(
-                        clusters=adjustments['semantic_clusters'],
-                        cluster_embeddings=cluster_embeddings_list,
-                        cluster_qualities=cluster_qualities_list,
-                        house_path=str(self.house_path)
-                    )
-                    adjustments['garden_growth'] = garden_data
-                    print(f"   → Grew {garden_data['total_trees']} fractal trees in Garden")
-
-            except Exception as exc:
-                print(f"⚠️  Garden fractal growth failed: {exc}")
-                import traceback
-                traceback.print_exc()
+        # Sovereign successor: PTX fractal-growth kernel driven by Galaxy
+        # cluster embeddings + φ (golden-ratio) constraints. Prior path relied
+        # on knowledge3d/tools/test_scripts/garden_fractal_growth.py + numpy,
+        # archived separately. Garden growth is skipped until the sovereign
+        # kernel lands.
         self._process_learning_memory(adjustments)
         self._rebuild_house_memory()
         # Prepare Galaxy working dir for pre‑consolidation drafts

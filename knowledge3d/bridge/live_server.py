@@ -126,12 +126,9 @@ class LiveServer:
         # Optional TF-IDF embedding for open-vocab goto
         try:
             from sklearn.feature_extraction.text import TfidfVectorizer  # type: ignore
-            import numpy as _np  # type: ignore
             self._TFIDF = TfidfVectorizer
-            self._NP = _np
         except Exception:
             self._TFIDF = None  # type: ignore
-            self._NP = None  # type: ignore
         # LLM skill (optional, with RAG) — transformers only
         try:
             from ..skills.llm import LLMSkill, LLMConfig  # type: ignore
@@ -941,8 +938,7 @@ class LiveServer:
             try:
                 import os, json
                 from ..tools.phase10.book_processor import BookProcessor  # type: ignore
-                from ..cranium.ptx_runtime import ThinkingTagEmbedder  # type: ignore
-                import torch as _t  # type: ignore
+                from ..ingestion.embedding_io import predict_thinking_tags_from_pth
                 if os.path.isfile(arg):
                     try:
                         with open(arg, "r", encoding="utf-8") as f:
@@ -966,10 +962,7 @@ class LiveServer:
                     import hashlib as _h
                     hv = int(_h.md5(content.encode("utf-8")).hexdigest(), 16)
                     emb = [((hv >> (i*8)) & 0xFF)/255.0 for i in range(512)]
-                    m = ThinkingTagEmbedder()
-                    m.load_state_dict(_t.load(str(emb_p), map_location="cpu"))
-                    m.eval()
-                    predicted = m.predict_thinking_tags(emb, names)
+                    predicted = predict_thinking_tags_from_pth(emb_p, emb, names)
                 msg = "🧠 Thinking tags (distilled): " + (", ".join(distilled) if distilled else "(none)")
                 if predicted:
                     msg += " | predicted: " + ", ".join(predicted)
@@ -1869,19 +1862,13 @@ class LiveServer:
                 # Resolve embedding for star_arg via simple heuristics
                 emb: List[float] = []
                 sid = star_arg
-                import numpy as _np  # type: ignore
-                def _load_npy(path: Path) -> List[float]:
-                    arr = _np.load(str(path))
-                    if hasattr(arr, 'shape') and len(arr.shape) == 2:
-                        # take first row
-                        return [float(x) for x in arr[0].tolist()]
-                    return [float(x) for x in arr.reshape(-1).tolist()]
+                from ..ingestion.embedding_io import load_first_npy, load_npy_row
                 # file:<path>
                 if star_arg.startswith('file:'):
                     p = Path(star_arg[5:])
                     if p.exists():
                         if p.suffix.lower() == '.npy':
-                            emb = _load_npy(p)
+                            emb = load_first_npy(p)
                         elif p.suffix.lower() in {'.json', '.txt'}:
                             try:
                                 emb = list(json.loads(p.read_text(encoding='utf-8')))
@@ -1893,9 +1880,9 @@ class LiveServer:
                         i = int(star_arg.split(':', 1)[1])
                         epath = repo_root / 'embeddings.npy'
                         if epath.exists():
-                            mat = _np.load(str(epath))
-                            if 0 <= i < len(mat):
-                                emb = [float(x) for x in mat[i].reshape(-1).tolist()]
+                            row = load_npy_row(epath, i)
+                            if row is not None:
+                                emb = row
                                 sid = f"idx:{i}"
                     except Exception:
                         pass
@@ -1905,9 +1892,9 @@ class LiveServer:
                         i = int(star_arg)
                         epath = repo_root / 'embeddings.npy'
                         if epath.exists():
-                            mat = _np.load(str(epath))
-                            if 0 <= i < len(mat):
-                                emb = [float(x) for x in mat[i].reshape(-1).tolist()]
+                            row = load_npy_row(epath, i)
+                            if row is not None:
+                                emb = row
                                 sid = f"idx:{i}"
                     except Exception:
                         pass
@@ -1915,7 +1902,7 @@ class LiveServer:
                 if not emb:
                     e1 = repo_root / 'embedding.npy'
                     if e1.exists():
-                        emb = _load_npy(e1)
+                        emb = load_first_npy(e1)
                         sid = 'file:embedding.npy'
                 # as a last resort, best-effort from galaxy.glb (may be huge)
                 if not emb:
@@ -2094,10 +2081,9 @@ class LiveServer:
         try:
             from pathlib import Path as _P
             from pygltflib import GLTF2 as _G
-            import numpy as _np
             import struct as _st
         except Exception:
-            await self.send_system(client.channel, "OpenBook: missing deps (pygltflib/numpy)")
+            await self.send_system(client.channel, "OpenBook: missing deps (pygltflib)")
             return
         glb = (_P(__file__).resolve().parents[2] / "viewer" / "public" / "library_room.glb")
         if not glb.exists():
@@ -2121,7 +2107,7 @@ class LiveServer:
             bv = m.bufferViews[int(found["embeddingsView"])]
             blob = m.binary_blob()
             data = blob[(bv.byteOffset or 0): (bv.byteOffset or 0) + bv.byteLength]
-            emb = _np.array(_st.unpack('<' + 'f' * (bv.byteLength // 4), data), dtype=_np.float32)
+            emb = list(_st.unpack('<' + 'f' * (bv.byteLength // 4), data))
             # Lightweight demo decoder
             out = []
             for i in range(0, min(len(emb), 128), 4):
@@ -2452,23 +2438,16 @@ class LiveServer:
                         if target_label:
                             await self._dispatch_goto(ch, target_label, source="autonomy")
                     # Suggest a link between two close labels using TF‑IDF
-                    idx = self._search_index.get(ch) or {}
-                    vec = idx.get("vec"); X = idx.get("X"); labs = idx.get("labels") or []
-                    if vec is not None and X is not None and labs:
-                        try:
-                            import numpy as _np  # type: ignore
-                            # pick two top mutually similar docs
-                            S = (X @ X.T).toarray()
-                            _np.fill_diagonal(S, -1)
-                            i, j = _np.unravel_index(_np.argmax(S), S.shape)
-                            if i != j and 0 <= i < len(labs) and 0 <= j < len(labs):
-                                a, b = labs[int(i)], labs[int(j)]
-                                score = float(S[i, j])
-                                payload = json.dumps({"labels": [str(a), str(b)]})
-                                await self.send_command("highlight", payload, channel=ch)
-                                await self.send_chat(sender="agent", text=f"[suggest] Link {a} ↔ {b} (score≈{score:.2f})", channel=ch)
-                        except Exception:
-                            pass
+                    #
+                    # Phase 7.6 (2026-04-18) dead-code escalation:
+                    # the original numpy-backed argmax-over-full-gram path
+                    # was deleted as part of the Absolute Sovereignty Purge.
+                    # Autonomy link-suggest now routes to the Qdrant MCP
+                    # (k3d-knowledge `qdrant-find`) — see
+                    # TEMP/CLAUDE_PHASE_7_6_LIVE_SERVER_PURGE_SPEC_04.18.2026.md
+                    # batch 5. The sovereign successor is not yet wired
+                    # into this handler, so we silently skip rather than
+                    # surface a fake suggestion.
                     # Mark the time to avoid spamming
                     self._last_activity[ch] = now
                     # Autonote: write a diary page periodically
@@ -2533,23 +2512,27 @@ class LiveServer:
                     score = 1.0
                 else:
                     # TF-IDF cosine over labels if available
-                    if idx and getattr(self, "_NP", None) is not None:
+                    if idx and getattr(self, "_TFIDF", None) is not None:
                         try:
+                            import math as _math
                             vec, X, labs = idx["vec"], idx["X"], idx["labels"]
                             qv = vec.transform([q])
-                            import numpy as np  # type: ignore
-                            qnorm = float(np.sqrt((qv.multiply(qv)).sum())) or 1.0
+                            qnorm = _math.sqrt(sum(float(v) * float(v) for v in qv.data)) or 1.0
                             row_norms = idx.get("row_norms")
                             if row_norms is None:
-                                row_norms = np.sqrt((X.multiply(X)).sum(axis=1)).A1
+                                row_norms = [
+                                    _math.sqrt(sum(float(v) * float(v) for v in X.getrow(i).data))
+                                    for i in range(X.shape[0])
+                                ]
                                 idx["row_norms"] = row_norms
-                            sims = (X @ qv.T).toarray().ravel()
-                            denom = row_norms * qnorm
-                            denom = np.where(denom == 0, 1.0, denom)
-                            sims = sims / denom
-                            best = int(sims.argmax())
+                            sims_raw = list((X @ qv.T).toarray().ravel())
+                            scores_cos = [
+                                float(s) / ((row_norms[i] * qnorm) or 1.0)
+                                for i, s in enumerate(sims_raw)
+                            ]
+                            best = max(range(len(scores_cos)), key=scores_cos.__getitem__)
                             resolved = labs[best]
-                            score = float(sims[best])
+                            score = float(scores_cos[best])
                         except Exception:
                             resolved = None
                     # fallback: prefix/substring over labels
@@ -2644,21 +2627,24 @@ class LiveServer:
                         try:
                             idx = self._search_index.get(channel)
                             if idx:
+                                import math as _math
                                 vec, X, labs = idx.get("vec"), idx.get("X"), idx.get("labels")
-                                import numpy as np  # type: ignore
                                 lab_to_row = {labs[i]: i for i in range(len(labs))}
                                 row_norms = idx.get("row_norms")
                                 if row_norms is None:
-                                    row_norms = np.sqrt((X.multiply(X)).sum(axis=1)).A1
+                                    row_norms = [
+                                        _math.sqrt(sum(float(v) * float(v) for v in X.getrow(i).data))
+                                        for i in range(X.shape[0])
+                                    ]
                                     idx["row_norms"] = row_norms
                                 for a, b in zip(path_labels[:-1], path_labels[1:]):
                                     ia = lab_to_row.get(a); ib = lab_to_row.get(b)
                                     if ia is None or ib is None:
                                         tfidf_sims.append(None)
                                     else:
-                                        num = (X[ia] @ X[ib].T).toarray().ravel()[0]
-                                        den = float(row_norms[ia] * row_norms[ib]) or 1.0
-                                        tfidf_sims.append(float(num / den))
+                                        num = float((X[ia] @ X[ib].T).toarray().ravel()[0])
+                                        den = float(row_norms[ia]) * float(row_norms[ib]) or 1.0
+                                        tfidf_sims.append(num / den)
                         except Exception:
                             tfidf_sims = []
                         geo = []
@@ -2864,10 +2850,10 @@ class LiveServer:
             contexts: list[tuple[str,str]] = []
             if vec is not None and X is not None and labels:
                 try:
+                    import heapq as _heapq
                     qv = vec.transform([q])
-                    scores = (X @ qv.T).toarray().ravel()
-                    import numpy as _np  # type: ignore
-                    top = _np.argsort(-scores)[: max(1, k)]
+                    scores = list((X @ qv.T).toarray().ravel())
+                    top = _heapq.nlargest(max(1, k), range(len(scores)), key=scores.__getitem__)
                     for i in top:
                         lab = labels[int(i)]
                         contexts.append((lab, ""))
@@ -2894,10 +2880,10 @@ class LiveServer:
         contexts: list[tuple[str,str]] = []
         if vec is not None and X is not None and labels:
             try:
+                import heapq as _heapq
                 qv = vec.transform([q])
-                scores = (X @ qv.T).toarray().ravel()
-                import numpy as _np  # type: ignore
-                top = _np.argsort(-scores)[: max(1, 8)]
+                scores = list((X @ qv.T).toarray().ravel())
+                top = _heapq.nlargest(max(1, 8), range(len(scores)), key=scores.__getitem__)
                 for i in top:
                     lab = labels[int(i)]
                     # labels[] contains doc string ("label — text") when snippets were provided
@@ -3129,7 +3115,7 @@ class LiveServer:
 
         try:
             from ..cranium.tools.trit_inspector import TritInspector
-            import numpy as np
+            import random as _random
 
             # Mock: Generate synthetic trits for demo (replace with real Galaxy trits)
             positions = graph.get("positions")
@@ -3139,7 +3125,7 @@ class LiveServer:
 
             n_nodes = len(positions)
             # Generate packed trits (mock - in production, load from Galaxy)
-            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            trits_mock = [_random.choice((-1, 0, 1)) for _ in range(n_nodes)]
             packed = self._pack_trits_helper(trits_mock)
 
             # Compute overlay
@@ -3187,11 +3173,11 @@ class LiveServer:
 
         try:
             from ..cranium.tools.trit_inspector import TritInspector
-            import numpy as np
+            import random as _random
 
             # Mock trits (replace with real Galaxy data)
             n_nodes = len(graph.get("ids", []))
-            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            trits_mock = [_random.choice((-1, 0, 1)) for _ in range(n_nodes)]
             packed = self._pack_trits_helper(trits_mock)
 
             # Inspect node
@@ -3231,11 +3217,11 @@ class LiveServer:
 
         try:
             from ..cranium.tools.trit_inspector import TritInspector
-            import numpy as np
+            import random as _random
 
             # Mock trits
             n_nodes = len(graph.get("ids", []))
-            trits_mock = np.random.choice([-1, 0, 1], size=n_nodes).astype(np.int8)
+            trits_mock = [_random.choice((-1, 0, 1)) for _ in range(n_nodes)]
             packed = self._pack_trits_helper(trits_mock)
 
             # Trace path
@@ -3271,17 +3257,22 @@ class LiveServer:
 
         try:
             from ..cranium.tools.adaptive_ternary_depth import AdaptiveTernaryDepth
-            import numpy as np
+            import math as _math
+            import random as _random
 
             # Mock: Generate embeddings (replace with real Galaxy embeddings)
             n_nodes = len(graph.get("ids", []))
             dim = 64
-            embeddings = np.random.randn(n_nodes, dim).astype(np.float32)
-            embeddings /= np.linalg.norm(embeddings, axis=1, keepdims=True)
+
+            def _rand_unit(n: int) -> list[float]:
+                row = [_random.gauss(0.0, 1.0) for _ in range(n)]
+                norm = _math.sqrt(sum(v * v for v in row)) or 1.0
+                return [v / norm for v in row]
+
+            embeddings = [_rand_unit(dim) for _ in range(n_nodes)]
 
             # Mock query embedding (replace with real text→embedding)
-            query = np.random.randn(dim).astype(np.float32)
-            query /= np.linalg.norm(query)
+            query = _rand_unit(dim)
 
             # Compute depth field
             depth_computer = AdaptiveTernaryDepth(adaptive_thresholds=adaptive)
@@ -3306,7 +3297,7 @@ class LiveServer:
             # Send to viewer for visualization
             import base64
             rgba = self._trits_to_rgba(trits, n_nodes)
-            rgba_b64 = base64.b64encode(rgba.tobytes()).decode('utf-8')
+            rgba_b64 = base64.b64encode(bytes(rgba)).decode('utf-8')
 
             payload = {
                 "query": query_text,
@@ -3326,30 +3317,30 @@ class LiveServer:
             await self.send_system(client.channel, f"Depth computation failed: {e}")
 
     def _pack_trits_helper(self, trits):
-        """Pack trits into 2-bit uint32 array."""
-        import numpy as np
+        """Pack trits into 2-bit uint32 array (sovereign ctypes)."""
+        import ctypes as _ctypes
         n = len(trits)
         n_words = (n + 15) // 16
-        packed = np.zeros(n_words, dtype=np.uint32)
+        packed = (_ctypes.c_uint32 * n_words)()
         enc = {-1: 0, 0: 1, 1: 2}
         for i, t in enumerate(trits):
             bits = enc[int(t)]
             word = i >> 4
             shift = (i & 0xF) << 1
-            packed[word] |= np.uint32(bits << shift)
+            packed[word] = (packed[word] | ((bits << shift) & 0xFFFFFFFF)) & 0xFFFFFFFF
         return packed
 
     def _trits_to_rgba(self, trits, n):
-        """Convert trits to RGBA8 overlay."""
-        import numpy as np
-        rgba = np.zeros((n, 4), dtype=np.uint8)
+        """Convert trits to RGBA8 overlay as a flat bytearray."""
+        rgba = bytearray(n * 4)
         for i, t in enumerate(trits):
-            if t == 1:  # Attract
-                rgba[i] = [255, 0, 0, 96]  # Red
-            elif t == -1:  # Repel
-                rgba[i] = [0, 0, 255, 96]  # Blue
+            off = i * 4
+            if t == 1:  # Attract -> red
+                rgba[off:off + 4] = b"\xff\x00\x00\x60"
+            elif t == -1:  # Repel -> blue
+                rgba[off:off + 4] = b"\x00\x00\xff\x60"
             # Neutral stays [0,0,0,0] (transparent)
-        return rgba.ravel()
+        return rgba
 
     async def _compose_reflection(self, channel: str, requester: str) -> str:
         g = self._graphs.get(channel)

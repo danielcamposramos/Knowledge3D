@@ -104,6 +104,46 @@ Differentiation rules:
 """
 
 
+PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE = """
+You are in MEANING RESOLUTION MODE.
+
+The source content is a duplicate-content cluster, not an individual row.
+Your task is to decide whether the cluster should collapse by meaning,
+split by polysemy, partially merge/split, or remain unresolved.
+
+Allowed outcomes:
+- merge_to_meaning_star
+- split_polysemy
+- mixed
+- unresolvable
+
+Rules:
+- If the rows are language/script/styling variants of one concept, emit
+  outcome="merge_to_meaning_star": exactly one meaning star and one surface
+  symlink per original row, each symlink pointing to that meaning star.
+- If the rows share a surface but carry distinct senses, emit
+  outcome="split_polysemy": two or more meaning stars and surface symlinks
+  whose points_to values target the correct sense ids.
+- If some rows merge while others split, emit outcome="mixed".
+- If the attached web_evidence is insufficient, emit
+  outcome="unresolvable" with empty arrays. Do not guess.
+- Every emitted meaning star and every emitted surface symlink MUST include at
+  least one supporting URL in metadata.sources.
+- Do not cite URLs that are not present in web_evidence.
+- Output strict JSON only.
+
+Return this extension shape:
+{
+  "ingest_action": "augment|skip",
+  "status": "resolved|unresolvable",
+  "outcome": "merge_to_meaning_star|split_polysemy|mixed|unresolvable",
+  "meaning_stars": [ { ... full row objects ... } ],
+  "surface_symlinks": [ { ... full row objects ... } ],
+  "knowledge_packets": []
+}
+"""
+
+
 PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -113,6 +153,18 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
         },
         "status": {
             "type": "string",
+        },
+        "outcome": {
+            "type": "string",
+            "enum": ["enriched", "merge_to_meaning_star", "split_polysemy", "mixed", "unresolvable"],
+        },
+        "meaning_stars": {
+            "type": "array",
+            "items": {"type": "object"},
+        },
+        "surface_symlinks": {
+            "type": "array",
+            "items": {"type": "object"},
         },
         "knowledge_packets": {
             "type": "array",
@@ -291,12 +343,18 @@ class ProceduralizerPacket:
 class ProceduralizerBundle:
     ingest_action: str
     status: str = ""
+    outcome: str = "enriched"
+    meaning_stars: list[dict[str, Any]] = field(default_factory=list)
+    surface_symlinks: list[dict[str, Any]] = field(default_factory=list)
     knowledge_packets: list[ProceduralizerPacket] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "ingest_action": self.ingest_action,
             "status": self.status,
+            "outcome": self.outcome,
+            "meaning_stars": self.meaning_stars,
+            "surface_symlinks": self.surface_symlinks,
             "knowledge_packets": [packet.to_dict() for packet in self.knowledge_packets],
         }
 
@@ -414,9 +472,78 @@ def _normalize_route_contract(value: Any) -> dict[str, Any] | None:
     }
 
 
+def _cluster_size_from_request(request: ProceduralizerRequest) -> int:
+    for chunk in list(request.context_chunks or []):
+        text = str(chunk or "").strip()
+        if not text.startswith("cluster_size="):
+            continue
+        _, _, value = text.partition("=")
+        try:
+            return max(0, int(value.strip()))
+        except ValueError:
+            return 0
+    return 0
+
+
+def _normalize_points_to(value: Any) -> str | list[str] | None:
+    if isinstance(value, list):
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            text = str(item or "").strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            out.append(text)
+        return out or None
+    text = str(value or "").strip()
+    return text or None
+
+
+def _normalize_emitted_row(value: Any, *, allowed_urls: set[str] | None) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    row = json.loads(json.dumps(value, ensure_ascii=False))
+    row_id = str(row.get("id") or row.get("row_id") or "").strip()
+    if not row_id:
+        return None
+    row["id"] = row_id
+    metadata = dict(row.get("metadata") or {})
+    sources = _normalize_sources(metadata.get("sources"), allowed_urls=allowed_urls)
+    metadata["sources"] = sources
+    if "points_to" in row:
+        normalized = _normalize_points_to(row.get("points_to"))
+        if normalized is None:
+            row.pop("points_to", None)
+        else:
+            row["points_to"] = normalized
+    elif "points_to" in metadata:
+        normalized = _normalize_points_to(metadata.get("points_to"))
+        if normalized is not None:
+            row["points_to"] = normalized
+    row["metadata"] = metadata
+    return row
+
+
+def _row_sources(row: dict[str, Any]) -> list[str]:
+    metadata = dict(row.get("metadata") or {})
+    return [str(item).strip() for item in list(metadata.get("sources") or []) if str(item).strip()]
+
+
+def _row_points_to(row: dict[str, Any]) -> list[str]:
+    value = row.get("points_to")
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
 def proceduralizer_system_prompt(request: ProceduralizerRequest) -> str:
-    if str(request.mode or "standard").strip().lower() == "differentiation":
+    mode = str(request.mode or "standard").strip().lower()
+    if mode == "differentiation":
         return f"{PROCEDURALIZER_SYSTEM_PROMPT.strip()}\n\n{PROCEDURALIZER_DIFFERENTIATION_PREAMBLE.strip()}"
+    if mode == "meaning_resolution":
+        return f"{PROCEDURALIZER_SYSTEM_PROMPT.strip()}\n\n{PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE.strip()}"
     return PROCEDURALIZER_SYSTEM_PROMPT
 
 
@@ -462,10 +589,98 @@ def _fallback_bundle(
     return ProceduralizerBundle(ingest_action="augment", knowledge_packets=[packet])
 
 
+def _parse_meaning_resolution_bundle(
+    payload: dict[str, Any],
+    raw_text: str,
+    request: ProceduralizerRequest,
+) -> tuple[ProceduralizerBundle, bool, str]:
+    status = str(payload.get("status") or "").strip().lower()
+    action = str(payload.get("ingest_action") or "").strip().lower()
+    outcome = str(payload.get("outcome") or "").strip().lower()
+    if action not in {"skip", "augment", "needs_context", "reject"}:
+        action = "augment"
+    if outcome not in {"merge_to_meaning_star", "split_polysemy", "mixed", "unresolvable"}:
+        outcome = "unresolvable" if status == "unresolvable" else ""
+    allowed_urls = {
+        str(item.get("url") or "").strip()
+        for item in list(request.web_evidence or [])
+        if isinstance(item, dict) and str(item.get("url") or "").strip()
+    } or None
+    meaning_stars = [
+        normalized
+        for normalized in (
+            _normalize_emitted_row(item, allowed_urls=allowed_urls)
+            for item in list(payload.get("meaning_stars") or [])
+        )
+        if normalized is not None
+    ]
+    surface_symlinks = [
+        normalized
+        for normalized in (
+            _normalize_emitted_row(item, allowed_urls=allowed_urls)
+            for item in list(payload.get("surface_symlinks") or [])
+        )
+        if normalized is not None
+    ]
+    if status == "unresolvable" or outcome == "unresolvable":
+        return (
+            ProceduralizerBundle(
+                ingest_action="skip",
+                status="unresolvable",
+                outcome="unresolvable",
+                meaning_stars=[],
+                surface_symlinks=[],
+                knowledge_packets=[],
+            ),
+            True,
+            "",
+        )
+    if action != "augment" or not outcome:
+        return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    for row in meaning_stars + surface_symlinks:
+        if not _row_sources(row):
+            return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
+    meaning_ids = {str(row.get("id") or "").strip() for row in meaning_stars if str(row.get("id") or "").strip()}
+    cluster_size = _cluster_size_from_request(request)
+    if outcome == "merge_to_meaning_star":
+        if len(meaning_stars) != 1 or (cluster_size and len(surface_symlinks) != cluster_size):
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        expected_id = next(iter(meaning_ids))
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if targets != [expected_id]:
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    elif outcome == "split_polysemy":
+        if len(meaning_stars) <= 1 or not surface_symlinks:
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if not targets or any(target not in meaning_ids for target in targets):
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    elif outcome == "mixed":
+        if not meaning_stars or not surface_symlinks:
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if not targets or any(target not in meaning_ids for target in targets):
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    bundle = ProceduralizerBundle(
+        ingest_action=action,
+        status=status or "resolved",
+        outcome=outcome,
+        meaning_stars=meaning_stars,
+        surface_symlinks=surface_symlinks,
+        knowledge_packets=[],
+    )
+    return bundle, True, ""
+
+
 def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[ProceduralizerBundle, bool, str]:
     payload = extract_json_object(raw_text)
     if not isinstance(payload, dict):
         return _fallback_bundle(request, failure_code="invalid_json", raw_text=raw_text), False, "invalid_json"
+    if str(request.mode or "standard").strip().lower() == "meaning_resolution":
+        return _parse_meaning_resolution_bundle(payload, raw_text, request)
 
     status = str(payload.get("status") or "").strip().lower()
     action = str(payload.get("ingest_action") or "").strip().lower()

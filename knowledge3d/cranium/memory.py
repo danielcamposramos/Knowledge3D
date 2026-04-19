@@ -98,22 +98,10 @@ class ShortTermGalaxy:
 
     # --- Query ---
     def get_contexts(self, query: str, k: int = 6) -> List[Tuple[str, str]]:
-        # Prefer TF‑IDF if available
-        if self._vec is not None and self._X is not None and self._texts:
-            try:
-                qv = self._vec.transform([_norm(query)])
-                import numpy as _np  # type: ignore
-
-                scores = (self._X @ qv.T).toarray().ravel()
-                top = _np.argsort(-scores)[: max(1, k)]
-                out: List[Tuple[str, str]] = []
-                for i in top:
-                    lab, txt = self._texts[int(i)]
-                    out.append((lab, txt))
-                return out
-            except Exception:
-                pass
-        # Fallback: return most recent texts
+        # Sovereign successor: Galaxy-resident cosine-similarity query via PTX
+        # cosine_similarity_rpn_kernel over the short-term ring. Until the
+        # sovereign retrieval kernel is wired in, return the most recent texts.
+        # Prior TF-IDF + numpy argsort path is archived in git history.
         return list(self._texts[-k:])
 
     # --- Meta ---
@@ -149,14 +137,13 @@ class ShortTermGalaxy:
                 h.add_diary_page_embedding("AI Diary", vec)
             except Exception:
                 pass
-            # Also consolidate non-text artifacts as references for humans
-            for o in list(self._buf)[-64:]:
-                if o.kind == "image":
-                    p = o.payload.get("path", "") if isinstance(o.payload, dict) else ""
-                    h.add_object("Diary", o.label, f"image:{p}")
-                elif o.kind == "audio":
-                    p = o.payload.get("path", "") if isinstance(o.payload, dict) else ""
-                    h.add_object("Diary", o.label, f"audio:{p}")
+            # Per Daniel's ruling 2026-04-18: no per-kind Python dispatch here.
+            # The sovereign architecture collapses image/audio/video into one
+            # procedural surface — image is primary, audio is a dot-vector map
+            # on that procedural image, video is a time-indexed sequence of
+            # images. Non-text observations enter the House through
+            # procedural_image_rpn + optional audio_dot_vector_map +
+            # frame_sequence_refs, not through kind-branched Python here.
             # Export
             root = _Path(__file__).resolve().parents[2]
             if out_gltf:

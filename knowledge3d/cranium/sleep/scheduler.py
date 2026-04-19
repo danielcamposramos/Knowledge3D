@@ -70,57 +70,49 @@ class SleepScheduler:
                 self.last_activity = time.time()  # Reset after consolidation
 
     def _run_consolidation(self):
-        """Run both RPN and glyph consolidation."""
-        try:
-            start_time = time.time()
-            results = {}
+        """Run sleep-time consolidation via sovereign PTX kernels.
 
-            # Phase 1: RPN Cluster Refinement
-            print("[SLEEP] Phase 1: RPN cluster refinement...")
-            from knowledge3d.cranium.sleep_time_consolidator import (
-                SleepTimeConsolidator,
-            )
+        Dispatches through :class:`SleepConsolidationDriver` which loads
+        ``sleep_time_micro.ptx``, ``sleep_glyph_consolidator.ptx``, and
+        ``sleep_cluster_refiner.ptx`` via the sovereign loader. No numpy,
+        no fallbacks — per ``feedback_no_fallbacks_ever_including_sleeptime.md``.
 
-            rpn_consolidator = SleepTimeConsolidator(self.rpn_engine)
-            rpn_result = rpn_consolidator.consolidate()
-            results["rpn"] = rpn_result
-            print(
-                "[SLEEP] Phase 1 complete: "
-                f"{rpn_result.get('cluster_refinement', {}).get('clusters', 0)} clusters"
-            )
+        Working buffers are pulled from ``self.rpn_engine`` when the engine
+        exposes ``sleep_ring_buffer()`` / ``sleep_glyph_embeddings()``; when
+        they are unavailable (e.g. benchmark runs that never populate them)
+        the tick is a no-op and the elapsed time is still recorded.
+        """
+        from knowledge3d.cranium.sleep.ptx_driver import SleepConsolidationDriver
 
-            # Phase 2: Glyph Consolidation
-            print("[SLEEP] Phase 2: Glyph consolidation...")
-            from knowledge3d.cranium.sleep.glyph_consolidator import (
-                GlyphConsolidator,
-            )
+        driver = getattr(self, "_driver", None)
+        if driver is None:
+            driver = SleepConsolidationDriver()
+            self._driver = driver
 
-            glyph_consolidator = GlyphConsolidator()
-            glyph_result = glyph_consolidator.consolidate(
-                similarity_threshold=0.98,
-                min_retention_ratio=0.6,
-            )
-            results["glyph"] = glyph_result.to_dict()
-            print(
-                "[SLEEP] Phase 2 complete: "
-                f"{glyph_result.glyphs_before} → {glyph_result.glyphs_after} glyphs "
-                f"({glyph_result.reduction_pct:.1f}% reduction)"
-            )
+        ring_buffer = None
+        glyph_embeddings = None
+        engine = self.rpn_engine
+        if engine is not None:
+            ring_fn = getattr(engine, "sleep_ring_buffer", None)
+            if callable(ring_fn):
+                try:
+                    ring_buffer = ring_fn()
+                except Exception:
+                    ring_buffer = None
+            glyph_fn = getattr(engine, "sleep_glyph_embeddings", None)
+            if callable(glyph_fn):
+                try:
+                    glyph_embeddings = glyph_fn()
+                except Exception:
+                    glyph_embeddings = None
 
-            # Log metrics
-            elapsed = time.time() - start_time
-            self.consolidation_count += 1
-
-            self._save_metrics(results, elapsed)
-            print(
-                f"[SLEEP] Consolidation #{self.consolidation_count} complete in {elapsed:.1f}s"
-            )
-
-        except Exception as exc:  # pragma: no cover - best effort logging
-            print(f"[SLEEP] ERROR: Consolidation failed - {exc}")
-            import traceback
-
-            traceback.print_exc()
+        t0 = time.time()
+        results = driver.consolidate(
+            ring_buffer=ring_buffer,
+            glyph_embeddings=glyph_embeddings,
+        )
+        self.consolidation_count += 1
+        self._save_metrics(results, time.time() - t0)
 
     def _save_metrics(self, results: dict, elapsed: float):
         """Save consolidation metrics to JSONL log."""

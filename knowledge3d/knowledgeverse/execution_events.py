@@ -1,8 +1,18 @@
 """Execution-event recording for Tool routes.
 
+Sovereign resurrection (2026-04-18): this module was moved to
+``Old_Attempts/2026-04-18/`` during the Absolute Sovereignty Purge because it
+imported ``numpy``. It is brought back here as pure-Python because
+``feedback_note_taking_everywhere.md`` mandates that every solve emits a
+trace — silence is a bug, so the observability surface is non-optional.
+
+The numpy dependency was only used to mean+clip a small list of quality
+signals. That is trivially expressible as ``sum(xs) / len(xs)`` paired with
+``max(0.0, min(value, 1.0))``, so no banned library survives here.
+
 This module is intentionally orchestration-side only. It records a compact,
-ternary execution journal that both scene quality and specialist learning can
-consume without touching the sovereign PTX hot path.
+ternary execution journal that both scene quality and specialist learning
+can consume without touching the sovereign PTX hot path.
 """
 
 from __future__ import annotations
@@ -12,9 +22,18 @@ from dataclasses import dataclass, fields, is_dataclass, replace
 import json
 import time
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Iterable, Mapping
 
-import numpy as np
+
+def _clip01(value: float) -> float:
+    return max(0.0, min(float(value), 1.0))
+
+
+def _mean_clipped(values: Iterable[float]) -> float:
+    xs = [float(v) for v in values]
+    if not xs:
+        return 0.0
+    return _clip01(sum(xs) / len(xs))
 
 
 @dataclass(frozen=True)
@@ -119,8 +138,7 @@ class ExecutionEventRecorder:
         is_chain_step = event.execution_mode == "tool_chain_step"
         force_flush = (
             not is_chain_step
-            or
-            len(self._buffer) >= self.buffer_size
+            or len(self._buffer) >= self.buffer_size
             or (time.monotonic() - self._last_flush_monotonic) >= self.flush_interval_s
         )
         if force_flush:
@@ -161,7 +179,7 @@ def timestamp_us() -> int:
 
 
 def ternary_quantize_quality(value: float, *, low: float = 0.40, high: float = 0.70) -> int:
-    signal = max(0.0, min(1.0, float(value)))
+    signal = _clip01(value)
     if signal >= high:
         return 1
     if signal <= low:
@@ -175,8 +193,8 @@ def normalize_material_score(value: Any) -> float | None:
     except Exception:
         return None
     if -1.0 <= score <= 1.0:
-        return max(0.0, min((score + 1.0) * 0.5, 1.0))
-    return max(0.0, min(score, 1.0))
+        return _clip01((score + 1.0) * 0.5)
+    return _clip01(score)
 
 
 def extract_math_core_tier(execution_plan: Mapping[str, Any] | None, result: Any | None) -> int:
@@ -224,13 +242,13 @@ def extract_quality_signal(result: Any | None) -> float:
         coherence = metadata.get("overall_coherence")
         if coherence is not None:
             try:
-                signals.append(max(0.0, min(float(coherence), 1.0)))
+                signals.append(_clip01(coherence))
             except Exception:
                 pass
         variance = metadata.get("coherence_variance")
         if variance is not None:
             try:
-                signals.append(max(0.0, min(1.0 - float(variance), 1.0)))
+                signals.append(_clip01(1.0 - float(variance)))
             except Exception:
                 pass
         score_table = metadata.get("material_score_table")
@@ -244,7 +262,7 @@ def extract_quality_signal(result: Any | None) -> float:
                 positive = float(signal_summary.get("positive_ratio", 0.0) or 0.0)
                 negative = float(signal_summary.get("negative_ratio", 0.0) or 0.0)
                 neutral = float(signal_summary.get("neutral_ratio", 0.0) or 0.0)
-                signals.append(max(0.0, min(0.50 + 0.25 * (positive + negative) - 0.10 * neutral, 1.0)))
+                signals.append(_clip01(0.50 + 0.25 * (positive + negative) - 0.10 * neutral))
             except Exception:
                 pass
         if bool(metadata.get("codec_enabled", False)):
@@ -255,9 +273,9 @@ def extract_quality_signal(result: Any | None) -> float:
     coherence_scores = getattr(result, "coherence_scores", None)
     if coherence_scores is not None:
         try:
-            arr = np.asarray(coherence_scores, dtype=np.float32)
-            if arr.size:
-                signals.append(float(np.clip(np.mean(arr), 0.0, 1.0)))
+            coherent_xs = [float(v) for v in coherence_scores]
+            if coherent_xs:
+                signals.append(_clip01(sum(coherent_xs) / len(coherent_xs)))
         except Exception:
             pass
 
@@ -270,8 +288,7 @@ def extract_quality_signal(result: Any | None) -> float:
 
     if not signals:
         return 0.65
-    quality = float(np.clip(np.mean(np.asarray(signals, dtype=np.float32)), 0.0, 1.0))
-    return quality
+    return _mean_clipped(signals)
 
 
 def build_execution_event(

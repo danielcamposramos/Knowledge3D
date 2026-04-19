@@ -399,20 +399,14 @@ def _ensure_init():
                 if retain_res != 0:
                     if os.environ.get("K3D_RPN_DEBUG"):
                         print(f"[loader] cuDevicePrimaryCtxRetain failed with code {retain_res}")
-                    # Attempt to bootstrap via CuPy
-                    try:
-                        import cupy as _cupy  # type: ignore
-
-                        _cupy.cuda.Device(0).use()
-                        current_ctx = CUcontext()
-                        if nvcuda.cuCtxGetCurrent(ctypes.byref(current_ctx)) == 0 and current_ctx:
-                            ctx = current_ctx
-                        else:
-                            ck(retain_res)
-                    except Exception as cupy_exc:  # pragma: no cover - debug path
-                        if os.environ.get("K3D_RPN_DEBUG"):
-                            print(f"[loader] CuPy bootstrap failed: {cupy_exc}")
-                        ck(retain_res)
+                    # Prior behaviour: fall back to CuPy-driven context
+                    # bootstrap. Purged 2026-04-18 per absolute sovereignty
+                    # directive (§5.4) — sovereign path is pure libcuda.so.1
+                    # via ctypes (v1/v2 binding). Until that fallback is
+                    # re-implemented sovereignly, surface the original CUDA
+                    # error so callers see the real failure instead of a
+                    # silent recovery.
+                    ck(retain_res)
                 set_res = nvcuda.cuCtxSetCurrent(ctx)
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[loader] cuCtxSetCurrent -> {set_res}")
@@ -422,20 +416,11 @@ def _ensure_init():
                 if os.environ.get("K3D_RPN_DEBUG"):
                     print(f"[loader] cuCtxGetCurrent -> {current}")
                 ctx = current
-                try:
-                    import cupy as _cupy  # type: ignore
-
-                    _cupy.cuda.Device(int(os.environ.get("CUDA_VISIBLE_DEVICES", "0"))).use()
-                    if os.environ.get("K3D_RPN_DEBUG"):
-                        print("[loader] CuPy context primed")
-                    refreshed = CUcontext()
-                    if nvcuda.cuCtxGetCurrent(ctypes.byref(refreshed)) == 0 and refreshed:
-                        ctx = refreshed
-                        if os.environ.get("K3D_RPN_DEBUG"):
-                            print(f"[loader] context refreshed -> {ctx}")
-                except Exception as cupy_exc:  # pragma: no cover - optional path
-                    if os.environ.get("K3D_RPN_DEBUG"):
-                        print(f"[loader] CuPy context bootstrap skipped: {cupy_exc}")
+                # Prior: optional CuPy context-refresh pass to align
+                # CuPy's internal stack-top with libcuda's current-thread
+                # context. Purged 2026-04-18 (§5.4). The sovereign path
+                # relies on libcuda cuCtxSetCurrent / cuCtxGetCurrent
+                # alone; no CuPy pre-priming step exists.
             else:
                 ck(res)
         # cuCtxCreate already pushes the new ctx onto the current-thread stack; a
@@ -583,20 +568,13 @@ def gpu_malloc(size_bytes: int) -> CUdeviceptr:
                 return CUdeviceptr(runtime_ptr.value)
             if runtime_res not in (0,):
                 ck(runtime_res)
-        # Fall back to CuPy-managed allocation while keeping sovereign interface.
-        if os.environ.get("K3D_RPN_DEBUG"):
-            print("[loader] Falling back to CuPy allocation")
-        try:
-            import cupy as _cupy  # type: ignore
-        except Exception as cupy_exc:  # pragma: no cover - critical fallback
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[loader] CuPy import failed during fallback: {cupy_exc}")
-            ck(res)
-        _cupy.cuda.Device(0).use()
-        mem = _cupy.cuda.alloc(size_bytes)
-        start = int(mem.ptr)
-        _cupy_allocations.append((start, size_bytes, mem))
-        return CUdeviceptr(start)
+        # Prior: fall back to CuPy-managed allocation while keeping the
+        # sovereign interface. Purged 2026-04-18 (§5.4). If both cuMemAlloc
+        # and cudaMalloc fail, surface the original cuMemAlloc error — the
+        # sovereign path owns its own failure budget and does not hide CUDA
+        # errors behind a bulk-library retry loop.
+        ck(res)
+        return ptr
     ck(res)
     return ptr
 
@@ -654,21 +632,12 @@ def memcpy_htod(dst_device: CUdeviceptr, src_host: ctypes.c_void_p, size_bytes: 
     """
     _ensure_current_context()
     key = int(dst_device.value)
-    alloc = _find_cupy_allocation(key)
-    if alloc is not None:
-        try:
-            import cupy as _cupy  # type: ignore
-        except Exception as cupy_exc:
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[loader] CuPy import failed during memcpy_htod fallback: {cupy_exc}")
-        else:
-            _cupy.cuda.Device(0).use()
-            res = _cupy.cuda.runtime.memcpy(key, src_host.value, size_bytes, _cupy.cuda.runtime.memcpyHostToDevice)
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[loader] runtime.memcpy HtoD -> {res}")
-            if res is not None and res != 0:
-                ck(res)
-            return
+    # Prior: CuPy runtime.memcpy fallback for allocations made through
+    # cupy.cuda.alloc. Purged 2026-04-18 per
+    # TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.4. With the
+    # cupy allocation path removed from gpu_malloc, no pointer can land in
+    # _cupy_allocations anymore, so this branch is dead. The cudart and
+    # cuMemcpyHtoD paths below own the entire copy surface.
     cudart_alloc = _find_cudart_allocation(key)
     if cudart_alloc is not None and libcudart is not None:
         res = libcudart.cudaMemcpy(ctypes.c_void_p(key), src_host, size_bytes, CUDA_MEMCPY_HOST_TO_DEVICE)
@@ -717,21 +686,11 @@ def memcpy_dtoh(dst_host: ctypes.c_void_p, src_device: CUdeviceptr, size_bytes: 
     """
     _ensure_current_context()
     key = int(src_device.value)
-    alloc = _find_cupy_allocation(key)
-    if alloc is not None:
-        try:
-            import cupy as _cupy  # type: ignore
-        except Exception as cupy_exc:
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[loader] CuPy import failed during memcpy_dtoh fallback: {cupy_exc}")
-        else:
-            _cupy.cuda.Device(0).use()
-            res = _cupy.cuda.runtime.memcpy(dst_host.value, key, size_bytes, _cupy.cuda.runtime.memcpyDeviceToHost)
-            if os.environ.get("K3D_RPN_DEBUG"):
-                print(f"[loader] runtime.memcpy DtoH -> {res}")
-            if res is not None and res != 0:
-                ck(res)
-            return
+    # Prior: CuPy runtime.memcpy fallback for allocations made through
+    # cupy.cuda.alloc. Purged 2026-04-18 per
+    # TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.4. See matching
+    # note in memcpy_htod — the branch is dead now that cupy allocation is
+    # banned from gpu_malloc.
     cudart_alloc = _find_cudart_allocation(key)
     if cudart_alloc is not None and libcudart is not None:
         res = libcudart.cudaMemcpy(dst_host, ctypes.c_void_p(key), size_bytes, CUDA_MEMCPY_DEVICE_TO_HOST)
@@ -1062,17 +1021,22 @@ import atexit
 atexit.register(cleanup)
 
 def cpu_to_gpu(dst: CUdeviceptr, array: Any) -> None:
-    """Upload a CPU buffer (NumPy array or bytes-like) to GPU memory."""
+    """Upload a CPU buffer (bytes-like or ctypes array) to GPU memory.
+
+    Sovereign surface only: accepts ``bytes``/``bytearray``/``memoryview`` and
+    ctypes arrays. The legacy NumPy-ndarray branch was purged 2026-04-18 per
+    ``TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md`` §5.4. Callers that
+    still hold an ndarray must either switch to ``array.tobytes()`` at the
+    boundary or upload via the ternary-weight loader; numpy is not a hot-path
+    dependency anymore.
+    """
     if array is None:
         raise ValueError("cpu_to_gpu requires a valid array")
     if hasattr(array, "ctypes") and hasattr(array, "dtype"):
-        try:
-            import numpy as np  # type: ignore
-        except Exception as exc:  # pragma: no cover - numpy required for array path
-            raise RuntimeError("NumPy is required for cpu_to_gpu array uploads") from exc
-        arr = np.ascontiguousarray(array, dtype=np.float32)
-        memcpy_htod(dst, ctypes.c_void_p(arr.ctypes.data), arr.nbytes)
-        return
+        raise NotImplementedError(
+            "cpu_to_gpu: NumPy ndarray upload path purged 2026-04-18. "
+            "Convert to bytes or ctypes buffer at the sovereign boundary."
+        )
     if isinstance(array, (bytes, bytearray)):
         buf = (ctypes.c_char * len(array)).from_buffer_copy(array)
         memcpy_htod(dst, ctypes.cast(buf, ctypes.c_void_p), len(array))
@@ -1091,17 +1055,31 @@ def gpu_to_cpu_scalar(src: CUdeviceptr) -> float:
 
 
 def gpu_to_cpu_array(src: CUdeviceptr, shape: Any, dtype: Any = None) -> "Any":
-    """Download a float array from GPU memory into a NumPy array."""
-    try:
-        import numpy as np  # type: ignore
-    except Exception as exc:  # pragma: no cover - numpy required for array path
-        raise RuntimeError("NumPy is required for gpu_to_cpu_array downloads") from exc
-    dtype = np.float32 if dtype is None else dtype
+    """Download a float buffer from GPU memory into a ctypes array.
+
+    Sovereign-only: returns a ``ctypes.c_float`` array of the requested length.
+    The prior NumPy return path was purged 2026-04-18 per
+    ``TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md`` §5.4. Callers that
+    need a typed numeric array must consume the ctypes buffer directly — no
+    numpy ``ndarray`` is constructed in the hot path anymore.
+    """
+    if dtype is not None:
+        raise NotImplementedError(
+            "gpu_to_cpu_array: custom dtype was a numpy-native knob; "
+            "sovereign downloads are float32 only. Use the ternary readback "
+            "kernel for integer tensors."
+        )
     if isinstance(shape, int):
-        shape = (shape,)
-    arr = np.empty(tuple(shape), dtype=dtype)
-    memcpy_dtoh(ctypes.c_void_p(arr.ctypes.data), src, arr.nbytes)
-    return arr
+        count = int(shape)
+    else:
+        count = 1
+        for dim in shape:
+            count *= int(dim)
+    if count <= 0:
+        raise ValueError(f"gpu_to_cpu_array: non-positive element count {count}")
+    buf = (ctypes.c_float * count)()
+    memcpy_dtoh(ctypes.cast(buf, ctypes.c_void_p), src, ctypes.sizeof(buf))
+    return buf
 
 
 def gpu_to_gpu_copy(dst: CUdeviceptr, src: CUdeviceptr, offset: int, size: int) -> None:

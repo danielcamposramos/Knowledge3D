@@ -1,4 +1,4 @@
-"""ARC-AGI benchmark integration for Knowledgeverse Week 14."""
+"""Visual grid reasoning benchmark (ARC corpus, sovereign tablet path)."""
 
 from __future__ import annotations
 
@@ -9,15 +9,13 @@ from pathlib import Path
 from typing import Any, Callable
 
 from benchmarks.sampling import stratified_sample
-from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletIngest
-from benchmarks.arc_agi_2_adapter import ArcAgi2Adapter
+from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.knowledgeverse.trm_navigator import TRMNavigator
 from knowledge3d.tablet.wine.game2d_wine import arc2_game_envelope, build_game2d_session_tape
 
 
 class ARCAGI2Benchmark:
-    """Run ARC-style visual reasoning tasks with empty/enriched modes."""
+    """Run visual-grid reasoning tasks through the sovereign tablet boundary."""
 
     def __init__(
         self,
@@ -86,11 +84,19 @@ class ARCAGI2Benchmark:
         self.query_scope_galaxies = self._normalize_query_scope(query_scope_galaxies)
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.tablet_boundary = tablet_boundary
+        self._ensure_tablet_boundary()
         self.dataset_path = self._resolve_dataset_path(dataset_path, dataset_version)
         self.max_tasks = max_tasks
         self.tasks = self._load_tasks()
         self.results: list[dict[str, Any]] = []
-        self.adapter: ArcAgi2Adapter | None = None
+
+    def _ensure_tablet_boundary(self) -> HeadlessTabletMPC:
+        if self.tablet_boundary is None:
+            self.tablet_boundary = HeadlessTabletMPC(
+                knowledgeverse=self.kv,
+                storage_root=getattr(self.kv, "storage_root", None),
+            )
+        return self.tablet_boundary
 
     def _resolve_dataset_path(self, dataset_path: str | Path | None, dataset_version: str) -> Path:
         if dataset_path is not None:
@@ -172,66 +178,22 @@ class ARCAGI2Benchmark:
         tasks_with_generated_patterns = 0
         step = max(1, int(progress_every or 10))
         start = time.monotonic()
-        tablet_rows: list[dict[str, Any]] = []
-        if self.tablet_boundary is None:
-            self.adapter = ArcAgi2Adapter(
-                use_enriched=use_enriched,
-                strict_legacy=(self.strict_legacy or self.enable_full_ptx),
-                knowledgeverse=self.kv,
-                enable_contrastive_learning=self.enable_contrastive_learning,
-                enable_validity_gates=self.enable_validity_gates,
-                enable_fuzzy_oracle=self.enable_fuzzy_oracle,
-                fuzzy_oracle_threshold=self.fuzzy_oracle_threshold,
-                enable_ptx_ranking=self.enable_ptx_ranking,
-                enable_full_ptx=self.enable_full_ptx,
-                ptx_validity_strictness=self.ptx_validity_strictness,
-                constraint_mode=self.constraint_mode,
-                enable_figure_ground_reversal=self.enable_figure_ground_reversal,
-                enable_object_aware_generation=self.enable_object_aware_generation,
-                enable_forced_navigation_curriculum=self.enable_forced_navigation_curriculum,
-                forced_navigation_ratio=self.forced_navigation_ratio,
-                forced_navigation_required_galaxies=self.forced_navigation_required_galaxies,
-                enable_rescue_lane=self.enable_rescue_lane,
-                rescue_lane_size=self.rescue_lane_size,
-                oracle_search_lane_size=self.oracle_search_lane_size,
-                enable_oracle_rejected_rescue=self.enable_oracle_rejected_rescue,
-                oracle_rejected_rescue_size=self.oracle_rejected_rescue_size,
-                oracle_rejected_rescue_fuzzy_threshold=self.oracle_rejected_rescue_fuzzy_threshold,
-                enable_dual_track_oracle=self.enable_dual_track_oracle,
-                family_penalty_weight=self.family_penalty_weight,
-                shape_penalty_weight=self.shape_penalty_weight,
-                palette_penalty_weight=self.palette_penalty_weight,
-                object_penalty_weight=self.object_penalty_weight,
-                query_scope_galaxies=self.query_scope_galaxies,
-                tablet_boundary=self.tablet_boundary,
-            )
-        else:
-            self.adapter = None
-            tape = build_game2d_session_tape(
-                session_id=f"arc_{int(time.time() * 1000)}",
-                suite_name="arc_agi_2",
-                rows=self.tasks[resume_index:],
-                use_enriched=use_enriched,
-            )
-            tablet_rows = list(self.tablet_boundary.run_tape_session(tape)["results"])
+        boundary = self._ensure_tablet_boundary()
+        tape = build_game2d_session_tape(
+            session_id=f"visual_grid_{int(time.time() * 1000)}",
+            suite_name="visual_grid_reasoning",
+            rows=self.tasks[resume_index:],
+            use_enriched=use_enriched,
+        )
+        tablet_rows = list(boundary.run_tape_session(tape)["results"])
         for offset, task in enumerate(self.tasks[resume_index:]):
             index = resume_index + offset + 1
-            if self.tablet_boundary is not None:
-                result = self._arc_result_from_tablet_result(task=task, tablet_result=tablet_rows[offset])
-                task_result = dict(result.get("task_result") or {})
-                result["elapsed_s"] = round(
-                    max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
-                    3,
-                )
-            else:
-                row_start = time.monotonic()
-                result = self._solve_task(task=task, use_enriched=use_enriched)
-                result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
-            if self.enable_full_ptx and str(result.get("solver")) != "arc_ptx_ops":
-                raise RuntimeError(
-                    "PTX ARC solver contract violated: expected solver='arc_ptx_ops' "
-                    f"but got '{result.get('solver')}'."
-                )
+            result = self._result_from_tablet(task=task, tablet_result=tablet_rows[offset])
+            task_result = dict(result.get("task_result") or {})
+            result["elapsed_s"] = round(
+                max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                3,
+            )
             self.results.append(result)
             if result["correct"]:
                 correct += 1
@@ -248,7 +210,7 @@ class ARCAGI2Benchmark:
                         "total": total,
                         "correct": correct,
                         "elapsed_s": time.monotonic() - start,
-                        "benchmark": "arc",
+                        "surface_kind": "GAME_2D",
                     }
                 )
         accuracy = (correct / total) if total else 0.0
@@ -275,81 +237,17 @@ class ARCAGI2Benchmark:
         task: dict[str, Any],
         use_enriched: bool,
     ) -> dict[str, Any]:
-        try:
-            if self.tablet_boundary is not None:
-                result = self._solve_task_via_tablet(task=task, use_enriched=use_enriched)
-            else:
-                assert self.adapter is not None
-                result = self.adapter.solve_task(task)
-        except Exception as exc:
-            route = {
-                "specialist": "visual",
-                "domain_hint": "visual",
-                "route_policy": "all_live_galaxies",
-                "galaxy_names": list(self.kv.ensure_default_galaxies_loaded().keys()),
-            }
-            failure_trace = [f"arc_gpu_exception: {type(exc).__name__}: {exc}"]
-            self.kv.log_event(
-                "arc_task_failure",
-                {
-                    "specialist": "visual",
-                    "task_id": task["id"],
-                    "confidence": 0.05,
-                    "galaxy": "Drawing",
-                    "verification": "knowledgeverse_gpu_query_exception",
-                },
-            )
-            return {
-                "task_id": task["id"],
-                "correct": False,
-                "exact_match": False,
-                "predicted": getattr(exc, "partial_result", None),
-                "expected": task["test"][0].get("output"),
-                "transform": None,
-                "patterns_used": 0,
-                "reasoning_trace": failure_trace,
-                "route": route,
-                "score": 0.0,
-                "fuzzy_score": 0.0,
-                "solver": "knowledgeverse_gpu_query",
-                "runtime": "knowledgeverse_gpu_query_exception",
-                "gpu_execution": False,
-                "program_id": "",
-                "generated_pattern_count": 0,
-                "failure_reason": f"{type(exc).__name__}: {exc}",
-            }
-        correct = bool(result["correct"])
-        route = result.get("route", {})
-        route_galaxies = route.get("galaxy_names") or ["Drawing"]
-        event_type = "arc_task_success" if correct else "arc_task_failure"
-        self.kv.log_event(
-            event_type,
-            {
-                "specialist": route.get("specialist", "visual"),
-                "task_id": task["id"],
-                "confidence": 0.9 if correct else 0.4,
-                "galaxy": route_galaxies[0],
-                "verification": str(result.get("solver", "arc_solver")),
-            },
-        )
-        return result
-
-    def _solve_task_via_tablet(
-        self,
-        *,
-        task: dict[str, Any],
-        use_enriched: bool,
-    ) -> dict[str, Any]:
+        boundary = self._ensure_tablet_boundary()
         envelope = arc2_game_envelope(
             task_id=str(task["id"]),
             training_examples=task["train"],
             input_grid=task["test"][0].get("input"),
             expected_output=task["test"][0].get("output"),
         )
-        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
-        return self._arc_result_from_tablet_result(task=task, tablet_result=tablet_result)
+        tablet_result = boundary.submit(envelope, use_enriched=use_enriched)
+        return self._result_from_tablet(task=task, tablet_result=tablet_result)
 
-    def _arc_result_from_tablet_result(
+    def _result_from_tablet(
         self,
         *,
         task: dict[str, Any],
@@ -360,7 +258,7 @@ class ARCAGI2Benchmark:
         correct = bool(emitted.get("correct", False))
         route_galaxies = route.get("galaxy_names") or ["Drawing"]
         self.kv.log_event(
-            "arc_task_success" if correct else "arc_task_failure",
+            "visual_grid_task_success" if correct else "visual_grid_task_failure",
             {
                 "specialist": route.get("specialist", "visual"),
                 "task_id": task["id"],
@@ -433,10 +331,6 @@ class ARCAGI2Benchmark:
             ),
         }
 
-    def _solve_task_fallback(self, task: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        del task, use_enriched
-        raise RuntimeError("arc2_python_fallback_archived: live ARC runtime must use the tablet/WINE path only")
-
     def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
         if isinstance(value, list):
             raw = [str(item).strip() for item in value]
@@ -455,33 +349,6 @@ class ARCAGI2Benchmark:
             seen.add(key)
             normalized.append(item)
         return normalized or None
-
-    def _seed_visual_knowledge(self, task: dict[str, Any]) -> None:
-        self.kv.galaxy_manager.add_entry(
-            "Drawing",
-            {
-                "domain": "visual",
-                "task_id": task["id"],
-                "train_examples": len(task.get("train", [])),
-                "kind": "arc_pattern",
-            },
-        )
-        self.kv.galaxy_manager.add_entry(
-            "Grammar",
-            {
-                "domain": "visual",
-                "task_id": task["id"],
-                "kind": "transform_rule",
-            },
-        )
-
-    def _grids_match(self, predicted: list[list[int]], expected: list[list[int]]) -> bool:
-        if len(predicted) != len(expected):
-            return False
-        for pred_row, exp_row in zip(predicted, expected):
-            if list(pred_row) != list(exp_row):
-                return False
-        return True
 
     def _compute_pattern_source_accuracy(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
         stats: dict[str, dict[str, float]] = {}

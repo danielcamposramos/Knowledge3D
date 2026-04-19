@@ -419,6 +419,7 @@ Per the Opcode Range Reservation Doctrine, any parallel-lane task that will mint
 | `0x1BA` | `0x1BF` | future normalization/attention headroom (narrowed from 0x1B1-0x1BF by v4 sub-reservation) | 2026-04-18 | active |
 | `0x1C0` | `0x1C5` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (IMAGE/SPARSE — relocated from 0x1AA–0x1AF per v2 supersession) | 2026-04-18 | active |
 | `0x1C6` | `0x1CF` | future physics expansion headroom (tied to §7.4) | 2026-04-18 | active |
+| `0x1D0` | `0x1FF` | `TEMP/CLAUDE_INGESTION_SYMLINK_REWIRE_04.18.2026.md §13` — `VIRTUAL_PAGE_*` graph-grammar RPN for ingestion-path virtual pages. Sub-families: `PAGE_*` / `FRAME_*` / `TABLE_*` / `PARAGRAPH_*` / `LINE_*` / `RUN_*` / `*_EMIT*` (WORD/GLYPH/NUMERAL/EQUATION/FIGURE/SYMBOL) / `LAYOUT_*` / `STYLE_*` / `BIDI_*` / `SCRIPT_*` / `HYPHEN_*`. Specific numbers NOT assigned in this reservation — only the range. Extension into 0x200+ permitted on registry-owner review if the ~58 planned opcodes exceed 48 slots. | 2026-04-18 | active |
 
 **Note on 0xA0–0xF1**: the reasoning-paradigm block (§7) predates this doctrine; its reservation authority is `TEMP/CLAUDE_REASONING_PARADIGMS_AND_N_SWARM_SPEC_2026-04-13.md §4` and is treated as `released`.
 

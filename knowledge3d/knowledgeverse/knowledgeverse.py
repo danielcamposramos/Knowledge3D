@@ -18,7 +18,28 @@ import time
 from typing import Any
 import zlib
 
-import numpy as np
+# Numpy banned from the hot path by the 2026-04-18 absolute sovereignty purge.
+# See TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.2. The sentinel
+# below keeps the ``np`` name resolvable at module scope (so ``from __future__
+# import annotations`` string hints like ``np.ndarray`` do not break tooling),
+# but any runtime access raises immediately with a clear message pointing at
+# the call site that still needs to migrate to PTX + Galaxy.
+class _NumpyPurgedSentinel:
+    """Attribute-access tripwire for leftover numpy uses in this orchestrator."""
+
+    __slots__ = ()
+
+    def __getattr__(self, name: str):
+        raise NotImplementedError(
+            f"knowledgeverse.py: np.{name} — numpy banned by the 2026-04-18 "
+            "absolute sovereignty purge "
+            "(TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.2). "
+            "Rewrite this call site as a sovereign PTX + Galaxy path before "
+            "re-enabling."
+        )
+
+
+np = _NumpyPurgedSentinel()  # type: ignore[assignment]
 
 from knowledge3d.cranium.adaptive_swarm import AdaptiveSwarmTRM, SwarmConfig
 from knowledge3d.cranium.bridges.matryoshka_bridge import MatryoshkaProjectionBridge
@@ -75,11 +96,21 @@ from .navigator_specialist import (
     resolve_meaning_class_distribution,
 )
 from .query_head_substrate import QueryHeadSubstrate
-from .runtime_ingest import load_books_runtime_entries, load_language_runtime_entries, resolve_books_v5_root
-from .semantic_csr_graph import _catalog_signature, load_or_build_semantic_csr_graph
+from knowledge3d.ingestion.runtime_ingest import (
+    load_books_runtime_entries,
+    load_language_runtime_entries,
+    resolve_books_v5_root,
+)
+from knowledge3d.ingestion.semantic_csr_graph import (
+    _catalog_signature,
+    load_or_build_semantic_csr_graph,
+)
 from .shadow_copy import ShadowCopyLearning
 from .sovereign_hot_path import SovereignHotPath
-from .sleeptime import SleepTimeConsolidation
+# ``.sleeptime`` was moved to ``Old_Attempts/2026-04-18/`` per the Absolute
+# Sovereignty Purge (see TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md
+# §5.4 and knowledge3d/cranium/ptx/sleep_*.ptx). The sovereign successor is
+# the PTX game-loop tick, not a Python consolidator.
 from .stargate import IngestionStargate
 from .ternary_quality_memory import TernaryQualityMemory
 from .trm_game_loop import TRMGameLoop
@@ -624,15 +655,19 @@ class Knowledgeverse:
             state_path=self.storage_root / "checkpoints" / "ternary_quality_memory.json"
         )
 
-        sleeptime_journal = (
+        # Sleep-time consolidation is now driven by PTX kernels
+        # (sleep_time_micro.ptx, sleep_cluster_refiner.ptx,
+        # sleep_glyph_consolidator.ptx) dispatched from
+        # knowledge3d.cranium.sleep.SleepScheduler. The Python
+        # ``SleepTimeConsolidation`` class was moved to Old_Attempts on
+        # 2026-04-18 — we retain the journal path so the PTX driver can
+        # append from the sovereign side when it lands.
+        self.sleeptime_journal_path = (
             Path(sleeptime_journal_path)
             if sleeptime_journal_path is not None
             else self.storage_root / "logs" / "sleeptime_journal.jsonl"
         )
-        self.sleeptime = SleepTimeConsolidation(
-            knowledgeverse=self,
-            journal_path=sleeptime_journal,
-        )
+        self.sleeptime = None
         self._trm_game_loop = TRMGameLoop(
             self,
             input_ring=self.stargate.ring_buffer,

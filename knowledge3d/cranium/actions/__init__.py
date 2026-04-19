@@ -1,10 +1,45 @@
-"""Action-related helpers for the fused head output layer."""
+"""Action-related helpers for the fused head output layer.
 
-from .action_types import ActionType, ActionBuffer, ActionResult, ACTION_BUFFER_DTYPE  # noqa: F401
-from .confidence_propagation import ConfidencePropagator  # noqa: F401
-from .alpha_rl_optimizer import AlphaRLOptimizer  # noqa: F401
+Post-purge surface (2026-04-18):
+    The original numpy-dtype ``ActionBuffer`` / ``ACTION_BUFFER_DTYPE``
+    pair lives in ``Old_Attempts/2026-04-18/`` as part of
+    ``TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md``. The
+    sovereign successor is a pure-ctypes ``ActionBufferStruct`` +
+    ``ActionBuffer`` pair that preserves the 288-byte PTX contract
+    (see :mod:`knowledge3d.cranium.actions.action_types`).
+
+    The following helpers remain archived and should be re-driven
+    directly from PTX when needed:
+
+        confidence_propagation / ConfidencePropagator
+        context_aware_alpha / ContextAwareAlpha
+        multi_modal_confidence_propagation / MultiModalConfidencePropagator
+        enhanced_multi_modal_confidence_propagation / EnhancedMultiModalConfidencePropagator
+        adaptive_convergence_analyzer / AdaptiveConvergenceAnalyzer
+
+    Their sovereign successors live in the PTX kernels
+    ``confidence_propagation.ptx``, ``adaptive_convergence.ptx``, and
+    ``decode_actions.ptx`` under ``knowledge3d/cranium/ptx/``.
+"""
+
+from .action_types import (  # noqa: F401
+    ACTION_BUFFER_SIZE,
+    ActionBuffer,
+    ActionBufferStruct,
+    ActionResult,
+    ActionType,
+)
+from .alpha_rl_optimizer import AlphaRLOptimizer, AlphaRange, AlphaState  # noqa: F401
 from .advanced_alpha_rl_optimizer import AdvancedAlphaRLOptimizer  # noqa: F401
-from .context_aware_alpha import ContextAwareAlpha  # noqa: F401
-from .multi_modal_confidence_propagation import MultiModalConfidencePropagator  # noqa: F401
-from .enhanced_multi_modal_confidence_propagation import EnhancedMultiModalConfidencePropagator  # noqa: F401
-from .adaptive_convergence_analyzer import AdaptiveConvergenceAnalyzer  # noqa: F401
+
+__all__ = [
+    "ACTION_BUFFER_SIZE",
+    "ActionBuffer",
+    "ActionBufferStruct",
+    "ActionResult",
+    "ActionType",
+    "AlphaRLOptimizer",
+    "AlphaRange",
+    "AlphaState",
+    "AdvancedAlphaRLOptimizer",
+]

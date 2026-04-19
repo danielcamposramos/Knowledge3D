@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import struct
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -27,17 +28,13 @@ def load_k3d_from_gltf(path: Path) -> Tuple[Dict[str, Dict[str, Any]], int]:
         raw = buf[bv.byteOffset : bv.byteOffset + bv.byteLength]
         # precision: default f32; optionally f16
         prec = ext.get("embeddingPrecision", "f32")
+        total = len(ids) * int(dims)
         if prec == "f16":
-            import numpy as np
-
-            arr = np.frombuffer(raw, dtype=np.float16).astype("float32")
+            # struct 'e' = IEEE 754 half-precision float (Python 3.6+)
+            flat = list(struct.unpack(f"<{total}e", raw[: total * 2]))
         else:
-            import numpy as np
-
-            arr = np.frombuffer(raw, dtype=np.float32)
-        import numpy as np
-
-        mat = np.asarray(arr).reshape(len(ids), dims).tolist()
+            flat = list(struct.unpack(f"<{total}f", raw[: total * 4]))
+        mat = [flat[i * dims : (i + 1) * dims] for i in range(len(ids))]
     else:
         mat = ext.get("embeddings", [])
 

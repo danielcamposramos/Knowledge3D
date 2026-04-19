@@ -35,7 +35,14 @@ from .ring_buffer import RingBuffer
 from .seed_stars import SEED_STARS, build_seed_stars, seed_star_entries, seed_word_entries
 from .semantic_gravity import gravity_tick, meaning_mass, semantic_gravity_force, ternary_semantic_force
 from .shadow_copy import ShadowCopyLearning
-from .sleeptime import SleepTimeConsolidation, SleepTimeError
+# ``.sleeptime`` was moved to ``Old_Attempts/2026-04-18/`` per the Absolute
+# Sovereignty Purge (see TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md
+# §5.4). The sovereign successor is the PTX game-loop tick that drives
+# sleep_time_micro.ptx + sleep_cluster_refiner.ptx + sleep_glyph_consolidator.ptx
+# directly from trm_step_fused.ptx during idle windows. No Python wrapper
+# class replaces SleepTimeConsolidation — the scheduler in
+# knowledge3d.cranium.sleep.SleepScheduler now raises NotImplementedError
+# at consolidation time until the driver lands.
 from .specialist_base import SpecialistBase, SpecialistDelta
 from .specialist_spawner import SpecialistSpawner, SpawnDecision
 from .specialist_router import SpecialistRoute, SpecialistRouter
@@ -97,8 +104,6 @@ __all__ = [
     "SpecialistRoute",
     "SpecialistRouter",
     "ShadowCopyLearning",
-    "SleepTimeConsolidation",
-    "SleepTimeError",
     "SpecialistBase",
     "SpecialistDelta",
     "SpecialistSpawner",

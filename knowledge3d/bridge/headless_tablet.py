@@ -1,30 +1,21 @@
 from __future__ import annotations
 
+import ctypes
 import hashlib
-import importlib.util
 import re
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-import numpy as np
+from knowledge3d.cranium.actions.action_types import (
+    ACTION_BUFFER_SIZE,
+    ActionBuffer,
+    ActionBufferStruct,
+    ActionType,
+)
 
 from .memory_tablet import MemoryTablet
-
-_ACTION_TYPES_PATH = Path(__file__).resolve().parent.parent / "cranium" / "actions" / "action_types.py"
-_ACTION_TYPES_SPEC = importlib.util.spec_from_file_location("_k3d_action_types_direct", _ACTION_TYPES_PATH)
-if _ACTION_TYPES_SPEC is None or _ACTION_TYPES_SPEC.loader is None:
-    raise ImportError(f"unable_to_load_action_types:{_ACTION_TYPES_PATH}")
-_ACTION_TYPES_MODULE = sys.modules.get(str(_ACTION_TYPES_SPEC.name))
-if _ACTION_TYPES_MODULE is None:
-    _ACTION_TYPES_MODULE = importlib.util.module_from_spec(_ACTION_TYPES_SPEC)
-    sys.modules[str(_ACTION_TYPES_SPEC.name)] = _ACTION_TYPES_MODULE
-    _ACTION_TYPES_SPEC.loader.exec_module(_ACTION_TYPES_MODULE)
-ACTION_BUFFER_DTYPE = _ACTION_TYPES_MODULE.ACTION_BUFFER_DTYPE
-ActionBuffer = _ACTION_TYPES_MODULE.ActionBuffer
-ActionType = _ACTION_TYPES_MODULE.ActionType
 
 
 class CommandHandler(Protocol):
@@ -86,7 +77,9 @@ class _MathOperands:
 
 
 def _decode_signed_i32_word(value: Any) -> int:
-    return int(np.array([int(value) & 0xFFFFFFFF], dtype=np.uint32).view(np.int32)[0])
+    """Reinterpret the low 32 bits of ``value`` as a two's-complement int32."""
+    raw = ctypes.c_uint32(int(value) & 0xFFFFFFFF)
+    return int(ctypes.c_int32.from_buffer(raw).value)
 
 
 def _extract_math_operands(query: str) -> _MathOperands:
@@ -561,38 +554,36 @@ class TabletEnvelope:
         return payload
 
     def to_action_buffer(self, *, confidence: float = 0.95, curiosity: float = 0.0) -> ActionBuffer:
-        buf = ActionBuffer(np.zeros(1, dtype=ACTION_BUFFER_DTYPE))
-        buf.buffer["action_type"][0] = np.uint32(ActionType.UPDATE_TABLET.value)
-        buf.buffer["confidence"][0] = np.float32(confidence)
-        buf.buffer["curiosity"][0] = np.float32(curiosity)
+        buf = ActionBuffer()
+        struct = buf.buffer
+        struct.action_type = int(ActionType.UPDATE_TABLET.value)
+        struct.confidence = float(confidence)
+        struct.curiosity = float(curiosity)
         surface_kind = _normalize_surface_kind(self.surface_kind)
-        buf.buffer["tablet_mutation_type"][0] = np.uint32(_TABLET_MUTATION_TYPES.get(surface_kind, 0))
+        struct.tablet_mutation_type = int(_TABLET_MUTATION_TYPES.get(surface_kind, 0))
         task_lo, task_hi = _hash_words(surface_kind, self.task_id)
         query_lo, query_hi = _hash_words(self.query)
         specialist_code = _SPECIALIST_CODES.get(str(self.specialist).lower(), 0)
-        payload = np.array(
-            [
-                task_lo,
-                task_hi,
-                query_lo,
-                query_hi,
-                min(len(self.query.encode("utf-8")), 0xFFFFFFFF),
-                specialist_code,
-            ],
-            dtype=np.uint32,
+        payload = (
+            int(task_lo) & 0xFFFFFFFF,
+            int(task_hi) & 0xFFFFFFFF,
+            int(query_lo) & 0xFFFFFFFF,
+            int(query_hi) & 0xFFFFFFFF,
+            min(len(self.query.encode("utf-8")), 0xFFFFFFFF),
+            int(specialist_code) & 0xFFFFFFFF,
         )
-        buf.buffer["tablet_data"][0][:] = payload
+        for i, word in enumerate(payload):
+            struct.tablet_data[i] = word
         if surface_kind == SURFACE_KIND_MATH:
             operands = _extract_math_operands(self.query)
-            buf.buffer["tablet_reserved"][0][:] = np.array(
-                [
-                    operands.left & 0xFFFFFFFF,
-                    operands.right & 0xFFFFFFFF,
-                    operands.count & 0xFFFFFFFF,
-                    operands.operator_hint & 0xFFFFFFFF,
-                ],
-                dtype=np.uint32,
+            reserved = (
+                operands.left & 0xFFFFFFFF,
+                operands.right & 0xFFFFFFFF,
+                operands.count & 0xFFFFFFFF,
+                operands.operator_hint & 0xFFFFFFFF,
             )
+            for i, word in enumerate(reserved):
+                struct.tablet_reserved[i] = word
         return buf
 
 
@@ -1580,8 +1571,15 @@ class HeadlessTabletMPC:
 
     @staticmethod
     def _action_buffer_words(action_buffer: ActionBuffer) -> list[int]:
-        host = np.asarray(action_buffer.buffer)
-        return [int(value) for value in host.view(np.uint32).reshape(-1)[:72]]
+        """Return the 288-byte ActionBuffer as 72 uint32 host words.
+
+        Uses ctypes directly — the sovereign replacement for the
+        ``np.asarray(...).view(np.uint32)`` call. The underlying
+        ``ActionBufferStruct`` is already uint32-aligned throughout.
+        """
+        addr = ctypes.addressof(action_buffer.buffer)
+        words = (ctypes.c_uint32 * 72).from_address(addr)
+        return [int(word) & 0xFFFFFFFF for word in words]
 
     @staticmethod
     def _fallback_query_embedding(envelope: TabletEnvelope) -> list[float]:
