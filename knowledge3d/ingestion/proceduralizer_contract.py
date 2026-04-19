@@ -58,6 +58,7 @@ Return this schema exactly:
       "grammar_refs": ["grammar_quantity_unit_binding"],
       "reality_refs": ["unit_money_dollar"],
       "meta_refs": ["source_span:0-120"],
+      "sources": ["https://example.com/reference"],
       "relationships": [{"from": "x", "relation": "part_of", "to": "y"}],
       "route_contract": {
         "route_family": "MATH|QUESTION|GENERAL|GRAMMAR|GAME_2D",
@@ -83,6 +84,25 @@ Rules:
 - Every id and label must be meaning-named, never benchmark-named
 """
 
+PROCEDURALIZER_DIFFERENTIATION_PREAMBLE = """
+You are in DIFFERENTIATION MODE.
+
+The source row you see shares a content hash with peer rows in the same galaxy.
+Peer content samples are provided so you can see what sibling rows already say.
+Your task is to extend the current row with concrete, web-sourced specifics that
+the peers do not already contain.
+
+Differentiation rules:
+- Use only details supported by the attached web_evidence payload.
+- When you introduce a concrete fact, property, date, dimension, taxonomy term,
+  named part, or authoritative definition, cite at least one supporting URL in
+  the packet field `sources`.
+- If the web_evidence is empty or not distinctive enough to separate this row
+  from its peers, return:
+  {"status":"unresolvable","ingest_action":"skip","knowledge_packets":[]}
+- Do not fabricate. Do not cite URLs that are not present in web_evidence.
+"""
+
 
 PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -90,6 +110,9 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
         "ingest_action": {
             "type": "string",
             "enum": ["skip", "augment", "needs_context", "reject"],
+        },
+        "status": {
+            "type": "string",
         },
         "knowledge_packets": {
             "type": "array",
@@ -117,6 +140,7 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
                     "grammar_refs": {"type": "array", "items": {"type": "string"}},
                     "reality_refs": {"type": "array", "items": {"type": "string"}},
                     "meta_refs": {"type": "array", "items": {"type": "string"}},
+                    "sources": {"type": "array", "items": {"type": "string"}},
                     "relationships": {
                         "type": "array",
                         "items": {
@@ -147,6 +171,7 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
                     "grammar_refs",
                     "reality_refs",
                     "meta_refs",
+                    "sources",
                     "relationships",
                     "confidence",
                     "needs_review",
@@ -163,6 +188,7 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _BENCHMARK_TOKEN_RE = re.compile(r"\b(mmlu|gsm8k|lhe|arc|imo|aime|amc|omni|benchmark)\b", re.IGNORECASE)
 _THINK_RE = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
+_URL_RE = re.compile(r"^https?://\S+$", re.IGNORECASE)
 
 
 def _sha(text: str, *, size: int = 12) -> str:
@@ -227,6 +253,9 @@ class ProceduralizerRequest:
     existing_ref_menu: str = ""
     quality_profile: str = "quality"
     ingest_mode: str = "augment"
+    mode: str = "standard"
+    peer_content_sample: list[str] | None = None
+    web_evidence: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -248,6 +277,7 @@ class ProceduralizerPacket:
     grammar_refs: list[str] = field(default_factory=list)
     reality_refs: list[str] = field(default_factory=list)
     meta_refs: list[str] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
     relationships: list[dict[str, str]] = field(default_factory=list)
     route_contract: dict[str, Any] | None = None
     confidence: float = 0.0
@@ -260,11 +290,13 @@ class ProceduralizerPacket:
 @dataclass
 class ProceduralizerBundle:
     ingest_action: str
+    status: str = ""
     knowledge_packets: list[ProceduralizerPacket] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "ingest_action": self.ingest_action,
+            "status": self.status,
             "knowledge_packets": [packet.to_dict() for packet in self.knowledge_packets],
         }
 
@@ -326,6 +358,25 @@ def _normalize_ref_list(value: Any) -> list[str]:
     return out
 
 
+def _normalize_sources(value: Any, *, allowed_urls: set[str] | None = None) -> list[str]:
+    out: list[str] = []
+    if not isinstance(value, list):
+        return out
+    seen: set[str] = set()
+    for item in value:
+        text = str(item or "").strip()
+        if not text or not _URL_RE.match(text):
+            continue
+        if allowed_urls is not None and text not in allowed_urls:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
 def _normalize_relationships(value: Any) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     if not isinstance(value, list):
@@ -361,6 +412,12 @@ def _normalize_route_contract(value: Any) -> dict[str, Any] | None:
         "validator_refs": _normalize_ref_list(value.get("validator_refs")),
         "anti_pattern_refs": _normalize_ref_list(value.get("anti_pattern_refs")),
     }
+
+
+def proceduralizer_system_prompt(request: ProceduralizerRequest) -> str:
+    if str(request.mode or "standard").strip().lower() == "differentiation":
+        return f"{PROCEDURALIZER_SYSTEM_PROMPT.strip()}\n\n{PROCEDURALIZER_DIFFERENTIATION_PREAMBLE.strip()}"
+    return PROCEDURALIZER_SYSTEM_PROMPT
 
 
 def _fallback_bundle(
@@ -410,6 +467,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
     if not isinstance(payload, dict):
         return _fallback_bundle(request, failure_code="invalid_json", raw_text=raw_text), False, "invalid_json"
 
+    status = str(payload.get("status") or "").strip().lower()
     action = str(payload.get("ingest_action") or "").strip().lower()
     if action not in {"skip", "augment", "needs_context", "reject"}:
         # Compat: accept old single-packet proceduralizer payloads as augment.
@@ -421,6 +479,11 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
     if not isinstance(packets_raw, list):
         packets_raw = []
 
+    allowed_urls = {
+        str(item.get("url") or "").strip()
+        for item in list(request.web_evidence or [])
+        if isinstance(item, dict) and str(item.get("url") or "").strip()
+    } or None
     packets: list[ProceduralizerPacket] = []
     for item in packets_raw:
         if not isinstance(item, dict):
@@ -446,6 +509,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
             grammar_refs=_normalize_ref_list(item.get("grammar_refs")),
             reality_refs=_normalize_ref_list(item.get("reality_refs")),
             meta_refs=_normalize_ref_list(item.get("meta_refs")),
+            sources=_normalize_sources(item.get("sources"), allowed_urls=allowed_urls),
             relationships=_normalize_relationships(item.get("relationships")),
             route_contract=_normalize_route_contract(item.get("route_contract")),
             confidence=max(0.0, min(1.0, float(item.get("confidence", 0.35) or 0.35))),
@@ -457,7 +521,16 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
             packet.proposed_star_id = f"{layer_kind}_{slugify_meaning_name(packet.summary)}_{_sha(packet.summary + '|' + request.source_id)}"
         packets.append(packet)
 
-    bundle = ProceduralizerBundle(ingest_action=action, knowledge_packets=packets)
+    if status == "unresolvable":
+        return ProceduralizerBundle(ingest_action="skip", status="unresolvable", knowledge_packets=[]), True, ""
+    if str(request.mode or "standard").strip().lower() == "differentiation" and action == "augment":
+        if not packets:
+            return ProceduralizerBundle(ingest_action="skip", status="unresolvable", knowledge_packets=[]), True, ""
+        for packet in packets:
+            if not packet.sources:
+                return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
+
+    bundle = ProceduralizerBundle(ingest_action=action, status=status, knowledge_packets=packets)
     schema_ok = action in {"skip", "augment", "needs_context", "reject"}
     if action == "augment" and not packets:
         return _fallback_bundle(request, failure_code="empty_packets", raw_text=raw_text), False, "empty_packets"
@@ -466,6 +539,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
 
 __all__ = [
     "PROCEDURALIZER_BUNDLE_JSON_SCHEMA",
+    "PROCEDURALIZER_DIFFERENTIATION_PREAMBLE",
     "PROCEDURALIZER_MODEL_PROFILES",
     "PROCEDURALIZER_SYSTEM_PROMPT",
     "ProceduralizerBundle",
@@ -474,6 +548,7 @@ __all__ = [
     "ProceduralizerRequest",
     "extract_json_object",
     "parse_bundle",
+    "proceduralizer_system_prompt",
     "request_hash",
     "response_hash",
     "slugify_meaning_name",

@@ -216,6 +216,22 @@ These defaults are intentional, not accidental:
 - lower working `num_ctx` reduces latency and plan burn for long ingestion runs
 - the long-context profile is reserved for sources that justify it
 
+### 5.1 Differentiation Mode
+
+The proceduralizer also supports a `differentiation` mode for staged residual
+duplicate-content cleanup. This mode extends the standard request with:
+
+- `mode` — `standard` or `differentiation`
+- `peer_content_sample` — short summaries of sibling rows in the same duplicate cluster
+- `web_evidence` — cached `web_search` hits shaped as `{url, title, snippet}`
+
+Differentiation mode is ingestion-path only and depends on mandatory web-search
+grounding. When a packet introduces concrete differentiating detail, it must
+cite at least one approved URL in `sources`, which the Stargate persists at
+`metadata.sources`. If the attached evidence cannot distinguish the row, the
+model must return `status="unresolvable"` with an empty packet list rather
+than fabricate or collapse the cluster.
+
 ---
 
 ## 6. Source-Specific Behavior

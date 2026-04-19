@@ -18,11 +18,11 @@ from knowledge3d.ingestion.ollama_manager import OllamaManager
 from .proceduralizer_contract import (
     PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,
-    PROCEDURALIZER_SYSTEM_PROMPT,
     ProceduralizerReceipt,
     ProceduralizerRequest,
     extract_json_object,
     parse_bundle,
+    proceduralizer_system_prompt,
     request_hash,
     response_hash,
 )
@@ -35,6 +35,7 @@ def _request_user_message(request: ProceduralizerRequest) -> str:
         f"source_path={request.source_path or 'unknown'}",
         f"domain_hint={request.domain_hint or 'General'}",
         f"ingest_mode={request.ingest_mode or 'augment'}",
+        f"mode={request.mode or 'standard'}",
         "",
         "Response schema:",
         json.dumps(PROCEDURALIZER_BUNDLE_JSON_SCHEMA, ensure_ascii=False, sort_keys=True),
@@ -46,6 +47,24 @@ def _request_user_message(request: ProceduralizerRequest) -> str:
         parts.append("Context chunks:")
         for index, chunk in enumerate(request.context_chunks, start=1):
             parts.append(f"[context {index}] {str(chunk).strip()[:1600]}")
+        parts.extend(["", "---", ""])
+    if request.peer_content_sample:
+        parts.append("Peer content samples:")
+        for index, sample in enumerate(list(request.peer_content_sample)[:3], start=1):
+            parts.append(f"[peer {index}] {str(sample).strip()[:1200]}")
+        parts.extend(["", "---", ""])
+    if request.web_evidence:
+        parts.append("Web evidence:")
+        for index, item in enumerate(list(request.web_evidence)[:8], start=1):
+            if not isinstance(item, dict):
+                continue
+            title = str(item.get("title") or "").strip()
+            url = str(item.get("url") or "").strip()
+            snippet = str(item.get("snippet") or "").strip()
+            parts.append(f"[evidence {index}] title={title}")
+            parts.append(f"[evidence {index}] url={url}")
+            if snippet:
+                parts.append(f"[evidence {index}] snippet={snippet[:800]}")
         parts.extend(["", "---", ""])
     parts.append("Source content:")
     parts.append(str(request.content or "").strip()[:12000])
@@ -111,13 +130,15 @@ class ProceduralizerWineBridge:
         result = self.ollama.chat(
             model=resolved_model,
             messages=[
-                {"role": "system", "content": PROCEDURALIZER_SYSTEM_PROMPT},
+                {"role": "system", "content": proceduralizer_system_prompt(request)},
                 {"role": "user", "content": _request_user_message(request)},
             ],
             timeout=run_timeout,
             temperature=float(dict(options or {}).pop("temperature", 0.1)),
             options=options,
-            response_format=PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
+            response_format={"type": "object"}
+            if str(request.mode or "standard").strip().lower() == "differentiation"
+            else PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
         )
         latency_ms = int((time.perf_counter() - started) * 1000.0)
         raw_output = result.output if result.returncode == 0 else (result.stderr or result.output)
