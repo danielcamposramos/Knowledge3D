@@ -85,6 +85,14 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _iter_jsonl(path: Path):
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            text = line.strip()
+            if text:
+                yield json.loads(text)
+
+
 def _write_text_atomic(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = path.with_name(f"{path.name}.tmp.{os.getpid()}")
@@ -113,6 +121,47 @@ def _append_jsonl(path: Path, payload: dict[str, Any]) -> None:
 
 def _row_id(row: dict[str, Any]) -> str:
     return str(row.get("id") or row.get("star_id") or "").strip()
+
+
+def _default_shard_filename(row: dict[str, Any]) -> str:
+    galaxy = str(row.get("galaxy") or "").strip()
+    star_type = str(row.get("star_type") or "").strip().lower()
+    row_id = _row_id(row)
+    if galaxy == "meaning_layer_stars" or star_type == "meaning_concept" or row_id.startswith("meaning/"):
+        return "meaning_layer_stars.jsonl"
+    if galaxy:
+        return f"{galaxy}.jsonl"
+    return "_unknown.jsonl"
+
+
+def _row_file_map(merged_by_galaxy_dir: Path) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    if not merged_by_galaxy_dir.exists():
+        return mapping
+    for path in sorted(merged_by_galaxy_dir.glob("*.jsonl")):
+        for row in _iter_jsonl(path):
+            row_id = _row_id(row)
+            if row_id:
+                mapping[row_id] = path.name
+    return mapping
+
+
+def _rewrite_merged_by_galaxy(*, merged_rows_path: Path, merged_by_galaxy_dir: Path, row_to_file_name: dict[str, str]) -> dict[str, int]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    row_count = 0
+    for row in _iter_jsonl(merged_rows_path):
+        row_count += 1
+        row_id = _row_id(row)
+        file_name = row_to_file_name.get(row_id) or _default_shard_filename(row)
+        grouped[file_name].append(row)
+    if merged_by_galaxy_dir.exists():
+        for path in sorted(merged_by_galaxy_dir.glob("*.jsonl")):
+            path.unlink()
+    merged_by_galaxy_dir.mkdir(parents=True, exist_ok=True)
+    for file_name, rows in sorted(grouped.items()):
+        rows.sort(key=_row_id)
+        _write_jsonl_atomic(merged_by_galaxy_dir / file_name, rows)
+    return {"row_count": row_count, "shard_count": len(grouped)}
 
 
 def _cache_path_for_query(query: str, cache_dir: Path) -> Path:
@@ -610,6 +659,8 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
     done_dir = Path(args.done_dir)
     merged_in = Path(args.merged_in)
     merged_out = Path(args.merged_out)
+    merged_by_galaxy_dir = merged_out.parent / "merged_by_galaxy"
+    row_to_file_name = _row_file_map(merged_by_galaxy_dir)
     row_updates: dict[str, dict[str, Any]] = {}
     for path in sorted(enriched_dir.glob("*.jsonl")):
         for row in _read_jsonl(path):
@@ -641,11 +692,18 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
     with merged_out.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
+    shard_stats = _rewrite_merged_by_galaxy(
+        merged_rows_path=merged_out,
+        merged_by_galaxy_dir=merged_by_galaxy_dir,
+        row_to_file_name=row_to_file_name,
+    )
     summary = {
         "done_clusters": len(done_files),
         "enriched_rows": len(row_updates),
         "merged_out": str(merged_out),
         "merged_sha256": digest.hexdigest(),
+        "merged_by_galaxy_row_count": shard_stats["row_count"],
+        "merged_by_galaxy_shard_count": shard_stats["shard_count"],
         "unresolved_rows": len(unresolved_rows),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
