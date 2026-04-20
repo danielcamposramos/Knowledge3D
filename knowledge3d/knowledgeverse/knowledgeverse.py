@@ -9373,6 +9373,23 @@ class Knowledgeverse:
             return f"{noun[:-2]}ves"
         return f"{noun}s"
 
+    def _math_query_galaxies(self) -> list[str]:
+        """Base math galaxies plus all proceduralized_* / Book_* corpora."""
+        base = ["Math", "Grammar", "Reality", "Tool"]
+        try:
+            live = list(self._discover_live_galaxy_names())
+        except Exception:
+            live = []
+        extras: list[str] = []
+        for name in live:
+            canonical = str(name or "").strip()
+            if not canonical or canonical in base:
+                continue
+            lowered = canonical.lower()
+            if lowered.startswith("proceduralized_") or lowered.startswith("book_"):
+                extras.append(canonical)
+        return base + extras
+
     def _runtime_materialize_math_answer(self, *, query_text: str) -> str:
         query = str(query_text or "").strip()
         if not query:
@@ -9383,7 +9400,7 @@ class Knowledgeverse:
                 query_text=query,
                 specialist="math",
                 top_k=8,
-                galaxies=["Math", "Grammar", "Reality", "Tool"],
+                galaxies=self._math_query_galaxies(),
             )
         except Exception:
             records = []
@@ -9419,23 +9436,67 @@ class Knowledgeverse:
         numbers = self._extract_numeric_literals(query)
         lowered = query.lower()
         if len(numbers) >= 2:
-            a = float(numbers[0])
-            b = float(numbers[1])
-            fallback_program = ""
-            if any(marker in lowered for marker in ("buys", "bought", "more", "total", "altogether", "sum")):
-                fallback_program = f"{a:g} {b:g} +"
-            elif any(marker in lowered for marker in ("left", "remain", "remaining", "gave", "lost", "difference")):
-                fallback_program = f"{a:g} {b:g} -"
-            elif any(marker in lowered for marker in ("times", "each", "every")):
-                fallback_program = f"{a:g} {b:g} *"
-            elif any(marker in lowered for marker in ("equally", "per", "shared", "among")) and b != 0.0:
-                fallback_program = f"{a:g} {b:g} /"
+            operator = self._pick_math_operator_from_grammar(lowered)
+            fallback_program = self._build_math_fallback_program(numbers, operator, lowered)
             if fallback_program:
                 try:
                     return self._runtime_answer_label(self._format_math_answer(engine.evaluate(fallback_program)))
                 except Exception:
                     return ""
         return ""
+
+    _MATH_MARKER_TABLE: tuple[tuple[str, tuple[str, ...]], ...] = (
+        ("+", ("buys", "bought", "more", "total", "altogether", "sum", "gain", "gained", "added", "plus", "combined", "together", "and also", "in all")),
+        ("-", ("left", "remain", "remaining", "gave", "lost", "difference", "fewer", "less", "minus", "decrease", "decreased", "reduced", "how many more", "how much more", "than")),
+        ("*", ("times", "each", "every", "product", "multiplied", "twice", "triple")),
+        ("/", ("equally", "per", "shared", "among", "ratio", "quotient", "divided", "split", "share")),
+    )
+
+    def _pick_math_operator_from_grammar(self, lowered: str) -> str:
+        """Rank operator candidates by keyword hits, using Grammar rule precedence.
+
+        Extends the prior first-match heuristic to:
+          * score every operator by the number of marker hits;
+          * prefer subtraction when "than / more than / fewer than" is present,
+            because those patterns indicate a *comparative difference* even if
+            the sentence also contains additive cues ("buys", "total", ...).
+        This still runs on `lowered`, never on the RPN path, and is only
+        consulted after template + direct-eval fallthroughs. Grammar rules in
+        the galaxy (103k+ defeasibility-enabled entries) are what the upstream
+        template path already sees — this helper closes the uncovered gap
+        where *no* template matches.
+        """
+        if not lowered:
+            return ""
+        if " than " in f" {lowered} ":
+            return "-"
+        scores: list[tuple[int, int, str]] = []
+        for index, (operator, markers) in enumerate(self._MATH_MARKER_TABLE):
+            hits = sum(1 for marker in markers if marker in lowered)
+            if hits:
+                scores.append((-hits, index, operator))
+        if not scores:
+            return ""
+        scores.sort()
+        return scores[0][2]
+
+    def _build_math_fallback_program(
+        self, numbers: list[float], operator: str, lowered: str
+    ) -> str:
+        if not operator or len(numbers) < 2:
+            return ""
+        if operator == "/" and float(numbers[1]) == 0.0:
+            return ""
+        first = f"{float(numbers[0]):g}"
+        # Multi-operand: "a + b + c" style for additive / multiplicative cues.
+        if operator in {"+", "*"} and len(numbers) >= 3:
+            tokens: list[str] = [first]
+            for value in numbers[1:]:
+                tokens.append(f"{float(value):g}")
+                tokens.append(operator)
+            return " ".join(tokens)
+        second = f"{float(numbers[1]):g}"
+        return f"{first} {second} {operator}"
 
     def _runtime_materialize_text_answer(
         self,
