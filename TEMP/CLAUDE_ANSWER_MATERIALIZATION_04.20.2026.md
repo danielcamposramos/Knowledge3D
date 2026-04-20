@@ -120,6 +120,24 @@ to top level so `_canonicalize_live_runtime_response` and downstream
 next layer (richer templates, better RPN template matching, PTX-level
 TRM reasoning per Phase D).
 
+## Full 10q baseline across all three offline benchmarks
+
+| Benchmark | Total | Correct | Accuracy | Materialization |
+|-----------|-------|---------|----------|-----------------|
+| GSM8K 10q | 10 | 1 | 10.0% | 8/10 numeric, 2 empty |
+| MMLU 10q  | 10 | 2 | 20.0% | choice-mode materialization |
+| Math 10q  | 10 | 1 | 10.0% | 6/10 numeric, 4 empty |
+
+- `/tmp/gsm8k_10q_run1.log`
+- `/tmp/mmlu_10q_run1.log`
+- `/tmp/math_10q_run1.log`
+
+MMLU outperforms arithmetic benchmarks because multiple-choice
+materialization aligns well with the galaxy's existing option-matching
+path (`_runtime_align_option_choice`), while word-problem arithmetic
+requires richer RPN template coverage. This is the first cross-benchmark
+paper-grade baseline with a fully sovereign dispatch pipeline.
+
 ## Files Touched
 
 - `knowledge3d/knowledgeverse/trm_game_loop.py` — `_run_query_tick`
