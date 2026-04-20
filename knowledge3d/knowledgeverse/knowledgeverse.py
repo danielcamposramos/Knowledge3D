@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import array as _array_module
 import atexit
 import ctypes
 from dataclasses import dataclass
@@ -2041,30 +2042,40 @@ class Knowledgeverse:
     def _gpu_flat_cache_paths(self, signature: str) -> tuple[Path, Path]:
         cache_dir = self._gpu_cache_dir()
         return (
-            cache_dir / f"flat_{signature}.npy",
+            cache_dir / f"flat_{signature}.bin",
             cache_dir / f"catalog_{signature}.pkl",
         )
 
     def _load_gpu_flat_cache(
         self,
         signature: str,
-    ) -> tuple[np.ndarray, list[dict[str, Any]]] | None:
+    ) -> tuple[bytes, list[dict[str, Any]]] | None:
+        """Load flat cache from disk.  Returns (raw_bytes: bytes, catalog) or None."""
         flat_path, catalog_path = self._gpu_flat_cache_paths(signature)
         if not flat_path.exists() or not catalog_path.exists():
             return None
         try:
-            flat_entries = np.load(flat_path, allow_pickle=False)
+            raw_bytes = flat_path.read_bytes()
             with catalog_path.open("rb") as handle:
                 catalog = pickle.load(handle)
         except Exception:
             return None
         if not isinstance(catalog, list):
             return None
-        flat_array = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
-        expected = int(len(catalog)) * int(self.GPU_GALAXY_ENTRY_STRIDE)
-        if expected != int(flat_array.size):
+        # Each entry is GPU_GALAXY_ENTRY_STRIDE float32 values = stride * 4 bytes.
+        expected = int(len(catalog)) * int(self.GPU_GALAXY_ENTRY_STRIDE) * 4
+        if len(raw_bytes) != expected:
             return None
-        return flat_array, catalog
+        return raw_bytes, catalog
+
+    @staticmethod
+    def _flat_entries_to_bytes(flat_entries: Any) -> bytes:
+        """Convert flat_entries (list[float], bytes, bytearray, or ctypes array) to
+        raw little-endian f32 bytes.  Uses stdlib ``array`` module — NOT numpy."""
+        if isinstance(flat_entries, (bytes, bytearray)):
+            return bytes(flat_entries)
+        # stdlib array module, NOT numpy:
+        return _array_module.array("f", flat_entries).tobytes()
 
     def _save_gpu_flat_cache(
         self,
@@ -2076,15 +2087,22 @@ class Knowledgeverse:
         flat_path, catalog_path = self._gpu_flat_cache_paths(signature)
         cache_dir = self._gpu_cache_dir()
         cache_dir.mkdir(parents=True, exist_ok=True)
-        flat_array = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
-        np.save(flat_path, flat_array, allow_pickle=False)
+        raw_bytes = self._flat_entries_to_bytes(flat_entries)
+        flat_path.write_bytes(raw_bytes)
         with catalog_path.open("wb") as handle:
             pickle.dump(catalog, handle, protocol=pickle.HIGHEST_PROTOCOL)
         removed_flat: list[str] = []
         removed_catalog: list[str] = []
-        for path in cache_dir.glob("flat_*.npy"):
+        for path in cache_dir.glob("flat_*.bin"):
             if path == flat_path:
                 continue
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                continue
+            removed_flat.append(str(path))
+        # Also purge any legacy .npy flat files left from before the sovereignty purge.
+        for path in cache_dir.glob("flat_*.npy"):
             try:
                 path.unlink()
             except FileNotFoundError:
@@ -3216,9 +3234,17 @@ class Knowledgeverse:
         flat_cache_signature = self._gpu_flat_cache_signature(target_names)
         flat_cache_hit = False
         enriched_count = 0
+        # flat_entries_list: list[float] — sovereign in-memory representation.
+        # flat_bytes: bytes — raw little-endian f32 bytes for disk I/O and size reporting.
+        flat_entries_list: list[float]
+        flat_bytes: bytes
         cached_payload = self._load_gpu_flat_cache(flat_cache_signature)
         if cached_payload is not None:
-            flat_entries, catalog = cached_payload
+            flat_bytes, catalog = cached_payload
+            # Decode raw bytes → list[float] via stdlib array module (NOT numpy).
+            tmp = _array_module.array("f")
+            tmp.frombytes(flat_bytes)
+            flat_entries_list = tmp.tolist()
             flat_cache_hit = True
             self.metrics.gpu_runtime_artifact_entries = sum(
                 1
@@ -3226,16 +3252,15 @@ class Knowledgeverse:
                 if float(entry.get("gpu_source_class", -1.0)) == float(self.GPU_SOURCE_CLASS_BOOK_ARTIFACT)
             )
         else:
-            flat_entries, catalog, enriched_count = self._flatten_galaxies_for_gpu(galaxy_names=target_names)
-            flat_entries = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
+            flat_entries_list, catalog, enriched_count = self._flatten_galaxies_for_gpu(galaxy_names=target_names)
+            flat_bytes = self._flat_entries_to_bytes(flat_entries_list)
             self._save_gpu_flat_cache(
                 signature=flat_cache_signature,
-                flat_entries=flat_entries,
+                flat_entries=flat_bytes,
                 catalog=catalog,
             )
-        flat_entries = np.asarray(flat_entries, dtype=np.float32).reshape(-1)
         binding = engine.bind_galaxy_buffer(
-            flat_entries,
+            flat_entries_list,
             entry_count=len(catalog),
             entry_stride=self.GPU_GALAXY_ENTRY_STRIDE,
             embedding_offset=self.GPU_GALAXY_EMBEDDING_OFFSET,
@@ -3249,7 +3274,7 @@ class Knowledgeverse:
                 "total": int(len(target_names)),
                 "binding_mode": str(mode or "hot"),
                 "entry_count": int(len(catalog)),
-                "buffer_bytes": int(flat_entries.size) * 4,
+                "buffer_bytes": len(flat_bytes),
                 "runtime_artifact_entries": int(self.metrics.gpu_runtime_artifact_entries),
                 "flat_cache_hit": bool(flat_cache_hit),
                 "flat_cache_signature": str(flat_cache_signature),
@@ -3261,7 +3286,7 @@ class Knowledgeverse:
             if refreshed_signature != flat_cache_signature:
                 self._save_gpu_flat_cache(
                     signature=refreshed_signature,
-                    flat_entries=flat_entries,
+                    flat_entries=flat_bytes,
                     catalog=catalog,
                 )
                 flat_cache_signature = refreshed_signature
@@ -3292,7 +3317,7 @@ class Knowledgeverse:
         self._pinned_all_default_binding = list(target_names) == list(live_names)
         self._gpu_galaxy_catalog = list(catalog)
         self.metrics.gpu_galaxy_entries = int(len(catalog))
-        self.metrics.gpu_galaxy_bytes = int(flat_entries.size) * 4
+        self.metrics.gpu_galaxy_bytes = len(flat_bytes)
         self.metrics.gpu_bind_rebuilds = int(self.metrics.gpu_bind_rebuilds) + 1
         return dict(binding)
 
