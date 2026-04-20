@@ -58,6 +58,24 @@ def _request_user_message(request: ProceduralizerRequest) -> str:
         for index, item in enumerate(list(request.web_evidence)[:8], start=1):
             if not isinstance(item, dict):
                 continue
+            if isinstance(item.get("hits"), list):
+                row_id = str(item.get("row_id") or "").strip()
+                query = str(item.get("query") or "").strip()
+                if row_id:
+                    parts.append(f"[evidence {index}] row_id={row_id}")
+                if query:
+                    parts.append(f"[evidence {index}] query={query}")
+                for hit_index, hit in enumerate(list(item.get("hits") or [])[:5], start=1):
+                    if not isinstance(hit, dict):
+                        continue
+                    title = str(hit.get("title") or "").strip()
+                    url = str(hit.get("url") or "").strip()
+                    snippet = str(hit.get("snippet") or "").strip()
+                    parts.append(f"[evidence {index}.{hit_index}] title={title}")
+                    parts.append(f"[evidence {index}.{hit_index}] url={url}")
+                    if snippet:
+                        parts.append(f"[evidence {index}.{hit_index}] snippet={snippet[:800]}")
+                continue
             title = str(item.get("title") or "").strip()
             url = str(item.get("url") or "").strip()
             snippet = str(item.get("snippet") or "").strip()

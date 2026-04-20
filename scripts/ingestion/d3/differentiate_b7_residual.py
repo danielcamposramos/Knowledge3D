@@ -32,6 +32,7 @@ from knowledge3d.tools.knowledge_proceduralizer import (
     MODEL_OPTIONS,
     _differentiation_content,
     _differentiation_query,
+    _meaning_resolution_content,
     _peer_sample_text,
     _row_anchor,
     _row_domain_hint,
@@ -45,6 +46,7 @@ DEFAULT_VIOLATIONS = REPO_ROOT / "scripts" / "ingestion" / "staging" / "D3_dedup
 DEFAULT_MERGED_IN = REPO_ROOT / "scripts" / "ingestion" / "staging" / "D3_dedup" / "merged_stars.jsonl"
 DEFAULT_UNRESOLVED = REPO_ROOT / "scripts" / "ingestion" / "staging" / "D3_dedup" / "differentiate_b7_unresolved.jsonl"
 DEFAULT_STAGE_ROOT = REPO_ROOT / "scripts" / "ingestion" / "staging" / "D3_dedup" / "differentiate_b7"
+DEFAULT_UNRESOLVED_SYMLINKS = REPO_ROOT / "scripts" / "ingestion" / "staging" / "D3_dedup" / "differentiate_b7_unresolved_symlinks.jsonl"
 CLAIM_TTL_SECONDS = 20 * 60
 STATUS_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
@@ -69,6 +71,15 @@ def _parse_time(text: str) -> datetime | None:
 
 def _stable_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def _normalized_mode(value: str | None) -> str:
+    mode = str(value or "meaning_resolution").strip().lower()
+    if mode == "differentiation":
+        return "differentiate"
+    if mode not in {"differentiate", "meaning_resolution"}:
+        raise ValueError(f"unsupported mode: {value}")
+    return mode
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -250,6 +261,13 @@ def _resolved_bundle(receipt: Any) -> bool:
         return False
     if str(getattr(receipt, "failure_code", "") or "").strip():
         return False
+    outcome = str(getattr(bundle, "outcome", "") or "").strip().lower()
+    if outcome in {"merge_to_meaning_star", "split_polysemy", "mixed"}:
+        meaning_stars = list(getattr(bundle, "meaning_stars", []) or [])
+        surface_symlinks = list(getattr(bundle, "surface_symlinks", []) or [])
+        return str(getattr(bundle, "ingest_action", "") or "").strip().lower() == "augment" and bool(
+            meaning_stars or surface_symlinks
+        )
     return str(getattr(bundle, "ingest_action", "") or "").strip().lower() == "augment" and bool(
         list(getattr(bundle, "knowledge_packets", []) or [])
     )
@@ -300,6 +318,8 @@ def _stage_paths(out_root: Path) -> dict[str, Path]:
         "claims": out_root / "claims",
         "done": out_root / "done",
         "enriched": out_root / "enriched",
+        "meaning_stars": out_root / "meaning_stars",
+        "symlinks": out_root / "symlinks",
         "unresolved": out_root / "unresolved",
         "workers": out_root / "workers",
     }
@@ -326,6 +346,14 @@ def _claim_path(paths: dict[str, Path], content_hash: str) -> Path:
 
 def _enriched_path(paths: dict[str, Path], content_hash: str) -> Path:
     return paths["enriched"] / f"{content_hash}.jsonl"
+
+
+def _meaning_stars_path(paths: dict[str, Path], content_hash: str) -> Path:
+    return paths["meaning_stars"] / f"{content_hash}.jsonl"
+
+
+def _symlinks_path(paths: dict[str, Path], content_hash: str) -> Path:
+    return paths["symlinks"] / f"{content_hash}.jsonl"
 
 
 def _unresolved_cluster_path(paths: dict[str, Path], content_hash: str) -> Path:
@@ -395,7 +423,15 @@ def _cluster_payload(path: Path) -> dict[str, Any]:
     return _read_json(path)
 
 
-def _done_payload(content_hash: str, enriched_rows: list[dict[str, Any]], unresolved_rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _done_payload(
+    content_hash: str,
+    enriched_rows: list[dict[str, Any]],
+    unresolved_rows: list[dict[str, Any]],
+    *,
+    outcome: str = "",
+    meaning_star_count: int = 0,
+    symlink_count: int = 0,
+) -> dict[str, Any]:
     digest = hashlib.sha256()
     for row in enriched_rows:
         digest.update((json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
@@ -405,6 +441,26 @@ def _done_payload(content_hash: str, enriched_rows: list[dict[str, Any]], unreso
         "resolved_count": len(enriched_rows),
         "unresolved_count": len(unresolved_rows),
         "enriched_sha256": digest.hexdigest(),
+        "outcome": outcome,
+        "meaning_star_count": int(meaning_star_count),
+        "symlink_count": int(symlink_count),
+    }
+
+
+def _row_web_evidence_sync(
+    *,
+    row_id: str,
+    row: dict[str, Any],
+    search_client: CountingWebSearch,
+    max_web_results: int,
+) -> dict[str, Any]:
+    query = _differentiation_query(row)
+    evidence = list(search_client(query, int(max_web_results)))
+    return {
+        "row_id": row_id,
+        "row": row,
+        "query": query,
+        "hits": evidence,
     }
 
 
@@ -540,10 +596,188 @@ async def _process_cluster_async(
     return enriched_rows, unresolved_rows, rate_limited
 
 
+async def _gather_cluster_web_evidence(
+    *,
+    row_ids: list[str],
+    row_index: dict[str, dict[str, Any]],
+    search_client: CountingWebSearch,
+    max_web_results: int,
+    row_concurrency: int,
+) -> list[dict[str, Any]]:
+    semaphore = asyncio.Semaphore(max(1, int(row_concurrency)))
+
+    async def run_row(row_id: str) -> dict[str, Any]:
+        async with semaphore:
+            return await asyncio.to_thread(
+                _row_web_evidence_sync,
+                row_id=row_id,
+                row=row_index[row_id],
+                search_client=search_client,
+                max_web_results=max_web_results,
+            )
+
+    return await asyncio.gather(*(run_row(row_id) for row_id in row_ids if row_id in row_index))
+
+
+def _meaning_resolution_sync_result(
+    *,
+    content_hash: str,
+    row_ids: list[str],
+    rows: list[dict[str, Any]],
+    merged_in: Path,
+    web_evidence: list[dict[str, Any]],
+    model: str,
+    num_ctx: int,
+    timeout: float,
+) -> dict[str, Any]:
+    bridge = ProceduralizerWineBridge(
+        provider="ollama",
+        default_timeout=float(timeout),
+        ollama=OllamaManager(default_timeout=float(timeout)),
+    )
+    options = dict(MODEL_OPTIONS.get(model, {}))
+    options.setdefault("temperature", 0.1)
+    options.setdefault("num_predict", 3072)
+    options["num_ctx"] = int(num_ctx)
+    request = ProceduralizerRequest(
+        source_kind="d3_duplicate_cluster",
+        source_id=f"cluster:{content_hash}",
+        source_path=str(merged_in),
+        domain_hint=_row_domain_hint(rows[0]) if rows else "General",
+        content=_meaning_resolution_content(rows),
+        context_chunks=[
+            f"cluster_size={len(rows)}",
+            "task=meaning_resolution",
+            f"cluster_row_ids={','.join(row_ids)}",
+        ],
+        existing_ref_menu=build_rag_context(
+            _row_domain_hint(rows[0]) if rows else "General",
+            "",
+            " ".join(_row_anchor(row) for row in rows[:4]),
+        ),
+        quality_profile="long_context_engineering",
+        ingest_mode="augment",
+        mode="meaning_resolution",
+        peer_content_sample=[_peer_sample_text(row) for row in rows[: min(8, len(rows))]],
+        web_evidence=web_evidence,
+    )
+    receipt = bridge.submit(
+        request,
+        model_profile="long_context_engineering",
+        model=model,
+        timeout=float(timeout),
+        options=options,
+    )
+    return {"request": request, "receipt": receipt}
+
+
+async def _process_meaning_resolution_async(
+    *,
+    content_hash: str,
+    row_ids: list[str],
+    merged_in: Path,
+    row_index: dict[str, dict[str, Any]],
+    search_client: CountingWebSearch,
+    worker_log: Path,
+    model: str,
+    num_ctx: int,
+    max_web_results: int,
+    row_concurrency: int,
+    timeout: float,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], str, bool]:
+    web_evidence = await _gather_cluster_web_evidence(
+        row_ids=row_ids,
+        row_index=row_index,
+        search_client=search_client,
+        max_web_results=max_web_results,
+        row_concurrency=row_concurrency,
+    )
+    rows = [row_index[row_id] for row_id in row_ids if row_id in row_index]
+    result = await asyncio.to_thread(
+        _meaning_resolution_sync_result,
+        content_hash=content_hash,
+        row_ids=row_ids,
+        rows=rows,
+        merged_in=merged_in,
+        web_evidence=web_evidence,
+        model=model,
+        num_ctx=num_ctx,
+        timeout=timeout,
+    )
+    receipt = result["receipt"]
+    bundle = getattr(receipt, "parsed_bundle", None)
+    outcome = str(getattr(bundle, "outcome", "") or "").strip().lower()
+    rate_limited = str(getattr(receipt, "failure_code", "") or "").strip() == "plan_limit_consumed"
+    if not _resolved_bundle(receipt):
+        unresolved_rows = [
+            {
+                "content_hash": content_hash,
+                "query": item["query"],
+                "reason": str(getattr(receipt, "failure_code", "") or outcome or "unresolvable"),
+                "row_id": item["row_id"],
+            }
+            for item in web_evidence
+        ]
+        _worker_log(worker_log, "bundle", cluster=content_hash, mode="meaning_resolution", status="unresolvable")
+        return [], [], unresolved_rows, "unresolvable", rate_limited
+
+    meaning_stars = [dict(row) for row in list(getattr(bundle, "meaning_stars", []) or [])]
+    surface_symlinks = [dict(row) for row in list(getattr(bundle, "surface_symlinks", []) or [])]
+    cluster_row_id_set = {row_id for row_id in row_ids if row_id in row_index}
+    symlink_row_ids = [_row_id(row) for row in surface_symlinks]
+    if set(symlink_row_ids) != cluster_row_id_set:
+        unresolved_rows = [
+            {
+                "content_hash": content_hash,
+                "query": item["query"],
+                "reason": "symlink_row_id_mismatch",
+                "row_id": item["row_id"],
+            }
+            for item in web_evidence
+        ]
+        _worker_log(worker_log, "bundle", cluster=content_hash, mode="meaning_resolution", status="unresolvable")
+        return [], [], unresolved_rows, "unresolvable", rate_limited
+    _worker_log(
+        worker_log,
+        "bundle",
+        cluster=content_hash,
+        mode="meaning_resolution",
+        status=outcome or "resolved",
+        meaning_stars=len(meaning_stars),
+        symlinks=len(surface_symlinks),
+    )
+    return meaning_stars, surface_symlinks, [], outcome or "resolved", rate_limited
+
+
 def _write_cluster_outputs(paths: dict[str, Path], content_hash: str, enriched_rows: list[dict[str, Any]], unresolved_rows: list[dict[str, Any]]) -> None:
     _write_jsonl_atomic(_enriched_path(paths, content_hash), enriched_rows)
     _write_jsonl_atomic(_unresolved_cluster_path(paths, content_hash), unresolved_rows)
     _write_json_atomic(_done_path(paths, content_hash), _done_payload(content_hash, enriched_rows, unresolved_rows))
+
+
+def _write_meaning_resolution_outputs(
+    paths: dict[str, Path],
+    content_hash: str,
+    meaning_stars: list[dict[str, Any]],
+    surface_symlinks: list[dict[str, Any]],
+    unresolved_rows: list[dict[str, Any]],
+    *,
+    outcome: str,
+) -> None:
+    _write_jsonl_atomic(_meaning_stars_path(paths, content_hash), meaning_stars)
+    _write_jsonl_atomic(_symlinks_path(paths, content_hash), surface_symlinks)
+    _write_jsonl_atomic(_unresolved_cluster_path(paths, content_hash), unresolved_rows)
+    _write_json_atomic(
+        _done_path(paths, content_hash),
+        _done_payload(
+            content_hash,
+            surface_symlinks,
+            unresolved_rows,
+            outcome=outcome,
+            meaning_star_count=len(meaning_stars),
+            symlink_count=len(surface_symlinks),
+        ),
+    )
 
 
 def _worker_id(value: str | None) -> str:
@@ -574,6 +808,10 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
     claimed = 0
     resolved_clusters = 0
     rate_limit_backoff = 15.0
+    mode = _normalized_mode(args.mode)
+    outcome_counts: dict[str, int] = defaultdict(int)
+    meaning_star_rows = 0
+    symlink_rows = 0
 
     while True:
         if deadline is not None and time.monotonic() >= deadline:
@@ -599,21 +837,41 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
                     continue
                 cache_before_hits = search_client.cache_hits
                 cache_before_issued = search_client.issued
-                enriched_rows, unresolved_rows, rate_limited = asyncio.run(
-                    _process_cluster_async(
-                        content_hash=content_hash,
-                        row_ids=row_ids,
-                        merged_in=merged_in,
-                        row_index=row_index,
-                        search_client=search_client,
-                        worker_log=worker_log,
-                        model=str(args.model).strip(),
-                        num_ctx=int(args.num_ctx),
-                        max_web_results=int(args.max_web_results),
-                        row_concurrency=int(args.row_concurrency),
-                        timeout=float(args.timeout),
+                if mode == "meaning_resolution":
+                    meaning_stars, surface_symlinks, unresolved_rows, outcome, rate_limited = asyncio.run(
+                        _process_meaning_resolution_async(
+                            content_hash=content_hash,
+                            row_ids=row_ids,
+                            merged_in=merged_in,
+                            row_index=row_index,
+                            search_client=search_client,
+                            worker_log=worker_log,
+                            model=str(args.model).strip(),
+                            num_ctx=int(args.num_ctx),
+                            max_web_results=int(args.max_web_results),
+                            row_concurrency=int(args.row_concurrency),
+                            timeout=float(args.timeout),
+                        )
                     )
-                )
+                else:
+                    enriched_rows, unresolved_rows, rate_limited = asyncio.run(
+                        _process_cluster_async(
+                            content_hash=content_hash,
+                            row_ids=row_ids,
+                            merged_in=merged_in,
+                            row_index=row_index,
+                            search_client=search_client,
+                            worker_log=worker_log,
+                            model=str(args.model).strip(),
+                            num_ctx=int(args.num_ctx),
+                            max_web_results=int(args.max_web_results),
+                            row_concurrency=int(args.row_concurrency),
+                            timeout=float(args.timeout),
+                        )
+                    )
+                    meaning_stars = []
+                    surface_symlinks = []
+                    outcome = "enriched" if enriched_rows else "unresolvable"
                 _worker_log(
                     worker_log,
                     "web_cache",
@@ -621,10 +879,35 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
                     hits=search_client.cache_hits - cache_before_hits,
                     misses=(search_client.issued - cache_before_issued) - (search_client.cache_hits - cache_before_hits),
                 )
-                _write_cluster_outputs(paths, content_hash, enriched_rows, unresolved_rows)
-                if enriched_rows:
+                if mode == "meaning_resolution":
+                    _write_meaning_resolution_outputs(
+                        paths,
+                        content_hash,
+                        meaning_stars,
+                        surface_symlinks,
+                        unresolved_rows,
+                        outcome=outcome,
+                    )
+                    outcome_counts[outcome] += 1
+                    meaning_star_rows += len(meaning_stars)
+                    symlink_rows += len(surface_symlinks)
+                    resolved_count = len(surface_symlinks)
+                else:
+                    _write_cluster_outputs(paths, content_hash, enriched_rows, unresolved_rows)
+                    resolved_count = len(enriched_rows)
+                    outcome_counts[outcome] += 1
+                if resolved_count:
                     resolved_clusters += 1
-                _worker_log(worker_log, "done", cluster=content_hash, resolved=len(enriched_rows), unresolved=len(unresolved_rows))
+                _worker_log(
+                    worker_log,
+                    "done",
+                    cluster=content_hash,
+                    resolved=resolved_count,
+                    unresolved=len(unresolved_rows),
+                    outcome=outcome,
+                    meaning_stars=len(meaning_stars),
+                    symlinks=len(surface_symlinks),
+                )
                 if rate_limited:
                     _worker_log(worker_log, "rate_limit", cluster=content_hash, backoff_seconds=rate_limit_backoff)
                     time.sleep(rate_limit_backoff + random.uniform(0.0, 3.0))
@@ -648,35 +931,99 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
         "resolved_clusters": resolved_clusters,
         "web_searches_issued": search_client.issued,
         "web_cache_hits": search_client.cache_hits,
+        "mode": mode,
+        "meaning_star_rows": meaning_star_rows,
+        "symlink_rows": symlink_rows,
+        "outcomes": dict(sorted(outcome_counts.items())),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
     return summary
 
 
+def _valid_symlink_targets(
+    row: dict[str, Any],
+    *,
+    known_ids: set[str],
+) -> tuple[bool, list[str]]:
+    points_to = row.get("points_to")
+    if points_to is None:
+        points_to = dict(row.get("metadata") or {}).get("points_to")
+    if isinstance(points_to, list):
+        targets = [str(item).strip() for item in points_to if str(item).strip()]
+    else:
+        text = str(points_to or "").strip()
+        targets = [text] if text else []
+    if not targets:
+        return False, []
+    return all(target in known_ids for target in targets), targets
+
+
 def _merge(args: argparse.Namespace) -> dict[str, Any]:
     enriched_dir = Path(args.enriched_dir)
+    meaning_stars_dir = Path(args.meaning_stars_dir)
+    symlinks_dir = Path(args.symlinks_dir)
     unresolved_dir = Path(args.unresolved_dir)
     done_dir = Path(args.done_dir)
     merged_in = Path(args.merged_in)
     merged_out = Path(args.merged_out)
     merged_by_galaxy_dir = merged_out.parent / "merged_by_galaxy"
     row_to_file_name = _row_file_map(merged_by_galaxy_dir)
+    unresolved_symlinks_out = Path(args.unresolved_symlinks_out)
     row_updates: dict[str, dict[str, Any]] = {}
     for path in sorted(enriched_dir.glob("*.jsonl")):
         for row in _read_jsonl(path):
             row_id = _row_id(row)
             if row_id:
                 row_updates[row_id] = row
+    for path in sorted(symlinks_dir.glob("*.jsonl")):
+        for row in _read_jsonl(path):
+            row_id = _row_id(row)
+            if row_id:
+                row_updates[row_id] = row
+    new_meaning_rows: list[dict[str, Any]] = []
+    for path in sorted(meaning_stars_dir.glob("*.jsonl")):
+        new_meaning_rows.extend(_read_jsonl(path))
     done_files = sorted(done_dir.glob("*.done"))
     unresolved_rows: list[dict[str, Any]] = []
     for done_file in done_files:
         content_hash = done_file.stem
         enriched_path = enriched_dir / f"{content_hash}.jsonl"
+        meaning_stars_path = meaning_stars_dir / f"{content_hash}.jsonl"
+        symlinks_path = symlinks_dir / f"{content_hash}.jsonl"
         unresolved_path = unresolved_dir / f"{content_hash}.jsonl"
-        if not enriched_path.exists() and not unresolved_path.exists():
+        if not enriched_path.exists() and not unresolved_path.exists() and not meaning_stars_path.exists() and not symlinks_path.exists():
             raise RuntimeError(f"done marker without outputs: {done_file}")
         if unresolved_path.exists():
             unresolved_rows.extend(_read_jsonl(unresolved_path))
+    existing_ids: set[str] = set()
+    with merged_in.open("r", encoding="utf-8") as source:
+        for line in source:
+            text = line.strip()
+            if not text:
+                continue
+            row = json.loads(text)
+            row_id = _row_id(row)
+            if row_id:
+                existing_ids.add(row_id)
+    new_meaning_ids = {_row_id(row) for row in new_meaning_rows if _row_id(row)}
+    known_ids = existing_ids | new_meaning_ids
+    unresolved_symlinks: list[dict[str, Any]] = []
+    valid_row_updates: dict[str, dict[str, Any]] = {}
+    for row_id, row in sorted(row_updates.items()):
+        if str(row.get("star_type") or "").strip().lower() != "surface_symlink":
+            valid_row_updates[row_id] = row
+            continue
+        valid, targets = _valid_symlink_targets(row, known_ids=known_ids)
+        if not valid:
+            unresolved_symlinks.append(
+                {
+                    "row_id": row_id,
+                    "reason": "missing_meaning_target",
+                    "targets": targets,
+                }
+            )
+            continue
+        valid_row_updates[row_id] = row
     merged_out.parent.mkdir(parents=True, exist_ok=True)
     with merged_in.open("r", encoding="utf-8") as source, merged_out.open("w", encoding="utf-8") as target:
         for line in source:
@@ -685,9 +1032,12 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             row = json.loads(text)
             row_id = _row_id(row)
-            payload = row_updates.get(row_id, row)
+            payload = valid_row_updates.get(row_id, row)
             target.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+        for row in sorted(new_meaning_rows, key=_row_id):
+            target.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     _write_jsonl_atomic(Path(args.consolidated_unresolved_out), sorted(unresolved_rows, key=lambda row: (row["content_hash"], row["row_id"], row["reason"])))
+    _write_jsonl_atomic(unresolved_symlinks_out, unresolved_symlinks)
     digest = hashlib.sha256()
     with merged_out.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -699,12 +1049,14 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
     )
     summary = {
         "done_clusters": len(done_files),
-        "enriched_rows": len(row_updates),
+        "enriched_rows": len(valid_row_updates),
+        "meaning_star_rows": len(new_meaning_rows),
         "merged_out": str(merged_out),
         "merged_sha256": digest.hexdigest(),
         "merged_by_galaxy_row_count": shard_stats["row_count"],
         "merged_by_galaxy_shard_count": shard_stats["shard_count"],
         "unresolved_rows": len(unresolved_rows),
+        "unresolved_symlinks": len(unresolved_symlinks),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True))
     return summary
@@ -768,59 +1120,98 @@ def _run_direct(args: argparse.Namespace) -> dict[str, Any]:
     rows_enriched = 0
     clusters_attempted = 0
     clusters_resolved = 0
+    meaning_star_rows = 0
+    outcome_counts: dict[str, int] = defaultdict(int)
+    mode = _normalized_mode(args.mode)
 
     for content_hash, row_ids in selected:
         clusters_attempted += 1
-        # Preserve the preview path for the dry-run/reporting mode.
-        cluster_results = []
-        for row_id in row_ids:
-            from knowledge3d.tools.knowledge_proceduralizer import differentiate_cluster_receipts
+        if mode == "meaning_resolution":
+            from knowledge3d.tools.knowledge_proceduralizer import resolve_cluster_by_meaning_receipt
 
-            cluster_results = differentiate_cluster_receipts(
+            result = resolve_cluster_by_meaning_receipt(
                 row_ids,
                 Path(args.merged_in),
                 search_client,
                 manager,
                 model=str(args.model).strip(),
                 num_ctx=int(args.num_ctx),
-                max_peer_samples=int(args.max_peer_samples),
                 max_web_results=int(args.max_web_results),
                 timeout=float(args.timeout),
             )
-            break
-        cluster_changed = False
-        for result in cluster_results:
-            row_id = str(result["row_id"])
-            original_row = merged_rows[row_positions[row_id]]
-            if not _resolved_bundle(result["receipt"]):
-                unresolved_rows.append(
-                    {
-                        "row_id": row_id,
-                        "content_hash": content_hash,
-                        "reason": str(getattr(result["receipt"].parsed_bundle, "status", "") or "unresolvable"),
-                        "query": str(result["query"]),
-                    }
-                )
+            receipt = result["receipt"]
+            bundle = receipt.parsed_bundle
+            outcome = str(getattr(bundle, "outcome", "") or "unresolvable").strip().lower()
+            outcome_counts[outcome] += 1
+            if not _resolved_bundle(receipt):
+                for item in result["web_evidence"]:
+                    unresolved_rows.append(
+                        {
+                            "row_id": str(item["row_id"]),
+                            "content_hash": content_hash,
+                            "reason": str(getattr(bundle, "status", "") or "unresolvable"),
+                            "query": str(item["query"]),
+                        }
+                    )
                 continue
-            patched = _patch_row_from_receipt(original_row, request=result["request"], receipt=result["receipt"])
-            if _content_hash(original_row, _collect_procedural_payload(original_row)) == _content_hash(
-                patched,
-                _collect_procedural_payload(patched),
-            ):
-                unresolved_rows.append(
-                    {
-                        "row_id": row_id,
-                        "content_hash": content_hash,
-                        "reason": "hash_unchanged",
-                        "query": str(result["query"]),
-                    }
-                )
-                continue
-            merged_rows[row_positions[row_id]] = patched
-            rows_enriched += 1
-            cluster_changed = True
-        if cluster_changed:
+            meaning_star_rows += len(list(getattr(bundle, "meaning_stars", []) or []))
+            for row in list(getattr(bundle, "surface_symlinks", []) or []):
+                row_id = _row_id(row)
+                if row_id in row_positions:
+                    merged_rows[row_positions[row_id]] = row
+                    rows_enriched += 1
             clusters_resolved += 1
+        else:
+            # Preserve the preview path for the dry-run/reporting mode.
+            cluster_results = []
+            for row_id in row_ids:
+                from knowledge3d.tools.knowledge_proceduralizer import differentiate_cluster_receipts
+
+                cluster_results = differentiate_cluster_receipts(
+                    row_ids,
+                    Path(args.merged_in),
+                    search_client,
+                    manager,
+                    model=str(args.model).strip(),
+                    num_ctx=int(args.num_ctx),
+                    max_peer_samples=int(args.max_peer_samples),
+                    max_web_results=int(args.max_web_results),
+                    timeout=float(args.timeout),
+                )
+                break
+            cluster_changed = False
+            for result in cluster_results:
+                row_id = str(result["row_id"])
+                original_row = merged_rows[row_positions[row_id]]
+                if not _resolved_bundle(result["receipt"]):
+                    unresolved_rows.append(
+                        {
+                            "row_id": row_id,
+                            "content_hash": content_hash,
+                            "reason": str(getattr(result["receipt"].parsed_bundle, "status", "") or "unresolvable"),
+                            "query": str(result["query"]),
+                        }
+                    )
+                    continue
+                patched = _patch_row_from_receipt(original_row, request=result["request"], receipt=result["receipt"])
+                if _content_hash(original_row, _collect_procedural_payload(original_row)) == _content_hash(
+                    patched,
+                    _collect_procedural_payload(patched),
+                ):
+                    unresolved_rows.append(
+                        {
+                            "row_id": row_id,
+                            "content_hash": content_hash,
+                            "reason": "hash_unchanged",
+                            "query": str(result["query"]),
+                        }
+                    )
+                    continue
+                merged_rows[row_positions[row_id]] = patched
+                rows_enriched += 1
+                cluster_changed = True
+            if cluster_changed:
+                clusters_resolved += 1
 
     if args.merged_out:
         _write_jsonl_atomic(Path(args.merged_out), merged_rows)
@@ -830,6 +1221,8 @@ def _run_direct(args: argparse.Namespace) -> dict[str, Any]:
         "clusters_attempted": clusters_attempted,
         "clusters_resolved": clusters_resolved,
         "rows_enriched": rows_enriched,
+        "meaning_star_rows": meaning_star_rows,
+        "outcomes": dict(sorted(outcome_counts.items())),
         "rows_unresolved": len(unresolved_rows),
         "web_searches_issued": search_client.issued,
         "web_cache_hits": search_client.cache_hits,
@@ -853,6 +1246,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-cluster", type=int, default=50)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--mode", default="meaning_resolution")
     parser.add_argument("--model", default=PROCEDURALIZER_MODEL_PROFILES["long_context_engineering"])
     parser.add_argument("--num-ctx", type=int, default=65536)
     parser.add_argument("--max-peer-samples", type=int, default=3)
@@ -866,7 +1260,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cluster-dir", type=Path, default=DEFAULT_STAGE_ROOT / "clusters")
     parser.add_argument("--out-root", type=Path, default=DEFAULT_STAGE_ROOT)
     parser.add_argument("--enriched-dir", type=Path, default=DEFAULT_STAGE_ROOT / "enriched")
+    parser.add_argument("--meaning-stars-dir", type=Path, default=DEFAULT_STAGE_ROOT / "meaning_stars")
+    parser.add_argument("--symlinks-dir", type=Path, default=DEFAULT_STAGE_ROOT / "symlinks")
     parser.add_argument("--unresolved-dir", type=Path, default=DEFAULT_STAGE_ROOT / "unresolved")
+    parser.add_argument("--unresolved-symlinks-out", type=Path, default=DEFAULT_UNRESOLVED_SYMLINKS)
     parser.add_argument("--done-dir", type=Path, default=DEFAULT_STAGE_ROOT / "done")
     parser.add_argument("--worker-id", default=None)
     parser.add_argument("--row-concurrency", type=int, default=4)
@@ -879,6 +1276,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        args.mode = _normalized_mode(args.mode)
         if args.build_manifest:
             _build_cluster_manifest(args)
             return 0

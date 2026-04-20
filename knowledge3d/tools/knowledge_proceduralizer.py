@@ -245,6 +245,36 @@ def _differentiation_content(row: dict[str, Any]) -> str:
     return _stable_json(focus)
 
 
+def _meaning_resolution_content(cluster_rows: list[dict[str, Any]]) -> str:
+    payload_rows = []
+    for row in cluster_rows:
+        metadata = dict(row.get("metadata") or {})
+        payload_rows.append(
+            {
+                "id": _row_identifier(row),
+                "name": row.get("name"),
+                "galaxy": row.get("galaxy"),
+                "domain": row.get("domain"),
+                "category": row.get("category"),
+                "content": row.get("content"),
+                "description": row.get("description"),
+                "rpn_program": row.get("rpn_program"),
+                "metadata": {
+                    "keyword": metadata.get("keyword"),
+                    "asset_name": metadata.get("asset_name"),
+                    "label": metadata.get("label"),
+                    "source": metadata.get("source"),
+                    "source_sentence": metadata.get("source_sentence"),
+                    "task_id": metadata.get("task_id"),
+                    "language": metadata.get("language"),
+                    "forms": metadata.get("forms"),
+                    "value": metadata.get("value"),
+                },
+            }
+        )
+    return _stable_json({"cluster_size": len(cluster_rows), "rows": payload_rows})
+
+
 @lru_cache(maxsize=2)
 def _load_star_rows_index_cached(path_text: str, mtime_ns: int) -> dict[str, dict[str, Any]]:
     rows_by_id: dict[str, dict[str, Any]] = {}
@@ -1029,6 +1059,96 @@ def differentiate_cluster_receipts(
     return results
 
 
+def resolve_cluster_by_meaning_receipt(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_web_results: int = 5,
+    timeout: float = 180.0,
+) -> dict[str, Any]:
+    if len(cluster_row_ids) <= 1:
+        raise ValueError("resolve_cluster_by_meaning_receipt requires at least two row ids")
+    rows_by_id = load_star_rows_index(Path(merged_stars_path))
+    ordered_row_ids = [row_id for row_id in cluster_row_ids if row_id in rows_by_id]
+    cluster_rows = [rows_by_id[row_id] for row_id in ordered_row_ids]
+    evidence_payload: list[dict[str, Any]] = []
+    for row in cluster_rows:
+        query = _differentiation_query(row)
+        evidence_payload.append(
+            {
+                "row_id": _row_identifier(row),
+                "query": query,
+                "hits": list(web_search(query, int(max_web_results))),
+            }
+        )
+    bridge = ProceduralizerWineBridge(
+        provider="ollama",
+        default_timeout=timeout,
+        ollama=ollama,
+    )
+    resolved_model = str(model or PROCEDURALIZER_MODEL_PROFILES["long_context_engineering"]).strip()
+    options = dict(MODEL_OPTIONS.get(resolved_model, {}))
+    options.setdefault("temperature", 0.1)
+    options.setdefault("num_predict", 3072)
+    options["num_ctx"] = int(num_ctx)
+    request = ProceduralizerRequest(
+        source_kind="d3_duplicate_cluster",
+        source_id=f"cluster:{hashlib.sha256('|'.join(ordered_row_ids).encode('utf-8')).hexdigest()[:16]}",
+        source_path=str(Path(merged_stars_path)),
+        domain_hint=_row_domain_hint(cluster_rows[0]),
+        content=_meaning_resolution_content(cluster_rows),
+        context_chunks=[
+            f"cluster_size={len(cluster_rows)}",
+            "task=meaning_resolution",
+        ],
+        existing_ref_menu=build_rag_context(_row_domain_hint(cluster_rows[0]), "", " ".join(_row_anchor(row) for row in cluster_rows[:4])),
+        quality_profile="long_context_engineering",
+        ingest_mode="augment",
+        mode="meaning_resolution",
+        peer_content_sample=[_peer_sample_text(row) for row in cluster_rows[: min(8, len(cluster_rows))]],
+        web_evidence=evidence_payload,
+    )
+    receipt = bridge.submit(
+        request,
+        model_profile="long_context_engineering",
+        model=resolved_model,
+        timeout=timeout,
+        options=options,
+    )
+    return {
+        "cluster_row_ids": ordered_row_ids,
+        "request": request,
+        "receipt": receipt,
+        "rows": cluster_rows,
+        "web_evidence": evidence_payload,
+    }
+
+
+def resolve_cluster_by_meaning(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_web_results: int = 5,
+    timeout: float = 180.0,
+) -> ProceduralizerBundle:
+    return resolve_cluster_by_meaning_receipt(
+        cluster_row_ids,
+        merged_stars_path,
+        web_search,
+        ollama,
+        model=model,
+        num_ctx=num_ctx,
+        max_web_results=max_web_results,
+        timeout=timeout,
+    )["receipt"].parsed_bundle
+
+
 def differentiate_cluster(
     cluster_row_ids: list[str],
     merged_stars_path: Path,
@@ -1507,6 +1627,8 @@ __all__ = [
     "proceduralize_dataset",
     "proceduralize_entry",
     "proceduralize_text_content",
+    "resolve_cluster_by_meaning",
+    "resolve_cluster_by_meaning_receipt",
     "result_to_payload_row",
     "run_model_eval_harness",
     "write_bundle_jsonl",

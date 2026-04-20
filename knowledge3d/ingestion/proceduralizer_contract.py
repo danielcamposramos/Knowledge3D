@@ -472,6 +472,23 @@ def _normalize_route_contract(value: Any) -> dict[str, Any] | None:
     }
 
 
+def _allowed_urls_from_request(request: ProceduralizerRequest) -> set[str] | None:
+    urls: set[str] = set()
+    for item in list(request.web_evidence or []):
+        if not isinstance(item, dict):
+            continue
+        direct = str(item.get("url") or "").strip()
+        if direct:
+            urls.add(direct)
+        for hit in list(item.get("hits") or []):
+            if not isinstance(hit, dict):
+                continue
+            nested = str(hit.get("url") or "").strip()
+            if nested:
+                urls.add(nested)
+    return urls or None
+
+
 def _cluster_size_from_request(request: ProceduralizerRequest) -> int:
     for chunk in list(request.context_chunks or []):
         text = str(chunk or "").strip()
@@ -504,13 +521,54 @@ def _normalize_emitted_row(value: Any, *, allowed_urls: set[str] | None) -> dict
     if not isinstance(value, dict):
         return None
     row = json.loads(json.dumps(value, ensure_ascii=False))
-    row_id = str(row.get("id") or row.get("row_id") or "").strip()
+    row_id = str(row.get("id") or row.get("row_id") or row.get("star_id") or row.get("proposed_star_id") or "").strip()
     if not row_id:
         return None
     row["id"] = row_id
+    if "star_id" not in row:
+        row["star_id"] = row_id
     metadata = dict(row.get("metadata") or {})
-    sources = _normalize_sources(metadata.get("sources"), allowed_urls=allowed_urls)
+    packet_sources = metadata.get("sources")
+    if not packet_sources:
+        packet_sources = row.get("sources")
+    sources = _normalize_sources(packet_sources, allowed_urls=allowed_urls)
     metadata["sources"] = sources
+    for key in ("surface_forms", "symbol_refs", "word_refs", "taxonomy_refs", "grammar_refs", "reality_refs", "meta_refs", "relationships"):
+        if key not in metadata and key in row:
+            metadata[key] = row.get(key)
+    if "name" not in row:
+        row["name"] = str(row.get("summary") or row_id).strip()
+    if "content" not in row:
+        row["content"] = str(row.get("summary") or row.get("meaning_rpn") or row_id).strip()
+    if "rpn_program" not in row and str(row.get("meaning_rpn") or "").strip():
+        row["rpn_program"] = str(row.get("meaning_rpn") or "").strip()
+    star_type = str(row.get("star_type") or "").strip().lower()
+    layer_kind = str(row.get("layer_kind") or "").strip().lower()
+    if not star_type:
+        row["star_type"] = "meaning_concept" if layer_kind == "meaning" else "surface_symlink"
+    if "galaxy" not in row or not str(row.get("galaxy") or "").strip():
+        if str(row.get("star_type") or "").strip().lower() == "meaning_concept":
+            row["galaxy"] = "meaning_layer_stars"
+    relationships = list(row.get("relationships") or metadata.get("relationships") or [])
+    if "points_to" in row:
+        normalized = _normalize_points_to(row.get("points_to"))
+        if normalized is None:
+            row.pop("points_to", None)
+        else:
+            row["points_to"] = normalized
+    else:
+        relationship_targets = []
+        for item in relationships:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("relation") or "").strip() != "points_to":
+                continue
+            target = str(item.get("to") or "").strip()
+            if target:
+                relationship_targets.append(target)
+        normalized = _normalize_points_to(relationship_targets)
+        if normalized is not None:
+            row["points_to"] = normalized
     if "points_to" in row:
         normalized = _normalize_points_to(row.get("points_to"))
         if normalized is None:
@@ -601,11 +659,7 @@ def _parse_meaning_resolution_bundle(
         action = "augment"
     if outcome not in {"merge_to_meaning_star", "split_polysemy", "mixed", "unresolvable"}:
         outcome = "unresolvable" if status == "unresolvable" else ""
-    allowed_urls = {
-        str(item.get("url") or "").strip()
-        for item in list(request.web_evidence or [])
-        if isinstance(item, dict) and str(item.get("url") or "").strip()
-    } or None
+    allowed_urls = _allowed_urls_from_request(request)
     meaning_stars = [
         normalized
         for normalized in (
@@ -694,11 +748,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
     if not isinstance(packets_raw, list):
         packets_raw = []
 
-    allowed_urls = {
-        str(item.get("url") or "").strip()
-        for item in list(request.web_evidence or [])
-        if isinstance(item, dict) and str(item.get("url") or "").strip()
-    } or None
+    allowed_urls = _allowed_urls_from_request(request)
     packets: list[ProceduralizerPacket] = []
     for item in packets_raw:
         if not isinstance(item, dict):
@@ -755,6 +805,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
 __all__ = [
     "PROCEDURALIZER_BUNDLE_JSON_SCHEMA",
     "PROCEDURALIZER_DIFFERENTIATION_PREAMBLE",
+    "PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE",
     "PROCEDURALIZER_MODEL_PROFILES",
     "PROCEDURALIZER_SYSTEM_PROMPT",
     "ProceduralizerBundle",

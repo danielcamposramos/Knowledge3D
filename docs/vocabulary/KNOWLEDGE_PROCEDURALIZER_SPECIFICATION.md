@@ -232,6 +232,50 @@ cite at least one approved URL in `sources`, which the Stargate persists at
 model must return `status="unresolvable"` with an empty packet list rather
 than fabricate or collapse the cluster.
 
+### 5.2 Meaning Resolution Mode
+
+The proceduralizer also supports `meaning_resolution` mode for residual
+duplicate-content clusters whose rows should be resolved by meaning instead of
+forced apart.
+
+Meaning-resolution mode is cluster-level and emits one of four outcomes:
+
+- `merge_to_meaning_star`
+- `split_polysemy`
+- `mixed`
+- `unresolvable`
+
+The bundle extends with:
+
+- `outcome`
+- `meaning_stars`
+- `surface_symlinks`
+
+Semantics:
+
+- `merge_to_meaning_star`: emit exactly one canonical meaning star and one
+  surface symlink per original row, each symlink pointing to the meaning star
+- `split_polysemy`: emit two or more meaning stars and surface symlinks that
+  point at the grounded sense ids
+- `mixed`: allow partial merge plus partial split
+- `unresolvable`: emit empty arrays and preserve the cluster for later review
+
+Validation rules are strict:
+
+- every emitted meaning star and every emitted surface symlink must include at
+  least one approved web URL in `metadata.sources`
+- `surface_symlinks[*].points_to` must reference emitted meaning-star ids
+- no fabricated URLs are allowed; citations must come from attached
+  `web_evidence`
+
+Merge semantics:
+
+- `meaning_stars/*.jsonl` rows are appended as brand-new rows to
+  `merged_stars.jsonl`
+- `symlinks/*.jsonl` rows replace the original surface rows keyed by `row_id`
+- the merge step must also rewrite `merged_by_galaxy/*.jsonl` so recover-only
+  consumes the updated state instead of stale shards
+
 ---
 
 ## 6. Source-Specific Behavior
