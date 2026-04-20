@@ -17,6 +17,7 @@ from knowledge3d.ingestion.ollama_manager import OllamaManager
 
 from .proceduralizer_contract import (
     PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
+    PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,
     ProceduralizerReceipt,
     ProceduralizerRequest,
@@ -29,6 +30,11 @@ from .proceduralizer_contract import (
 
 
 def _request_user_message(request: ProceduralizerRequest) -> str:
+    mode = str(request.mode or "standard").strip().lower()
+    if mode == "meaning_resolution":
+        embedded_schema = PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA
+    else:
+        embedded_schema = PROCEDURALIZER_BUNDLE_JSON_SCHEMA
     parts = [
         f"source_kind={request.source_kind}",
         f"source_id={request.source_id}",
@@ -38,7 +44,7 @@ def _request_user_message(request: ProceduralizerRequest) -> str:
         f"mode={request.mode or 'standard'}",
         "",
         "Response schema:",
-        json.dumps(PROCEDURALIZER_BUNDLE_JSON_SCHEMA, ensure_ascii=False, sort_keys=True),
+        json.dumps(embedded_schema, ensure_ascii=False, sort_keys=True),
         "",
     ]
     if request.existing_ref_menu:
@@ -145,6 +151,13 @@ class ProceduralizerWineBridge:
                 parsed_bundle=bundle,
             )
 
+        mode = str(request.mode or "standard").strip().lower()
+        if mode == "differentiation":
+            response_format: dict[str, Any] = {"type": "object"}
+        elif mode == "meaning_resolution":
+            response_format = PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA
+        else:
+            response_format = PROCEDURALIZER_BUNDLE_JSON_SCHEMA
         result = self.ollama.chat(
             model=resolved_model,
             messages=[
@@ -154,9 +167,7 @@ class ProceduralizerWineBridge:
             timeout=run_timeout,
             temperature=float(dict(options or {}).pop("temperature", 0.1)),
             options=options,
-            response_format={"type": "object"}
-            if str(request.mode or "standard").strip().lower() == "differentiation"
-            else PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
+            response_format=response_format,
         )
         latency_ms = int((time.perf_counter() - started) * 1000.0)
         raw_output = result.output if result.returncode == 0 else (result.stderr or result.output)

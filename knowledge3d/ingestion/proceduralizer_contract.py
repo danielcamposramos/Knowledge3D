@@ -117,30 +117,152 @@ Allowed outcomes:
 - mixed
 - unresolvable
 
-Rules:
-- If the rows are language/script/styling variants of one concept, emit
-  outcome="merge_to_meaning_star": exactly one meaning star and one surface
-  symlink per original row, each symlink pointing to that meaning star.
-- If the rows share a surface but carry distinct senses, emit
-  outcome="split_polysemy": two or more meaning stars and surface symlinks
-  whose points_to values target the correct sense ids.
-- If some rows merge while others split, emit outcome="mixed".
-- If the attached web_evidence is insufficient, emit
-  outcome="unresolvable" with empty arrays. Do not guess.
+### Core principle — language is NOT a distinguishing meaning
+
+Rows that refer to the SAME real-world concept but write it in different
+languages, scripts, or spellings are ONE meaning. They MUST collapse into a
+single meaning star. Language is a surface property and belongs on the
+surface_symlink, NEVER on the meaning star.
+
+### Concept families that ALWAYS merge across languages, scripts, spellings
+
+If the cluster matches any of these, the outcome is merge_to_meaning_star
+unless the web_evidence affirmatively contradicts it:
+
+1. Cardinal numbers / ordinal numbers / integers (e.g. 208, 483, 959)
+2. SI units, imperial units, currency units (metre / meter, kilogram, °C, $)
+3. Chemical elements and compounds (gold / Au, water / H2O / 水)
+4. Named entities: people, places, organizations, titles, product names
+5. Scientific / mathematical constants (π, e, c, Avogadro, golden ratio)
+6. Physical quantities with a canonical value (speed of light, G, ℏ)
+7. ISO standards, codes, abbreviations (ISO 8601, UTF-8, RGB)
+8. Dates / date components (March, Monday, year 2026)
+9. Taxonomic names (Canis lupus familiaris)
+10. Technical terms with a single agreed definition (algorithm, entropy, pH)
+11. Unicode codepoints referring to the same abstract character
+12. Identical glyph variants across scripts that denote the same concept
+
+### ID convention — MANDATORY
+
+- Every meaning star id MUST be language-neutral.
+- Forbidden suffixes on any meaning star id:
+  `_en`, `_ja`, `_pt`, `_zh`, `_es`, `_fr`, `_de`, `_it`, `_ru`,
+  `_ar`, `_hi`, `_ko`, `_nl`, `_sv`, `_pl`, `_tr`, `_he`, `_vi`,
+  `_id`, `_th`, and any two-letter ISO-639-1 language suffix.
+- Forbidden prefixes indicating language: `en_`, `ja_`, `pt_`, etc.
+- Preferred id styles: `synset_<digits>_<pos>` (WordNet), `cardinal_<N>`,
+  `unit_<slug>`, `element_<symbol>`, `constant_<slug>`, `concept_<slug>`.
+- Every meaning star MUST set `surface_forms` as a dict keyed by ISO-639-1
+  language code, containing ONE entry per input language that appears in the
+  cluster (e.g. `{"en": "...", "ja": "...", "pt": "..."}`). Do NOT emit a
+  separate meaning star per language.
+
+### Polysemy is STRICT
+
+split_polysemy is only valid when DIFFERENT senses share the SAME surface form
+AND the web_evidence contains two or more distinct definitions for that
+surface. Examples: "bank" (river / financial), "light" (photon / low-weight),
+"acuity" (visual sharpness / mental sharpness).
+
+split_polysemy is INVALID and you MUST reject it when:
+- Rows differ by language, script, or spelling variant.
+- Surface forms differ between rows (e.g. "483" vs "四百八十三" vs
+  "quatrocentos e oitenta e tres") — those are translations, not senses.
+- You would produce meaning star ids differing only by a language suffix.
+
+If the cluster mixes one-to-many polysemy on one surface together with
+translations of another surface, use outcome="mixed".
+
+### Sources and honesty
+
 - Every emitted meaning star and every emitted surface symlink MUST include at
   least one supporting URL in metadata.sources.
 - Do not cite URLs that are not present in web_evidence.
-- Output strict JSON only.
+- If web_evidence is empty, thin, or contradictory, emit:
+  `{"status":"unresolvable","outcome":"unresolvable","ingest_action":"skip",
+    "meaning_stars":[], "surface_symlinks":[], "knowledge_packets":[]}`
+- Do not guess. Do not fabricate.
 
-Return this extension shape:
+### Output shape — STRICT JSON ONLY, no prose before/after
+
+Return ONLY this object, no markdown fences, no prefix/suffix text:
+
 {
   "ingest_action": "augment|skip",
   "status": "resolved|unresolvable",
   "outcome": "merge_to_meaning_star|split_polysemy|mixed|unresolvable",
-  "meaning_stars": [ { ... full row objects ... } ],
-  "surface_symlinks": [ { ... full row objects ... } ],
+  "meaning_stars": [ { ... row object ... } ],
+  "surface_symlinks": [ { ... row object ... } ],
   "knowledge_packets": []
 }
+
+Each meaning_star object MUST include:
+  id, layer_kind="meaning", meaning_class, meaning_rpn, summary, domain,
+  surface_forms (multi-language dict), taxonomy_refs, sources,
+  relationships, confidence, needs_review.
+
+Each surface_symlink object MUST include:
+  id, layer_kind="form", meaning_class="symbol", meaning_rpn,
+  points_to (string id of the target meaning star, OR list of such ids),
+  surface_forms (single-language dict), sources, confidence, needs_review.
+
+### Positive exemplar (merge_to_meaning_star)
+
+Input rows: `word_two_hundred_eight` (en), `word_ja_num_208` (ja),
+`word_pt_num_208` (pt), all describing the cardinal 208.
+
+Correct output:
+{
+  "ingest_action": "augment",
+  "status": "resolved",
+  "outcome": "merge_to_meaning_star",
+  "meaning_stars": [{
+    "id": "synset_03182795_n",
+    "layer_kind": "meaning",
+    "meaning_class": "fact",
+    "meaning_rpn": "num_208 VALUE",
+    "summary": "The cardinal number 208.",
+    "domain": "Language",
+    "surface_forms": {"en": "two hundred eight", "ja": "二百八",
+                      "pt": "duzentos e oito"},
+    "taxonomy_refs": ["concept_language"],
+    "sources": ["https://www.merriam-webster.com/..."],
+    "relationships": [{"from": "synset_03182795_n",
+                       "relation": "represents", "to": "numeral_208"}],
+    "confidence": 0.98, "needs_review": false
+  }],
+  "surface_symlinks": [
+    {"id": "word_two_hundred_eight", "layer_kind": "form",
+     "meaning_class": "symbol", "meaning_rpn":
+     "LOOKUP synset_03182795_n LANGUAGE_en",
+     "points_to": "synset_03182795_n",
+     "surface_forms": {"en": "two hundred eight"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false},
+    {"id": "word_ja_num_208", "points_to": "synset_03182795_n",
+     "layer_kind": "form", "meaning_class": "symbol",
+     "meaning_rpn": "LOOKUP synset_03182795_n LANGUAGE_ja",
+     "surface_forms": {"ja": "二百八"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false},
+    {"id": "word_pt_num_208", "points_to": "synset_03182795_n",
+     "layer_kind": "form", "meaning_class": "symbol",
+     "meaning_rpn": "LOOKUP synset_03182795_n LANGUAGE_pt",
+     "surface_forms": {"pt": "duzentos e oito"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false}
+  ],
+  "knowledge_packets": []
+}
+
+### Negative exemplar — what NOT to do (the 483 failure)
+
+DO NOT produce three meaning stars `synset_num_483_en`, `synset_num_483_ja`,
+`synset_num_483_pt`. That violates the ID convention (language suffix on
+meaning star) AND the core principle (language is not a differentiating
+meaning). For that input, produce ONE meaning star `cardinal_483` or
+`synset_<wnid>_n` with all three languages on its `surface_forms` dict, plus
+three surface_symlink rows pointing at it.
 """
 
 
@@ -233,6 +355,126 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
         },
     },
     "required": ["ingest_action", "knowledge_packets"],
+    "additionalProperties": False,
+}
+
+
+# Two-letter ISO-639-1 language codes that MUST NOT appear as an `_<code>`
+# suffix on any meaning star id. Used by both the parser and (informally) by
+# the meaning-resolution preamble.
+LANGUAGE_SUFFIX_BLACKLIST: tuple[str, ...] = (
+    "en", "ja", "pt", "zh", "es", "fr", "de", "it", "ru", "ar", "hi", "ko",
+    "nl", "sv", "pl", "tr", "he", "vi", "id", "th", "cs", "da", "el", "fa",
+    "fi", "hu", "no", "ro", "sk", "uk", "ur", "bn", "ms", "tl",
+)
+
+
+PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "ingest_action": {
+            "type": "string",
+            "enum": ["skip", "augment", "needs_context", "reject"],
+        },
+        "status": {
+            "type": "string",
+            "enum": ["resolved", "unresolvable"],
+        },
+        "outcome": {
+            "type": "string",
+            "enum": [
+                "merge_to_meaning_star",
+                "split_polysemy",
+                "mixed",
+                "unresolvable",
+            ],
+        },
+        "meaning_stars": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "layer_kind": {"type": "string", "enum": ["meaning"]},
+                    "meaning_class": {"type": "string"},
+                    "meaning_rpn": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "domain": {"type": "string"},
+                    "surface_forms": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                        "minProperties": 1,
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                    },
+                    "confidence": {"type": "number"},
+                    "needs_review": {"type": "boolean"},
+                },
+                "required": [
+                    "id",
+                    "layer_kind",
+                    "meaning_rpn",
+                    "summary",
+                    "surface_forms",
+                    "sources",
+                ],
+                "additionalProperties": True,
+            },
+        },
+        "surface_symlinks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "layer_kind": {"type": "string", "enum": ["form"]},
+                    "meaning_class": {"type": "string"},
+                    "meaning_rpn": {"type": "string"},
+                    "points_to": {
+                        "oneOf": [
+                            {"type": "string", "minLength": 1},
+                            {
+                                "type": "array",
+                                "items": {"type": "string", "minLength": 1},
+                                "minItems": 1,
+                            },
+                        ],
+                    },
+                    "surface_forms": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                        "minProperties": 1,
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "confidence": {"type": "number"},
+                    "needs_review": {"type": "boolean"},
+                },
+                "required": [
+                    "id",
+                    "layer_kind",
+                    "points_to",
+                    "surface_forms",
+                ],
+                "additionalProperties": True,
+            },
+        },
+        "knowledge_packets": {
+            "type": "array",
+            "items": {"type": "object"},
+        },
+    },
+    "required": [
+        "ingest_action",
+        "outcome",
+        "meaning_stars",
+        "surface_symlinks",
+    ],
     "additionalProperties": False,
 }
 
@@ -624,6 +866,9 @@ def _fallback_bundle(
         "timeout",
         "context_exhausted",
         "plan_limit_consumed",
+        "missing_sources",
+        "language_suffixed_meaning_id",
+        "language_variant_over_split",
     }:
         action = "reject"
     else:
@@ -645,6 +890,32 @@ def _fallback_bundle(
         needs_review=True,
     )
     return ProceduralizerBundle(ingest_action="augment", knowledge_packets=[packet])
+
+
+_LANGUAGE_SUFFIX_RE = re.compile(
+    r"_(" + "|".join(LANGUAGE_SUFFIX_BLACKLIST) + r")$",
+    re.IGNORECASE,
+)
+
+
+def _has_forbidden_language_suffix(row_id: str) -> bool:
+    return bool(_LANGUAGE_SUFFIX_RE.search(str(row_id or "").strip().lower()))
+
+
+def _meaning_ids_collapse_to_one_stem(meaning_ids: set[str]) -> bool:
+    """True if every id shares the same stem after stripping a trailing
+    language-code suffix — i.e. the split is really language variants, not
+    polysemy."""
+    if len(meaning_ids) <= 1:
+        return False
+    stems: set[str] = set()
+    for row_id in meaning_ids:
+        text = str(row_id or "").strip().lower()
+        stripped = _LANGUAGE_SUFFIX_RE.sub("", text)
+        if stripped == text:
+            return False  # at least one id has no language suffix → not a pure-language split
+        stems.add(stripped)
+    return len(stems) == 1
 
 
 def _parse_meaning_resolution_bundle(
@@ -695,6 +966,10 @@ def _parse_meaning_resolution_bundle(
         if not _row_sources(row):
             return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
     meaning_ids = {str(row.get("id") or "").strip() for row in meaning_stars if str(row.get("id") or "").strip()}
+    # Language-suffix guard: meaning stars MUST have language-neutral ids.
+    for row in meaning_stars:
+        if _has_forbidden_language_suffix(str(row.get("id") or "")):
+            return _fallback_bundle(request, failure_code="language_suffixed_meaning_id", raw_text=raw_text), False, "language_suffixed_meaning_id"
     cluster_size = _cluster_size_from_request(request)
     if outcome == "merge_to_meaning_star":
         if len(meaning_stars) != 1 or (cluster_size and len(surface_symlinks) != cluster_size):
@@ -707,6 +982,11 @@ def _parse_meaning_resolution_bundle(
     elif outcome == "split_polysemy":
         if len(meaning_stars) <= 1 or not surface_symlinks:
             return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        # Reject language-variant "splits": if every meaning star id collapses
+        # to the same stem once a trailing language code is stripped, this is
+        # not polysemy — it's a translation cluster that should have merged.
+        if _meaning_ids_collapse_to_one_stem(meaning_ids):
+            return _fallback_bundle(request, failure_code="language_variant_over_split", raw_text=raw_text), False, "language_variant_over_split"
         for row in surface_symlinks:
             targets = _row_points_to(row)
             if not targets or any(target not in meaning_ids for target in targets):
@@ -803,9 +1083,11 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
 
 
 __all__ = [
+    "LANGUAGE_SUFFIX_BLACKLIST",
     "PROCEDURALIZER_BUNDLE_JSON_SCHEMA",
     "PROCEDURALIZER_DIFFERENTIATION_PREAMBLE",
     "PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE",
+    "PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA",
     "PROCEDURALIZER_MODEL_PROFILES",
     "PROCEDURALIZER_SYSTEM_PROMPT",
     "ProceduralizerBundle",

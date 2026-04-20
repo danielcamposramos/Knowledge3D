@@ -322,6 +322,7 @@ def _stage_paths(out_root: Path) -> dict[str, Path]:
         "symlinks": out_root / "symlinks",
         "unresolved": out_root / "unresolved",
         "workers": out_root / "workers",
+        "captures": out_root / "captures",
     }
 
 
@@ -629,11 +630,13 @@ def _meaning_resolution_sync_result(
     model: str,
     num_ctx: int,
     timeout: float,
+    capture_dir: Path | None = None,
 ) -> dict[str, Any]:
     bridge = ProceduralizerWineBridge(
         provider="ollama",
         default_timeout=float(timeout),
         ollama=OllamaManager(default_timeout=float(timeout)),
+        capture_dir=capture_dir,
     )
     options = dict(MODEL_OPTIONS.get(model, {}))
     options.setdefault("temperature", 0.1)
@@ -684,6 +687,7 @@ async def _process_meaning_resolution_async(
     max_web_results: int,
     row_concurrency: int,
     timeout: float,
+    capture_dir: Path | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], str, bool]:
     web_evidence = await _gather_cluster_web_evidence(
         row_ids=row_ids,
@@ -703,6 +707,7 @@ async def _process_meaning_resolution_async(
         model=model,
         num_ctx=num_ctx,
         timeout=timeout,
+        capture_dir=capture_dir,
     )
     receipt = result["receipt"]
     bundle = getattr(receipt, "parsed_bundle", None)
@@ -851,6 +856,7 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
                             max_web_results=int(args.max_web_results),
                             row_concurrency=int(args.row_concurrency),
                             timeout=float(args.timeout),
+                            capture_dir=paths["captures"],
                         )
                     )
                 else:
@@ -940,19 +946,22 @@ def _worker(args: argparse.Namespace) -> dict[str, Any]:
     return summary
 
 
+def _row_points_to_list(row: dict[str, Any]) -> list[str]:
+    points_to = row.get("points_to")
+    if points_to is None:
+        points_to = dict(row.get("metadata") or {}).get("points_to")
+    if isinstance(points_to, list):
+        return [str(item).strip() for item in points_to if str(item).strip()]
+    text = str(points_to or "").strip()
+    return [text] if text else []
+
+
 def _valid_symlink_targets(
     row: dict[str, Any],
     *,
     known_ids: set[str],
 ) -> tuple[bool, list[str]]:
-    points_to = row.get("points_to")
-    if points_to is None:
-        points_to = dict(row.get("metadata") or {}).get("points_to")
-    if isinstance(points_to, list):
-        targets = [str(item).strip() for item in points_to if str(item).strip()]
-    else:
-        text = str(points_to or "").strip()
-        targets = [text] if text else []
+    targets = _row_points_to_list(row)
     if not targets:
         return False, []
     return all(target in known_ids for target in targets), targets
@@ -1026,6 +1035,32 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             )
             continue
         valid_row_updates[row_id] = row
+    # pointed_by synthesis: collect incoming surface_symlink edges for each
+    # emitted meaning_star so the audit sees a bidirectional link. Without
+    # this, every surface_symlink creates a unidirectional_site in the audit.
+    pointed_by_index: dict[str, list[str]] = {}
+    for row_id, row in valid_row_updates.items():
+        if str(row.get("star_type") or "").strip().lower() != "surface_symlink":
+            continue
+        targets = _row_points_to_list(row)
+        for target in targets:
+            pointed_by_index.setdefault(target, []).append(row_id)
+    for row in new_meaning_rows:
+        meaning_id = _row_id(row)
+        if not meaning_id:
+            continue
+        incoming = sorted(set(pointed_by_index.get(meaning_id, [])))
+        if not incoming:
+            continue
+        metadata = dict(row.get("metadata") or {})
+        existing_incoming = [
+            str(item).strip()
+            for item in list(metadata.get("pointed_by") or [])
+            if str(item).strip()
+        ]
+        metadata["pointed_by"] = sorted(set(existing_incoming + incoming))
+        row["metadata"] = metadata
+        row["pointed_by"] = metadata["pointed_by"]
     merged_out.parent.mkdir(parents=True, exist_ok=True)
     seen_source_ids: set[str] = set()
     with merged_in.open("r", encoding="utf-8") as source, merged_out.open("w", encoding="utf-8") as target:
