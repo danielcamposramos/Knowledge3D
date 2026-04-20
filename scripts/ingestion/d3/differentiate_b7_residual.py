@@ -980,9 +980,9 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             row_id = _row_id(row)
             if row_id:
                 row_updates[row_id] = row
-    new_meaning_rows: list[dict[str, Any]] = []
+    emitted_meaning_rows: list[dict[str, Any]] = []
     for path in sorted(meaning_stars_dir.glob("*.jsonl")):
-        new_meaning_rows.extend(_read_jsonl(path))
+        emitted_meaning_rows.extend(_read_jsonl(path))
     done_files = sorted(done_dir.glob("*.done"))
     unresolved_rows: list[dict[str, Any]] = []
     for done_file in done_files:
@@ -1005,6 +1005,8 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             row_id = _row_id(row)
             if row_id:
                 existing_ids.add(row_id)
+    new_meaning_rows = [row for row in emitted_meaning_rows if _row_id(row) and _row_id(row) not in existing_ids]
+    reused_meaning_ids = sorted({_row_id(row) for row in emitted_meaning_rows if _row_id(row) in existing_ids})
     new_meaning_ids = {_row_id(row) for row in new_meaning_rows if _row_id(row)}
     known_ids = existing_ids | new_meaning_ids
     unresolved_symlinks: list[dict[str, Any]] = []
@@ -1025,6 +1027,7 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             continue
         valid_row_updates[row_id] = row
     merged_out.parent.mkdir(parents=True, exist_ok=True)
+    seen_source_ids: set[str] = set()
     with merged_in.open("r", encoding="utf-8") as source, merged_out.open("w", encoding="utf-8") as target:
         for line in source:
             text = line.strip()
@@ -1032,6 +1035,9 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
                 continue
             row = json.loads(text)
             row_id = _row_id(row)
+            if row_id in seen_source_ids:
+                continue
+            seen_source_ids.add(row_id)
             payload = valid_row_updates.get(row_id, row)
             target.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
         for row in sorted(new_meaning_rows, key=_row_id):
@@ -1051,6 +1057,7 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
         "done_clusters": len(done_files),
         "enriched_rows": len(valid_row_updates),
         "meaning_star_rows": len(new_meaning_rows),
+        "reused_meaning_star_ids": len(reused_meaning_ids),
         "merged_out": str(merged_out),
         "merged_sha256": digest.hexdigest(),
         "merged_by_galaxy_row_count": shard_stats["row_count"],
