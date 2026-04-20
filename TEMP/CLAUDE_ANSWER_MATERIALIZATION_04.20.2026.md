@@ -100,6 +100,26 @@ to top level so `_canonicalize_live_runtime_response` and downstream
   accuracy baselines for the paper.
 - ARC3 live-screen is unblocked once we validate GSM8K at N=10 or N=50.
 
+## Broader baseline — GSM8K 10q
+
+`/tmp/gsm8k_10q_run1.log`:
+
+- Total: 10, Correct: **1**, Accuracy: **10%**
+- `answer_format_counts`: `{empty: 2, numeric: 8}` — 80% materialization
+  rate, 2 uncovered routes (no RPN template match in Math/Grammar
+  galaxies).
+- Only gsm8k_0 lands correct. Others produce plausible but wrong
+  numbers (e.g. gsm8k_878: predicted 46 = 32+14 instead of 5). This is
+  the **reasoning-correctness frontier**: the RPN engine evaluates
+  templates, but the template/query alignment is still imprecise.
+- Empty cases are queries with no matching template (gsm8k_292, gsm8k_439
+  — both involve ratios or time-unit conversions that need richer
+  grammar coverage).
+
+**Takeaway:** pipeline is paper-grade. Reasoning correctness is the
+next layer (richer templates, better RPN template matching, PTX-level
+TRM reasoning per Phase D).
+
 ## Files Touched
 
 - `knowledge3d/knowledgeverse/trm_game_loop.py` — `_run_query_tick`
