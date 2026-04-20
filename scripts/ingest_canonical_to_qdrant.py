@@ -43,7 +43,7 @@ def _iter_entries() -> Iterable[dict[str, object]]:
             "star_id": canonical_char_star_id(char),
             "document": f"canonical character id for {char}",
         }
-    for primitive in ("line", "circle", "rect"):
+    for primitive in ("line", "arc", "quad", "cubic", "circle", "rect", "tri"):
         yield {
             "kind": "drawing_primitive",
             "key": primitive,
@@ -60,14 +60,27 @@ def _iter_entries() -> Iterable[dict[str, object]]:
             "star_id": canonical_grammar_template_id(language, template),
             "document": f"canonical grammar template {language} {template}",
         }
-    for meaning_class in ("concept", "relation", "action", "property", "meta", "form"):
+    for meaning_class in (
+        # Phase 7.0 ontological classes
+        "concept", "relation", "action", "property", "meta", "form",
+        # Phase 7.A.1 galaxy meaning classes
+        "drawing", "glyph", "word", "number", "grammar",
+        "reality", "math", "audio", "object_3d", "tool", "game_2d",
+    ):
         yield {
             "kind": "meaning_class",
             "key": meaning_class,
             "star_id": meaning_class,
             "document": f"canonical meaning class {meaning_class}",
         }
-    for symlink_kind in ("taxonomy_refs", "meta_refs", "grammar_refs", "component_refs", "composite_of", "mathematical_role"):
+    for symlink_kind in (
+        # Phase 7.0 symlink kinds
+        "taxonomy_refs", "meta_refs", "grammar_refs", "component_refs",
+        "composite_of", "mathematical_role",
+        # Phase 7.A.1 additional field paths from CANONICAL_REGISTRY_SPECIFICATION.md §7
+        "reality_refs", "visual_refs", "audio_refs", "char_refs",
+        "surface_forms_word_ref", "glyph_refs", "rpn_refs",
+    ):
         yield {
             "kind": "symlink_kind",
             "key": symlink_kind,
