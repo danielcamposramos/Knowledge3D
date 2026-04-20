@@ -1178,6 +1178,14 @@ class SovereignHotPath:
 
     @staticmethod
     def _default_feed_source_worker_count() -> int:
+        override = os.environ.get("K3D_SOVEREIGN_FEED_WORKERS", "").strip()
+        if override:
+            try:
+                value = int(override)
+                if value >= 1:
+                    return int(min(DEFAULT_FEED_SOURCE_MAX_WORKERS, value))
+            except ValueError:
+                pass
         cpu_count = os.cpu_count() or 2
         return int(min(DEFAULT_FEED_SOURCE_MAX_WORKERS, max(2, int(cpu_count) - 2)))
 
@@ -2579,6 +2587,14 @@ class SovereignHotPath:
         compile_t0 = time.perf_counter()
         catalog = list(catalog)
         catalog_signature = self._current_signature(catalog)
+        chunk_override = os.environ.get("K3D_SOVEREIGN_FEED_CHUNK_SIZE", "").strip()
+        if chunk_size is None and chunk_override:
+            try:
+                parsed_chunk = int(chunk_override)
+                if parsed_chunk >= 1:
+                    chunk_size = parsed_chunk
+            except ValueError:
+                pass
         resolved_chunk_size = max(1, int(chunk_size or DEFAULT_FEED_SOURCE_CHUNK_SIZE))
         requested_workers = max(1, int(worker_count or self._default_feed_source_worker_count()))
         tasks = [

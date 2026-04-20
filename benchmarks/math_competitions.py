@@ -930,6 +930,7 @@ class UnifiedMathBenchmark:
         }
         step = max(1, int(progress_every or 25))
         start = time.monotonic()
+        self._ensure_tablet_boundary()
         tablet_rows: list[dict[str, Any]] = []
         if self.tablet_boundary is not None:
             tape = build_math_session_tape(

@@ -1406,7 +1406,7 @@ class HeadlessTabletMPC:
                     "tablet_contract": {
                         "action_type": action_buffer.get_action_type().name,
                         "mutation_type": int(mutation_type),
-                        "payload_words": payload_words.tolist(),
+                        "payload_words": list(payload_words),
                         "surface_kind": _normalize_surface_kind(envelope.surface_kind),
                         "sovereign_path": "knowledgeverse_dispatch_session"
                         if backend == "knowledgeverse_dispatch"
@@ -1842,7 +1842,7 @@ class HeadlessTabletMPC:
                 "tablet_contract": {
                     "action_type": action_buffer.get_action_type().name,
                     "mutation_type": int(mutation_type),
-                    "payload_words": payload_words.tolist(),
+                    "payload_words": list(payload_words),
                     "surface_kind": _normalize_surface_kind(envelope.surface_kind),
                     "sovereign_path": "knowledgeverse_trm_game_loop",
                     "output_action_type": str(
@@ -1876,7 +1876,7 @@ class HeadlessTabletMPC:
                 "tablet_contract": {
                     "action_type": action_buffer.get_action_type().name,
                     "mutation_type": int(mutation_type),
-                    "payload_words": payload_words.tolist(),
+                    "payload_words": list(payload_words),
                     "surface_kind": _normalize_surface_kind(envelope.surface_kind),
                     "sovereign_path": "tablet_bridge_ring",
                     "output_action_type": response["task_result"]["action_type"],
@@ -1894,7 +1894,7 @@ class HeadlessTabletMPC:
             "tablet_contract": {
                 "action_type": action_buffer.get_action_type().name,
                 "mutation_type": int(mutation_type),
-                "payload_words": payload_words.tolist(),
+                "payload_words": list(payload_words),
                 "surface_kind": _normalize_surface_kind(envelope.surface_kind),
             },
         }

@@ -21,10 +21,6 @@ from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC, TabletSessionT
 from knowledge3d.daemon.tick_driver import TickDriver
 from knowledge3d.local_paths import default_storage_root
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
-from knowledge3d.cranium.bridges.procedural_drawing_bridge import ProceduralDrawingBridge
-from knowledge3d.cranium.bridges.procedural_geometry_bridge import ProceduralGeometryBridge
-from knowledge3d.cranium.bridges.procedural_material_bridge import ProceduralMaterialBridge
-
 try:
     from knowledge3d.cranium.ptx_runtime.modular_rpn_engine import ModularRPNEngine
 except Exception:  # pragma: no cover
@@ -148,14 +144,8 @@ class K3DDaemon:
             config.storage_root / "runtime" / "runtime_boot.json",
             self._repo_root / "viewer" / "public" / "runtime_boot.json",
         ]
-        self._drawing_bridge: ProceduralDrawingBridge | None = None
-        self._geometry_bridge: ProceduralGeometryBridge | None = None
-        self._material_bridge: ProceduralMaterialBridge | None = None
         self._sleep_cluster_refiner = None
         self._sleep_glyph_consolidator = None
-        self._drawing_warmup: dict[str, Any] = {}
-        self._geometry_warmup: dict[str, Any] = {}
-        self._material_warmup: dict[str, Any] = {}
         self._boot_binding: dict[str, Any] = {}
         self._sleep_tick_count = 0
         self._sleep_tick_cursor = 0
@@ -210,7 +200,6 @@ class K3DDaemon:
                 "gpu_binding": dict(self._boot_binding),
             },
         )
-        self._warmup_boot_runtime()
         self._tick_driver = TickDriver(self.kv)
         self._tick_driver.start()
         self.kv._external_tick_driver_active = True
@@ -219,9 +208,6 @@ class K3DDaemon:
             progress=1.0,
             state="ready",
             extra={
-                "drawing_warmup": dict(self._drawing_warmup),
-                "geometry_warmup": dict(self._geometry_warmup),
-                "material_warmup": dict(self._material_warmup),
                 "gpu_binding": dict(self._boot_binding),
                 "tick_driver": self._tick_driver.stats(),
             },
@@ -251,113 +237,6 @@ class K3DDaemon:
                 path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
             except Exception:
                 continue
-
-    def _warmup_boot_runtime(self) -> None:
-        if os.environ.get("K3D_WARMUP_DRAWING", "1") != "1":
-            self._drawing_warmup = {"status": "skipped", "reason": "K3D_WARMUP_DRAWING=0"}
-        else:
-            self._write_boot_status(stage="drawing_runtime_warmup", progress=0.72, state="warming")
-            try:
-                self._drawing_bridge = ProceduralDrawingBridge(matryoshka_dim=64)
-                self._drawing_warmup = self._drawing_bridge.warmup_runtime()
-                self._write_boot_status(
-                    stage="drawing_runtime_warm",
-                    progress=0.84,
-                    state="warming",
-                    extra={"drawing_warmup": dict(self._drawing_warmup)},
-                )
-            except Exception as exc:
-                self._drawing_warmup = {
-                    "status": "error",
-                    "exception_type": type(exc).__name__,
-                    "detail": str(exc),
-                }
-                self._write_boot_status(
-                    stage="drawing_runtime_warmup_failed",
-                    progress=0.84,
-                    state="warning",
-                    extra={"drawing_warmup": dict(self._drawing_warmup)},
-                )
-
-        if os.environ.get("K3D_WARMUP_GEOMETRY", "1") != "1":
-            self._geometry_warmup = {"status": "skipped", "reason": "K3D_WARMUP_GEOMETRY=0"}
-        else:
-            self._write_boot_status(
-                stage="geometry_runtime_warmup",
-                progress=0.9,
-                state="warming",
-                extra={"drawing_warmup": dict(self._drawing_warmup)},
-            )
-            try:
-                self._geometry_bridge = ProceduralGeometryBridge()
-                self._geometry_warmup = self._geometry_bridge.warmup_runtime()
-                self._write_boot_status(
-                    stage="geometry_runtime_warm",
-                    progress=0.96,
-                    state="warming",
-                    extra={
-                        "drawing_warmup": dict(self._drawing_warmup),
-                        "geometry_warmup": dict(self._geometry_warmup),
-                    },
-                )
-            except Exception as exc:
-                self._geometry_warmup = {
-                    "status": "error",
-                    "exception_type": type(exc).__name__,
-                    "detail": str(exc),
-                }
-                self._write_boot_status(
-                    stage="geometry_runtime_warmup_failed",
-                    progress=0.96,
-                    state="warning",
-                    extra={
-                        "drawing_warmup": dict(self._drawing_warmup),
-                        "geometry_warmup": dict(self._geometry_warmup),
-                    },
-                )
-
-        if os.environ.get("K3D_WARMUP_MATERIAL", "1") != "1":
-            self._material_warmup = {"status": "skipped", "reason": "K3D_WARMUP_MATERIAL=0"}
-            return
-
-        self._write_boot_status(
-            stage="material_runtime_warmup",
-            progress=0.985,
-            state="warming",
-            extra={
-                "drawing_warmup": dict(self._drawing_warmup),
-                "geometry_warmup": dict(self._geometry_warmup),
-            },
-        )
-        try:
-            self._material_bridge = ProceduralMaterialBridge()
-            self._material_warmup = self._material_bridge.warmup_runtime()
-            self._write_boot_status(
-                stage="material_runtime_warm",
-                progress=0.995,
-                state="warming",
-                extra={
-                    "drawing_warmup": dict(self._drawing_warmup),
-                    "geometry_warmup": dict(self._geometry_warmup),
-                    "material_warmup": dict(self._material_warmup),
-                },
-            )
-        except Exception as exc:
-            self._material_warmup = {
-                "status": "error",
-                "exception_type": type(exc).__name__,
-                "detail": str(exc),
-            }
-            self._write_boot_status(
-                stage="material_runtime_warmup_failed",
-                progress=0.995,
-                state="warning",
-                extra={
-                    "drawing_warmup": dict(self._drawing_warmup),
-                    "geometry_warmup": dict(self._geometry_warmup),
-                    "material_warmup": dict(self._material_warmup),
-                },
-            )
 
     def _gpu_snapshot(self) -> dict[str, Any]:
         used = 0
@@ -830,9 +709,6 @@ class K3DDaemon:
             "command_count": int(self._command_count),
             "gpu_calls_total": int(self._gpu_calls_total),
             "cuda_env": dict(self._cuda_env),
-            "drawing_warmup": dict(self._drawing_warmup),
-            "geometry_warmup": dict(self._geometry_warmup),
-            "material_warmup": dict(self._material_warmup),
             "gpu_binding": self._binding_report(),
             "semantic_csr_graph": self._semantic_graph_report(),
             "idle_threshold_seconds": float(self.config.idle_threshold_seconds),

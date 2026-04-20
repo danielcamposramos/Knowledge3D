@@ -31,12 +31,22 @@ DEFAULT_PATHS = [
 ]
 
 
-def _needs_patch(metadata: dict) -> tuple[bool, bool]:
-    """Return (needs_selection_role, needs_answer_eligible)."""
-    sr = str(metadata.get("selection_role") or "").strip().lower()
-    needs_sr = sr not in KNOWN_ROLES
-    needs_ae = "answer_eligible" not in metadata
-    return needs_sr, needs_ae
+def _needs_patch(star: dict, metadata: dict) -> tuple[bool, bool, bool, bool]:
+    """Return (needs_top_sr, needs_top_ae, needs_md_sr, needs_md_ae).
+
+    Top-level keys are required because `normalize_meaning_layer_entry`
+    (galaxy_manager.py:173-188) only preserves a whitelisted set of TOP-level
+    keys when rebuilding meaning-layer entries — nested metadata fields are
+    dropped. Metadata keys are kept for backward compatibility with paths that
+    don't go through the meaning-layer normalizer.
+    """
+    top_sr = str(star.get("selection_role") or "").strip().lower()
+    md_sr = str(metadata.get("selection_role") or "").strip().lower()
+    needs_top_sr = top_sr not in KNOWN_ROLES
+    needs_top_ae = "answer_eligible" not in star
+    needs_md_sr = md_sr not in KNOWN_ROLES
+    needs_md_ae = "answer_eligible" not in metadata
+    return needs_top_sr, needs_top_ae, needs_md_sr, needs_md_ae
 
 
 def patch_file(path: Path, dry_run: bool) -> None:
@@ -59,22 +69,30 @@ def patch_file(path: Path, dry_run: bool) -> None:
             metadata = {}
             star["metadata"] = metadata
 
-        needs_sr, needs_ae = _needs_patch(metadata)
+        needs_top_sr, needs_top_ae, needs_md_sr, needs_md_ae = _needs_patch(star, metadata)
 
-        if needs_sr or needs_ae:
+        if needs_top_sr or needs_top_ae or needs_md_sr or needs_md_ae:
             patched += 1
             if dry_run:
                 star_id = star.get("id", f"line_{total}")
                 changes = []
-                if needs_sr:
-                    changes.append("selection_role -> answer")
-                if needs_ae:
-                    changes.append("answer_eligible -> true")
+                if needs_top_sr:
+                    changes.append("top.selection_role -> answer")
+                if needs_top_ae:
+                    changes.append("top.answer_eligible -> true")
+                if needs_md_sr:
+                    changes.append("metadata.selection_role -> answer")
+                if needs_md_ae:
+                    changes.append("metadata.answer_eligible -> true")
                 print(f"  [DRY-RUN] {star_id}: would set {', '.join(changes)}")
             else:
-                if needs_sr:
+                if needs_top_sr:
+                    star["selection_role"] = "answer"
+                if needs_top_ae:
+                    star["answer_eligible"] = True
+                if needs_md_sr:
                     metadata["selection_role"] = "answer"
-                if needs_ae:
+                if needs_md_ae:
                     metadata["answer_eligible"] = True
         else:
             already_compliant += 1
