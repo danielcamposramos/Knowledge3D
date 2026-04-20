@@ -39,6 +39,17 @@ _CODEC_TOKEN_MAP = {
     "BLOCKS_TO_GRID": "blocks_to_grid",
     "TERNARY_ADD": "tadd",
     "TERNARY_MUL": "tmul",
+    # ARC3 screen bridge tokens — 0x2A0-0x2A9
+    "arc3_frame_decode":      "arc3_frame_decode",
+    "arc3_palette_set":       "arc3_palette_set",
+    "arc3_frame_to_dotmap":   "arc3_frame_to_dotmap",
+    "arc3_project_to_screen": "arc3_project_to_screen",
+    "arc3_click_invert":      "arc3_click_invert",
+    "arc3_action_emit":       "arc3_action_emit",
+    "arc3_replay_step":       "arc3_replay_step",
+    "arc3_diff_highlight":    "arc3_diff_highlight",
+    "arc3_lives_hud":         "arc3_lives_hud",
+    "arc3_game_id_bind":      "arc3_game_id_bind",
 }
 
 _CAS_TIER2_RANGE = range(0x220, 0x238)
@@ -68,6 +79,7 @@ class TieredRPNEngine:
         self._tier1_fallback_count = 0  # Count of Tier-1 -> Tier-2 fallbacks due to empty stack
         self._codec_ops: Optional[TernaryCodecOps] = None
         self._ternary_kernels: Optional[dict] = None
+        self._arc3_bridge = None  # Arc3ScreenBridge — lazy-initialized on first use
 
     # ------------------------------------------------------------------ #
     # Public entry points
@@ -436,6 +448,96 @@ class TieredRPNEngine:
                         integer=is_integer,
                     )
                     stack.append(self._reshape_from_flat(transformed, (rows, cols)))
+                # ---- ARC3 screen bridge dispatches (0x2A0-0x2A9) ----------
+                elif op == "arc3_frame_decode":
+                    self._ensure_arc3_bridge()
+                    W = int(self._pop_number(stack, default=64))
+                    H = int(self._pop_number(stack, default=64))
+                    frame_idx_dev = self._pop_any(stack)
+                    rgba_dev = self._arc3_bridge.decode_frame(frame_idx_dev, W, H)
+                    stack.append(rgba_dev)
+                elif op == "arc3_palette_set":
+                    self._ensure_arc3_bridge()
+                    palette_data = self._pop_any(stack)
+                    # palette_data is a list of 16 packed uint32 RGBA values.
+                    entries = list(palette_data) if hasattr(palette_data, "__iter__") else [palette_data]
+                    self._arc3_bridge.upload_palette(entries)
+                    stack.append(1)  # success sentinel
+                elif op == "arc3_frame_to_dotmap":
+                    # Delegating opcode — dispatches to dotmap_codec.cu::dot_place_procedural.
+                    # Requires DotMapBridge integration (Codex follow-up lane per
+                    # TEMP/CLAUDE_DUAL_PATH_INGESTION_AND_DISPATCH_WIRING_04.20.2026.md §3.5).
+                    raise NotImplementedError(
+                        "arc3_frame_to_dotmap (0x2A2) delegates to dotmap_codec kernel — "
+                        "integration pending. Wire DotMapBridge before emitting this opcode."
+                    )
+                elif op == "arc3_project_to_screen":
+                    # Delegating opcode — dispatches to projection_screen.cu::screen_project_kernel.
+                    # Requires ProjectionScreenBridge integration (Codex follow-up lane).
+                    raise NotImplementedError(
+                        "arc3_project_to_screen (0x2A3) delegates to projection_screen kernel — "
+                        "integration pending. Wire ProjectionScreenBridge before emitting this opcode."
+                    )
+                elif op == "arc3_click_invert":
+                    self._ensure_arc3_bridge()
+                    grid_h = int(self._pop_number(stack, default=4))
+                    grid_w = int(self._pop_number(stack, default=4))
+                    rect_h = int(self._pop_number(stack, default=64))
+                    rect_w = int(self._pop_number(stack, default=64))
+                    rect_y = int(self._pop_number(stack, default=0))
+                    rect_x = int(self._pop_number(stack, default=0))
+                    sy = int(self._pop_number(stack))
+                    sx = int(self._pop_number(stack))
+                    gx, gy = self._arc3_bridge.invert_click(
+                        sx, sy,
+                        rect=(rect_x, rect_y, rect_w, rect_h),
+                        grid=(grid_w, grid_h),
+                    )
+                    stack.append([gx, gy])
+                elif op == "arc3_action_emit":
+                    self._ensure_arc3_bridge()
+                    gy = int(self._pop_number(stack))
+                    gx = int(self._pop_number(stack))
+                    action_id = int(self._pop_number(stack))
+                    record = self._arc3_bridge.emit_action(action_id, gx, gy)
+                    stack.append(list(record))
+                elif op == "arc3_replay_step":
+                    self._ensure_arc3_bridge()
+                    H = int(self._pop_number(stack, default=64))
+                    W = int(self._pop_number(stack, default=64))
+                    frames_dev = self._pop_any(stack)
+                    rgba_dev, frame_idx = self._arc3_bridge.replay_step(frames_dev, W, H)
+                    stack.append(rgba_dev)
+                    stack.append(frame_idx)
+                elif op == "arc3_diff_highlight":
+                    self._ensure_arc3_bridge()
+                    hi_rgba = int(self._pop_number(stack, default=0x00FFFF00))
+                    H = int(self._pop_number(stack, default=64))
+                    W = int(self._pop_number(stack, default=64))
+                    frame_b_dev = self._pop_any(stack)
+                    frame_a_dev = self._pop_any(stack)
+                    overlay_dev = self._arc3_bridge.diff_highlight(
+                        frame_a_dev, frame_b_dev, W, H, hi_rgba
+                    )
+                    stack.append(overlay_dev)
+                elif op == "arc3_lives_hud":
+                    self._ensure_arc3_bridge()
+                    moves_tot = int(self._pop_number(stack))
+                    moves_rem = int(self._pop_number(stack))
+                    lives_tot = int(self._pop_number(stack))
+                    lives_rem = int(self._pop_number(stack))
+                    Hh = int(self._pop_number(stack, default=16))
+                    Hw = int(self._pop_number(stack, default=64))
+                    hud_dev = self._arc3_bridge.lives_hud(
+                        Hw, Hh, lives_rem, lives_tot, moves_rem, moves_tot
+                    )
+                    stack.append(hud_dev)
+                elif op == "arc3_game_id_bind":
+                    self._ensure_arc3_bridge()
+                    game_id_raw = self._pop_any(stack)
+                    game_id_str = str(game_id_raw)
+                    self._arc3_bridge.bind_game_id(game_id_str)
+                    stack.append(game_id_str)
                 else:
                     raise ValueError(f"Unsupported codec op {op}")
             elif token.startswith("[") and token.endswith("]"):
@@ -628,6 +730,12 @@ class TieredRPNEngine:
     def _ensure_codec_ops(self) -> None:
         if self._codec_ops is None:
             self._codec_ops = TernaryCodecOps()
+
+    def _ensure_arc3_bridge(self) -> None:
+        """Lazy-initialize Arc3ScreenBridge on first ARC3 codec token use."""
+        if self._arc3_bridge is None:
+            from knowledge3d.cranium.bridges.arc3_screen_bridge import Arc3ScreenBridge
+            self._arc3_bridge = Arc3ScreenBridge()
 
     def _ensure_ternary_kernels(self) -> None:
         if self._ternary_kernels is None:
