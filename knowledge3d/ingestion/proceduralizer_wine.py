@@ -45,19 +45,31 @@ _LOG = logging.getLogger(__name__)
 #        3 final attempts at 60s spacing.
 # After step 3 the final receipt is returned as-is; the driver decides what
 # to do with it.
-DEFAULT_RETRY_TRANSIENT_ATTEMPTS = 3
-DEFAULT_RETRY_TRANSIENT_DELAY_S = 30.0
-DEFAULT_RETRY_PLAN_WAVES: tuple[tuple[int, float, float], ...] = (
-    (3, 5 * 3600.0, 60.0),   # after 5h, 3 attempts @ 60s
-    (3, 30 * 60.0, 60.0),    # after 30min, 3 attempts @ 60s
+# Submit defaults = NO RETRY. Callers that want the long envelope (the B7
+# differentiator, scheduled ingestion jobs) must opt in explicitly by passing
+# retry_transient_attempts / retry_plan_waves. This keeps one-shot callers and
+# unit tests free of multi-hour sleeps.
+DEFAULT_RETRY_TRANSIENT_ATTEMPTS = 1
+DEFAULT_RETRY_TRANSIENT_DELAY_S = 0.0
+DEFAULT_RETRY_PLAN_WAVES: tuple[tuple[int, float, float], ...] = ()
+
+# Exported envelope for the pilot/ingestion runners. Step 1: 3 transient
+# retries at 30s each. Step 2: wait 5h, 3 attempts at 60s. Step 3: wait 30min,
+# 3 attempts at 60s. Plan-limit detection enters directly at Step 2 (not
+# Step 1) — transient retries are for internet/timeout hiccups.
+PILOT_RETRY_TRANSIENT_ATTEMPTS = 3
+PILOT_RETRY_TRANSIENT_DELAY_S = 30.0
+PILOT_RETRY_PLAN_WAVES: tuple[tuple[int, float, float], ...] = (
+    (3, 5 * 3600.0, 60.0),
+    (3, 30 * 60.0, 60.0),
 )
 
-# Failure codes that benefit from a retry (either transient or plan-limit).
-# Schema / JSON failures (invalid_json, invalid_schema, language_*, etc.) are
-# deterministic given the same prompt and model, so retrying them is waste.
-_RETRYABLE_FAILURES: frozenset[str] = frozenset(
-    {"transport_error", "timeout", "plan_limit_consumed"}
-)
+# Transient failures benefit from short-window retries (internet hiccups,
+# model-server warmup). Plan-limit is handled separately by the wave loop —
+# 30s retries on plan_limit just burn the quota faster. Schema / JSON
+# failures are deterministic given the same prompt and model, so retrying
+# them is waste.
+_TRANSIENT_FAILURES: frozenset[str] = frozenset({"transport_error", "timeout"})
 
 
 def _request_user_message(request: ProceduralizerRequest) -> str:
@@ -198,11 +210,11 @@ class ProceduralizerWineBridge:
             )
 
         receipt = _do_one()
-        # Step 1: transient + first plan-limit burst — up to `retry_transient_attempts`
-        # total attempts at `retry_transient_delay_s` spacing.
+        # Step 1: transient-only retry loop (transport_error, timeout). Plan
+        # limits skip this step and enter the wave loop directly.
         attempts = 1
         while (
-            receipt.failure_code in _RETRYABLE_FAILURES
+            receipt.failure_code in _TRANSIENT_FAILURES
             and attempts < int(retry_transient_attempts)
         ):
             _LOG.warning(

@@ -27,7 +27,12 @@ if str(REPO_ROOT) not in sys.path:
 from knowledge3d.ingestion.mcp_web_search import DEFAULT_CACHE_DIR, WebSearchUnavailable, web_search
 from knowledge3d.ingestion.ollama_manager import OllamaManager
 from knowledge3d.ingestion.proceduralizer_contract import PROCEDURALIZER_MODEL_PROFILES, ProceduralizerRequest
-from knowledge3d.ingestion.proceduralizer_wine import ProceduralizerWineBridge
+from knowledge3d.ingestion.proceduralizer_wine import (
+    PILOT_RETRY_PLAN_WAVES,
+    PILOT_RETRY_TRANSIENT_ATTEMPTS,
+    PILOT_RETRY_TRANSIENT_DELAY_S,
+    ProceduralizerWineBridge,
+)
 from knowledge3d.tools.knowledge_proceduralizer import (
     MODEL_OPTIONS,
     _differentiation_content,
@@ -511,6 +516,9 @@ def _row_sync_result(
         model=model,
         timeout=float(timeout),
         options=options,
+        retry_transient_attempts=PILOT_RETRY_TRANSIENT_ATTEMPTS,
+        retry_transient_delay_s=PILOT_RETRY_TRANSIENT_DELAY_S,
+        retry_plan_waves=PILOT_RETRY_PLAN_WAVES,
     )
     return {
         "row_id": row_id,
@@ -670,6 +678,9 @@ def _meaning_resolution_sync_result(
         model=model,
         timeout=float(timeout),
         options=options,
+        retry_transient_attempts=PILOT_RETRY_TRANSIENT_ATTEMPTS,
+        retry_transient_delay_s=PILOT_RETRY_TRANSIENT_DELAY_S,
+        retry_plan_waves=PILOT_RETRY_PLAN_WAVES,
     )
     return {"request": request, "receipt": receipt}
 
@@ -1074,22 +1085,40 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             row["pointed_by"] = metadata["pointed_by"]
         derived_word_refs = word_refs_index.get(meaning_id) or {}
         if derived_word_refs:
-            existing_word_refs_raw = metadata.get("word_refs")
-            if not isinstance(existing_word_refs_raw, dict):
-                existing_word_refs_raw = row.get("word_refs")
-            merged_word_refs: dict[str, list[str]] = {}
-            if isinstance(existing_word_refs_raw, dict):
-                for lang, ids in existing_word_refs_raw.items():
+            # word_refs_by_language: language-partitioned dict.
+            existing_lang_raw = (
+                metadata.get("word_refs_by_language")
+                or row.get("word_refs_by_language")
+            )
+            merged_by_lang: dict[str, list[str]] = {}
+            if isinstance(existing_lang_raw, dict):
+                for lang, ids in existing_lang_raw.items():
                     if not isinstance(ids, list):
                         continue
-                    merged_word_refs[str(lang).strip().lower()] = [
+                    merged_by_lang[str(lang).strip().lower()] = [
                         str(item).strip() for item in ids if str(item).strip()
                     ]
             for lang, ids in derived_word_refs.items():
-                merged_word_refs.setdefault(lang, [])
-                merged_word_refs[lang] = sorted(set(merged_word_refs[lang] + ids))
-            metadata["word_refs"] = merged_word_refs
-            row["word_refs"] = merged_word_refs
+                merged_by_lang.setdefault(lang, [])
+                merged_by_lang[lang] = sorted(set(merged_by_lang[lang] + ids))
+            metadata["word_refs_by_language"] = merged_by_lang
+            row["word_refs_by_language"] = merged_by_lang
+            # word_refs: flat audit-compatible list = union of all languages
+            # plus any existing flat list already on the meaning star.
+            existing_flat_raw = metadata.get("word_refs")
+            if not isinstance(existing_flat_raw, list):
+                existing_flat_raw = row.get("word_refs")
+            existing_flat = (
+                [str(item).strip() for item in existing_flat_raw if str(item).strip()]
+                if isinstance(existing_flat_raw, list)
+                else []
+            )
+            union: set[str] = set(existing_flat)
+            for ids in merged_by_lang.values():
+                union.update(ids)
+            flat_list = sorted(union)
+            metadata["word_refs"] = flat_list
+            row["word_refs"] = flat_list
         row["metadata"] = metadata
     merged_out.parent.mkdir(parents=True, exist_ok=True)
     seen_source_ids: set[str] = set()

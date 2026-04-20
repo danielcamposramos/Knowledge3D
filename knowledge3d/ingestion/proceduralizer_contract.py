@@ -170,16 +170,24 @@ word can point at MANY meanings in another language (e.g. English "bank" ->
 river-bank + financial-bank). That is precisely why we dedupe by meaning.
 
 When a word-level row in the cluster already has a known star id in the
-Word Galaxy, the meaning star SHOULD reference it via `word_refs`:
+Word Galaxy, the meaning star SHOULD reference it through two fields:
 
-  `word_refs`: a dict keyed by ISO-639-1 language code, values are arrays
-               of word-star ids (symlink targets) in the Word Galaxy.
+  `word_refs`: a FLAT array of word-star ids (symlink targets). This form
+               is what the galaxy normalizer + audit track as a bidirectional
+               ref-list field (matches other *_refs conventions).
+  `word_refs_by_language`: a DICT keyed by ISO-639-1 language code, values
+               are arrays of word-star ids for that language. This form
+               preserves the many-to-many word<->meaning mapping
+               (e.g. "depois" + "apos" in pt both pointing at the same
+               temporal meaning). Must be the per-language union of the
+               flat `word_refs`.
 
-Prefer `word_refs` over re-copying strings. `surface_forms` remains the
-fallback when no stable word star id exists yet for that language; a
-sleep-time compaction pass will upgrade strings to refs as word stars are
-registered. Emit BOTH if you can: the refs carry the symlink graph, the
-strings carry a human-readable anchor for the dual client.
+Prefer refs over re-copying strings. `surface_forms` remains the fallback
+when no stable word star id exists yet for that language; a sleep-time
+compaction pass will upgrade strings to refs as word stars are registered.
+Emit BOTH refs and surface strings when you can: the refs carry the
+symlink graph, the strings carry a human-readable anchor for the dual
+client.
 
 ### Sources — required for factual claims, optional for common vocabulary
 
@@ -247,10 +255,13 @@ Each meaning_star object MUST include:
 
 Each meaning_star SHOULD include (when word stars exist for the languages
 present in the cluster):
-  word_refs: object keyed by ISO-639-1 language code, values are arrays of
-             word-star ids symlinking into the Word Galaxy. Multiple words
-             per language are allowed and common (Portuguese has many words
+  word_refs: FLAT array of word-star ids (dedup union of all languages).
+             Normalizer + audit treat this as a bidirectional ref list.
+  word_refs_by_language: object keyed by ISO-639-1 language code, values
+             are arrays of word-star ids per language. Multiple words per
+             language are allowed and common (Portuguese has many words
              for one concept; English has one word for many concepts).
+             Must be the per-language partition of `word_refs`.
 
 Each surface_symlink object MUST include:
   id, layer_kind="form", meaning_class="symbol", meaning_rpn,
@@ -262,8 +273,8 @@ Each surface_symlink object MUST include:
 
 Input rows: `word_two_hundred_eight` (en), `word_ja_num_208` (ja),
 `word_pt_num_208` (pt), all describing the cardinal 208. Note the input
-row ids ARE the word-star ids in the Word Galaxy and MUST appear on
-`word_refs`.
+row ids ARE the word-star ids in the Word Galaxy and MUST appear on BOTH
+`word_refs` (flat) and `word_refs_by_language` (partitioned).
 
 Correct output:
 {
@@ -279,9 +290,11 @@ Correct output:
     "domain": "Language",
     "surface_forms": {"en": "two hundred eight", "ja": "二百八",
                       "pt": "duzentos e oito"},
-    "word_refs": {"en": ["word_two_hundred_eight"],
-                  "ja": ["word_ja_num_208"],
-                  "pt": ["word_pt_num_208"]},
+    "word_refs": ["word_two_hundred_eight", "word_ja_num_208",
+                  "word_pt_num_208"],
+    "word_refs_by_language": {"en": ["word_two_hundred_eight"],
+                              "ja": ["word_ja_num_208"],
+                              "pt": ["word_pt_num_208"]},
     "sources": ["https://www.merriam-webster.com/..."],
     "confidence": 0.98, "needs_review": false
   }],
@@ -325,8 +338,9 @@ Correct output (abbreviated):
     "summary": "Occurring later in time than a reference point.",
     "domain": "Language",
     "surface_forms": {"en": "after", "pt": "depois"},
-    "word_refs": {"en": ["word_en_after"],
-                  "pt": ["word_pt_depois", "word_pt_apos"]},
+    "word_refs": ["word_en_after", "word_pt_depois", "word_pt_apos"],
+    "word_refs_by_language": {"en": ["word_en_after"],
+                              "pt": ["word_pt_depois", "word_pt_apos"]},
     "sources": [],
     "confidence": 0.95, "needs_review": false
   }],
@@ -344,9 +358,10 @@ DO NOT produce three meaning stars `synset_num_483_en`, `synset_num_483_ja`,
 `synset_num_483_pt`. That violates the ID convention (language suffix on
 meaning star) AND the core principle (language is not a differentiating
 meaning). For that input, produce ONE meaning star `cardinal_483` or
-`synset_<wnid>_n` with all three languages on its `surface_forms` dict, plus
-three surface_symlink rows pointing at it, AND a `word_refs` dict linking
-each input row id to its language code.
+`synset_<wnid>_n` with all three languages on its `surface_forms` dict,
+plus three surface_symlink rows pointing at it, AND the flat `word_refs`
+plus `word_refs_by_language` dict linking each input row id to its
+language code.
 """
 
 
@@ -490,6 +505,10 @@ PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA: dict[str, Any] = {
                         "minProperties": 1,
                     },
                     "word_refs": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                    "word_refs_by_language": {
                         "type": "object",
                         "additionalProperties": {
                             "type": "array",

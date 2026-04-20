@@ -269,12 +269,21 @@ TRM → semantic-aware routing using all galaxies
 
 **Result**: Single source of truth, zero duplication, both clients understand identical data.
 
-#### 1.6.4 Meaning-Layer Symlinks: `word_refs` by Language
+#### 1.6.4 Meaning-Layer Symlinks: `word_refs` + `word_refs_by_language`
 
 The meaning layer continues the symlink cascade instead of truncating it with
-duplicated strings. A meaning star's canonical attachment to its surface
-forms is `word_refs`, a dict keyed by ISO-639-1 language code whose values
-are arrays of word-star ids in the Word Galaxy:
+duplicated strings. A meaning star attaches to its surface forms through two
+complementary fields:
+
+- **`word_refs`** — flat array of word-star ids (dedup union across all
+  languages). This is the canonical audit-facing field; it matches the other
+  `*_refs` conventions (`taxonomy_refs`, `reality_refs`, etc.) and is tracked
+  as a bidirectional ref list by `galaxy_normalize.py` +
+  `galaxy_audit.py`.
+- **`word_refs_by_language`** — dict keyed by ISO-639-1 language code whose
+  values are arrays of word-star ids. This is the cascade-facing field; it
+  preserves the many-to-many word↔meaning mapping that the flat list
+  collapses. Must be the per-language partition of `word_refs`.
 
 ```json
 {
@@ -283,7 +292,8 @@ are arrays of word-star ids in the Word Galaxy:
   "meaning_class": "preposition",
   "summary": "Occurring later in time than a reference point.",
   "surface_forms": {"en": "after", "pt": "depois"},
-  "word_refs": {
+  "word_refs": ["word_en_after", "word_pt_apos", "word_pt_depois"],
+  "word_refs_by_language": {
     "en": ["word_en_after"],
     "pt": ["word_pt_depois", "word_pt_apos"]
   }
@@ -300,12 +310,14 @@ language?** Because the real mapping is many-to-many:
   but they share one meaning.
 - **One word → many meanings**: English "bank" is both a river edge and a
   financial institution. One word star (`word_en_bank`) — two meaning
-  stars, each with `word_en_bank` on its own `word_refs["en"]` list.
-  That is precisely why dedup is meaning-centric rather than word-centric.
+  stars, each with `word_en_bank` on its own `word_refs_by_language["en"]`
+  list (and `word_refs` flat list). That is precisely why dedup is
+  meaning-centric rather than word-centric.
 - **Some concepts have no word in some languages**: certain Brazilian
   Portuguese concepts have no English single-word equivalent, and certain
-  English concepts compact multiple Portuguese words. `word_refs` omits
-  missing languages rather than fabricating translations.
+  English concepts compact multiple Portuguese words.
+  `word_refs_by_language` omits missing languages rather than fabricating
+  translations.
 
 The cascade, written end-to-end:
 
@@ -315,16 +327,17 @@ Drawing Galaxy          drawing_primitive_line_0x2e13
 Character Galaxy        char_a, char_f, char_t, char_e, char_r
     ↓ sequence           |a||f||t||e||r|     (hyperlink-style symlinks)
 Word Galaxy             word_en_after
-    ↓ referenced by     word_refs["en"] = ["word_en_after"]
+    ↓ referenced by     word_refs                 = ["word_en_after", ...]
+    ↓ plus partition    word_refs_by_language["en"] = ["word_en_after"]
 Meaning Galaxy          concept_temporal_after
 ```
 
 Human readers see the letter "a" drawn; AI sees the shape formula that
 produces it. Human readers see the word "after"; AI sees a sequence of
 character-star references. Human readers see the meaning "occurring later
-in time"; AI sees a language-keyed `word_refs` dict that symlinks back down
-to the word, character, and drawing layers. Both clients operate on the
-SAME structure at every level.
+in time"; AI sees `word_refs` (flat) + `word_refs_by_language` (partitioned)
+symlinking back down to the word, character, and drawing layers. Both
+clients operate on the SAME structure at every level.
 
 **Spaces and punctuation are first-class**: the space character, every
 punctuation mark, every math symbol harvested from font files is a
