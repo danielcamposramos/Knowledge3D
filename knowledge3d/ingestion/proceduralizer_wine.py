@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 import json
+import logging
 from pathlib import Path
 import time
 from typing import Any
@@ -26,6 +27,36 @@ from .proceduralizer_contract import (
     proceduralizer_system_prompt,
     request_hash,
     response_hash,
+)
+
+_LOG = logging.getLogger(__name__)
+
+# Retry envelope for the Ollama call inside submit().
+#
+# Daniel's specification (2026-04-19): the plan is contracted to this project
+# and generous, so prefer to wait and retry rather than fail the worker.
+#
+# Step 1 (every failure, regardless of kind): up to 3 attempts at 30s spacing.
+#        This covers transient network errors AND catches the first brush
+#        with a plan_limit_consumed response.
+# Step 2 (only if last failure is plan_limit_consumed after step 1): sleep 5h,
+#        then 3 attempts at 60s spacing.
+# Step 3 (only if still plan_limit_consumed after step 2): sleep 30min, then
+#        3 final attempts at 60s spacing.
+# After step 3 the final receipt is returned as-is; the driver decides what
+# to do with it.
+DEFAULT_RETRY_TRANSIENT_ATTEMPTS = 3
+DEFAULT_RETRY_TRANSIENT_DELAY_S = 30.0
+DEFAULT_RETRY_PLAN_WAVES: tuple[tuple[int, float, float], ...] = (
+    (3, 5 * 3600.0, 60.0),   # after 5h, 3 attempts @ 60s
+    (3, 30 * 60.0, 60.0),    # after 30min, 3 attempts @ 60s
+)
+
+# Failure codes that benefit from a retry (either transient or plan-limit).
+# Schema / JSON failures (invalid_json, invalid_schema, language_*, etc.) are
+# deterministic given the same prompt and model, so retrying them is waste.
+_RETRYABLE_FAILURES: frozenset[str] = frozenset(
+    {"transport_error", "timeout", "plan_limit_consumed"}
 )
 
 
@@ -124,6 +155,10 @@ class ProceduralizerWineBridge:
         model: str | None = None,
         timeout: float | None = None,
         options: dict[str, Any] | None = None,
+        retry_transient_attempts: int = DEFAULT_RETRY_TRANSIENT_ATTEMPTS,
+        retry_transient_delay_s: float = DEFAULT_RETRY_TRANSIENT_DELAY_S,
+        retry_plan_waves: tuple[tuple[int, float, float], ...] = DEFAULT_RETRY_PLAN_WAVES,
+        retry_sleep: Any = None,
     ) -> ProceduralizerReceipt:
         resolved_model = self.resolve_model(model_profile=model_profile, model=model)
         payload = request.to_dict()
@@ -133,7 +168,6 @@ class ProceduralizerWineBridge:
             request_path.parent.mkdir(parents=True, exist_ok=True)
             request_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
-        started = time.perf_counter()
         run_timeout = float(timeout if timeout is not None else self.default_timeout)
         if self.provider != "ollama":
             bundle, _, failure_code = parse_bundle("", request)
@@ -151,6 +185,63 @@ class ProceduralizerWineBridge:
                 parsed_bundle=bundle,
             )
 
+        sleep_fn = retry_sleep if retry_sleep is not None else time.sleep
+
+        def _do_one() -> ProceduralizerReceipt:
+            return self._one_chat_attempt(
+                request=request,
+                resolved_model=resolved_model,
+                options=options,
+                run_timeout=run_timeout,
+                req_hash=req_hash,
+                response_path=response_path,
+            )
+
+        receipt = _do_one()
+        # Step 1: transient + first plan-limit burst — up to `retry_transient_attempts`
+        # total attempts at `retry_transient_delay_s` spacing.
+        attempts = 1
+        while (
+            receipt.failure_code in _RETRYABLE_FAILURES
+            and attempts < int(retry_transient_attempts)
+        ):
+            _LOG.warning(
+                "proceduralizer retry (transient): failure=%s attempt=%s/%s sleeping=%.1fs",
+                receipt.failure_code, attempts, retry_transient_attempts, retry_transient_delay_s,
+            )
+            sleep_fn(float(retry_transient_delay_s))
+            receipt = _do_one()
+            attempts += 1
+
+        # Step 2+: escalating waves — ONLY when the failure is plan_limit_consumed.
+        if receipt.failure_code == "plan_limit_consumed":
+            for wave_idx, (wave_attempts, wave_pre_sleep, wave_delay) in enumerate(retry_plan_waves, start=1):
+                _LOG.warning(
+                    "proceduralizer plan_limit: entering wave %s — pre-sleep=%.0fs attempts=%s delay=%.0fs",
+                    wave_idx, wave_pre_sleep, wave_attempts, wave_delay,
+                )
+                sleep_fn(float(wave_pre_sleep))
+                for _ in range(int(wave_attempts)):
+                    receipt = _do_one()
+                    if receipt.failure_code != "plan_limit_consumed":
+                        break
+                    sleep_fn(float(wave_delay))
+                if receipt.failure_code != "plan_limit_consumed":
+                    break
+
+        return receipt
+
+    def _one_chat_attempt(
+        self,
+        *,
+        request: ProceduralizerRequest,
+        resolved_model: str,
+        options: dict[str, Any] | None,
+        run_timeout: float,
+        req_hash: str,
+        response_path: Path | None,
+    ) -> ProceduralizerReceipt:
+        started = time.perf_counter()
         mode = str(request.mode or "standard").strip().lower()
         if mode == "differentiation":
             response_format: dict[str, Any] = {"type": "object"}
@@ -158,6 +249,8 @@ class ProceduralizerWineBridge:
             response_format = PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA
         else:
             response_format = PROCEDURALIZER_BUNDLE_JSON_SCHEMA
+        attempt_options = dict(options or {})
+        temperature = float(attempt_options.pop("temperature", 0.1))
         result = self.ollama.chat(
             model=resolved_model,
             messages=[
@@ -165,8 +258,8 @@ class ProceduralizerWineBridge:
                 {"role": "user", "content": _request_user_message(request)},
             ],
             timeout=run_timeout,
-            temperature=float(dict(options or {}).pop("temperature", 0.1)),
-            options=options,
+            temperature=temperature,
+            options=attempt_options,
             response_format=response_format,
         )
         latency_ms = int((time.perf_counter() - started) * 1000.0)
@@ -176,8 +269,12 @@ class ProceduralizerWineBridge:
         resp_hash = response_hash(raw_output)
 
         if result.returncode != 0:
-            bundle, _, failure_code = parse_bundle("", request)
-            detected_failure = self._detect_failure_code(raw_output) or failure_code or "transport_error"
+            bundle, _, _ = parse_bundle("", request)
+            # Prefer the detector's verdict (captures 'timeout', 'plan limit'
+            # phrases in stderr) over parse_bundle's invalid_json diagnosis,
+            # which is noise on an empty body. Fall back to transport_error
+            # so the retry envelope correctly classifies this as retryable.
+            detected_failure = self._detect_failure_code(raw_output) or "transport_error"
             return ProceduralizerReceipt(
                 status="transport_error",
                 provider=self.provider,

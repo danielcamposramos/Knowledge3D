@@ -157,6 +157,46 @@ unless the web_evidence affirmatively contradicts it:
   cluster (e.g. `{"en": "...", "ja": "...", "pt": "..."}`). Do NOT emit a
   separate meaning star per language.
 
+### Word symlink cascade — MEANING stars symlink to WORD stars
+
+K3D is meaning-centric, not word-centric. The full symlink cascade is:
+
+    drawing primitive  ->  character  ->  word  ->  meaning star
+    (RPN shape)           (glyph+lang)   (chars)    (concept)
+
+A single meaning can map to MANY words in ONE language (e.g. Portuguese
+"depois" and "apos" both point at the same temporal concept) and a single
+word can point at MANY meanings in another language (e.g. English "bank" ->
+river-bank + financial-bank). That is precisely why we dedupe by meaning.
+
+When a word-level row in the cluster already has a known star id in the
+Word Galaxy, the meaning star SHOULD reference it via `word_refs`:
+
+  `word_refs`: a dict keyed by ISO-639-1 language code, values are arrays
+               of word-star ids (symlink targets) in the Word Galaxy.
+
+Prefer `word_refs` over re-copying strings. `surface_forms` remains the
+fallback when no stable word star id exists yet for that language; a
+sleep-time compaction pass will upgrade strings to refs as word stars are
+registered. Emit BOTH if you can: the refs carry the symlink graph, the
+strings carry a human-readable anchor for the dual client.
+
+### Sources — required for factual claims, optional for common vocabulary
+
+`sources` is a grounding anchor, not a universal gate. The rule:
+
+- REQUIRED when the meaning asserts a factual claim that must be verifiable:
+  scientific constants, SI units, chemical elements, named entities, dates,
+  ISO standards, taxonomic names, and any value that changes meaning if
+  wrong. `meaning_class` in {"fact", "scientific_constant", "named_entity",
+  "iso_standard", "date", "taxonomic_name", "unit"} -> sources REQUIRED.
+- OPTIONAL when the meaning is a common vocabulary item, grammatical
+  particle, preposition, or concept whose meaning is self-evident from the
+  cluster's surface rows (e.g. "after", "with", "space character"). Emit
+  `sources: []` if you have none; do NOT fabricate URLs to satisfy a schema.
+- NEVER invent URLs. If web_evidence is empty and the meaning is factual,
+  emit `"status":"unresolvable"` instead of making things up.
+
 ### Polysemy is STRICT
 
 split_polysemy is only valid when DIFFERENT senses share the SAME surface form
@@ -175,13 +215,17 @@ translations of another surface, use outcome="mixed".
 
 ### Sources and honesty
 
-- Every emitted meaning star and every emitted surface symlink MUST include at
-  least one supporting URL in metadata.sources.
 - Do not cite URLs that are not present in web_evidence.
-- If web_evidence is empty, thin, or contradictory, emit:
+- For factual meaning classes (fact, scientific_constant, named_entity,
+  iso_standard, date, taxonomic_name, unit), sources MUST contain at least
+  one URL drawn from web_evidence. If none are available, emit:
   `{"status":"unresolvable","outcome":"unresolvable","ingest_action":"skip",
     "meaning_stars":[], "surface_symlinks":[], "knowledge_packets":[]}`
-- Do not guess. Do not fabricate.
+- For common vocabulary (meaning_class in {"word","concept","grammatical",
+  "preposition","conjunction","symbol","punctuation","space"}), sources is
+  optional — emit `[]` if you have none. Semantic content plus multi-language
+  surface_forms is sufficient grounding for these.
+- Never guess. Never fabricate.
 
 ### Output shape — STRICT JSON ONLY, no prose before/after
 
@@ -198,18 +242,28 @@ Return ONLY this object, no markdown fences, no prefix/suffix text:
 
 Each meaning_star object MUST include:
   id, layer_kind="meaning", meaning_class, meaning_rpn, summary, domain,
-  surface_forms (multi-language dict), taxonomy_refs, sources,
-  relationships, confidence, needs_review.
+  surface_forms (multi-language dict), sources (array; empty array is legal
+  for non-factual meaning classes), confidence, needs_review.
+
+Each meaning_star SHOULD include (when word stars exist for the languages
+present in the cluster):
+  word_refs: object keyed by ISO-639-1 language code, values are arrays of
+             word-star ids symlinking into the Word Galaxy. Multiple words
+             per language are allowed and common (Portuguese has many words
+             for one concept; English has one word for many concepts).
 
 Each surface_symlink object MUST include:
   id, layer_kind="form", meaning_class="symbol", meaning_rpn,
   points_to (string id of the target meaning star, OR list of such ids),
-  surface_forms (single-language dict), sources, confidence, needs_review.
+  surface_forms (single-language dict), sources (optional for common
+  vocabulary), confidence, needs_review.
 
 ### Positive exemplar (merge_to_meaning_star)
 
 Input rows: `word_two_hundred_eight` (en), `word_ja_num_208` (ja),
-`word_pt_num_208` (pt), all describing the cardinal 208.
+`word_pt_num_208` (pt), all describing the cardinal 208. Note the input
+row ids ARE the word-star ids in the Word Galaxy and MUST appear on
+`word_refs`.
 
 Correct output:
 {
@@ -225,10 +279,10 @@ Correct output:
     "domain": "Language",
     "surface_forms": {"en": "two hundred eight", "ja": "二百八",
                       "pt": "duzentos e oito"},
-    "taxonomy_refs": ["concept_language"],
+    "word_refs": {"en": ["word_two_hundred_eight"],
+                  "ja": ["word_ja_num_208"],
+                  "pt": ["word_pt_num_208"]},
     "sources": ["https://www.merriam-webster.com/..."],
-    "relationships": [{"from": "synset_03182795_n",
-                       "relation": "represents", "to": "numeral_208"}],
     "confidence": 0.98, "needs_review": false
   }],
   "surface_symlinks": [
@@ -255,6 +309,35 @@ Correct output:
   "knowledge_packets": []
 }
 
+### Second positive exemplar — common vocabulary, no URL source
+
+Input rows: `word_en_after` (en, "after"), `word_pt_depois` (pt, "depois"),
+`word_pt_apos` (pt, "apos"). Three words, one meaning (temporal ordering).
+This is NOT a factual claim — no URL is required.
+
+Correct output (abbreviated):
+{
+  "meaning_stars": [{
+    "id": "concept_temporal_after",
+    "layer_kind": "meaning",
+    "meaning_class": "preposition",
+    "meaning_rpn": "TIME_ORDERING LATER_THAN",
+    "summary": "Occurring later in time than a reference point.",
+    "domain": "Language",
+    "surface_forms": {"en": "after", "pt": "depois"},
+    "word_refs": {"en": ["word_en_after"],
+                  "pt": ["word_pt_depois", "word_pt_apos"]},
+    "sources": [],
+    "confidence": 0.95, "needs_review": false
+  }],
+  ...
+}
+
+Note: Portuguese has TWO words (`depois`, `apos`) pointing at the ONE
+meaning. English has ONE word (`after`) but the SAME word could point at
+OTHER meanings in different clusters (that is polysemy — handled by its
+own split_polysemy outcome when it occurs).
+
 ### Negative exemplar — what NOT to do (the 483 failure)
 
 DO NOT produce three meaning stars `synset_num_483_en`, `synset_num_483_ja`,
@@ -262,7 +345,8 @@ DO NOT produce three meaning stars `synset_num_483_en`, `synset_num_483_ja`,
 meaning star) AND the core principle (language is not a differentiating
 meaning). For that input, produce ONE meaning star `cardinal_483` or
 `synset_<wnid>_n` with all three languages on its `surface_forms` dict, plus
-three surface_symlink rows pointing at it.
+three surface_symlink rows pointing at it, AND a `word_refs` dict linking
+each input row id to its language code.
 """
 
 
@@ -405,10 +489,16 @@ PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA: dict[str, Any] = {
                         "additionalProperties": {"type": "string"},
                         "minProperties": 1,
                     },
+                    "word_refs": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {"type": "string", "minLength": 1},
+                        },
+                    },
                     "sources": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "minItems": 1,
                     },
                     "confidence": {"type": "number"},
                     "needs_review": {"type": "boolean"},
@@ -419,7 +509,6 @@ PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA: dict[str, Any] = {
                     "meaning_rpn",
                     "summary",
                     "surface_forms",
-                    "sources",
                 ],
                 "additionalProperties": True,
             },
@@ -830,6 +919,44 @@ def _row_sources(row: dict[str, Any]) -> list[str]:
     return [str(item).strip() for item in list(metadata.get("sources") or []) if str(item).strip()]
 
 
+# Meaning classes whose content is a verifiable factual claim — sources must
+# be grounded in web_evidence URLs for these. Everything else (common
+# vocabulary, prepositions, symbols, grammatical particles) can legitimately
+# carry an empty sources list.
+FACTUAL_MEANING_CLASSES: frozenset[str] = frozenset(
+    {
+        "fact",
+        "scientific_constant",
+        "physical_constant",
+        "mathematical_constant",
+        "named_entity",
+        "person",
+        "place",
+        "organization",
+        "title",
+        "product",
+        "iso_standard",
+        "standard",
+        "date",
+        "taxonomic_name",
+        "unit",
+        "si_unit",
+        "chemical_element",
+        "compound",
+    }
+)
+
+
+def _is_factual_meaning(row: dict[str, Any]) -> bool:
+    meaning_class = str(row.get("meaning_class") or "").strip().lower()
+    if meaning_class in FACTUAL_MEANING_CLASSES:
+        return True
+    domain = str(row.get("domain") or "").strip().lower()
+    if domain in {"reality", "physics", "chemistry", "biology", "math", "mathematics"}:
+        return True
+    return False
+
+
 def _row_points_to(row: dict[str, Any]) -> list[str]:
     value = row.get("points_to")
     if isinstance(value, list):
@@ -962,14 +1089,18 @@ def _parse_meaning_resolution_bundle(
         )
     if action != "augment" or not outcome:
         return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
-    for row in meaning_stars + surface_symlinks:
-        if not _row_sources(row):
-            return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
-    meaning_ids = {str(row.get("id") or "").strip() for row in meaning_stars if str(row.get("id") or "").strip()}
-    # Language-suffix guard: meaning stars MUST have language-neutral ids.
+    # Language-suffix guard runs first so bad ids surface with the specific
+    # diagnostic instead of being masked by a missing-sources failure.
     for row in meaning_stars:
         if _has_forbidden_language_suffix(str(row.get("id") or "")):
             return _fallback_bundle(request, failure_code="language_suffixed_meaning_id", raw_text=raw_text), False, "language_suffixed_meaning_id"
+    # Factual meaning stars MUST be grounded; common-vocabulary stars may
+    # ship with empty sources. Surface symlinks inherit the factual status of
+    # the meaning star they point to (enforced by the meaning star itself).
+    for row in meaning_stars:
+        if _is_factual_meaning(row) and not _row_sources(row):
+            return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
+    meaning_ids = {str(row.get("id") or "").strip() for row in meaning_stars if str(row.get("id") or "").strip()}
     cluster_size = _cluster_size_from_request(request)
     if outcome == "merge_to_meaning_star":
         if len(meaning_stars) != 1 or (cluster_size and len(surface_symlinks) != cluster_size):

@@ -1035,32 +1035,62 @@ def _merge(args: argparse.Namespace) -> dict[str, Any]:
             )
             continue
         valid_row_updates[row_id] = row
-    # pointed_by synthesis: collect incoming surface_symlink edges for each
-    # emitted meaning_star so the audit sees a bidirectional link. Without
-    # this, every surface_symlink creates a unidirectional_site in the audit.
+    # pointed_by + word_refs synthesis: collect incoming surface_symlink edges
+    # for each emitted meaning_star so the audit sees a bidirectional link,
+    # AND group the incoming row ids by the language of their surface_forms to
+    # produce a language-keyed word_refs dict. Together these encode the full
+    # drawing -> char -> word -> meaning cascade on the meaning-star side.
     pointed_by_index: dict[str, list[str]] = {}
+    word_refs_index: dict[str, dict[str, list[str]]] = {}
     for row_id, row in valid_row_updates.items():
         if str(row.get("star_type") or "").strip().lower() != "surface_symlink":
             continue
         targets = _row_points_to_list(row)
+        surface_forms = row.get("surface_forms")
+        if not isinstance(surface_forms, dict):
+            surface_forms = dict(row.get("metadata") or {}).get("surface_forms") or {}
+        languages = [
+            str(lang).strip().lower()
+            for lang in list(surface_forms or {})
+            if str(lang).strip()
+        ] if isinstance(surface_forms, dict) else []
         for target in targets:
             pointed_by_index.setdefault(target, []).append(row_id)
+            for lang in languages:
+                word_refs_index.setdefault(target, {}).setdefault(lang, []).append(row_id)
     for row in new_meaning_rows:
         meaning_id = _row_id(row)
         if not meaning_id:
             continue
-        incoming = sorted(set(pointed_by_index.get(meaning_id, [])))
-        if not incoming:
-            continue
         metadata = dict(row.get("metadata") or {})
-        existing_incoming = [
-            str(item).strip()
-            for item in list(metadata.get("pointed_by") or [])
-            if str(item).strip()
-        ]
-        metadata["pointed_by"] = sorted(set(existing_incoming + incoming))
+        incoming = sorted(set(pointed_by_index.get(meaning_id, [])))
+        if incoming:
+            existing_incoming = [
+                str(item).strip()
+                for item in list(metadata.get("pointed_by") or [])
+                if str(item).strip()
+            ]
+            metadata["pointed_by"] = sorted(set(existing_incoming + incoming))
+            row["pointed_by"] = metadata["pointed_by"]
+        derived_word_refs = word_refs_index.get(meaning_id) or {}
+        if derived_word_refs:
+            existing_word_refs_raw = metadata.get("word_refs")
+            if not isinstance(existing_word_refs_raw, dict):
+                existing_word_refs_raw = row.get("word_refs")
+            merged_word_refs: dict[str, list[str]] = {}
+            if isinstance(existing_word_refs_raw, dict):
+                for lang, ids in existing_word_refs_raw.items():
+                    if not isinstance(ids, list):
+                        continue
+                    merged_word_refs[str(lang).strip().lower()] = [
+                        str(item).strip() for item in ids if str(item).strip()
+                    ]
+            for lang, ids in derived_word_refs.items():
+                merged_word_refs.setdefault(lang, [])
+                merged_word_refs[lang] = sorted(set(merged_word_refs[lang] + ids))
+            metadata["word_refs"] = merged_word_refs
+            row["word_refs"] = merged_word_refs
         row["metadata"] = metadata
-        row["pointed_by"] = metadata["pointed_by"]
     merged_out.parent.mkdir(parents=True, exist_ok=True)
     seen_source_ids: set[str] = set()
     with merged_in.open("r", encoding="utf-8") as source, merged_out.open("w", encoding="utf-8") as target:

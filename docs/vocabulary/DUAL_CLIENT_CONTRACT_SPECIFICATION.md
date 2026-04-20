@@ -269,6 +269,81 @@ TRM → semantic-aware routing using all galaxies
 
 **Result**: Single source of truth, zero duplication, both clients understand identical data.
 
+#### 1.6.4 Meaning-Layer Symlinks: `word_refs` by Language
+
+The meaning layer continues the symlink cascade instead of truncating it with
+duplicated strings. A meaning star's canonical attachment to its surface
+forms is `word_refs`, a dict keyed by ISO-639-1 language code whose values
+are arrays of word-star ids in the Word Galaxy:
+
+```json
+{
+  "id": "concept_temporal_after",
+  "layer_kind": "meaning",
+  "meaning_class": "preposition",
+  "summary": "Occurring later in time than a reference point.",
+  "surface_forms": {"en": "after", "pt": "depois"},
+  "word_refs": {
+    "en": ["word_en_after"],
+    "pt": ["word_pt_depois", "word_pt_apos"]
+  }
+}
+```
+
+**Why a dict keyed by language with arrays of word ids, not one word per
+language?** Because the real mapping is many-to-many:
+
+- **One meaning → many words in a single language**: Portuguese carries
+  both "depois" and "apos" for the same temporal concept. Romance
+  languages are full of these — polite/formal/colloquial registers, Latin
+  vs. vernacular roots, regional variants. Each is a distinct word star,
+  but they share one meaning.
+- **One word → many meanings**: English "bank" is both a river edge and a
+  financial institution. One word star (`word_en_bank`) — two meaning
+  stars, each with `word_en_bank` on its own `word_refs["en"]` list.
+  That is precisely why dedup is meaning-centric rather than word-centric.
+- **Some concepts have no word in some languages**: certain Brazilian
+  Portuguese concepts have no English single-word equivalent, and certain
+  English concepts compact multiple Portuguese words. `word_refs` omits
+  missing languages rather than fabricating translations.
+
+The cascade, written end-to-end:
+
+```
+Drawing Galaxy          drawing_primitive_line_0x2e13
+    ↓ RPN symlinks      (MOVE dx dy, CURVE cp1 cp2 end ...)
+Character Galaxy        char_a, char_f, char_t, char_e, char_r
+    ↓ sequence           |a||f||t||e||r|     (hyperlink-style symlinks)
+Word Galaxy             word_en_after
+    ↓ referenced by     word_refs["en"] = ["word_en_after"]
+Meaning Galaxy          concept_temporal_after
+```
+
+Human readers see the letter "a" drawn; AI sees the shape formula that
+produces it. Human readers see the word "after"; AI sees a sequence of
+character-star references. Human readers see the meaning "occurring later
+in time"; AI sees a language-keyed `word_refs` dict that symlinks back down
+to the word, character, and drawing layers. Both clients operate on the
+SAME structure at every level.
+
+**Spaces and punctuation are first-class**: the space character, every
+punctuation mark, every math symbol harvested from font files is a
+Character Galaxy entry composed from drawing primitives. Phrases compose
+from word stars the same way words compose from character stars.
+
+**Sources (grounding URLs) are scoped**: required for factual meanings
+(constants, SI units, named entities, ISO standards, taxonomic names,
+chemical elements, dates), optional for common vocabulary whose meaning is
+self-evident from the cluster's surface rows. A preposition does not need
+a citation; a physical constant does.
+
+**Fallback for missing word stars**: when a cluster row has no stable word
+star id yet, `surface_forms` still carries the human-readable string so
+the dual-client view never goes dark. A sleep-time compaction pass
+upgrades strings into `word_refs` as new word stars are registered; the
+meaning star's identity (its `id`, `meaning_rpn`, semantic content) does
+not change across that upgrade.
+
 ---
 
 ### 1.7 Positive/Negative Form Duality (Ternary-Consistent)
