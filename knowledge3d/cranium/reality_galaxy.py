@@ -385,7 +385,7 @@ class RealityGalaxy:
         try:
             from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor
             self._compressor = AdaptiveDimensionCompressor()
-        except FileNotFoundError:
+        except (ImportError, ModuleNotFoundError):
             self._compressor = None
         return self._compressor
 

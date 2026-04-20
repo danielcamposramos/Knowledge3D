@@ -62,7 +62,6 @@ _LAZY_ATTRS: Dict[str, Tuple[str, str]] = {
     "PhaseGProceduralBridge": ("phase_g_procedural_bridge", "PhaseGProceduralBridge"),
     "ProceduralFidelityValidator": ("fidelity_validator", "ProceduralFidelityValidator"),
     "ProceduralFidelityResult": ("fidelity_validator", "ProceduralFidelityResult"),
-    "AdaptiveDimensionCompressor": ("adaptive_procedural_bridge", "AdaptiveDimensionCompressor"),
     "PhaseHProceduralIntegration": ("phase_h_procedural_integration", "PhaseHProceduralIntegration"),
 }
 
@@ -120,7 +119,6 @@ __all__ = [
     'PhaseGProceduralBridge',
     'ProceduralFidelityValidator',
     'ProceduralFidelityResult',
-    'AdaptiveDimensionCompressor',
     'PhaseHProceduralIntegration',
     # Foundational knowledge
     'get_math_galaxy',
