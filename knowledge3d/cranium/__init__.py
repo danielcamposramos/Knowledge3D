@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 TRM Cranium: Triadic Reasoning Module Core
 

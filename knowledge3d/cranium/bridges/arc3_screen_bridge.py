@@ -155,7 +155,7 @@ class Arc3ScreenBridge:
             grid=(bx, by, 1),
             block=(16, 16, 1),
             params=[
-                ctypes.c_uint64(int(frame_idx_dev)),
+                ctypes.c_uint64(frame_idx_dev.value),
                 ctypes.c_uint64(rgba_dev.value),
                 ctypes.c_int(W),
                 ctypes.c_int(H),
@@ -296,8 +296,8 @@ class Arc3ScreenBridge:
             grid=(bx, by, 1),
             block=(16, 16, 1),
             params=[
-                ctypes.c_uint64(int(frame_a_dev)),
-                ctypes.c_uint64(int(frame_b_dev)),
+                ctypes.c_uint64(frame_a_dev.value),
+                ctypes.c_uint64(frame_b_dev.value),
                 ctypes.c_uint64(overlay_dev.value),
                 ctypes.c_int(W),
                 ctypes.c_int(H),
@@ -375,7 +375,7 @@ class Arc3ScreenBridge:
         """
         frame_offset = self._replay_frame_idx * W * H
         # Compute device pointer to current frame slice.
-        frame_slice_ptr_val = int(frames_dev) + frame_offset
+        frame_slice_ptr_val = frames_dev.value + frame_offset
         # Wrap device pointer as CUdeviceptr for decode_frame.
         from knowledge3d.cranium.sovereign.loader import CUdeviceptr
         frame_slice_dev = CUdeviceptr(frame_slice_ptr_val)
