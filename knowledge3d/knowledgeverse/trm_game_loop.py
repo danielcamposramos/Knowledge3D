@@ -317,11 +317,172 @@ class TRMGameLoop:
         action_buffers = self._action_buffer_payload(bridge)
         self._last_tick_result = dict(tick_result)
         self._last_action_buffers = [list(row) for row in action_buffers]
+        task_result = self._materialize_task_result(
+            bridge=bridge,
+            record=record,
+            action_buffers=action_buffers,
+            tick_result=tick_result,
+        )
+        answer_text = str(task_result.get("answer_text") or "")
         return {
-            "status": "ok",
+            "status": str(task_result.get("status") or "ok"),
             "mode": "query_tick",
+            "gpu_execution": True,
             "trm_tick": tick_result,
             "action_buffers": action_buffers,
+            "task_result": task_result,
+            "answer": answer_text,
+            "predicted_answer": answer_text,
+            "response": answer_text,
+            "result": answer_text,
+        }
+
+    def _materialize_task_result(
+        self,
+        *,
+        bridge: Any,
+        record: TRMQueuedInput,
+        action_buffers: list[list[int]],
+        tick_result: dict[str, Any],
+    ) -> dict[str, Any]:
+        task_payload = dict(record.payload.get("task") or {})
+        route_payload = dict(record.payload.get("route") or {})
+        surface_kind = str(
+            task_payload.get("surface_kind")
+            or task_payload.get("type")
+            or "GENERAL"
+        ).strip().upper() or "GENERAL"
+        meaning_class = str(
+            task_payload.get("meaning_class") or "FACTUAL_RECALL"
+        ).strip().upper() or "FACTUAL_RECALL"
+
+        decode: dict[str, Any] = {}
+        decoder = getattr(bridge, "_answer_decode_from_action_buffer", None)
+        if callable(decoder):
+            try:
+                decode = dict(decoder(action_buffers) or {})
+            except Exception:
+                decode = {}
+
+        top_star_raw = decode.get("top_star")
+        top_star = dict(top_star_raw) if isinstance(top_star_raw, dict) else {}
+        top_star_idx = int(decode.get("top_star_idx", -1) or -1)
+        tablet_result_value = decode.get("tablet_result_value")
+        decode_materialized = bool(decode.get("answer_materialized"))
+
+        route_family = str(
+            top_star.get("route_family")
+            or route_payload.get("route_family")
+            or surface_kind
+        )
+
+        stars = [top_star] if top_star else []
+        runtime_packet: dict[str, Any] = {}
+        kv = getattr(self, "knowledgeverse", None)
+        if kv is not None and hasattr(kv, "materialize_runtime_result"):
+            try:
+                runtime_packet = dict(
+                    kv.materialize_runtime_result(
+                        task=task_payload,
+                        route_family=route_family,
+                        answer_kind=str(top_star.get("answer_kind") or ""),
+                        answer_index=0,
+                        stars=stars,
+                    )
+                    or {}
+                )
+            except Exception:
+                runtime_packet = {}
+
+        answer_text = str(runtime_packet.get("answer_text") or "").strip()
+        numeric_answer = runtime_packet.get("numeric_answer")
+        answer_choice = str(runtime_packet.get("answer_choice") or "").strip()
+        output_grid = runtime_packet.get("output_grid")
+        action_index = runtime_packet.get("action_index")
+        action_name = str(runtime_packet.get("action_name") or "").strip()
+        answer_kind = str(runtime_packet.get("answer_kind") or "").strip()
+
+        if not answer_text and top_star:
+            metadata = top_star.get("metadata") if isinstance(top_star.get("metadata"), dict) else {}
+            for value in (
+                metadata.get("answer_text"),
+                metadata.get("resolved_answer"),
+                metadata.get("boxed_answer"),
+                top_star.get("answer_text"),
+                top_star.get("answer"),
+                top_star.get("response"),
+            ):
+                if value is None:
+                    continue
+                candidate = str(value).strip()
+                if candidate:
+                    answer_text = candidate
+                    break
+
+        if numeric_answer is None and tablet_result_value is not None:
+            try:
+                numeric_answer = int(tablet_result_value)
+            except Exception:
+                numeric_answer = None
+
+        if not answer_text and numeric_answer is not None:
+            answer_text = str(numeric_answer)
+
+        materialized = bool(
+            answer_text
+            or answer_choice
+            or numeric_answer is not None
+            or output_grid is not None
+            or action_index is not None
+            or action_name
+        )
+        status = "ok" if materialized else "error"
+        failure_code = "" if materialized else "no_answer_materialized_from_action_buffer"
+        if not answer_kind:
+            if output_grid is not None:
+                answer_kind = "grid"
+            elif action_index is not None or action_name:
+                answer_kind = "action"
+            elif answer_choice:
+                answer_kind = "choice"
+            elif numeric_answer is not None and not answer_text:
+                answer_kind = "numeric"
+            elif answer_text:
+                answer_kind = "text"
+            else:
+                answer_kind = "none"
+
+        return {
+            "status": status,
+            "mode": "query_tick",
+            "runtime": "knowledgeverse_dispatch_session",
+            "solver": "knowledgeverse_dispatch_session",
+            "program_id": "trm_step_fused_query_tick",
+            "gpu_execution": True,
+            "answer": answer_text,
+            "predicted_answer": answer_text,
+            "response": answer_text,
+            "result": answer_text,
+            "answer_text": answer_text,
+            "numeric_answer": numeric_answer,
+            "answer_choice": answer_choice,
+            "output_grid": output_grid,
+            "action_index": action_index,
+            "action_name": action_name,
+            "answer_kind": answer_kind,
+            "answer_materialized": materialized,
+            "failure_code": failure_code,
+            "route_family": route_family,
+            "meaning_class": meaning_class,
+            "top_star_idx": top_star_idx,
+            "top_star_id": str(top_star.get("id", "")),
+            "top_star": top_star,
+            "winner_role": str(top_star.get("selection_role", "")),
+            "task_id": task_payload.get("task_id"),
+            "request_id": record.request_id,
+            "tablet_result_value": tablet_result_value,
+            "decode_materialized_from_action_buffer": decode_materialized,
+            "trm_recursion_steps": int(tick_result.get("steps", 0) or 0),
         }
 
     def _has_live_request(self, request_id: str) -> bool:
