@@ -387,6 +387,19 @@ OP_DRAW_VECTORDOTMAP_DECODE = 0x215  # field_coeffs → pixels
 
 # Phase 4 — Lighting and Layer Ops
 OP_DRAW_LAYER_NEW   = 0x216
+
+# Phase 3b — DotMap procedural color-map codec (0x217-0x21F).
+# Count/layout/color all procedural — NOT fixed, NOT tied to ingested resolution.
+# Ternary-first: delta + color indices pack via BitNet b1.58 (5 trits/byte, 0x1AB/0x1AC).
+OP_DOT_PLACE_PROCEDURAL = 0x217  # density_field, importance → dot positions
+OP_COLOR_RPN_REF        = 0x218  # ref_id → resolve color from RPN program
+OP_COLOR_PALETTE_REF    = 0x219  # palette_id, idx → resolved RGB8
+OP_DOTMAP_SCAN_EMIT     = 0x21A  # dots[] → linearized scan stream
+OP_DOTMAP_RLE_ENCODE    = 0x21B  # stream → run-length (zero-trit aware)
+OP_DOTMAP_RLE_DECODE    = 0x21C  # rle → stream
+OP_DOTMAP_DELTA_ENCODE  = 0x21D  # stream → ternary-delta
+OP_DOTMAP_DELTA_DECODE  = 0x21E  # ternary-delta → stream
+OP_DOTMAP_HEADER        = 0x21F  # W, H, dot_count, palette_id → header tag
 OP_LAYER_BLEND      = 0x79
 OP_BLEND_MULTIPLY   = 0x7A
 OP_BLEND_SCREEN     = 0x7B
@@ -444,6 +457,80 @@ OP_TEX_TURBULENCE = 0x1C9
 OP_TEX_MARBLE = 0x1CA
 OP_TEX_TRANSFORM = 0x1CB
 OP_TEX_BAKE = 0x1CF
+
+# CRAFT codec family — sovereign procedural A/V pipeline (0x240-0x27F).
+# Reserved per TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md and §11.
+# Ternary retarget: zero-class coeffs skip via 0x1AC UNPACK5 kernel; deltas
+# pack via BitNet b1.58 5-trits-per-byte where cheaper than int16.
+
+# 0x240-0x24F — JPEG-equivalent line-scan image codec (Loeffler IDCT path).
+OP_LINE_SCAN_START      = 0x240
+OP_LINE_SCAN_ROW        = 0x241
+OP_LINE_SCAN_COL        = 0x242
+OP_BLOCK_8X8_ZIGZAG     = 0x243
+OP_BLOCK_8X8_INV_ZIGZAG = 0x244
+OP_QUANT_APPLY          = 0x245
+OP_QUANT_INVERT         = 0x246
+OP_DCT_8X8_FORWARD      = 0x247
+OP_IDCT_8X8             = 0x248
+OP_CHROMA_SUBSAMPLE_422 = 0x249
+OP_CHROMA_UPSAMPLE_422  = 0x24A
+OP_HUFF_ENCODE_RUN      = 0x24B
+OP_HUFF_DECODE_RUN      = 0x24C
+OP_IMG_HEADER_EMIT      = 0x24D
+OP_IMG_HEADER_PARSE     = 0x24E
+OP_IMG_FINALIZE         = 0x24F
+
+# 0x250-0x25F — Audio FFT / spectrogram family (Stockham radix-2).
+OP_FFT_FORWARD_256      = 0x250
+OP_FFT_FORWARD_512      = 0x251
+OP_FFT_FORWARD_1024     = 0x252
+OP_FFT_FORWARD_2048     = 0x253
+OP_FFT_INVERSE          = 0x254
+OP_FFT_WINDOW_HANN      = 0x255
+OP_FFT_WINDOW_HAMM      = 0x256
+OP_STFT_FORWARD         = 0x257
+OP_STFT_INVERSE         = 0x258
+OP_MEL_FILTER_BANK      = 0x259
+OP_SPECTROGRAM_EMIT     = 0x25A
+OP_AUDIO_TO_DOTMAP      = 0x25B
+OP_DOTMAP_TO_AUDIO      = 0x25C
+OP_HRTF_CONVOLVE        = 0x25D
+
+# 0x260-0x26F — Frame codec / temporal video RPN.
+OP_FRAME_KEYFRAME       = 0x260
+OP_FRAME_DELTA          = 0x261
+OP_MOTION_VECTOR        = 0x262
+OP_FRAME_WARP           = 0x263
+OP_FRAME_BLEND          = 0x264
+OP_FRAME_SPRITE_EMIT    = 0x265
+OP_FRAME_SPRITE_BATCH   = 0x266
+OP_FRAME_PALETTE_SET    = 0x267
+OP_FRAME_CELL_FILL      = 0x268
+OP_FRAME_MORTON_2D      = 0x269
+OP_FRAME_SEQUENCE_RENDER = 0x26A
+OP_SCENE_LOAD           = 0x26B
+OP_SCENE_QUEUE          = 0x26C
+OP_SCENE_LOOP           = 0x26D
+OP_FRAME_OBSERVE_64D    = 0x26E
+
+# 0x270-0x27F — Projection screen / unified A/V playback.
+OP_VIDEO_FIELD_LOAD     = 0x270
+OP_AUDIO_FIELD_LOAD     = 0x271
+OP_SYNC_TIMELINE        = 0x272
+OP_TIMELINE_ADVANCE     = 0x273
+OP_PLAYBACK_TICK        = 0x274
+OP_PLAYBACK_START       = 0x275
+OP_PLAYBACK_STOP        = 0x276
+OP_SCREEN_PROJECT       = 0x277
+OP_SCREEN_RESIZE        = 0x278
+OP_SCREEN_COMPOSE       = 0x279
+OP_VIEWPORT_SET         = 0x27A
+OP_LOD_SELECT           = 0x27B
+OP_DOF_APERTURE         = 0x27C
+OP_DOF_FOCUS            = 0x27D
+OP_VIGNETTE_SCREEN      = 0x27E
+OP_ATMOSPHERE_FOG_SCREEN = 0x27F
 
 # Drawing Galaxy Layers 4-7 (gradients, filters, lighting, scenes)
 OP_GRADIENT_LINEAR = 0xF3     # x1 y1 x2 y2 GRADIENT_LINEAR
