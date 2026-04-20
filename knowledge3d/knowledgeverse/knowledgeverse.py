@@ -590,13 +590,13 @@ class Knowledgeverse:
         self._trm_ready = False
         self._trm_backend = "uninitialized"
         self._trm_init_error = ""
-        self._trm_host_weights: dict[str, np.ndarray] = {}
+        self._trm_host_weights: dict[str, bytes] = {}
         self._trm_weight_buffers: dict[str, Any] = {}
         self._trm_state_buffers: dict[str, Any] = {}
         self._trm_state_buffer_bytes = 0
         self._trm_weight_bytes = 0
         self._matryoshka_bridge: MatryoshkaProjectionBridge | None = None
-        self._trm_matryoshka_host_weights: np.ndarray | None = None
+        self._trm_matryoshka_host_weights: bytes | None = None
         self._trm_matryoshka_weight_buffer: Any | None = None
         self._trm_galaxy_decoder: dict[str, Any] | None = None
         self._trm_galaxy_decoder_path: str = ""
@@ -2420,27 +2420,16 @@ class Knowledgeverse:
 
         trm_summary: dict[str, Any]
         if self._trm_host_weights:
-            weights_payload = {
-                name: np.asarray(value, dtype=np.float32)
-                for name, value in self._trm_host_weights.items()
-            }
-            if self._trm_matryoshka_host_weights is not None:
-                weights_payload["matryoshka"] = np.asarray(self._trm_matryoshka_host_weights, dtype=np.float32)
-            metadata = {
-                "saved_at": time.time(),
-                "manifest_version": self.manifest_version,
-                "galaxy_count": int(payload.get("galaxy_count") or 0),
-            }
             fixed_trm_path = self._trm_weight_checkpoint_path()
-            save_trm_weight_checkpoint(fixed_trm_path, weights_payload, metadata=metadata)
+            self._save_trm_bin_checkpoint(fixed_trm_path)
             trm_summary = self._copy_checkpoint_snapshot(
                 fixed_trm_path,
-                checkpoint_dir / f"trm_weights_{stamp}.npz",
-                latest_name="trm_weights_latest.npz",
+                checkpoint_dir / f"trm_weights_{stamp}.bin",
+                latest_name="trm_weights_latest.bin",
             )
         else:
             trm_summary = {
-                "path": str(checkpoint_dir / f"trm_weights_{stamp}.npz"),
+                "path": str(checkpoint_dir / f"trm_weights_{stamp}.bin"),
                 "saved": False,
                 "reason": "trm_uninitialized",
             }
@@ -2545,7 +2534,12 @@ class Knowledgeverse:
         return self._boot_sovereign_runtime(force_reload=force)
 
     def _initialize_trm_launcher(self) -> None:
-        """Phase D.1 boot-time TRM wiring only; no query-path behavior yet."""
+        """Phase D.1 boot-time TRM wiring only; no query-path behavior yet.
+
+        Sovereign path: reads weights from .bin checkpoint via ctypes only.
+        No numpy, no random init fallback.  If the checkpoint is missing, boot
+        fails loudly pointing at scripts/convert_trm_npz_to_bin.py.
+        """
         self._trm = None
         self._trm_ready = False
         self._trm_backend = "uninitialized"
@@ -2558,36 +2552,26 @@ class Knowledgeverse:
         self._matryoshka_bridge = None
         self._trm_matryoshka_host_weights = None
         self._trm_matryoshka_weight_buffer = None
-        rng = np.random.default_rng(self.TRM_INIT_SEED)
         try:
             self._trm = TRMLauncher(use_fused=True)
             self._matryoshka_bridge = MatryoshkaProjectionBridge()
             total_bytes = 0
             checkpoint_weights = self._load_trm_weight_checkpoint()
             for name, shape in self.TRM_WEIGHT_SHAPES.items():
-                checkpoint_host = None if checkpoint_weights is None else checkpoint_weights.get(name)
-                if checkpoint_host is not None:
-                    host = np.asarray(checkpoint_host, dtype=np.float32).copy()
-                else:
-                    host = (rng.standard_normal(shape, dtype=np.float32) * np.float32(0.02)).astype(
-                        np.float32,
-                        copy=False,
-                    )
-                device = gpu_malloc(host.nbytes)
-                memcpy_htod(device, host.ctypes.data_as(ctypes.c_void_p), host.nbytes)
-                self._trm_host_weights[name] = host
+                raw_bytes, _ = checkpoint_weights[name]
+                n_bytes = len(raw_bytes)
+                device = gpu_malloc(n_bytes)
+                memcpy_htod(device, ctypes.c_char_p(raw_bytes), n_bytes)
+                self._trm_host_weights[name] = raw_bytes
                 self._trm_weight_buffers[name] = device
-                total_bytes += int(host.nbytes)
-            checkpoint_matryoshka = None if checkpoint_weights is None else checkpoint_weights.get("matryoshka")
-            if checkpoint_matryoshka is not None:
-                matryoshka = np.asarray(checkpoint_matryoshka, dtype=np.float32).copy()
-            else:
-                matryoshka = self._build_matryoshka_projection_weights(rng)
-            matryoshka_device = gpu_malloc(matryoshka.nbytes)
-            memcpy_htod(matryoshka_device, matryoshka.ctypes.data_as(ctypes.c_void_p), matryoshka.nbytes)
-            self._trm_matryoshka_host_weights = matryoshka
+                total_bytes += n_bytes
+            matryoshka_raw, _ = checkpoint_weights["matryoshka"]
+            n_bytes_m = len(matryoshka_raw)
+            matryoshka_device = gpu_malloc(n_bytes_m)
+            memcpy_htod(matryoshka_device, ctypes.c_char_p(matryoshka_raw), n_bytes_m)
+            self._trm_matryoshka_host_weights = matryoshka_raw
             self._trm_matryoshka_weight_buffer = matryoshka_device
-            total_bytes += int(matryoshka.nbytes)
+            total_bytes += n_bytes_m
             self._initialize_trm_state_buffers()
             total_bytes += int(self._trm_state_buffer_bytes)
             self._trm_weight_bytes = int(total_bytes)
@@ -2608,44 +2592,122 @@ class Knowledgeverse:
             self._trm_backend = "error"
             self._trm_init_error = f"{type(exc).__name__}: {exc}"
 
-    def _build_matryoshka_projection_weights(self, rng: np.random.Generator) -> np.ndarray:
-        basis = rng.standard_normal(
-            (self.TRM_STATE_VECTOR_DIM, self.TRM_STATE_VECTOR_DIM),
-            dtype=np.float32,
-        ).astype(np.float64, copy=False)
-        q, r = np.linalg.qr(basis)
-        diag = np.sign(np.diag(r))
-        diag[diag == 0.0] = 1.0
-        q *= diag
-        return np.asarray(q, dtype=np.float32)
-
     def _trm_galaxy_decoder_checkpoint_path(self) -> Path:
         return self.storage_root / "checkpoints" / "trm_galaxy_nav_weights.npz"
 
     def _trm_weight_checkpoint_path(self) -> Path:
-        return self.storage_root / "checkpoints" / "trm_weights.npz"
+        return self.storage_root / "checkpoints" / "trm_weights.bin"
 
-    def _load_trm_weight_checkpoint(self) -> dict[str, np.ndarray] | None:
+    def _load_trm_weight_checkpoint(self) -> dict[str, tuple[bytes, tuple[int, int]]]:
+        """Sovereign .bin reader — open() + ctypes only, zero numpy.
+
+        Returns a dict mapping weight name to (raw_f32_bytes, (rows, cols)).
+        Raises NotImplementedError on any structural problem, pointing at the
+        converter script that produces the .bin file.
+        """
+        import struct as _struct
+
         checkpoint_path = self._trm_weight_checkpoint_path()
         if not checkpoint_path.exists():
-            return None
-        try:
-            weights = load_trm_weight_checkpoint(checkpoint_path)
-        except Exception:
-            return None
-        resolved: dict[str, np.ndarray] = {}
-        for name, shape in self.TRM_WEIGHT_SHAPES.items():
-            value = np.asarray(weights.get(name, []), dtype=np.float32)
-            if value.shape != shape:
-                return None
-            resolved[name] = value
-        matryoshka = np.asarray(weights.get("matryoshka", []), dtype=np.float32)
-        if matryoshka.size:
-            expected_shape = (self.TRM_STATE_VECTOR_DIM, self.TRM_STATE_VECTOR_DIM)
-            if matryoshka.shape != expected_shape:
-                return None
-            resolved["matryoshka"] = matryoshka
-        return resolved
+            raise NotImplementedError(
+                f"TRM checkpoint missing at {checkpoint_path}; "
+                "run scripts/convert_trm_npz_to_bin.py to generate it. "
+                "Sovereign random-init path not yet implemented (Option X)."
+            )
+
+        with open(checkpoint_path, "rb") as fh:
+            magic = fh.read(8)
+            if magic != b"K3DTRM01":
+                raise NotImplementedError(
+                    f"TRM checkpoint at {checkpoint_path} has wrong magic "
+                    f"{magic!r} (expected b'K3DTRM01'); "
+                    "re-run scripts/convert_trm_npz_to_bin.py."
+                )
+            count_reserved = fh.read(8)
+            if len(count_reserved) < 8:
+                raise NotImplementedError(
+                    f"TRM checkpoint at {checkpoint_path} is truncated at header; "
+                    "re-run scripts/convert_trm_npz_to_bin.py."
+                )
+            (count,) = _struct.unpack_from("<I", count_reserved, 0)
+
+            result: dict[str, tuple[bytes, tuple[int, int]]] = {}
+            for _ in range(count):
+                entry_header = fh.read(12)
+                if len(entry_header) < 12:
+                    raise NotImplementedError(
+                        f"TRM checkpoint at {checkpoint_path} is truncated inside matrix list; "
+                        "re-run scripts/convert_trm_npz_to_bin.py."
+                    )
+                name_len, rows, cols = _struct.unpack("<III", entry_header)
+                name = fh.read(name_len).decode("ascii")
+                n_floats = rows * cols
+                n_bytes = n_floats * 4
+                raw = fh.read(n_bytes)
+                if len(raw) < n_bytes:
+                    raise NotImplementedError(
+                        f"TRM checkpoint at {checkpoint_path}: matrix '{name}' is truncated "
+                        f"(got {len(raw)} bytes, expected {n_bytes}); "
+                        "re-run scripts/convert_trm_npz_to_bin.py."
+                    )
+                result[name] = (raw, (rows, cols))
+
+        for name, expected_shape in self.TRM_WEIGHT_SHAPES.items():
+            if name not in result:
+                raise NotImplementedError(
+                    f"TRM checkpoint at {checkpoint_path} missing weight '{name}'; "
+                    "re-run scripts/convert_trm_npz_to_bin.py."
+                )
+            _, actual_shape = result[name]
+            if actual_shape != expected_shape:
+                raise NotImplementedError(
+                    f"TRM checkpoint at {checkpoint_path} weight '{name}' shape mismatch: "
+                    f"got {actual_shape}, expected {expected_shape}; "
+                    "re-run scripts/convert_trm_npz_to_bin.py."
+                )
+        if "matryoshka" not in result:
+            raise NotImplementedError(
+                f"TRM checkpoint at {checkpoint_path} missing 'matryoshka' weight; "
+                "re-run scripts/convert_trm_npz_to_bin.py."
+            )
+        expected_matryoshka = (self.TRM_STATE_VECTOR_DIM, self.TRM_STATE_VECTOR_DIM)
+        _, actual_m_shape = result["matryoshka"]
+        if actual_m_shape != expected_matryoshka:
+            raise NotImplementedError(
+                f"TRM checkpoint at {checkpoint_path} 'matryoshka' shape mismatch: "
+                f"got {actual_m_shape}, expected {expected_matryoshka}; "
+                "re-run scripts/convert_trm_npz_to_bin.py."
+            )
+        return result
+
+    def _save_trm_bin_checkpoint(self, output_path: Path) -> None:
+        """Write current host weights to .bin checkpoint (sovereign, no numpy).
+
+        Layout matches scripts/convert_trm_npz_to_bin.py exactly so that the
+        ingestion-path converter and this writer stay in sync.
+        """
+        import struct as _struct
+
+        CANONICAL_ORDER = ("W1", "W2", "W3", "W4", "matryoshka")
+        all_weights: dict[str, tuple[bytes, tuple[int, int]]] = {}
+        for name, raw_bytes in self._trm_host_weights.items():
+            shape = self.TRM_WEIGHT_SHAPES[name]
+            all_weights[name] = (raw_bytes, shape)
+        if self._trm_matryoshka_host_weights is not None:
+            m_dim = self.TRM_STATE_VECTOR_DIM
+            all_weights["matryoshka"] = (self._trm_matryoshka_host_weights, (m_dim, m_dim))
+
+        names_to_write = [n for n in CANONICAL_ORDER if n in all_weights]
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "wb") as fh:
+            fh.write(b"K3DTRM01")
+            fh.write(_struct.pack("<II", len(names_to_write), 0))
+            for name in names_to_write:
+                raw_bytes, (rows, cols) = all_weights[name]
+                name_enc = name.encode("ascii")
+                fh.write(_struct.pack("<III", len(name_enc), rows, cols))
+                fh.write(name_enc)
+                fh.write(raw_bytes)
 
     def _load_trm_galaxy_decoder(self) -> None:
         self._trm_galaxy_decoder = None
