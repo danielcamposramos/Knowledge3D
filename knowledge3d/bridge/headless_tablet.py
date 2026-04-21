@@ -30,6 +30,7 @@ SURFACE_KIND_SPATIAL_3D = "SPATIAL_3D"
 SURFACE_KIND_CHAT = "CHAT"
 SURFACE_KIND_GENERAL = "GENERAL"
 SURFACE_KIND_GRAMMAR = "GRAMMAR"
+SURFACE_KIND_INGEST = "INGEST"
 ROUTE_POLICY_ALL_LIVE_GALAXIES = "all_live_galaxies"
 TABLET_ALL_LIVE_GALAXIES = (
     "Drawing",
@@ -60,6 +61,7 @@ _SPECIALIST_CODES = {
     "chat": 3,
     "grammar": 4,
     "any": 5,
+    "ingest": 6,
 }
 
 TABLET_WORD_OFFSET_MUTATION_TYPE = 60
@@ -122,6 +124,8 @@ def _normalize_surface_kind(value: Any) -> str:
         "GENERAL_TASK": SURFACE_KIND_GENERAL,
         "GRAMMAR": SURFACE_KIND_GRAMMAR,
         "GRAMMAR_TASK": SURFACE_KIND_GRAMMAR,
+        "INGEST": SURFACE_KIND_INGEST,
+        "INGEST_TASK": SURFACE_KIND_INGEST,
     }
     return mapping.get(token, token or SURFACE_KIND_GENERAL)
 
@@ -852,6 +856,105 @@ class TabletIngest:
             options=options,
             domain=subject,
             expected_answer=expected_answer,
+        )
+
+    @staticmethod
+    def chat_task(
+        messages: Sequence[Mapping[str, str]],
+        *,
+        context: Mapping[str, Any] | None = None,
+        stream: bool = False,
+        task_id: str | None = None,
+    ) -> "TabletEnvelope":
+        """Build a CHAT surface envelope for the Tablet.
+
+        Mirrors self.math_task / self.question_task. Sets
+        surface_kind = SURFACE_KIND_CHAT and delegates envelope
+        construction to chat_wine.chat_envelope.
+
+        Args:
+            messages: Sequence of {"role": "user"|"assistant"|"system",
+                      "content": str}. Client sends full history each turn
+                      (stateless server).
+            context: Optional prior-turn references dict.
+            stream: Reserved for future streaming; ignored in MVP.
+            task_id: Optional caller-supplied task identifier.
+        """
+        from knowledge3d.tablet.wine.chat_wine import chat_envelope as _chat_envelope
+        raw = _chat_envelope(
+            messages,
+            context=context,
+            stream=stream,
+            task_id=task_id,
+        )
+        # Derive the prompt text from the last user message for `query`.
+        prompt = ""
+        for msg in reversed(list(messages)):
+            if isinstance(msg, dict) and str(msg.get("role", "")).strip().lower() == "user":
+                prompt = str(msg.get("content", "")).strip()
+                if prompt:
+                    break
+        task_payload = dict(raw.get("task") or {})
+        task_payload.setdefault("surface_kind", SURFACE_KIND_CHAT)
+        task_payload.setdefault("task_id", str(task_id or ""))
+        task_payload.setdefault("query", prompt)
+        task_payload.setdefault("prompt", prompt)
+        return TabletEnvelope(
+            surface_kind=SURFACE_KIND_CHAT,
+            task_id=str(task_id or ""),
+            query=prompt,
+            specialist="chat",
+            domain_hint=None,
+            galaxies=(),
+            route_policy=ROUTE_POLICY_ALL_LIVE_GALAXIES,
+            result_kind=None,
+            task=task_payload,
+            metadata={},
+        )
+
+    @staticmethod
+    def ingest_task(
+        *,
+        task_id: str,
+        source_uri: str,
+        mime: str,
+        chunking: Mapping[str, Any] | None = None,
+        lang_hint: str | None = None,
+        galaxies: Sequence[str] | None = None,
+        route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> "TabletEnvelope":
+        """Build an INGEST surface envelope for the Tablet.
+
+        Mirrors math_task / question_task / chat_task. Sets
+        surface_kind = SURFACE_KIND_INGEST. Task payload carries the
+        source reference; the daemon is responsible for assigning an
+        ingest_id and queueing the job.
+        """
+        merged_metadata = dict(metadata or {})
+        merged_metadata.setdefault("mime", str(mime))
+        if lang_hint is not None:
+            merged_metadata.setdefault("lang_hint", str(lang_hint))
+        task_payload: dict[str, Any] = {
+            "surface_kind": SURFACE_KIND_INGEST,
+            "task_id": str(task_id),
+            "query": str(source_uri),
+            "source_uri": str(source_uri),
+            "mime": str(mime),
+            "chunking": dict(chunking) if chunking else {},
+            "lang_hint": str(lang_hint) if lang_hint is not None else None,
+        }
+        return TabletEnvelope(
+            surface_kind=SURFACE_KIND_INGEST,
+            task_id=str(task_id),
+            query=str(source_uri),
+            specialist="ingest",
+            domain_hint=str(lang_hint) if lang_hint is not None else None,
+            galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
+            route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+            result_kind="ingest_receipt",
+            task=task_payload,
+            metadata=merged_metadata,
         )
 
 

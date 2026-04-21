@@ -9,7 +9,7 @@ from knowledge3d.cranium.bridges.mesh_bridge import MeshBridge
 from knowledge3d.cranium.ptx_runtime.mesh_engine import MeshRPNEngine
 from knowledge3d.cranium.ptx_runtime.mesh_opcodes import MeshBuffer
 from knowledge3d.knowledgeverse.objects_3d_galaxy import default_3d_objects_entries
-from knowledge3d.tools.training_pipelines.glb_decomposer import decompose_glb_to_stars
+from knowledge3d.ingestion.glb_decomposer import decompose_glb_to_stars
 
 
 def _cube_program() -> str:

@@ -116,7 +116,8 @@ extern "C" __global__ void k3d_swarm_sovereign(
     LanePerf* perf_ring,
     uint32_t* perf_ring_head,
     uint32_t perf_ring_mask,
-    const SwarmPerfCalibration* __restrict__ perf_calibration
+    const SwarmPerfCalibration* __restrict__ perf_calibration,
+    uint32_t* __restrict__ g_halting_value_q15
 ) {
     __shared__ uint32_t warp_halt_flags[K3D_SWARM_WARPS_PER_BLOCK];
     const uint32_t warp_id = threadIdx.x >> 5;
@@ -213,6 +214,21 @@ extern "C" __global__ void k3d_swarm_sovereign(
             if (halted_count == n_active) {
                 if (g_halting_counter != nullptr) {
                     *g_halting_counter = n_active;
+                }
+                if (g_halting_value_q15 != nullptr) {
+                    // First-class halting scalar: max lane belief_q15
+                    // across all active lanes at the moment of halt.
+                    // Range [0, 32768] → consumer divides by 32768.0 to
+                    // yield a float in [0.0, 1.0].
+                    // See TEMP/CLAUDE_HALTING_READBACK_HOOK_SPEC_04.21.2026.md §3.1
+                    uint32_t max_belief_q15 = 0u;
+                    for (uint32_t lane = 0u; lane < n_active; ++lane) {
+                        const uint32_t belief = lane_outputs[lane].belief_q15;
+                        if (belief > max_belief_q15) {
+                            max_belief_q15 = belief;
+                        }
+                    }
+                    *g_halting_value_q15 = max_belief_q15;
                 }
                 control->state = K3D_SWARM_FLAG_COMPLETE;
                 control->halt_epoch += 1u;

@@ -13,7 +13,7 @@ from knowledge3d.ingestion.proceduralizer_contract import (
     ProceduralizerRequest,
     parse_bundle,
 )
-from knowledge3d.ingestion.proceduralizer_wine import ProceduralizerWineBridge
+from knowledge3d.tablet.wine.proceduralize_wine import ProceduralizerWineBridge
 from knowledge3d.knowledgeverse.proceduralizer_stargate import (
     build_row_enrichment_context,
     bundle_to_payload_rows,

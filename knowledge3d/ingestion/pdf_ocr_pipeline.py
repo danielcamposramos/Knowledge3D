@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from knowledge3d.ingestion.ocr_gpu_processor import GPUPDFOCRProcessor, OllamaSecondPassEnricher
-from knowledge3d.ingestion.proceduralizer_wine_bridge import ProceduralizerWineBridge
+from knowledge3d.tablet.wine.proceduralize_wine import ProceduralizerWineBridge
 from knowledge3d.ingestion.proceduralizer_contract import ProceduralizerRequest, ProceduralizerBundle
 
 

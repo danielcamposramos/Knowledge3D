@@ -7,7 +7,6 @@ import os as _os
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set
 from datetime import datetime
-from types import SimpleNamespace
 
 from knowledge3d.cranium.ptx import PTX_OPS
 
@@ -349,62 +348,16 @@ class SleepTimeCompute:
                     handle.write("\n".join(sorted(processed)))
 
             if records:
-                try:
-                    from knowledge3d.tools.training_pipelines.learning_memory_builder import build_learning_memory  # type: ignore
-
-                    args = SimpleNamespace(
-                        input=[str(self.learning_memory_path)],
-                        out=str(self.learning_memory_glb),
-                        manifest=str(self.learning_memory_manifest),
-                        limit=None,
-                        label="Learning Memory Galaxy",
-                        embedding_dim=512,
-                    )
-                    build_learning_memory(args)
-                    print("💾 Learning memory GLB rebuilt.")
-                    try:
-                        from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
-
-                        head = AdaptedFusedHead()
-                        if head.reload_learning_memory():
-                            print("♻️  Fused head learning cache refreshed (sleep compute).")
-                        if head.reload_house_memory():
-                            print("🏠  Fused head house cache refreshed (sleep compute).")
-                    except Exception as exc:
-                        print(f"⚠️  Fused head reload skipped: {exc}")
-                except Exception as exc:
-                    print(f"⚠️  Failed to rebuild learning memory GLB: {exc}")
+                # learning_memory_builder moved to Old_Attempts/training_pipelines (drift).
+                # PTX sleeptime Lane A (0x300) replaces this path.
+                pass
         except Exception as exc:
             print(f"⚠️  Learning memory processing skipped: {exc}")
 
     def _rebuild_house_memory(self) -> None:
-        try:
-            from knowledge3d.tools.training_pipelines.house_memory_builder import build_house_memory  # type: ignore
-
-            args = SimpleNamespace(
-                root=str(self.material_dir),
-                out=str(self.house_memory_glb),
-                manifest=str(self.house_memory_manifest),
-                limit=None,
-                embedding_dim=512,
-                label="House Memory Index",
-            )
-            build_house_memory(args)
-            print("📦 House memory GLB rebuilt.")
-            try:
-                from knowledge3d.cranium.fused_head import AdaptedFusedHead  # type: ignore
-
-                head = AdaptedFusedHead()
-                if head.reload_house_memory():
-                    print("🏠  Fused head house cache refreshed (sleep compute).")
-            except Exception as exc:
-                print(f"⚠️  Fused head house reload skipped: {exc}")
-        except FileNotFoundError:
-            print("⚠️  House materialized directory missing; skipping house memory build.")
-        except ValueError as exc:
-            print(f"⚠️  House memory build skipped: {exc}")
-        except Exception as exc:
-            print(f"⚠️  Failed to rebuild house memory GLB: {exc}")
+        # house_memory_builder moved to Old_Attempts/training_pipelines (drift).
+        # PTX sleeptime Lane B (pending) replaces this path.
+        pass
 
     def _cluster_stars_rpn(self, stars: List[Dict[str, Any]]) -> List[List[int]]:
         """

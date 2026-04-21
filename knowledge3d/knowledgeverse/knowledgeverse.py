@@ -640,6 +640,11 @@ class Knowledgeverse:
         self._boot_validation_summary: dict[str, Any] = {}
         self._query_sequence = 0
         self._runtime_language_enrichment_loaded = False
+        # First-class halting scalar published by the swarm halting gate
+        # in PTX (see TEMP/CLAUDE_HALTING_READBACK_HOOK_SPEC_04.21.2026.md).
+        # Read by the TRM game loop when assembling trm_tick; reset at
+        # the start of every execute_task to avoid stale reuse.
+        self._last_swarm_halting_value: float | None = None
 
         audit_index = (
             Path(audit_index_path)
@@ -3616,6 +3621,10 @@ class Knowledgeverse:
         use_enriched: bool = True,
         max_wall_ms: int | None = None,
     ) -> str:
+        # Clear last-tick halting scalar so a subsequent read sees the
+        # *new* tick's value (or None if the swarm never ran, e.g. for
+        # degenerate single-candidate paths). Spec §3.4.
+        self._last_swarm_halting_value = None
         return self.enqueue_task(
             task=task,
             route=route,
@@ -13026,6 +13035,10 @@ class Knowledgeverse:
                     bridge=n_chain_swarm,
                 )
                 swarm_result = n_chain_swarm.tick(swarm_packet, timeout_s=5.0)
+                # Publish the first-class halting scalar for the TRM game
+                # loop to pick up when assembling trm_tick. Spec §3.4.
+                if isinstance(swarm_result, dict) and "halting_value" in swarm_result:
+                    self._last_swarm_halting_value = float(swarm_result["halting_value"])
                 swarm_n_active = max(0, int((swarm_result or {}).get("n_active", 0) or 0))
                 if swarm_n_active > 0:
                     lane_sums = [0.0 for _ in local_candidates]
@@ -16002,3 +16015,84 @@ class Knowledgeverse:
             max_wall_ms=max_wall_ms,
         )
         return self.wait_output_buffer(request_id, max_ticks=1, max_wall_ms=max_wall_ms)
+
+    def enqueue_ingest(self, *, envelope: Any) -> dict[str, Any]:
+        """Write a pending-ingest entry to the temporary-star region.
+
+        Minimal stub: writes the envelope's task payload to
+        /K3D/Knowledge3D.local/galaxies/_temporary/<ingest_id>.jsonl
+        and returns an ingest receipt. The real proceduralizer dispatch
+        is a follow-up (TEMP/CLAUDE_SMART_PROCEDURALIZER_SPEC_V2_04.20.2026.md).
+
+        Sovereignty: this method is I/O only — it writes JSONL to disk.
+        No reasoning, no GPU dispatch. The subsequent sleeptime tick
+        handles the GPU-side star promotion.
+        """
+        import time as _time
+
+        task = dict(getattr(envelope, "task", None) or {})
+        ingest_id = str(task.get("task_id") or "").strip() or str(
+            int(_time.time() * 1000)
+        )
+
+        storage_root = getattr(self, "_storage_root", None) or getattr(
+            self, "storage_root", None
+        )
+        if storage_root is None:
+            # Fallback to the default path — never a reasoning fallback.
+            try:
+                from knowledge3d.local_paths import default_storage_root
+                storage_root = default_storage_root()
+            except Exception:
+                storage_root = Path("/K3D/Knowledge3D.local")
+
+        temp_dir = Path(storage_root) / "galaxies" / "_temporary"
+        try:
+            temp_dir.mkdir(parents=True, exist_ok=True)
+        except Exception as exc:
+            return {
+                "ingest_id": ingest_id,
+                "queued_chunks_estimate": 0,
+                "telemetry": {
+                    "error": "temp_dir_create_failed",
+                    "detail": str(exc),
+                },
+            }
+
+        pending_path = temp_dir / f"{ingest_id}.jsonl"
+        import time as _time2
+        pending_entry = {
+            "ingest_id": ingest_id,
+            "source_uri": str(task.get("source_uri") or task.get("query") or ""),
+            "mime": str(task.get("mime") or ""),
+            "chunking": dict(task.get("chunking") or {}),
+            "lang_hint": task.get("lang_hint"),
+            "temporary": True,
+            "confidence_trit": 0,
+            "first_seen_at": _time2.strftime("%Y-%m-%dT%H:%M:%SZ", _time2.gmtime()),
+            "last_touched_at": _time2.strftime("%Y-%m-%dT%H:%M:%SZ", _time2.gmtime()),
+            "sleeptime_passes": 0,
+            "surface_kind": "INGEST",
+            "result_kind": "ingest_receipt",
+        }
+        try:
+            with open(pending_path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(pending_entry, ensure_ascii=False) + "\n")
+        except Exception as exc:
+            return {
+                "ingest_id": ingest_id,
+                "queued_chunks_estimate": 0,
+                "telemetry": {
+                    "error": "pending_write_failed",
+                    "detail": str(exc),
+                },
+            }
+
+        return {
+            "ingest_id": ingest_id,
+            "queued_chunks_estimate": 0,
+            "telemetry": {
+                "pending_path": str(pending_path),
+                "enqueued": True,
+            },
+        }

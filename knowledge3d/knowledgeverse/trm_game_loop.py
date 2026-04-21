@@ -315,6 +315,20 @@ class TRMGameLoop:
     def _run_query_tick(self, bridge: Any, record: TRMQueuedInput) -> dict[str, Any]:
         tick_result = dict(bridge.run_query_tick(delta_time=0.02))
         action_buffers = self._action_buffer_payload(bridge)
+        # First-class halting scalar: pick up whatever the swarm halting
+        # gate published during this task's reasoning path. The swarm
+        # bridge writes a PTX-sourced Q15 fixed-point max-belief into a
+        # mapped-host scalar; knowledgeverse stashes the ratio on
+        # `_last_swarm_halting_value` at each swarm.tick() call.
+        # See TEMP/CLAUDE_HALTING_READBACK_HOOK_SPEC_04.21.2026.md §3.4
+        halting_value = getattr(self.knowledgeverse, "_last_swarm_halting_value", None)
+        if halting_value is not None:
+            clamped = float(halting_value)
+            if clamped < 0.0:
+                clamped = 0.0
+            elif clamped > 1.0:
+                clamped = 1.0
+            tick_result["halting_value"] = clamped
         self._last_tick_result = dict(tick_result)
         self._last_action_buffers = [list(row) for row in action_buffers]
         task_result = self._materialize_task_result(

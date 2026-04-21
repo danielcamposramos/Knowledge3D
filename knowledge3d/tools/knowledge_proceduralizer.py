@@ -21,7 +21,7 @@ from knowledge3d.ingestion.proceduralizer_contract import (
     ProceduralizerReceipt,
     parse_bundle,
 )
-from knowledge3d.ingestion.proceduralizer_wine import ProceduralizerWineBridge
+from knowledge3d.tablet.wine.proceduralize_wine import ProceduralizerWineBridge
 from knowledge3d.ingestion.universal_knowledge import (
     build_meaning_layer_stars,
     iter_domains,

@@ -16,7 +16,7 @@ from typing import Any
 
 from knowledge3d.ingestion.ollama_manager import OllamaManager
 
-from .proceduralizer_contract import (
+from knowledge3d.ingestion.proceduralizer_contract import (
     PROCEDURALIZER_BUNDLE_JSON_SCHEMA,
     PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA,
     PROCEDURALIZER_MODEL_PROFILES,

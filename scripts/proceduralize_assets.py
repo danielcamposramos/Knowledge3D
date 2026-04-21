@@ -7,7 +7,7 @@ import argparse
 import json
 from pathlib import Path
 
-from knowledge3d.tools.training_pipelines.glb_decomposer import decompose_glb_to_stars
+from knowledge3d.ingestion.glb_decomposer import decompose_glb_to_stars
 
 
 ASSET_SOURCES = [

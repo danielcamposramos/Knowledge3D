@@ -24,10 +24,10 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from knowledge3d.ingestion.mcp_web_search import DEFAULT_CACHE_DIR, WebSearchUnavailable, web_search
+from knowledge3d.tablet.wine.mcp_web_search import DEFAULT_CACHE_DIR, WebSearchUnavailable, web_search
 from knowledge3d.ingestion.ollama_manager import OllamaManager
 from knowledge3d.ingestion.proceduralizer_contract import PROCEDURALIZER_MODEL_PROFILES, ProceduralizerRequest
-from knowledge3d.ingestion.proceduralizer_wine import (
+from knowledge3d.tablet.wine.proceduralize_wine import (
     PILOT_RETRY_PLAN_WAVES,
     PILOT_RETRY_TRANSIENT_ATTEMPTS,
     PILOT_RETRY_TRANSIENT_DELAY_S,
