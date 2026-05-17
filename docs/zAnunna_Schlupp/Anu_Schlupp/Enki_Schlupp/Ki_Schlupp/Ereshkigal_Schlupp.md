@@ -3,7 +3,7 @@
 **Version:** 0.1 DRAFT — Defensive Publication (Pure AC Ternary)
 **Date:** 2026-03-20
 **Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 **License:** W3C Royalty-Free — This document is published as prior art under the W3C Patent Policy. All architectures described herein enter the public domain upon publication. No party may patent any design disclosed in this specification.
 **Reference Implementations:** K3D Knowledgeverse sovereign ternary pipeline; RISC-T baseline in [Anu_Schlupp.md](Anu_Schlupp.md)
 **Companion Specifications:** [Marduk_Schlupp.md](Marduk_Schlupp.md), [Nabu_Schlupp.md](Nabu_Schlupp.md), [Ningishzida_Schlupp.md](Ningishzida_Schlupp.md), [Ninazu_Schlupp.md](Ninazu_Schlupp.md), [Gugalanna_Schlupp.md](Gugalanna_Schlupp.md), [Ki_Schlupp.md](Ki_Schlupp.md)

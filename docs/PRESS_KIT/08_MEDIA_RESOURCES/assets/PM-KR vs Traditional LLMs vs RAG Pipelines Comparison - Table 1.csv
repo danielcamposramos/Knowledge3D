@@ -1,7 +1,7 @@
 Dimension,Traditional LLMs,RAG Pipelines,PM-KR Procedural Memory,Source
 Explainability,Opaque (post-hoc narrative only),"Partial (retrieval context visible, synthesis opaque)",Hard traceability (deterministic operation traces),1
 Human and AI source parity,Indirect (humans can't inspect weights),"Partial (retrieval visible, synthesis hidden)",Explicit dual-client contract (same source for both),1
-Standards posture,"Vendor-defined interfaces (OpenAI API, Anthropic API, etc.)","Framework-specific (LangChain, LlamaIndex, proprietary)",W3C Community Group standardization (open standards path),1
+Standards posture,"Vendor-defined interfaces (OpenAI API, Anthropic API, etc.)","Framework-specific (LangChain, LlamaIndex, proprietary)",W3C Community Group incubation (open specifications path),1
 Core storage model,Knowledge internal to model weights,External retrieval + model synthesis,Canonical procedural nodes + references,Not in source
 Typical model size,100B to 1T+ parameters (700GB+),Depends on downstream model (50B-175B typical),7M parameters (28MB),Not in source
 Latency,"142ms (transformer inference, GPT-3 baseline)",Depends on retrieval + LLM (200-500ms typical),<1ms (RPN stack-based execution),Not in source

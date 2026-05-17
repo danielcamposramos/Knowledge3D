@@ -297,7 +297,7 @@ navigator.gpu.createProceduralPrint({
 **ISO/ASTM International** (Additive Manufacturing Standards):
 - **Contact**: Mohsen Seifi (ASTM F42 Chair), Olaf Diegel (ISO TC 261)
 - **Pitch**: "PM-KR Procedural Manufacturing Format (PMF) as ISO specification (100,000× compression, adaptive control, cross-printer compatibility)"
-- **Entry Point**: 3MF became ISO standard (2025) → PM-KR as evolution
+- **Entry Point**: 3MF became ISO standard (2025) → PM-KR as a related evolution
 
 **3MF Consortium**:
 - **Contact**: Autodesk, Microsoft, HP, Stratasys (early ingressors)

@@ -2,7 +2,7 @@
 
 **Status:** Active Development Roadmap
 **Last Updated:** February 26, 2026
-**Source:** W3C PM-KR Community Group early ingressor discussions + NotebookLM strategic analysis
+**Source:** PM-KR Community Group early ingressor discussions + NotebookLM strategic analysis
 
 ---
 
@@ -212,7 +212,7 @@ Expand K3D's procedural metadata to include **preconditions and postconditions (
 
 ### 4. Prioritizing Interoperability and Tooling
 
-**Driver:** W3C PM-KR Community consensus
+**Driver:** PM-KR Community consensus
 
 **The Challenge:**
 PM-KR cannot exist in a vacuum — it must complement existing Semantic Web technologies (RDF, OWL, JSON-LD) and integrate with enterprise workflows.
@@ -328,7 +328,7 @@ Map K3D concepts to familiar industry paradigms — file systems, object-oriente
 
 ### 6. Achieving "Level C" Conformance (Auditable Production)
 
-**Driver:** W3C PM-KR Conformance Profiles (see [PM_KR_CONFORMANCE_PROFILES.md](PM_KR_CONFORMANCE_PROFILES.md))
+**Driver:** PM-KR Conformance Profiles (see [PM_KR_CONFORMANCE_PROFILES.md](PM_KR_CONFORMANCE_PROFILES.md))
 
 **The Challenge:**
 K3D is currently "Provisional Level B+" — it proves zero-dependency GPU sovereignty but lacks externalized test suites and independent audit tooling.
@@ -496,13 +496,13 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 6. **Level C Conformance:**
    - Independent test suite runs on ≥3 different implementations
    - Third-party audit (academia or industry) validates sovereignty claims
-   - W3C PM-KR CG issues "Level C Conformant" badge
+   - PM-KR Community Group issues "Level C Conformant" badge
 
 ---
 
 ## Conclusion: From Prototype to Technology
 
-The W3C PM-KR Community Group transforms K3D's mission:
+The PM-KR Community Group transforms K3D's mission:
 
 **Before:** Build the world's most advanced spatial AI cognitive OS.
 **Now:** Build the world's most advanced spatial AI cognitive OS **AND** prove it can become a global web technology.
@@ -516,7 +516,7 @@ If K3D succeeds in implementing these 6 strategic imperatives, it won't just be 
 ---
 
 **Last Updated:** February 26, 2026
-**Maintained by:** Daniel Ramos (K3D architect), W3C PM-KR Community Group
+**Maintained by:** Daniel Ramos (K3D architect), PM-KR Community Group
 **Feedback:** public-pm-kr@w3.org
 
 ---
@@ -524,7 +524,7 @@ If K3D succeeds in implementing these 6 strategic imperatives, it won't just be 
 ## References
 
 - [PM-KR Community Group Page](https://www.w3.org/community/pm-kr/)
-- [PM-KR Standards Repo](https://github.com/w3c-cg/pm-kr)
+- [PM-KR Community Group Repo](https://github.com/w3c-cg/pm-kr)
 - [PM-KR Problem Statement](PM_KR_PROBLEM_STATEMENT.md)
 - [PM-KR Conformance Profiles](PM_KR_CONFORMANCE_PROFILES.md)
 - [PM-KR Interoperability Guide](PM_KR_INTEROPERABILITY_GUIDE.md)

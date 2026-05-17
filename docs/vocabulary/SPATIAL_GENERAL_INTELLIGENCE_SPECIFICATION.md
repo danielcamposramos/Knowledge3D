@@ -176,7 +176,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 | **Execution** | Framework-dependent (PyTorch, TensorFlow) | Sovereign (PTX kernels, inspectable) |
 | **Verifiability** | Cannot verify AI "sees" what humans see | Guaranteed (same nodes at same coordinates) |
 | **Collaboration** | Human ↔ AI via APIs (separate worlds) | Human + AI cohabit same 3D workspace |
-| **Standards** | Vendor-specific (OpenAI, Google, Anthropic) | Open (W3C PM-KR Community Group technology) |
+| **Ecosystem** | Vendor-specific (OpenAI, Google, Anthropic) | Open (PM-KR Community Group technology) |
 
 **Key Insight**: AGI pursues intelligence LIKE humans (abstract reasoning). SGI pursues intelligence WITH humans (shared spatial habitat).
 
@@ -367,7 +367,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - ✅ **Galaxy Universe**: Multi-modal spatial substrate (Drawing, Character, Word, Grammar, Math, Reality galaxies)
 - ✅ **TRM Core**: 7M parameter navigator (base model + specialists)
 - ✅ **Dual-Client Contract**: Shared human-AI reality specification
-- ✅ **W3C PM-KR CG**: Community Group established, technology development path initiated
+- ✅ **PM-KR Community Group**: Community Group established, technology development path initiated
 
 ### Phase 2: Real-World Validation (2026-2027)
 - ⏳ **ARC-AGI 2 Benchmark**: Visual reasoning via Drawing + Grammar galaxies
@@ -562,7 +562,7 @@ This specification defines SGI as the foundational goal of PM-KR (Procedural Mem
 - Christoph Dorn (Sovereignty Architect, Stream44.Studio)
 
 **Acknowledgments**:
-- W3C PM-KR Community Group members
+- PM-KR Community Group members
 - NotebookLM (Google) for generating press kit podcast that surfaced the SGI term
 - K3D development team
 

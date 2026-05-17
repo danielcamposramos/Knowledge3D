@@ -1,7 +1,7 @@
 # PM-KR RPN-to-X3D Scene Graph Emission
 
 **Version**: 0.1 (Initial Draft)
-**Status**: W3C PM-KR Community Group Working Draft
+**Status**: PM-KR Community Group Working Draft
 **Date**: March 26, 2026
 **Authors**: PM-KR Community Group (Daniel Campos Ramos, Chair; Milton Ponson, Co-Chair)
 **Liaison**: Web3D Consortium (Don Brutzman, Advisory Committee Representative)

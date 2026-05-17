@@ -322,7 +322,7 @@ By combining symlink-style references + procedural canonicalization, hyper-modul
 
 ---
 
-## Formal Definition (for W3C PM-KR Specification)
+## Formal Definition (for PM-KR Specification)
 
 ### **Normative Definition**
 

@@ -850,6 +850,6 @@ Galaxy Universe (unified memory, classical + quantum states)
 
 **Author:** Daniel Ramos
 **Date:** February 28, 2026
-**Status:** Strategic reveal for W3C PM-KR Community Group (hold for synthesis email or organic response)
+**Status:** Strategic reveal for PM-KR Community Group (hold for synthesis email or organic response)
 
 **END OF SPECIFICATION**

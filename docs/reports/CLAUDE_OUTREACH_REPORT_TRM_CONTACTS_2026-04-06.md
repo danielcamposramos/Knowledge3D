@@ -15,7 +15,7 @@ Prepare outreach to:
 The intent is:
 - thank them for the Tiny Recursive Model line of work
 - present PM-KR and Knowledge3D in language they will immediately recognize as technically serious
-- make clear this is not random fan outreach: there is already a real standards effort, a real reference implementation, and a credible cross-disciplinary coalition
+- make clear this is not random fan outreach: there is already a real Community Group effort, a real reference implementation, and a credible cross-disciplinary coalition
 
 ## Public Facts Used
 
@@ -51,7 +51,7 @@ The right professional bridge is:
 - explicit knowledge substrate
 - compact models with strong generalization
 - graph / procedural / symbolic-executable memory instead of opaque prompting layers
-- dual value: research architecture + interoperable standards effort
+- dual value: research architecture + interoperable Community Group effort
 
 ## Contact 1: Alexia Jolicoeur-Martineau
 
@@ -94,7 +94,7 @@ Lead instead with:
 - inspectability
 - substrate design
 
-Then introduce PM-KR and Knowledge3D as the practical / standards extension of that direction.
+Then introduce PM-KR and Knowledge3D as the practical / specification extension of that direction.
 
 ## Contact Routes To Prefer
 
@@ -109,7 +109,7 @@ Do not expose or circulate scraped private email data.
 
 Suggested core message:
 
-"Your TRM work makes a clean technical case that recursion and structure can beat brute-force scale. We are building a sister line of work around the same thesis from the substrate side: procedural, executable, inspectable knowledge with a compact sovereign runtime. PM-KR is the standards track; Knowledge3D is the reference implementation. We would value your participation both as a technical critic and as someone whose work already demonstrated why small recursive systems deserve serious attention."
+"Your TRM work makes a clean technical case that recursion and structure can beat brute-force scale. We are building a sister line of work around the same thesis from the substrate side: procedural, executable, inspectable knowledge with a compact sovereign runtime. PM-KR is the incubation track; Knowledge3D is the reference implementation. We would value your participation both as a technical critic and as someone whose work already demonstrated why small recursive systems deserve serious attention."
 
 ## Contact 2: Boris Knyazev
 
@@ -168,7 +168,7 @@ Public routes only:
 
 Suggested core message:
 
-"Your work at the intersection of graph neural networks, optimization, reasoning, and scientific discovery is close to the substrate problem we are trying to standardize and implement. PM-KR is an attempt to make knowledge itself executable, inspectable, and compositional; Knowledge3D is the reference implementation pushing that into a compact sovereign runtime. We think your perspective on graph reasoning and structured generalization would be unusually valuable."
+"Your work at the intersection of graph neural networks, optimization, reasoning, and scientific discovery is close to the substrate problem we are trying to specify and implement. PM-KR is an attempt to make knowledge itself executable, inspectable, and compositional; Knowledge3D is the reference implementation pushing that into a compact sovereign runtime. We think your perspective on graph reasoning and structured generalization would be unusually valuable."
 
 ## What We Should Say About Ourselves
 
@@ -236,7 +236,7 @@ Best sequence:
 
 1. Thank them for the research direction, specifically the small-recursive-reasoning thesis.
 2. Explain that PM-KR and Knowledge3D are extending that thesis into explicit procedural memory / executable knowledge substrate.
-3. Mention the W3C PM-KR Community Group and the reference implementation split.
+3. Mention the PM-KR Community Group and the reference implementation split.
 4. Name 4-8 prominent current members, not the whole roster.
 5. Invite them to review, advise, or participate, rather than demanding commitment.
 6. Offer the shortest possible pointer set:
@@ -246,7 +246,7 @@ Best sequence:
 
 ## Suggested Short Positioning Paragraph For Claude To Reuse
 
-"We are not approaching you with a generic AI pitch. Your TRM-adjacent research direction matters to us because it validates a principle we are building around: strong reasoning can emerge from compact recursive systems if memory, structure, and execution are designed properly. PM-KR is our standards-track effort around procedural knowledge representation, and Knowledge3D is the reference implementation that makes knowledge executable, inspectable, and persistent across modalities. The effort already includes contributors from graph systems, computational linguistics, neuro-symbolic AI, knowledge-graph validation, WebGPU, and semantic web communities."
+"We are not approaching you with a generic AI pitch. Your TRM-adjacent research direction matters to us because it validates a principle we are building around: strong reasoning can emerge from compact recursive systems if memory, structure, and execution are designed properly. PM-KR is our Community Group incubation effort around procedural knowledge representation, and Knowledge3D is the reference implementation that makes knowledge executable, inspectable, and persistent across modalities. The effort already includes contributors from graph systems, computational linguistics, neuro-symbolic AI, knowledge-graph validation, WebGPU, and semantic web communities."
 
 ## Suggested Invitation Split
 

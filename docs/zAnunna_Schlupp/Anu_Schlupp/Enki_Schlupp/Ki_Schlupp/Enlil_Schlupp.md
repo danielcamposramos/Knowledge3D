@@ -3,7 +3,7 @@
 **Version:** 0.1 DRAFT - Defensive Publication
 **Date:** 2026-03-19
 **Authors:** Daniel Campos Ramos, Christoph Dorn, Milton Ponson
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 **License:** W3C Royalty-Free defensive publication
 
 ---

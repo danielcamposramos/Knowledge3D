@@ -1,10 +1,10 @@
 # Net-T: Open Ternary Network Fabric Specification
 
-**Version:** 0.1 DRAFT — Defensive Publication  
-**Date:** 2026-03-19  
-**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)  
-**Organization:** W3C PM-KR Community Group  
-**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy  
+**Version:** 0.1 DRAFT — Defensive Publication
+**Date:** 2026-03-19
+**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
+**Organization:** PM-KR Community Group
+**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy
 
 ---
 
@@ -243,8 +243,8 @@ Scale to chiplet or board-level native ternary interconnect.
 
 `Net-T` is the clean constitutional architecture for ternary networking.
 
-`Ethernet-BT` is the compatibility bridge.  
-`Ethernet-xNetT` is the one-core hybrid deployment architecture.  
+`Ethernet-BT` is the compatibility bridge.
+`Ethernet-xNetT` is the one-core hybrid deployment architecture.
 `Net-T` is the open native future.
 
 All three are needed to fully pre-empt patent capture of ternary networking ideas.

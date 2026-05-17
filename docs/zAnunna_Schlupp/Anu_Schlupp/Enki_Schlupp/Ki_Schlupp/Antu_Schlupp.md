@@ -1,12 +1,12 @@
 # X64-BT: Hybrid Binary + Ternary Compatibility Architecture Specification
 
-**Version:** 0.2 DRAFT — Defensive Publication (Hybrid Logic Clarification)  
-**Date:** 2026-03-19  
-**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)  
-**Organization:** W3C PM-KR Community Group  
-**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy  
-**Companion Specification:** `Anu_Schlupp.md`  
-**Reference Software Surface:** K3D Knowledgeverse ternary opcode set `TADD/TMUL/TNOT/TCOMP/TQUANT/TPACK/TUNPACK`  
+**Version:** 0.2 DRAFT — Defensive Publication (Hybrid Logic Clarification)
+**Date:** 2026-03-19
+**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
+**Organization:** PM-KR Community Group
+**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy
+**Companion Specification:** `Anu_Schlupp.md`
+**Reference Software Surface:** K3D Knowledgeverse ternary opcode set `TADD/TMUL/TNOT/TCOMP/TQUANT/TPACK/TUNPACK`
 
 ---
 

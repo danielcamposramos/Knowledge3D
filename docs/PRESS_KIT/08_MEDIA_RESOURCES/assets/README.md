@@ -54,7 +54,7 @@
 **Target Audience**:
 - Journalists (carbon story, MERCOSUR-EU collaboration)
 - Display manufacturers (procedural rendering)
-- W3C members (standards credibility)
+- W3C members (governance credibility)
 - Conference organizers (explainer audio for submissions)
 - Grant reviewers (carbon impact narrative)
 
@@ -158,7 +158,7 @@
 - W3C submissions (show ecosystem integration)
 - Display manufacturer pitches (browser vendor engagement)
 - Grant applications (collaborative network strength)
-- Press releases (standards credibility)
+- Press releases (governance credibility)
 
 ---
 
@@ -194,7 +194,7 @@
 - **[Sovereign_Memory_Architecture.pdf](Sovereign_Memory_Architecture.pdf)** - PDF (read-only distribution)
 - **[Sovereign_Memory_Architecture.pptx](Sovereign_Memory_Architecture.pptx)** - PowerPoint (editable)
 
-**PM-KR Knowledge Standards**:
+**PM-KR Knowledge Specifications**:
 - **[PM-KR_Knowledge_Standards.pdf](PM-KR_Knowledge_Standards.pdf)** - PDF (read-only)
 - **[PM-KR_Knowledge_Standards.pptx](PM-KR_Knowledge_Standards.pptx)** - PowerPoint (editable)
 

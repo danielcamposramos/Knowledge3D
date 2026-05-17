@@ -14,12 +14,12 @@
 ## LinkedIn Drafts (3)
 
 ### LinkedIn Post 1
-PM-KR (Procedural Memory Knowledge Representation) is progressing through a standards-first path at W3C, with Knowledge3D as reference implementation. The core engineering problem is knowledge duplication across systems. Our response is canonical procedural source plus references, with deterministic and auditable execution behavior. This gives humans and AI shared grounding instead of parallel truth layers. Current materials include normative model drafts, evidence matrices, and conformance-oriented documentation.
+PM-KR (Procedural Memory Knowledge Representation) is progressing through a Community Group-first path at W3C, with Knowledge3D as reference implementation. The core engineering problem is knowledge duplication across systems. Our response is canonical procedural source plus references, with deterministic and auditable execution behavior. This gives humans and AI shared grounding instead of parallel truth layers. Current materials include normative model drafts, evidence matrices, and conformance-oriented documentation.
 
 #ProceduralMemory #W3C #KnowledgeRepresentation #SustainableAI
 
 ### LinkedIn Post 2
-We just finalized a media-ready PM-KR/K3D press kit for journalists, display manufacturers, and standards collaborators. The package includes technical overviews, use-case briefs, carbon methodology, FAQ sets, and NotebookLM-ready assets for infographics and slide generation. The sustainability section keeps strict framing: 12 Gt CO2 is a scenario projection with explicit assumptions, not a guaranteed baseline.
+We just finalized a media-ready PM-KR/K3D press kit for journalists, display manufacturers, and specification collaborators. The package includes technical overviews, use-case briefs, carbon methodology, FAQ sets, and NotebookLM-ready assets for infographics and slide generation. The sustainability section keeps strict framing: 12 Gt CO2 is a scenario projection with explicit assumptions, not a guaranteed baseline.
 
 #SustainableAI #AIStandards #CarbonReduction #OpenInfrastructure
 

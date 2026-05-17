@@ -91,7 +91,7 @@ From the K3D Spatial Knowledge Representation project:
 ## Who Should Use This?
 
 **This methodology is for**:
-- ✅ W3C Community Group members developing standards
+- ✅ W3C Community Group members developing specifications
 - ✅ Open source maintainers managing complex projects
 - ✅ Software architects coordinating distributed teams
 - ✅ Researchers exploring collaborative AI

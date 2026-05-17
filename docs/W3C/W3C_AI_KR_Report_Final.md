@@ -27,7 +27,7 @@
 
 ### I. EXECUTIVE SUMMARY
 
-This report provides an update on the activities and progress of the W3C AI Knowledge Representation (KR) Community Group since our first report in August 2022. Our core mission remains to develop explicit, shared KR standards for explainable, transparent, and trustworthy AI.
+This report provides an update on the activities and progress of the W3C AI Knowledge Representation (KR) Community Group since our first report in August 2022. Our core mission remains to develop explicit, shared KR specifications for explainable, transparent, and trustworthy AI.
 
 #### Key Achievements (2022–2025):
 

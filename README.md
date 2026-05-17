@@ -8,14 +8,14 @@
 
 ---
 
-# Knowledge3D — Reference Implementation for W3C PM-KR
+# Knowledge3D — Reference Implementation for PM-KR
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![status](https://img.shields.io/badge/status-Phase_H_House_Construction-blue)](docs/ROADMAP.md) [![W3C PM-KR](https://img.shields.io/badge/W3C-PM--KR_Community_Group-005A9C)](https://www.w3.org/community/pm-kr/) [![Awesome ML](https://img.shields.io/badge/Awesome_ML-CUDA__PTX-orange)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![status](https://img.shields.io/badge/status-Phase_H_House_Construction-blue)](docs/ROADMAP.md) [![PM-KR](https://img.shields.io/badge/PM--KR_Community_Group-005A9C)](https://www.w3.org/community/pm-kr/) [![Awesome ML](https://img.shields.io/badge/Awesome_ML-CUDA__PTX-orange)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
 
 ## Participate
 
 - **W3C Community Group**: https://www.w3.org/community/pm-kr/
-- **Standards repo**: https://github.com/w3c-cg/pm-kr
+- **Community Group repo**: https://github.com/w3c-cg/pm-kr
 - **Issue tracker**: [GitHub Issues](https://github.com/danielcamposramos/Knowledge3D/issues)
 - **Research spaces**: [PM-KR NotebookLM](https://notebooklm.google.com/notebook/98ffd298-1314-477f-b1e1-8d29da4f3848) | [K3D Theory](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f)
 
@@ -238,7 +238,7 @@ See the [full reproduction guide](#scientific-reproduction-week-219-results) wit
 ```bibtex
 @software{knowledge3d_2026,
   author = {Ramos, Daniel Campos},
-  title = {Knowledge3D: Sovereign Spatial AI — Reference Implementation for W3C PM-KR},
+  title = {Knowledge3D: Sovereign Spatial AI — Reference Implementation for PM-KR},
   year = {2026},
   url = {https://github.com/danielcamposramos/Knowledge3D},
 }

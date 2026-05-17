@@ -3,7 +3,7 @@
 **Version:** 0.1 DRAFT — Defensive Publication
 **Date:** 2026-03-19
 **Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 **License:** W3C Royalty-Free — This document is published as prior art under the W3C Patent Policy. All architectures described herein enter the public domain upon publication. No party may patent any design disclosed in this specification.
 **Reference Implementation:** K3D Knowledgeverse (sovereign GPU pipeline, 7 ternary opcodes operational since March 2026)
 **Prior Art Items:** 40 (see Appendix A)

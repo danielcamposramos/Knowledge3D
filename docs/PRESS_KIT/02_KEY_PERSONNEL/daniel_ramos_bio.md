@@ -2,7 +2,7 @@
 
 [INSERT: Daniel headshot, professional, 300x300px]
 
-Daniel Campos Ramos is an electrical engineer and founder of EchoSystems AI Studios in Brasilia, Brazil. He is co-chair of the W3C PM-KR Community Group and lead architect of Knowledge3D (K3D), the reference implementation used to test procedural memory technology under real hardware constraints.
+Daniel Campos Ramos is an electrical engineer and founder of EchoSystems AI Studios in Brasilia, Brazil. He is co-chair of the PM-KR Community Group and lead architect of Knowledge3D (K3D), the reference implementation used to test procedural memory technology under real hardware constraints.
 
 His work combines PTX-first systems engineering, spatial user interface design, and procedural knowledge representation. In K3D, he has led sovereign runtime implementation, including dozens of hand-written GPU kernels and strict hot-path dependency controls. His engineering approach emphasizes deterministic traces, measurable latency behavior, and inspectable reasoning flows.
 

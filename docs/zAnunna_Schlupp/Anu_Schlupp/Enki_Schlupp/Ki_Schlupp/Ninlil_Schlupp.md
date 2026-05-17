@@ -1,12 +1,12 @@
 # x86_x64T: True Hybrid Core Specification
 
-**Version:** 0.1 DRAFT — Defensive Publication  
-**Date:** 2026-03-19  
-**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)  
-**Organization:** W3C PM-KR Community Group  
-**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy  
-**Companion Specifications:** `Anu_Schlupp.md`, `Antu_Schlupp.md`  
-**Design Intent:** One true x86 + one true x64 + one true ternary fabric in one core  
+**Version:** 0.1 DRAFT — Defensive Publication
+**Date:** 2026-03-19
+**Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
+**Organization:** PM-KR Community Group
+**License:** W3C Royalty-Free — published as prior art under the W3C Patent Policy
+**Companion Specifications:** `Anu_Schlupp.md`, `Antu_Schlupp.md`
+**Design Intent:** One true x86 + one true x64 + one true ternary fabric in one core
 
 ---
 
@@ -103,8 +103,8 @@ That is `x86_x64T`.
 
 `x86_x64T` follows one law:
 
-> Keep binary where binary is cheaper.  
-> Use ternary where ternary is semantically superior or more efficient.  
+> Keep binary where binary is cheaper.
+> Use ternary where ternary is semantically superior or more efficient.
 > Route mixed workloads inside one core, not through software glue.
 
 ### 2.2 What this means physically
@@ -594,8 +594,8 @@ Software can evolve in stages:
 
 ### 15.1 Strategic role
 
-`RISC-T` is the clean native open ternary constitution.  
-`X64-BT` is the ternary bridge into the installed x64 world.  
+`RISC-T` is the clean native open ternary constitution.
+`X64-BT` is the ternary bridge into the installed x64 world.
 `x86_x64T` is the actual one-core product architecture that unifies legacy binary and ternary futures.
 
 All three are needed.

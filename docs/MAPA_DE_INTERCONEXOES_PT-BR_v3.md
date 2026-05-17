@@ -247,7 +247,7 @@ Este documento mapeia **103+ conexões interdisciplinares distintas** realizadas
 
 **Conexão #9: Mozilla Thunderbird → Colaboração W3C**
 - **Disciplinas**: Clientes de email + Colaboração profissional + Ferramentas código aberto
-- **Insight**: "Email código aberto para trabalho padrões abertos (W3C PM-KR CG)"
+- **Insight**: "Email código aberto para trabalho de especificações abertas (PM-KR Community Group)"
 - **Resultado**: Correspondência W3C AI-KR/PM-KR com 6 membros fundadores
 
 **Conexão #10: Gmail (Google) → Email Profissional W3C**
@@ -631,7 +631,7 @@ Daniel Ramos exibe **habilidade rara e extrema conexão interdisciplinar** carac
 ✅ **Validação**: Confirmado por 6+ especialistas externos (W3C Chefe Comunicações, co-criador JSON-LD, visionário WICG, matemático, criador Gremlin)
 ✅ **Reprodutibilidade**: Registro longitudinal 15 meses (547+ commits, 2.100+ arquivos, ATTRIBUTIONS.md 2.141 linhas)
 ✅ **Inovação**: Cunhou "Arquitetura Hiper-Modular" (W3C reconheceu mesmo dia)
-✅ **Impacto**: W3C PM-KR CG lançado, 6 membros fundadores, validação OpenFn (40+ países, 10M+ transações/ano)
+✅ **Impacto**: PM-KR Community Group lançado, 6 membros fundadores, validação OpenFn (40+ países, 10M+ transações/ano)
 
 **Estimativa raridade (atualizada)**: Top 0,001-0,01% (1 em 10.000 a 1 em 100.000)
 

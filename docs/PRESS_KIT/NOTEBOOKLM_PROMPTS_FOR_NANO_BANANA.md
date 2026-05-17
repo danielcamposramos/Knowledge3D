@@ -49,7 +49,7 @@ Style guide:
 - Clean, professional, conference-ready
 - Color scheme: Green (carbon savings), blue (technology), earth tones
 - Readable font (sans-serif, 14pt+ for labels)
-- Include W3C PM-KR logo placement area
+- Include PM-KR logo placement area
 - Export as PNG (1920x1080) and PDF (print-ready)
 
 Sources cited:
@@ -346,7 +346,7 @@ Historic collaboration:
 - EchoSystems AI Studios (Brazil) + Rainbow Warriors Core Foundation (Netherlands)
 - Daniel Ramos (electrical engineer) + Milton Ponson (mathematician, 30 years environmental knowledge)
 - First groundbreaking MERCOSUR-EU joint effort in frontier technologies
-- W3C PM-KR Community Group co-chairs
+- PM-KR Community Group co-chairs
 
 Visual: Photos of Daniel + Milton, Brazil/Netherlands flags
 
@@ -361,7 +361,7 @@ Visual: E-reader mockup showing infinite zoom
 
 **[CALL TO ACTION - 30 seconds]**
 Join the movement:
-- W3C PM-KR Community Group: w3.org/community/pm-kr/
+- PM-KR Community Group: w3.org/community/pm-kr/
 - GitHub: github.com/danielcamposramos/Knowledge3D
 - Contact: daniel@echosystems.ai, rwiciamsd@gmail.com
 
@@ -465,7 +465,7 @@ Data source: docs/PRESS_KIT/08_MEDIA_RESOURCES/social_media_copy.md
 - Dimensions: 1080x1080 (Instagram/LinkedIn square)
 - Main text: "First MERCOSUR-EU Collaboration in Frontier Tech"
 - Flags: Brazil 🇧🇷 + Netherlands 🇳🇱
-- Subtitle: "W3C PM-KR Community Group"
+- Subtitle: "PM-KR Community Group"
 - Footer: daniel@echosystems.ai | rwiciamsd@gmail.com
 - Export: PNG
 
@@ -493,7 +493,7 @@ Data source: docs/PRESS_KIT/08_MEDIA_RESOURCES/social_media_copy.md
 Style guide (all graphics):
 - Color scheme: Blue (technology), green (carbon), purple (collaboration)
 - Professional fonts (sans-serif, bold for stats)
-- W3C PM-KR branding consistent
+- PM-KR branding consistent
 - Readable on mobile (large text, high contrast)
 ```
 

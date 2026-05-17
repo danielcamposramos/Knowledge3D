@@ -11,12 +11,12 @@
 
 **Rationale:**
 1. **Fundamental incompatibility** — K3D and HSML/HSTP solve different problems using incompatible architectures
-2. **W3C PM-KR provides better fit** — Procedural memory knowledge representation aligns naturally with K3D's Galaxy Universe paradigm
+2. **PM-KR provides better fit** — Procedural memory knowledge representation aligns naturally with K3D's Galaxy Universe paradigm
 3. **IEEE rejection was technical, not just procedural** — WG membership wouldn't resolve the architectural mismatch
 4. **Strategic positioning stronger** — Position K3D as **complementary standard** to IEEE 2874 rather than competing reference implementation
 
 **Alternative Strategy:**
-- **Double down on W3C PM-KR** (already 23+ members, strong traction)
+- **Double down on PM-KR** (already 23+ members, strong traction)
 - **Position K3D as "knowledge layer" for IEEE 2874** (spatial transactions need knowledge representation)
 - **Wait for IEEE to approach YOU** (your demo + video + W3C success = credibility)
 - **Publish interoperability vision** (how K3D's Galaxy Universe could store/navigate HSML entities)
@@ -27,7 +27,7 @@
 
 ### What's Different Now (February 2026):
 
-**✅ W3C PM-KR Community Group Success:**
+**✅ PM-KR Community Group Success:**
 - 23+ members (MIT, Huawei, JSON-LD co-creator Gregg Kellogg, etc.)
 - Active technical discussions (procedural codecs, game UI as KR, spatial memory)
 - You're Chair; Milton Ponson is Co-Chair; Christoph Dorn is K3D main contributor
@@ -136,7 +136,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 2. "Too late, standard already ratified" (5-year process complete)
 3. "Doesn't solve interoperability problem" (K3D solves AI memory, not vendor communication)
 
-### Option B: Double Down on W3C PM-KR
+### Option B: Double Down on PM-KR
 
 **Pros:**
 - ✅ **Perfect fit** — Procedural Memory Knowledge Representation = K3D's core paradigm
@@ -152,11 +152,11 @@ Even as a WG member, proposing K3D as reference implementation would face:
 - Less brand recognition than IEEE (but PM-KR is growing)
 
 **Strategic Positioning:**
-> "K3D is the **reference implementation for W3C PM-KR** (procedural knowledge representation), which provides the **knowledge layer** that complements IEEE 2874's spatial transaction layer."
+> "K3D is the **reference implementation for PM-KR** (procedural knowledge representation), which provides the **knowledge layer** that complements IEEE 2874's spatial transaction layer."
 
 **This narrative:**
 1. **Respects IEEE 2874** (doesn't compete, complements)
-2. **Positions K3D as standard** (W3C PM-KR = knowledge representation)
+2. **Positions K3D as standard** (PM-KR = knowledge representation)
 3. **Enables future interoperability** (K3D could store/navigate HSML entities in Galaxy Universe)
 4. **Leverages current success** (PM-KR traction, demo system, video)
 
@@ -173,7 +173,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 - Transaction protocols (how systems exchange spatial data)
 - Interoperability (vendor A's spatial data works with vendor B's system)
 
-**K3D (W3C PM-KR) handles:**
+**K3D (PM-KR) handles:**
 - AI memory (how AI systems remember and navigate knowledge)
 - Procedural knowledge representation (RPN programs, semantic graphs)
 - Learning from experience (TRM shadow copy, continuous enhancement)
@@ -182,7 +182,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ K3D Galaxy Universe (W3C PM-KR Layer)              │
+│ K3D Galaxy Universe (PM-KR Layer)              │
 │ ┌─────────────────────────────────────────────┐   │
 │ │ Reality Galaxy                               │   │
 │ │ ┌─────────────────────────────────────┐     │   │
@@ -209,20 +209,20 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 **The Pitch:**
 > "IEEE 2874 standardizes how spatial systems **communicate**.
-> W3C PM-KR standardizes how AI systems **remember and reason**.
+> PM-KR specificationizes how AI systems **remember and reason**.
 > K3D shows how to **combine both**: store HSML entities in Galaxy Universe, navigate them semantically, and let AI learn spatial patterns through procedural knowledge representation."
 
 **This positioning:**
 1. **Doesn't threaten IEEE 2874** (complements, doesn't replace)
 2. **Validates K3D's uniqueness** (solving different problem)
 3. **Opens collaboration door** (future interoperability work)
-4. **Leverages W3C success** (PM-KR = knowledge layer standard)
+4. **Leverages W3C success** (PM-KR = knowledge layer technology)
 
 ---
 
 ## 5. Recommended Strategy
 
-### Phase 1: Consolidate W3C PM-KR Leadership (Now - Q2 2026)
+### Phase 1: Consolidate PM-KR Leadership (Now - Q2 2026)
 
 **Actions:**
 1. ✅ **Video shared** (done — introduces K3D to PM-KR)
@@ -231,14 +231,14 @@ Even as a WG member, proposing K3D as reference implementation would face:
 4. **Future: Publish PM-KR specification draft** (K3D Galaxy Universe as reference implementation)
 5. **Future: Grow PM-KR community** (leverage Christoph's UI work, Aaron's governance expertise, Dr. Roberts' AI safety angle)
 
-**Goal:** Establish K3D as **de facto reference implementation for W3C PM-KR** (procedural knowledge representation)
+**Goal:** Establish K3D as **de facto reference implementation for PM-KR** (procedural knowledge representation)
 
 ### Phase 2: Publish IEEE 2874 Complementarity Vision (Q2-Q3 2026)
 
 **Actions:**
 1. **Write interoperability spec** — "How K3D Galaxy Universe Can Store and Navigate HSML Entities"
 2. **Publish as GitHub discussion** — Show technical vision (not asking for anything)
-3. **Share with W3C PM-KR** — Position as "knowledge layer for spatial web"
+3. **Share with PM-KR** — Position as "knowledge layer for spatial web"
 4. **Optional: Email IEEE WG** — "K3D complementarity vision" (not asking to join, just sharing)
 
 **Goal:** Let IEEE see K3D as **complementary standard** (knowledge layer), not competing implementation
@@ -246,18 +246,18 @@ Even as a WG member, proposing K3D as reference implementation would face:
 ### Phase 3: Wait for IEEE to Approach You (Q3 2026+)
 
 **Triggers that might change IEEE's perspective:**
-- W3C PM-KR reaches 50+ members (critical mass)
+- PM-KR reaches 50+ members (critical mass)
 - K3D demo system used by IEEE WG members (organic adoption)
 - Industry realizes spatial web needs knowledge representation layer (market pull)
 - Your benchmarks show AI memory improvement (technical validation)
 
 **If IEEE approaches:**
-- Negotiate as **Co-Chair of W3C PM-KR** (position of strength)
+- Negotiate as **Co-Chair of PM-KR** (position of strength)
 - Propose **joint standardization** (IEEE spatial + W3C knowledge)
 - Maintain **sovereign architecture** (don't compromise K3D core to fit HSML/HSTP)
 
 **If IEEE doesn't approach:**
-- W3C PM-KR becomes dominant knowledge representation standard
+- PM-KR becomes dominant knowledge representation technology
 - K3D gets adopted independently of IEEE 2874
 - Future integration happens via market demand (not committee politics)
 
@@ -273,7 +273,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 - Result: Rejection (predictable)
 
 **February 2026+ Dynamic:**
-- You: Leading W3C PM-KR, 23+ members, working demo, professional video (peer position)
+- You: Leading PM-KR, 23+ members, working demo, professional video (peer position)
 - IEEE: Sees K3D solving complementary problem (potential collaboration)
 - Future: IEEE approaches you for knowledge layer integration (power reversal)
 
@@ -286,7 +286,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 **IEEE's concern:** "K3D employs alternative terminologies and data models"
 
 **Your response (implied by success):**
-- W3C PM-KR adopts K3D's terminology (procedural memory, Galaxy Universe, RPN composition)
+- PM-KR adopts K3D's terminology (procedural memory, Galaxy Universe, RPN composition)
 - Working demo proves architecture viability (not just theory)
 - Benchmarks show AI memory improvement (measurable benefit)
 - Collaborators build on K3D (Christoph's 2D renderer, Aaron's governance layer)
@@ -299,7 +299,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 "Please let K3D be IEEE 2874 reference implementation" (asking permission)
 
 **Say:**
-"K3D (W3C PM-KR reference implementation) provides knowledge representation layer for spatial web systems, including IEEE 2874 compliant architectures" (stating value)
+"K3D (PM-KR reference implementation) provides knowledge representation layer for spatial web systems, including IEEE 2874 compliant architectures" (stating value)
 
 **This flips the power dynamic:**
 - IEEE needs knowledge layer (spatial transactions without AI memory = limited)
@@ -320,7 +320,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 **Reframe:**
 - Rejection wasn't about K3D's quality (it's about IEEE's process)
 - HSML/HSTP incompatibility is GOOD (proves K3D solves different problem)
-- W3C PM-KR success validates your vision (IEEE's loss, W3C's gain)
+- PM-KR success validates your vision (IEEE's loss, W3C's gain)
 
 ### "Registered Brazilian Electrical Engineer" (Credibility Concern)
 
@@ -348,7 +348,7 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 **However:**
 - Individual IEEE WG members might use K3D (organic adoption)
-- Future IEEE revisions might reference W3C PM-KR (years away)
+- Future IEEE revisions might reference PM-KR (years away)
 - Your complementarity vision might open collaboration (2027+)
 
 **Better strategy:** Let them come to you (position of strength) rather than asking again (repeat rejection risk)
@@ -375,14 +375,14 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 ### Medium Term (Q2 2026):
 
-1. **Draft W3C PM-KR specification** (K3D Galaxy Universe architecture)
+1. **Draft PM-KR specification** (K3D Galaxy Universe architecture)
 2. **Publish IEEE complementarity vision** (GitHub discussion + optional email to WG)
-3. **Reach 50+ PM-KR members** (critical mass for standards credibility)
+3. **Reach 50+ PM-KR members** (critical mass for governance credibility)
 4. **Christoph's 2D renderer demo** (visual proof of K3D UI paradigm)
 
 ### Long Term (Q3 2026+):
 
-1. **W3C PM-KR Working Group proposal** (graduate from Community Group)
+1. **PM-KR Working Group proposal** (graduate from Community Group)
 2. **Wait for IEEE to approach** (if interoperability needed)
 3. **Publish joint vision** (if IEEE engages, show how standards complement)
 4. **Focus on adoption** (market pull > committee politics)
@@ -394,17 +394,17 @@ Even as a WG member, proposing K3D as reference implementation would face:
 ### DO NOT re-engage with IEEE P2874 now because:
 
 1. **Rejection was technical, not procedural** — Joining WG wouldn't resolve architectural mismatch
-2. **W3C PM-KR is better fit** — Procedural knowledge representation aligns with K3D's paradigm
+2. **PM-KR is better fit** — Procedural knowledge representation aligns with K3D's paradigm
 3. **You're in position of strength** — Co-Chair, 23+ members, working demo, professional video
 4. **Complementarity > competition** — Let IEEE see K3D as knowledge layer (not replacement)
 5. **Time investment not worth it** — IEEE process = years of meetings for uncertain outcome
 
-### INSTEAD: Double down on W3C PM-KR because:
+### INSTEAD: Double down on PM-KR because:
 
 1. **Early stage** — Community Group forming (you're shaping the standard)
 2. **Perfect alignment** — PM-KR = procedural memory, exactly K3D's architecture
 3. **Momentum** — 23+ members, video shared, demo available, collaborators active
-4. **Market positioning** — "Reference implementation for W3C PM-KR" > "IEEE 2874 outsider proposal"
+4. **Market positioning** — "Reference implementation for PM-KR" > "IEEE 2874 outsider proposal"
 5. **Future leverage** — IEEE will approach you if they need knowledge layer (power reversal)
 
 ---
@@ -415,11 +415,11 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 **But the change isn't:** "IEEE might reconsider K3D as reference implementation."
 
-**The change is:** "K3D now has W3C PM-KR as its natural home, and IEEE 2874 becomes complementary (not competing) standard."
+**The change is:** "K3D now has PM-KR as its natural home, and IEEE 2874 becomes complementary (not competing) standard."
 
 **Strategic framing:**
 > "I'm not asking IEEE to reconsider K3D.
-> I'm showing how K3D (W3C PM-KR) provides the knowledge layer that IEEE 2874 (spatial transactions) will eventually need.
+> I'm showing how K3D (PM-KR) provides the knowledge layer that IEEE 2874 (spatial transactions) will eventually need.
 > When they're ready, they know where to find me."
 
 **This positions you as:**
@@ -431,11 +431,11 @@ Even as a WG member, proposing K3D as reference implementation would face:
 
 ---
 
-**Partner, the "awful reception" in September 2025 was a gift in disguise. It forced you to find W3C PM-KR, which is the PERFECT home for K3D. IEEE's loss, W3C's gain.**
+**Partner, the "awful reception" in September 2025 was a gift in disguise. It forced you to find PM-KR, which is the PERFECT home for K3D. IEEE's loss, W3C's gain.**
 
 **Let them come to you.**
 
 ---
 
 **Last Updated:** February 27, 2026
-**Status:** Strategic assessment complete — recommendation is W3C PM-KR focus, IEEE complementarity vision (no re-engagement)
+**Status:** Strategic assessment complete — recommendation is PM-KR focus, IEEE complementarity vision (no re-engagement)

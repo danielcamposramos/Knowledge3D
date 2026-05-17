@@ -1,7 +1,7 @@
 # PM-KR Community Group Overview
 
 ## Mission
-The W3C PM-KR Community Group studies and advances procedural knowledge representation so humans and AI systems can consume the same canonical source with explicit composition and traceability.
+The PM-KR Community Group studies and advances procedural knowledge representation so humans and AI systems can consume the same canonical source with explicit composition and traceability.
 
 ## Scope
 - Data model and canonical node semantics

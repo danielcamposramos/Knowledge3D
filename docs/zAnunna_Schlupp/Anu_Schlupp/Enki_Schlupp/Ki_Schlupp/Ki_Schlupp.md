@@ -57,7 +57,7 @@ Arithmetic comes after that primitive. If useful for tooling or education, the s
 
 ### Q: We need to talk about ternary chips to get people moving there
 
-**Action:** W3C PM-KR should publish a ternary computing specification that:
+**Action:** PM-KR should publish a ternary computing specification that:
 1. Defines a ternary instruction set architecture (like RISC-V but ternary)
 2. Specifies ternary memory cell designs (balanced ternary, -1/0/+1)
 3. Documents ternary-native data paths, ALUs, and register files
@@ -174,7 +174,7 @@ This is the RISC-V lesson crystallized. RISC-V succeeded because:
 - 3.375× information density = fewer chips needed
 - Anyone who builds ternary SAVES money vs binary
 
-**The W3C angle:** If PM-KR publishes the ternary computing specification as a W3C standard:
+**The W3C angle:** If PM-KR publishes the ternary computing specification through the W3C Community Group process:
 - Chip manufacturers can build ternary chips royalty-free
 - Software companies can target ternary ISA without vendor lock-in
 - K3D becomes the reference software stack for ternary hardware

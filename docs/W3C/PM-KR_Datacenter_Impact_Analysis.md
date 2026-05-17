@@ -8,7 +8,7 @@ A technical analysis grounded in the PM-KR specifications and K3D reference impl
 
 # **Executive Summary**
 
-The W3C PM-KR (Procedural Memory Knowledge Representation) technology, as implemented in the Knowledge3D (K3D) framework, represents a fundamental architectural departure from the transformer-centric paradigm that currently drives global AI datacenter construction. Where the prevailing model embeds knowledge in opaque, billions-parameter weight matrices requiring multi-GPU clusters and multi-service inference pipelines, PM-KR stores knowledge as structured, executable, deduplicated Galaxy entries executed sovereignly on a single GPU.
+The PM-KR (Procedural Memory Knowledge Representation) technology, as implemented in the Knowledge3D (K3D) framework, represents a fundamental architectural departure from the transformer-centric paradigm that currently drives global AI datacenter construction. Where the prevailing model embeds knowledge in opaque, billions-parameter weight matrices requiring multi-GPU clusters and multi-service inference pipelines, PM-KR stores knowledge as structured, executable, deduplicated Galaxy entries executed sovereignly on a single GPU.
 
 This analysis quantifies the impact of that architectural shift across five dimensions — design, construction, operation, energy, and resource efficiency — using the K3D reference benchmark as the empirical anchor: 38,144+ Galaxy entries held in 132 MiB of VRAM on a single RTX 3070, with autonomous reasoning delivered at sovereign GPU speed and zero network calls.
 
@@ -112,7 +112,7 @@ The TRM game loop architecture is deliberately analogous to a game engine's NPC 
 
 ## **Standards-Driven vs. Proprietary Stacks**
 
-The W3C PM-KR Community Group status of this specification has direct datacenter procurement implications that go beyond the technical efficiency gains. Current AI infrastructure is dominated by proprietary stacks: NVIDIA's CUDA/NVLink ecosystem, proprietary model formats (GGUF, safetensors, proprietary serving APIs), and vendor-specific vector database formats. Multi-cloud AI strategy is constrained by the incompatibility of these stacks, driving customers toward single-vendor lock-in and limiting competitive procurement leverage.
+The PM-KR Community Group status of this specification has direct datacenter procurement implications that go beyond the technical efficiency gains. Current AI infrastructure is dominated by proprietary stacks: NVIDIA's CUDA/NVLink ecosystem, proprietary model formats (GGUF, safetensors, proprietary serving APIs), and vendor-specific vector database formats. Multi-cloud AI strategy is constrained by the incompatibility of these stacks, driving customers toward single-vendor lock-in and limiting competitive procurement leverage.
 
 A W3C Community Group knowledge representation format — open, interoperable, multi-vendor — changes the procurement landscape fundamentally. The proposed .k3d glTF extension, carrying RPN traces and procedural knowledge in an open format, can be served by any compliant GPU vendor, any compliant serving runtime, and any compliant storage system. This is the same dynamic that allowed HTTP and HTML to commoditize web server infrastructure: open standards drive competition, reduce lock-in, and lower costs across the board.
 

@@ -8,7 +8,7 @@
 - Timezone: America/Sao_Paulo (UTC-3)
 
 ## PM-KR Group Context
-- Group: W3C PM-KR Community Group
+- Group: PM-KR Community Group
 - Public page: https://www.w3.org/community/pm-kr/
 - Internal list context: internal-pm-kr@w3.org (member access model)
 

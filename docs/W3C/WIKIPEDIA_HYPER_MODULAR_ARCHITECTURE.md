@@ -153,7 +153,7 @@ This enables sharing of canonical knowledge (e.g., Visual Galaxy) across all age
 
 ## Technology Development Efforts
 
-### W3C PM-KR Community Group
+### PM-KR Community Group
 
 The Procedural Memory Knowledge Representation (PM-KR) Community Group was proposed to the World Wide Web Consortium on February 20, 2026, with hyper-modular architecture as a foundational concept.[2] The group's charter includes:
 
@@ -193,7 +193,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 
 [2] W3C Community and Business Groups. (2026). "Proposed Group: Procedural Memory Knowledge Representation Community Group." https://www.w3.org/community/blog/2026/02/20/proposed-group-procedural-memory-knowledge-representation-community-group/
 
-[3] Ramos, D. (2026). "Hyper-Modular Architecture: Definition and Specification." PM-KR W3C Community Group. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/HYPER_MODULAR_DEFINITION.md
+[3] Ramos, D. (2026). "Hyper-Modular Architecture: Definition and Specification." PM-KR Community Group. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/HYPER_MODULAR_DEFINITION.md
 
 [4] Ramos, D. (2026). "PM-KR Evidence Validation Matrix." PM-KR W3C Technology Package. https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md
 
@@ -211,7 +211,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 
 [11] Sporny, M. (2026). "RE: PM-KR CG Announcement." W3C Public Mailing List Archives. (Response to PM-KR announcement discussing CBOR-LD compression tables and RDF canonicalization)
 
-[12] Ponson, M. (2026). "Official Support for PM-KR Community Group." W3C PM-KR CG. (Mathematician validating domains of discourse foundations)
+[12] Ponson, M. (2026). "Official Support for PM-KR Community Group." PM-KR Community Group. (Mathematician validating domains of discourse foundations)
 
 [13] Sobieski, A. (2026). "PM-KR Community Group Support." W3C Community Groups. (W3C Community Group veteran, founded Civic Technology CG, Synthetic Media CG, Automated Planning and Scheduling CG)
 
@@ -220,7 +220,7 @@ As of February 2026, hyper-modular architecture has been recognized as addressin
 ## External Links
 
 * [Knowledge3D (K3D) GitHub Repository](https://github.com/danielcamposramos/Knowledge3D) - Official repository containing reference implementation and documentation
-* [PM-KR W3C Community Group](https://www.w3.org/community/pm-kr/) - Official W3C Community Group page
+* [PM-KR Community Group](https://www.w3.org/community/pm-kr/) - Official W3C Community Group page
 * [PM-KR W3C Technology Package](https://github.com/danielcamposramos/Knowledge3D/tree/main/docs/W3C) - Complete technology documentation including:
   * [Problem Statement](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_PROBLEM_STATEMENT.md)
   * [Normative Model](https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/W3C/PM_KR_NORMATIVE_MODEL.md)
@@ -304,7 +304,7 @@ When submitting, suggest these categories:
 Anticipated reviewer questions and responses:
 
 **Q: "Is this term notable enough for Wikipedia?"**
-A: Yes. The term was coined on Feb 20, 2026, and within hours received validation from notable W3C experts (Manu Sporny, JSON-LD co-creator; Adam Sobieski, W3C CG veteran). The W3C PM-KR Community Group (official W3C publication) uses hyper-modular architecture as a foundational concept. Reference implementation (K3D) demonstrates empirical validation (70% compression, 100% sovereignty, 68/68 tests passing).
+A: Yes. The term was coined on Feb 20, 2026, and within hours received validation from notable W3C experts (Manu Sporny, JSON-LD co-creator; Adam Sobieski, W3C CG veteran). The PM-KR Community Group (official W3C publication) uses hyper-modular architecture as a foundational concept. Reference implementation (K3D) demonstrates empirical validation (70% compression, 100% sovereignty, 68/68 tests passing).
 
 **Q: "Are there independent sources?"**
 A: W3C Community Group publication (Feb 20, 2026) is an independent third-party source. Expert validation from Manu Sporny (Digital Bazaar CEO, JSON-LD co-creator), Milton Ponson (mathematician), Adam Sobieski (W3C CG founder, 10+ years), and Jonathan DeRouchie (production AI systems) provides independent recognition. As PM-KR technology development progresses, academic papers and tech media coverage will emerge.

@@ -1,6 +1,6 @@
 # How To Join PM-KR Collaboration
 
-## 1) Join the W3C PM-KR Community Group
+## 1) Join the PM-KR Community Group
 - Visit: https://www.w3.org/community/pm-kr/
 - Review group scope and mission documents
 - Request participation through W3C process

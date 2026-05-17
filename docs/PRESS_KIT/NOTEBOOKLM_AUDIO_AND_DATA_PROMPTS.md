@@ -57,7 +57,7 @@ Focus on these key topics:
    - Historic collaboration: Brazil (Daniel Ramos, electrical engineer) +
      Netherlands (Milton Ponson, mathematician)
    - First groundbreaking MERCOSUR-EU joint effort in frontier technologies
-   - W3C PM-KR Community Group co-chairs
+   - PM-KR Community Group co-chairs
    - Source: docs/PRESS_KIT/07_MERCOSUR_EU_PARTNERSHIP/historic_significance.md
 
 TONE: Conversational, accessible, enthusiastic
@@ -199,7 +199,7 @@ Row data:
 10. Standards posture
     - LLMs: Vendor-defined interfaces (OpenAI API, Anthropic API, etc.)
     - RAG: Framework-specific (LangChain, LlamaIndex, proprietary)
-    - PM-KR: W3C Community Group specification (open standards path)
+    - PM-KR: W3C Community Group specification (open specifications path)
 
 KEY DIFFERENTIATOR: PM-KR achieves 25,000× smaller model size (7M vs 175B params)
 with hard explainability and dual-client transparency.

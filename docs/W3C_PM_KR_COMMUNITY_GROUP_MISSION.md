@@ -7,7 +7,7 @@
 
 ## Mission
 
-The PM-KR Community Group develops standards for **procedural knowledge representation** that enable both humans and AI systems to consume the same canonical knowledge sources. Our work addresses knowledge duplication, fragmentation, and the need for executable, compositional knowledge structures in the age of AI.
+The PM-KR Community Group develops specifications for **procedural knowledge representation** that enable both humans and AI systems to consume the same canonical knowledge sources. Our work addresses knowledge duplication, fragmentation, and the need for executable, compositional knowledge structures in the age of AI.
 
 ---
 
@@ -550,7 +550,7 @@ Current AI systems face a fundamental challenge:
 
 ### Technical Impact
 
-- **Standardize** procedural knowledge representation for AI systems
+- **Study and develop** procedural knowledge representation for AI systems
 - **Reduce** knowledge duplication across systems (50-90% compression)
 - **Enable** dual-client knowledge sources (humans + AI from same source)
 - **Provide transparency** (procedural execution with inspectable rules, unlike neural networks)

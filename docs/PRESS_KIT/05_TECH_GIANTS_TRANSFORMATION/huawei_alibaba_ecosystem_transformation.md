@@ -351,7 +351,7 @@
     problem: "US sanctions limit access to billion-param AI infrastructure",
     pm_kr_solution: {
       paradigm_shift: "7M param procedural AI (don't need Nvidia billion-param training)",
-      open_specification: "W3C PM-KR = internationally governed (not US-controlled)",
+      open_specification: "PM-KR = internationally governed (not US-controlled)",
       independence: "Huawei Cloud + PM-KR = globally competitive (no US dependency)"
     },
     belt_and_road: {

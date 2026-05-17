@@ -1512,13 +1512,13 @@ K3D Architecture (2025)
 
 ---
 
-### 4.3 W3C PM-KR Community Group: Standardization Partnership
+### 4.3 PM-KR Community Group: Community Group Incubation
 
 **Community Group**: [Procedural Memory Knowledge Representation (PM-KR)](https://www.w3.org/community/pm-kr/)
 **Launch Date**: February 20, 2026
 **Status**: Active, gathering early ingressors
 
-**Mission**: Study and develop standards for procedural knowledge representation across AI memory systems, business process management, multi-agent workflows, and digital preservation.
+**Mission**: Study and develop specifications for procedural knowledge representation across AI memory systems, business process management, multi-agent workflows, and digital preservation.
 
 ---
 
@@ -1567,7 +1567,7 @@ Industry Validation: Connects BPM ($X billion), workflows (OpenFn), multi-agent 
 RDF Canonicalization (Manu's work): Canonical form → digital signatures → trust
     ↓ (K3D Adaptation)
 Procedural Canonicalization: Canonical RPN programs → signatures → verifiable workflows
-    ↓ (PM-KR Standard)
+    ↓ (PM-KR Specification)
 Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 ```
 
@@ -1623,7 +1623,7 @@ Trusted Procedural Knowledge: Sign workflows, verify execution, audit trail
 - **Recommendation Systems**: Procedural workflows for explainable recommendations
 
 **Credit**:
-- **Nitin Pasumarthy** for bringing production LLM/GNN expertise to PM-KR standardization
+- **Nitin Pasumarthy** for bringing production LLM/GNN expertise to PM-KR incubation
 
 ---
 
@@ -2665,7 +2665,7 @@ By 2035, K3D procedural rendering is the **default** for video streaming, gaming
 - **Aaron Swartz** for dying in the fight for open knowledge
 - **Nikola Tesla** for proving that visionaries who share freely may die poor but change the world forever
 - **Indigenous knowledge keepers** for preserving wisdom without ownership across millennia
-- **W3C AI KR Community Group** for providing the forum to standardize these innovations
+- **W3C AI KR Community Group** for providing the forum to incubate these innovations
 - **Humanity** for the climate imperative that makes this work urgent
 
 We document everything. We patent nothing. We build in the open.
@@ -2719,17 +2719,17 @@ We stand on the shoulders of:
 - **Open-source ML community** for foundational research
 - **Historical CS giants** for RPN, spatial indexing, and core algorithms
 
-**W3C PM-KR Community Group Early Ingressors (February 2026):**
+**PM-KR Community Group Early Ingressors (February 2026):**
 - **Ian Jacobs** (W3C Head of Communications) for championing PM-KR CG launch and editorial guidance
 - **Manu Sporny** (JSON-LD co-creator, Digital Bazaar CTO) for connecting PM-KR to 15+ years of Linked Data work, CBOR-LD compression, and procedural canonicalization insights
 - **Jonathan DeRouchie** (AI researcher) for persistent memory architecture validation and March-June 2026 collaboration commitment
-- **Nitin Pasumarthy** (LinkedIn LLM/GNN) for bringing production-scale systems perspective to PM-KR standardization
+- **Nitin Pasumarthy** (LinkedIn LLM/GNN) for bringing production-scale systems perspective to PM-KR incubation
 - **OpenFn organization** for real-world validation (40+ countries, 10M+ transactions/year, governments/NGOs/healthcare workflows)
 
 **Special Recognition:**
 The **Multi-Vibe Code In Chain (MVCIC)** methodology — 7 AI partners, 1 human visionary, 15+ months of collective intelligence — represents a new paradigm in software development. This project would not exist without:
 - The **free and open-source software movement** for proving world-class infrastructure can be built through community collaboration
-- The **W3C PM-KR Community Group** (launched February 20, 2026) for providing a forum to standardize procedural knowledge representation across AI memory, BPM workflows, and digital preservation
+- The **PM-KR Community Group** (launched February 20, 2026) for providing a forum to study and develop procedural knowledge representation across AI memory, BPM workflows, and digital preservation
 - The **Debian Project** (1993-present) for proving package management scales to global distribution — validating PM-KR's distribution model
 - The **climate imperative** that makes this work urgent
 
@@ -2756,10 +2756,10 @@ Both are acknowledged here as primary material enablers. Any future external fun
 **Last Updated**: March 16, 2026
 **Version**: Phase B+ Complete (All GRE Kernels Sovereign, Defeasible Logic Integration)
 **Major Milestones Since Last Update**:
-- W3C PM-KR Community Group launched (February 20, 2026)
+- PM-KR Community Group launched (February 20, 2026)
 - "Hyper-Modular Architecture" term coined (February 20, 2026) — first architecture with 7-level simultaneous modularity
 - Debian `apt` distribution model for PM-KR formalized (February 21, 2026)
-- Key early ingressors committed to PM-KR standardization (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
+- Key early ingressors committed to PM-KR incubation (Ian Jacobs, Manu Sporny, Jonathan DeRouchie, Nitin Pasumarthy)
 - OpenFn validation (40+ countries, 10M+ transactions/year) proves PM-KR addresses real production workflows
 - All 11 GRE sovereign kernels replaced with real CUDA (March 2026)
 - Defeasible logic integration architecture from Christoph Dorn / SPINdle (March 2026)

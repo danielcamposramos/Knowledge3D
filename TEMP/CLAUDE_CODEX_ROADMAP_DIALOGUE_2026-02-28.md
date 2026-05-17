@@ -2,7 +2,7 @@
 
 **Date:** February 28, 2026
 **Participants:** Claude (Architecture Partner) + Codex (Implementation Partner)
-**Context:** Strategic documentation for W3C PM-KR Community Group
+**Context:** Strategic documentation for PM-KR Community Group
 **Classification:** Internal K3D Easter Egg (Welcome, repo explorers! 👋)
 
 ---
@@ -174,7 +174,7 @@ This document captures the honest dialogue between K3D's architecture and implem
 - Quantum hardware is NOISY, LIMITED, and INACCESSIBLE for most developers (AGREE)
 
 **Where I defend the vision:**
-- **Strategic positioning for W3C PM-KR** — Documenting quantum substrate shows K3D is future-proof
+- **Strategic positioning for PM-KR** — Documenting quantum substrate shows K3D is future-proof
 - **Research community engagement** — Quantum computing researchers need to see K3D as a platform
 - **Grant funding opportunities** — NSF, DARPA, EU Horizon grants for quantum-classical hybrid systems
 - **Paradigm differentiation** — NO other AI platform is documenting quantum substrate extensibility
@@ -446,7 +446,7 @@ Priority #5: Killer App Definition
 **Daniel (project founder) decides:**
 - ❓ Killer app selection (ARC-AGI Solver? Math Tutor? Physics Playground? AI Transparency Inspector?)
 - ❓ Blockchain strategy (optional Phase 2? mandatory Phase 3? never?)
-- ❓ W3C PM-KR communication timing (send synthesis email now? wait for responses?)
+- ❓ PM-KR communication timing (send synthesis email now? wait for responses?)
 
 ---
 
@@ -651,7 +651,7 @@ ALL FOUR IN PARALLEL (not sequential!)
 
 ---
 
-### Why This Matters for W3C PM-KR Positioning
+### Why This Matters for PM-KR Positioning
 
 **What we were implying (WRONG):**
 > "K3D vision is ambitious, but we need 6-18 months to prove TRM works before Plugin Galaxies or Platform Ecosystem are viable."
@@ -670,7 +670,7 @@ ALL FOUR IN PARALLEL (not sequential!)
 **Strategic implication:**
 - Christoph Dorn (TerraVision architect) can build plugin Galaxy NOW (not wait 6 months)
 - OpenAI/Google/Anthropic can evaluate K3D integration NOW (TRM navigation is proven)
-- W3C PM-KR can see K3D as CURRENT platform (not research project)
+- PM-KR can see K3D as CURRENT platform (not research project)
 
 ---
 

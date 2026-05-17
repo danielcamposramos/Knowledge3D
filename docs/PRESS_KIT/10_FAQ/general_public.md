@@ -43,7 +43,7 @@ It represents a practical MERCOSUR-EU standards collaboration in frontier techno
 One canonical source can drive multiple outputs, including visual and assistive pathways.
 
 ## 15. Where can I learn more?
-See the W3C PM-KR page, K3D README, and press kit source documents.
+See the PM-KR page, K3D README, and press kit source documents.
 
 Sources:
 - docs/W3C_PM_KR_COMMUNITY_GROUP_MISSION.md

@@ -412,7 +412,7 @@ Halting gate: Core 1 answer + Core 2 dimensional OK + Core 3 clinical OK
 
 ---
 
-## Formal Definition (for W3C PM-KR Specification)
+## Formal Definition (for PM-KR Specification)
 
 ### Normative Definition
 
@@ -544,7 +544,7 @@ Galaxy Universe                    Specialist Swarm
 - [SLEEPTIME_PROTOCOL_SPECIFICATION.md](SLEEPTIME_PROTOCOL_SPECIFICATION.md) — Brain model persistence between sleep cycles
 - [RPN_DOMAIN_OPCODE_REGISTRY.md](RPN_DOMAIN_OPCODE_REGISTRY.md) — Procedural substrate for parallel cores
 - [SOVEREIGN_NSI_SPECIFICATION.md](SOVEREIGN_NSI_SPECIFICATION.md) — PTX execution layer
-- [W3C PM-KR Community Group](https://www.w3.org/community/pm-kr/) — Procedural Memory Knowledge Representation technology
+- [PM-KR Community Group](https://www.w3.org/community/pm-kr/) — Procedural Memory Knowledge Representation technology
 
 **Coined by**: Daniel Ramos, Knowledge3D Project, March 16, 2026
 

@@ -1,7 +1,7 @@
 # Media FAQ
 
 ## 1. What is the headline story?
-Brazil-Netherlands co-chaired W3C PM-KR effort advancing procedural memory technology with K3D as reference implementation.
+Brazil-Netherlands co-chaired PM-KR effort advancing procedural memory technology with K3D as reference implementation.
 
 ## 2. Who are the key people?
 Daniel Campos Ramos, Milton Ponson, and contributor Christoph Dorn.
@@ -25,7 +25,7 @@ Roadmap materials point to staged specification and prototype milestones through
 Procedural displays, sustainable AI infrastructure, web standards integration, and enterprise knowledge systems.
 
 ## 9. How can readers get involved?
-Follow PM-KR at W3C, review docs, and contribute through standards and implementation channels.
+Follow PM-KR at W3C, review docs, and contribute through Community Group and implementation channels.
 
 ## 10. Where can people see demos or media?
 YouTube project videos and the K3D repository documentation.

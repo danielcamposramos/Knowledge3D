@@ -220,7 +220,7 @@ cd webmachinelearning-proposals
    - **Complementary positioning:** "Use LLMs when needed, procedural when sufficient"
 
 7. **Standards Alignment** (300-500 words)
-   - PM-KR W3C Community Group specification (Phase 1 in progress)
+   - PM-KR Community Group specification (Phase 1 in progress)
    - Implementation-neutral (WebGPU, Metal, Vulkan compatible)
    - Cross-CG synergy (CogAI, Sustainable Web IG)
 

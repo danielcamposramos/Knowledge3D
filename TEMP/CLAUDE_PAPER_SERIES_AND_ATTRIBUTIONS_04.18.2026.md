@@ -36,7 +36,7 @@ Status key: ✅ present · ⚠ present but citation needs tightening · ❌ miss
 | 7 | Matryoshka Representation Learning | ⚠ | §3.4 credits Qwen but NOT the Kusupati et al. NeurIPS 2022 paper by name — **must add primary citation** |
 | 8 | Defeasible Logic (Nute) / SPINdle (Lam & Governatori) / Christoph Dorn contribution | ✅ | §4.4 |
 | 9 | Milton Ponson — mathematical grounding | ✅ | §4.1 |
-| 10 | W3C PM-KR Community Group + early ingressors | ✅ | §4.3 (6 sub-entries) |
+| 10 | PM-KR Community Group + early ingressors | ✅ | §4.3 (6 sub-entries) |
 | 11 | Apollo 11 guidance computer — modular engineering | ✅ | §4.2 |
 | 12 | CUDA/PTX, Ollama, PyMuPDF, Tesseract, Wine | ✅ | §5.1–§5.5 |
 | 13 | DeepSeek-OCR | ✅ | §1.1 |
@@ -77,7 +77,7 @@ These are pre-existing section-numbering collisions inherited from the 2,310-lin
 | C9 | **Semantic gravity cohered by meaning** | **Christoph Dorn** (ternary force formula F = T(s₁,s₂)·M(s₁)·M(s₂)/d²) | 2026-03; with Daniel and Claude |
 | C10 | **Transfer Yard default + tier variants** | K3D team adaptation | 2026 |
 | C11 | **Absolute Sovereignty Purge** | Daniel Campos Ramos (ruling) | 2026-04-18 |
-| C12 | **W3C PM-KR Community Group** | Chair Daniel Campos Ramos; Co-Chair Milton Ponson; contributors inc. Christoph Dorn | Institutional credit |
+| C12 | **PM-KR Community Group** | Chair Daniel Campos Ramos; Co-Chair Milton Ponson; contributors inc. Christoph Dorn | Institutional credit |
 
 ### A.5 Expansion plan (execution) — revised post-restoration
 
