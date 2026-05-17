@@ -1,19 +1,23 @@
-# Wine Integration Module for External 3D Models
-# Provides WINE-like adapters for TRELLIS, HunyuanWorld, and other external models
-# Converts external model outputs to sovereign K3D RPN programs
+"""WINE-pattern adapters for external 3D models (ingestion-only).
 
-from .trellis_wine_adapter import TRELLISWineAdapter
-from .hunyuan_world_wine_adapter import HunyuanWorldWineAdapter
-from .procedural_content_bridge import ProceduralContentBridge
-from .zero_copy_bridge import ZeroCopyBridge
-from .external_model_router import ExternalModelRouter
-from .wine_adapter_factory import WineAdapterFactory
+Post-purge surface (2026-04-18):
+    Five wine-adapter modules were moved to ``Old_Attempts/2026-04-18/``
+    per ``TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md`` §4.1:
 
-__all__ = [
-    'TRELLISWineAdapter',
-    'HunyuanWorldWineAdapter',
-    'ProceduralContentBridge', 
-    'ZeroCopyBridge',
-    'ExternalModelRouter',
-    'WineAdapterFactory'
-]
+        trellis_wine_adapter          (TRELLISWineAdapter)
+        hunyuan_world_wine_adapter    (HunyuanWorldWineAdapter)
+        zero_copy_bridge              (ZeroCopyBridge)
+        external_model_router         (ExternalModelRouter)
+        wine_adapter_factory          (WineAdapterFactory)
+
+    These adapters were numpy-native and coupled the hot path to external
+    model outputs. Per Daniel's ruling
+    ``feedback_tablet_wine_still_python_orchestration.md`` (2026-04-15),
+    Tablet WINE must NOT reintroduce Python orchestration. The surviving
+    ``procedural_content_bridge`` stays as an ingestion-only translator
+    that emits sovereign RPN tokens — nothing runtime-hot.
+"""
+
+from .procedural_content_bridge import ProceduralContentBridge  # noqa: F401
+
+__all__ = ["ProceduralContentBridge"]

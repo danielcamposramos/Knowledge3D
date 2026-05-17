@@ -105,17 +105,17 @@ def main() -> int:
     parser.add_argument("--model", default="qwen2.5:14b", help="Ollama model name")
     parser.add_argument(
         "--manifest",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/manifest.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/manifest.jsonl",
         help="Source manifest path",
     )
     parser.add_argument(
         "--raw-dir",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/raw_html",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/raw_html",
         help="Downloaded HTML directory",
     )
     parser.add_argument(
         "--output",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/ollama_enrichment.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/ollama_enrichment.jsonl",
         help="Output JSONL path",
     )
     parser.add_argument("--max-sources", type=int, default=4, help="How many sources to process")

@@ -2,7 +2,7 @@
 
 **Version:** 0.1 DRAFT - Defensive Publication
 **Date:** 2026-03-19
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 
 ---
 

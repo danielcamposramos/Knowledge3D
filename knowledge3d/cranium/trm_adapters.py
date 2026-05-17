@@ -45,6 +45,7 @@ from knowledge3d.cranium.ptx_runtime.rpn_math_core import (
     HostTensorF32,
     RPNMathCore,
 )
+from knowledge3d.cranium.procedural_adapter_weights import ProceduralAdapterWeights
 from knowledge3d.cranium.sovereign import loader
 
 
@@ -198,7 +199,15 @@ class AdapterWeights:
         """
         apply_device = getattr(self, "_apply_gradient_device", None)
         if callable(apply_device):
-            return float(apply_device(gradient, lr=lr, shadow=False))
+            try:
+                return float(apply_device(gradient, lr=lr, shadow=False))
+            except RuntimeError as exc:
+                if "Advanced RPN execution error" not in str(exc):
+                    raise
+                host_fallback = getattr(self, "_apply_gradient_host", None)
+                if callable(host_fallback):
+                    return float(host_fallback(gradient, lr=lr, shadow=False))
+                raise
         raise RuntimeError("Adapter missing sovereign device gradient implementation.")
 
     def get_num_params(self) -> int:
@@ -221,10 +230,17 @@ class AdapterWeights:
             "A_shape": [int(self.A.rows), int(self.A.cols)],
             "B_shape": [int(self.B.rows), int(self.B.cols)],
         }
+        procedural = getattr(self, "procedural_weights", None)
+        if procedural is not None and hasattr(procedural, "sync_from_legacy_adapter"):
+            procedural.sync_from_legacy_adapter(self)
+            payload["storage"] = ProceduralAdapterWeights.STORAGE_KIND
         with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
             archive.writestr("metadata.json", json.dumps(payload))
-            archive.writestr("A.bin", self.A.to_bytes())
-            archive.writestr("B.bin", self.B.to_bytes())
+            if procedural is not None and hasattr(procedural, "save_archive"):
+                procedural.save_archive(archive)
+            else:
+                archive.writestr("A.bin", self.A.to_bytes())
+                archive.writestr("B.bin", self.B.to_bytes())
 
     def load(self, path: Path):
         """Load adapter from disk."""
@@ -235,11 +251,22 @@ class AdapterWeights:
         self.alpha = float(metadata["alpha"])
         self.rank = int(metadata["rank"])
         self.shape = (int(metadata["shape"][0]), int(metadata["shape"][1]))
-        self.A = HostTensorF32.zeros(int(metadata["A_shape"][0]), int(metadata["A_shape"][1]))
-        self.B = HostTensorF32.zeros(int(metadata["B_shape"][0]), int(metadata["B_shape"][1]))
         with zipfile.ZipFile(path, "r") as archive:
-            self.A.load_bytes(archive.read("A.bin"))
-            self.B.load_bytes(archive.read("B.bin"))
+            if str(metadata.get("storage") or "") == ProceduralAdapterWeights.STORAGE_KIND:
+                procedural = ProceduralAdapterWeights.from_archive(archive)
+                self.alpha = float(procedural.alpha)
+                self.rank = int(procedural.rank)
+                self.shape = (int(procedural.shape[0]), int(procedural.shape[1]))
+                self.A = HostTensorF32.zeros(procedural.primary_a.rows, procedural.primary_a.cols)
+                self.B = HostTensorF32.zeros(procedural.primary_b.rows, procedural.primary_b.cols)
+                self.A.copy_from(procedural.primary_a)
+                self.B.copy_from(procedural.primary_b)
+                setattr(self, "_loaded_procedural_weights", procedural)
+            else:
+                self.A = HostTensorF32.zeros(int(metadata["A_shape"][0]), int(metadata["A_shape"][1]))
+                self.B = HostTensorF32.zeros(int(metadata["B_shape"][0]), int(metadata["B_shape"][1]))
+                self.A.load_bytes(archive.read("A.bin"))
+                self.B.load_bytes(archive.read("B.bin"))
         hook = getattr(self, "_after_primary_host_reload", None)
         if callable(hook):
             hook()
@@ -306,6 +333,7 @@ class SelfUpdatingAdapter(AdapterWeights):
         self._shadow_host_dirty: bool = False
         self._shadow_device_dirty: bool = False
         self._bind_host_callbacks()
+        self.procedural_weights = ProceduralAdapterWeights.from_legacy_adapter(self)
 
     def set_validation_samples(self, samples: List[Dict]):
         """Set specialist-specific validation set."""
@@ -448,8 +476,18 @@ class SelfUpdatingAdapter(AdapterWeights):
         self._device_buffers = None
 
     def _after_primary_host_reload(self) -> None:
-        self.A_shadow = HostTensorF32.zeros(self.A.rows, self.A.cols)
-        self.B_shadow = HostTensorF32.zeros(self.B.rows, self.B.cols)
+        loaded_procedural = getattr(self, "_loaded_procedural_weights", None)
+        if isinstance(loaded_procedural, ProceduralAdapterWeights):
+            self.procedural_weights = loaded_procedural
+            self.A_shadow = HostTensorF32.zeros(loaded_procedural.shadow_a.rows, loaded_procedural.shadow_a.cols)
+            self.B_shadow = HostTensorF32.zeros(loaded_procedural.shadow_b.rows, loaded_procedural.shadow_b.cols)
+            self.A_shadow.copy_from(loaded_procedural.shadow_a)
+            self.B_shadow.copy_from(loaded_procedural.shadow_b)
+            delattr(self, "_loaded_procedural_weights")
+        else:
+            self.A_shadow = HostTensorF32.zeros(self.A.rows, self.A.cols)
+            self.B_shadow = HostTensorF32.zeros(self.B.rows, self.B.cols)
+            self.procedural_weights = ProceduralAdapterWeights.from_legacy_adapter(self)
         self._bind_host_callbacks()
         self._primary_host_dirty = False
         self._primary_device_dirty = False
@@ -644,6 +682,52 @@ class SelfUpdatingAdapter(AdapterWeights):
 
         return float(grad_norm)
 
+    def _apply_gradient_host(self, gradient: Any, lr: float = 0.001, shadow: bool = False) -> float:
+        gradient_host = HostTensorF32.from_array_like(gradient, rows=self.shape[0], cols=self.shape[1])
+        if shadow:
+            self.sync_shadow_weights_to_host()
+            left = self.A_shadow
+            right = self.B_shadow
+        else:
+            self.sync_weights_to_host()
+            left = self.A
+            right = self.B
+
+        grad_norm_sq = 0.0
+        for value in gradient_host.to_flat_list():
+            grad_norm_sq += float(value) * float(value)
+        grad_norm = math.sqrt(grad_norm_sq)
+
+        dims = self.shape[0]
+        rank = self.rank
+        right_t = right.transpose()
+        left_t = left.transpose()
+        grad_a = HostTensorF32.zeros(dims, rank)
+        grad_b = HostTensorF32.zeros(rank, dims)
+
+        for row in range(dims):
+            for col in range(rank):
+                total = 0.0
+                for inner in range(dims):
+                    total += float(gradient_host[row, inner]) * float(right_t[inner, col])
+                grad_a._buffer[row * rank + col] = total
+
+        for row in range(rank):
+            for col in range(dims):
+                total = 0.0
+                for inner in range(dims):
+                    total += float(left_t[row, inner]) * float(gradient_host[inner, col])
+                grad_b._buffer[row * dims + col] = total
+
+        scale = -float(lr)
+        for idx in range(left.size):
+            left._buffer[idx] = float(left._buffer[idx]) + (float(grad_a._buffer[idx]) * scale)
+        for idx in range(right.size):
+            right._buffer[idx] = float(right._buffer[idx]) + (float(grad_b._buffer[idx]) * scale)
+        left._notify_mutation()
+        right._notify_mutation()
+        return float(grad_norm)
+
     def fork_to_shadow(self):
         """Copy primary weights → shadow for testing."""
         buffers = self._ensure_device_buffers()
@@ -658,6 +742,9 @@ class SelfUpdatingAdapter(AdapterWeights):
         loader.memcpy_dtod(buffers.B_shadow_transposed.ptr, buffers.B_transposed.ptr, size_b)
         self._shadow_host_dirty = False
         self._shadow_device_dirty = True
+        self.sync_weights_to_host()
+        self.procedural_weights.sync_from_legacy_adapter(self)
+        self.procedural_weights.fork_shadow_from_primary()
 
     def get_delta_shadow(self) -> List[List[float]]:
         """Get shadow delta: ΔW_shadow = α × (A_shadow @ B_shadow)"""
@@ -681,6 +768,8 @@ class SelfUpdatingAdapter(AdapterWeights):
                 "Sovereign path requires CUDA context."
             )
         self._apply_gradient_device(gradient, lr=lr, shadow=True)
+        self.sync_shadow_weights_to_host()
+        self.procedural_weights.sync_from_legacy_adapter(self)
 
     def validate_and_commit(self, base_weights: Any,
                            eval_fn: Callable[[Any, List], float]) -> Tuple[bool, float, float]:
@@ -698,12 +787,31 @@ class SelfUpdatingAdapter(AdapterWeights):
             print(f"[{self.specialist_name}] Warning: No validation samples, skipping validation")
             return False, 0.0, 0.0
 
+        def _compose_eval_weights(base: Any, delta: List[List[float]]) -> Any:
+            if isinstance(base, (int, float)):
+                scalar = float(base)
+                return [
+                    [scalar + float(value) for value in row]
+                    for row in list(delta or [])
+                ]
+            if isinstance(base, list):
+                if base and isinstance(base[0], list):
+                    rows = min(len(base), len(delta))
+                    cols = min(len(base[0]), len(delta[0]) if delta else 0)
+                    merged = [list(row) for row in base]
+                    for row in range(rows):
+                        for col in range(cols):
+                            merged[row][col] = float(merged[row][col]) + float(delta[row][col])
+                    return merged
+                return [float(left) + float(right) for left, right in zip(base, delta)]
+            return base + delta
+
         # Evaluate baseline (primary adapter + base)
-        W_baseline = base_weights + self.get_delta()
+        W_baseline = _compose_eval_weights(base_weights, self.get_delta())
         baseline_perf = eval_fn(W_baseline, self.validation_samples)
 
         # Evaluate shadow (shadow adapter + base)
-        W_shadow = base_weights + self.get_delta_shadow()
+        W_shadow = _compose_eval_weights(base_weights, self.get_delta_shadow())
         shadow_perf = eval_fn(W_shadow, self.validation_samples)
 
         # Ternary validation gate: TRUE, FALSE, UNKNOWN
@@ -729,6 +837,7 @@ class SelfUpdatingAdapter(AdapterWeights):
 
             self.baseline_performance = shadow_perf
             self.accepted_count += 1
+            self.procedural_weights.sync_from_legacy_adapter(self)
 
             improvement = shadow_perf - baseline_perf
 
@@ -767,6 +876,8 @@ class SelfUpdatingAdapter(AdapterWeights):
                   f"{baseline_perf:.4f} → {shadow_perf:.4f} (-{degradation:.4f}) "
                   f"- Excessive degradation")
 
+            self.sync_shadow_weights_to_host()
+            self.procedural_weights.sync_from_legacy_adapter(self)
             self.update_count += 1
             return False, baseline_perf, shadow_perf
 
@@ -789,6 +900,8 @@ class SelfUpdatingAdapter(AdapterWeights):
                   f"{baseline_perf:.4f} → {shadow_perf:.4f} (+{improvement:.4f}) "
                   f"- Insufficient evidence")
 
+            self.sync_shadow_weights_to_host()
+            self.procedural_weights.sync_from_legacy_adapter(self)
             self.update_count += 1
             return False, baseline_perf, shadow_perf
 

@@ -102,7 +102,7 @@ def _fetch(url: str) -> tuple[str, bytes]:
 
 
 def main() -> int:
-    root = Path("../Knowledge3D.local/datasets/foundational_drawing_sources")
+    root = Path("/K3D/Knowledge3D.local/datasets/foundational_drawing_sources")
     raw = root / "raw_html"
     raw.mkdir(parents=True, exist_ok=True)
     manifest_path = root / "manifest.jsonl"

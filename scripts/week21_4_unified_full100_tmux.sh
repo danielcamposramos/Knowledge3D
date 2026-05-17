@@ -2,9 +2,9 @@
 set -euo pipefail
 
 SESSION_NAME="${SESSION_NAME:-k3d_week21_4_full100}"
-PROJECT_DIR="${PROJECT_DIR:-/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D}"
-STORAGE_ROOT="${STORAGE_ROOT:-../Knowledge3D.local}"
-OUTPUT_DIR="${OUTPUT_DIR:-../Knowledge3D.local/results/week21_4_unified_full100}"
+PROJECT_DIR="${PROJECT_DIR:-$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+STORAGE_ROOT="${STORAGE_ROOT:-/K3D/Knowledge3D.local}"
+OUTPUT_DIR="${OUTPUT_DIR:-/K3D/Knowledge3D.local/results/week21_4_unified_full100}"
 
 # Keep monitor startup first so we do not miss the initial GPU usage spike.
 MONITOR_CMD="${MONITOR_CMD:-watch -n 1 \"nvidia-smi --query-gpu=timestamp,utilization.gpu,memory.used,power.draw --format=csv,noheader\"}"

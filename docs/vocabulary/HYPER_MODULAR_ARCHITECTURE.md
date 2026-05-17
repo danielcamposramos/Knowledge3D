@@ -413,7 +413,7 @@ It is a **paradigm shift** where:
 
 **Term coined:** Daniel Ramos, February 20, 2026
 **Implementation:** Knowledge 3D (K3D) project
-**Public record:** W3C PM-KR Community Group internal communications, GitHub commits
+**Public record:** PM-KR Community Group internal communications, GitHub commits
 
 **This is the paradigm. This is the future.**
 
@@ -429,7 +429,7 @@ It is a **paradigm shift** where:
 - [ROBOTIC_EMBODIMENT_SPECIFICATION.md](ROBOTIC_EMBODIMENT_SPECIFICATION.md) — Avatar abstraction (hardware-agnostic)
 - [docs/briefings/BRIEFING_v4.0.md](../briefings/BRIEFING_v4.0.md) — K3D project overview
 
-**For questions, clarifications, or collaboration:** W3C PM-KR Community Group (internal-pm-kr@w3.org)
+**For questions, clarifications, or collaboration:** PM-KR Community Group (internal-pm-kr@w3.org)
 
 ---
 

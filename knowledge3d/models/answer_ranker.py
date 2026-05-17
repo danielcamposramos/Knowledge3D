@@ -10,11 +10,11 @@ Usage:
   # Train
   scripts/k3d_env.sh run python -m knowledge3d.models.answer_ranker \
     --dataset docs/reports/training/rlwhf_dataset.jsonl \
-    --out ../Knowledge3D.local/models/answer_ranker.pkl
+    --out /K3D/Knowledge3D.local/models/answer_ranker.pkl
 
   # Score (debug)
   scripts/k3d_env.sh run python -m knowledge3d.models.answer_ranker \
-    --score --model ../Knowledge3D.local/models/answer_ranker.pkl \
+    --score --model /K3D/Knowledge3D.local/models/answer_ranker.pkl \
     --query "What is UMAP?" --context "UMAP is a dimensionality reduction."
 """
 

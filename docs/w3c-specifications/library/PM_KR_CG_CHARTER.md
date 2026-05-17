@@ -202,7 +202,7 @@ PM-KR collaborates with:
 
 ## References
 
-- **W3C PM-KR Page:** https://www.w3.org/community/pm-kr/
+- **PM-KR Page:** https://www.w3.org/community/pm-kr/
 - **GitHub:** https://github.com/danielcamposramos/Knowledge3D
 - **Carbon Blueprint:** [CARBON_BLUEPRINT_10_YEAR_PROJECTION.md](../../CARBON_BLUEPRINT_10_YEAR_PROJECTION.md)
 - **Phase 1 Spec (Draft):** [spec-draft.md](../workshop/phase1-data-model/spec-draft.md)

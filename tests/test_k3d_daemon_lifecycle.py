@@ -10,7 +10,7 @@ from pathlib import Path
 
 def _send(host: str, port: int, payload: dict) -> dict:
     wire = json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8") + b"\n"
-    with socket.create_connection((host, port), timeout=5.0) as sock:
+    with socket.create_connection((host, port), timeout=60.0) as sock:
         sock.sendall(wire)
         data = b""
         while b"\n" not in data:

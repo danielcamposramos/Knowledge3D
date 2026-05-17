@@ -930,6 +930,7 @@ class UnifiedMathBenchmark:
         }
         step = max(1, int(progress_every or 25))
         start = time.monotonic()
+        self._ensure_tablet_boundary()
         tablet_rows: list[dict[str, Any]] = []
         if self.tablet_boundary is not None:
             tape = build_math_session_tape(
@@ -1048,7 +1049,6 @@ class UnifiedMathBenchmark:
         envelope = math_dataset_envelope(
             task_id=str(problem["id"]),
             question=str(problem["problem_text"]),
-            competition=str(problem.get("competition") or ""),
             expected_answer=problem.get("answer"),
         )
         tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)

@@ -321,7 +321,6 @@ def test_tablet_ingest_arc_builds_standard_route_payload_and_action_buffer():
     payload = envelope.to_route_payload(use_enriched=True)
     assert payload["command"] == "ROUTE"
     assert payload["specialist"] == "visual"
-    assert payload["task"]["type"] == "ARC_TASK"
     assert payload["task"]["surface_kind"] == "GAME_2D"
 
     buf = envelope.to_action_buffer()
@@ -352,14 +351,13 @@ def test_headless_tablet_mpc_routes_math_through_standard_contract(tmp_path: Pat
     envelope = TabletIngest.math_problem(
         task_id="math_demo",
         question="What is 2 + 2?",
-        competition="AMC",
         expected_answer="4",
     )
 
     result = boundary.submit(envelope, use_enriched=True)
 
     assert result["response"]["status"] == "ok"
-    assert result["route_payload"]["task"]["type"] == "MATH_TASK"
+    assert result["route_payload"]["task"]["surface_kind"] == "MATH"
     assert result["emitted"]["status"] == "success"
     assert result["emitted"]["numeric_answer"] == 4.0
     assert result["emitted"]["answer_text"] == "4"
@@ -377,7 +375,6 @@ def test_headless_tablet_mpc_uses_bridge_ring_path_without_daemon(tmp_path: Path
     envelope = TabletIngest.math_problem(
         task_id="math_bridge_demo",
         question="What is 2 + 2?",
-        competition="AMC",
         expected_answer="4",
     )
 
@@ -417,7 +414,6 @@ def test_headless_tablet_mpc_runs_tape_session_through_bridge_session_api(tmp_pa
                 envelope=TabletIngest.math_problem(
                     task_id="math_bridge_session_demo",
                     question="What is 2 + 2?",
-                    competition="AMC",
                     expected_answer="4",
                 ),
                 expected="4",
@@ -455,7 +451,6 @@ def test_headless_tablet_mpc_runs_tape_session_through_knowledgeverse_live_sessi
                 envelope=TabletIngest.math_problem(
                     task_id="math_live_session_demo",
                     question="What is 2 + 2?",
-                    competition="AMC",
                     expected_answer="4",
                 ),
                 expected="4",
@@ -496,7 +491,6 @@ def test_headless_tablet_live_session_normalizes_direct_knowledgeverse_packets(t
                 envelope=TabletIngest.math_problem(
                     task_id="math_live_session_direct",
                     question="What is 2 + 2?",
-                    competition="AMC",
                     expected_answer="4",
                 ),
                 expected="4",
@@ -532,7 +526,6 @@ def test_headless_tablet_live_session_logs_trace_event(tmp_path: Path):
                 envelope=TabletIngest.math_problem(
                     task_id="math_trace_demo",
                     question="What is 2 + 2?",
-                    competition="AMC",
                     expected_answer="4",
                 ),
                 expected="4",
@@ -570,7 +563,7 @@ def test_headless_tablet_live_session_translates_materialized_game2d_grid(tmp_pa
                 frame_id="frame_arc_1",
                 envelope=TabletIngest.game2d_task(
                     task_id="warmup_arc_1",
-                    query="horizontal reflection grid transform",
+                    query="Transform this grid using the examples.",
                     training_examples=[{"input": [[1, 0], [0, 1]], "output": [[0, 1], [1, 0]]}],
                     input_grid=[[2, 0], [0, 3]],
                     expected_output=[[0, 2], [3, 0]],
@@ -675,7 +668,6 @@ def test_headless_tablet_mpc_materializes_bridge_top_star_answer(tmp_path: Path)
     envelope = TabletIngest.math_problem(
         task_id="math_bridge_answer_demo",
         question="What is 2 + 2?",
-        competition="AMC",
         expected_answer="4",
     )
 
@@ -728,7 +720,6 @@ def test_headless_tablet_mpc_decodes_signed_math_result_from_action_buffer(tmp_p
     envelope = TabletIngest.math_problem(
         task_id="math_bridge_negative_demo",
         question="What is 2 - 7?",
-        competition="AMC",
         expected_answer="-5",
     )
 
@@ -764,7 +755,7 @@ def test_tablet_emit_lhe_uses_typed_option_answer_from_task_result():
     assert emitted["status"] == "success"
     assert emitted["predicted_answer"] == "B"
     assert emitted["correct"] is True
-    assert envelope.task["type"] == "QUESTION_TASK"
+    assert envelope.task["surface_kind"] == "QUESTION"
 
 
 def test_tablet_emit_flattens_nested_route_response_and_blocks_internal_answer_labels():

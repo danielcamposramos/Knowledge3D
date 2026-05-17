@@ -27,7 +27,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--capture-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/results/proceduralizer_model_eval"),
+        default=Path("/K3D/Knowledge3D.local/results/proceduralizer_model_eval"),
     )
     parser.add_argument("--timeout-seconds", type=float, default=90.0)
     return parser.parse_args()

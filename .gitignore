@@ -57,3 +57,16 @@ rpn_kernel_profile.*
 
 # Runtime data (generated per session)
 $ROOT/
+
+# Ingestion staging — knowledge working state (lives in local folder, not repo)
+scripts/ingestion/staging/
+
+# Compiled binaries (rebuild locally)
+scripts/ingestion/d3/build/
+
+# Benchmark runtime outputs (regenerated per run)
+data/benchmarks/sovereign_bitnet_attention_*.json
+
+# Runtime dedup digests (regenerated per pipeline run)
+TEMP/D3_duplicate_cluster_digest_*.jsonl
+

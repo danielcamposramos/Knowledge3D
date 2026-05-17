@@ -654,7 +654,7 @@ Output: Procedural becomes default (80% of premium displays)
 
 **Rationale:**
 1. **Different audience:** W3C = software developers, IEEE = hardware engineers
-2. **Different timeline:** W3C PM-KR (2026-2027), IEEE Procedural Display (2027-2032)
+2. **Different timeline:** PM-KR (2026-2027), IEEE Procedural Display (2027-2032)
 3. **Different economics:** W3C = open standards (no direct revenue), IEEE = hardware standards (massive industry impact)
 4. **Parallel tracks:** K3D needs BOTH (software + hardware)
 
@@ -670,7 +670,7 @@ docs/IEEE/
 ```
 
 **Purpose:**
-- Separate business case (IEEE economics) from technical spec (W3C PM-KR)
+- Separate business case (IEEE economics) from technical spec (PM-KR)
 - Prepare for 2027 IEEE WG proposal (hardware standardization)
 - Track industry engagement (display manufacturers, GPU vendors)
 

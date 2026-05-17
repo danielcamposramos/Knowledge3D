@@ -22,7 +22,7 @@ def main() -> int:
     parser.add_argument("--cst", type=Path, help="Single .csts.json file")
     parser.add_argument("--crt", type=Path, help="Optional .crts.json file (single CST mode)")
     parser.add_argument("--cst-dir", type=Path, help="Directory containing .csts.json files")
-    parser.add_argument("--storage-root", type=Path, default=Path("../Knowledge3D.local"))
+    parser.add_argument("--storage-root", type=Path, default=Path("/K3D/Knowledge3D.local"))
     parser.add_argument("--namespace", default="christoph_encapsulate")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()

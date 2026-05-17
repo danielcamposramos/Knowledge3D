@@ -136,7 +136,7 @@ Datacenter GPUs (H100):     132 SMs → 2,640+ cores
 ### 2026 Q4 - 2027
 - 🎯 Multi-GPU scaling (8× H100 = 21,120 cores)
 - 🎯 Domain expansion (chemistry, biology, materials)
-- 🎯 W3C standardization (PM-KR specification)
+- 🎯 W3C Community Group incubation (PM-KR specification)
 
 ---
 
@@ -196,7 +196,7 @@ Datacenter GPUs (H100):     132 SMs → 2,640+ cores
 - **2028+:** Datacenter deployment (100K+ cores)
 
 ### Standards Strategy
-- **W3C PM-KR:** Procedural Memory Knowledge Representation
+- **PM-KR:** Procedural Memory Knowledge Representation
 - **Open Source:** Core specifications (CC-BY-4.0), reference implementation (Apache 2.0)
 - **Community:** Multi-agent collaboration (Claude + Codex proven)
 

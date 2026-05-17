@@ -24,7 +24,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local",
+        default="/K3D/Knowledge3D.local",
         help="Knowledgeverse storage root containing galaxies/*.jsonl",
     )
     parser.add_argument(

@@ -3,7 +3,7 @@
 **Version:** 0.2 DRAFT — Defensive Publication (Pure Ternary)
 **Date:** 2026-03-19
 **Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn (PM-KR Contributor), Milton Ponson (PM-KR Co-Chair)
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 **License:** W3C Royalty-Free — This document is published as prior art under the W3C Patent Policy. All architectures described herein enter the public domain upon publication. No party may patent any design disclosed in this specification.
 **Reference Implementation:** K3D Knowledgeverse (sovereign GPU pipeline, 7 ternary opcodes operational since March 2026)
 **Prior Art Items:** 60 (see Appendices C, E, F)
@@ -1087,7 +1087,7 @@ RT40T-Galaxy Specifications:
 | **Notation** | Often described as arithmetic state stepping | Defaults to balanced `(-1, 0, +1)`, with optional alias `(0, 1, 2)` |
 | **ISA** | Not the focus | Fully specified, open |
 | **Software** | No open ecosystem assumed | K3D reference stack (operational) |
-| **Community** | Closed or proprietary | Open (W3C PM-KR + community) |
+| **Community** | Closed or proprietary | Open (PM-KR + community) |
 
 **RISC-T's distinction:** The specification begins from a rest-centered ternary state primitive and only then derives arithmetic. It is not architecturally dependent on a plus-one/minus-one unary gate.
 
@@ -1104,7 +1104,7 @@ RT40T-Galaxy Specifications:
 | **AI companies** | 3.375× information density = fewer chips needed per inference |
 | **Chip startups** | No licensing fees = lower barrier to entry |
 | **EDA vendors** | New market for ternary design tools |
-| **K3D / PM-KR** | Standard-setters: consulting, training, reference implementations |
+| **K3D / PM-KR** | Specification stewards: consulting, training, reference implementations |
 | **Universities** | Research platform, publications, talent pipeline |
 
 **The standard is free. The expertise is valuable. The savings are enormous.**

@@ -244,7 +244,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local/runtime_execution_journal_batch",
+        default="/K3D/Knowledge3D.local/runtime_execution_journal_batch",
         help="Persistent storage root for journal generation.",
     )
     parser.add_argument(

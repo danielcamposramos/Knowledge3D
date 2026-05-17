@@ -2,7 +2,7 @@
 
 ## I. EXECUTIVE SUMMARY (Suggested Insertion Point: Key Achievements)
 
-We propose the following contribution, which focuses on advancing the conceptual and architectural requirements for a Spatial Web standard in Knowledge Representation (KR). This work emphasizes Explainable AI (XAI), trustworthy Neurosymbolic Integration (NSI), and sovereign multi-modal fusion, aligning with the Community Group's mission to develop explicit, shared KR standards.
+We propose the following contribution, which focuses on advancing the conceptual and architectural requirements for a Spatial Web standard in Knowledge Representation (KR). This work emphasizes Explainable AI (XAI), trustworthy Neurosymbolic Integration (NSI), and sovereign multi-modal fusion, aligning with the Community Group's mission to develop explicit, shared KR specifications.
 
 **Contribution: Development of the Knowledge3D (K3D) Sovereign Multi-Modal Cognitive Architecture and Reference Toolkit**
 

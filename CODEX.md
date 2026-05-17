@@ -544,6 +544,42 @@ def answer_query(query):
 
 ---
 
+## Minecraft-for-Cognition Lanes (handoff 2026-04-20, Claude-pilot session)
+
+**Context:** Codex was limit-locked; per memory [`Claude Runs Pilots When Codex Is Limit-Locked`](../../home/daniel/.claude/projects/-K3D-GitHub-Knowledge3D/memory/feedback_claude_pilots_when_codex_limit_locked.md), Claude piloted the Document-Galaxy-as-Symlinks + Texture Forge + Image→Procedural + Image→3D + ARC3 live-screen + Memory-as-Image architecture pass. Full spec: [TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md](TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md).
+
+### What Claude-pilot landed
+
+1. **Registry reservations** — [docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md §11.2](docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) extended with 7 new reserved blocks: 0x280 (Texture Forge), 0x290 (Image→3D), 0x2A0 (ARC3 screen), 0x2B0 (Memory-as-Image), 0x2C0 (MVCIC extensions), 0x2D0 (Document Galaxy), 0x2E0 (headroom).
+2. **73 opcode constants** — [knowledge3d/cranium/ptx_runtime/rpn_opcodes.py](knowledge3d/cranium/ptx_runtime/rpn_opcodes.py) + `__all__` export updated.
+3. **Token registrations** — [knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py](knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py) OPCODES dict grew 277→398.
+4. **ARC3 bridge kernel** — [knowledge3d/cranium/codecs/kernels/arc3_screen_bridge.cu](knowledge3d/cranium/codecs/kernels/arc3_screen_bridge.cu) compiled clean to PTX (sm_86, zero spills, 5 kernel entries).
+5. **Document Galaxy vocab spec** — [docs/vocabulary/DOCUMENT_GALAXY_SYMLINK_SPECIFICATION.md](docs/vocabulary/DOCUMENT_GALAXY_SYMLINK_SPECIFICATION.md) (NEW, normative). Core principle: a document = star + ordered list of Word Galaxy symlinks; chars/glyphs/meanings stored once across corpus.
+6. **§13 Collision Resolution** — documents the relocation from 0x1D0–0x1FF (already reserved for VIRTUAL_PAGE_*) to 0x280–0x2DF.
+
+### Open P0 for Codex (ordered by critical path)
+
+1. **ARC3 bridge Python launcher** — ctypes wrapper for [arc3_screen_bridge.cu](knowledge3d/cranium/codecs/kernels/arc3_screen_bridge.cu). Zero numpy. Palette upload via `cuMemcpyToSymbol(c_arc3_palette)`. Wire into `knowledge3d/tablet/wine/game2d_wine.py` replacing Python frame processing.
+2. **Texture Forge kernel** — 0x280–0x28F (splat, kuwahara, voronoi, normal-from-height, …). Spec: [TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md §3.1](TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md).
+3. **3D-opcode GPU promotion** — 0x29C/0x29D/0x29E replace the Python host-fallback path currently fronting 0x170–0x176.
+4. **Inverse-fit Lane B kernel** — 0x28A/0x28B (RPN program inversion from raster target).
+5. **Memory-as-Image kernel** — 0x2B0–0x2B5 (DotMap bake of reasoning trace → 4-way-addressable memory cells).
+6. **Document Galaxy kernel** — 0x2D0–0x2DB per vocab spec §4 opcode surface table.
+7. **Ingestion integration** — document stars emit via proceduralizer; text bytes never reach VRAM (only Word Galaxy symlinks).
+
+### Sovereignty gates (MUST hold before merge)
+
+- `grep -r "numpy\|cupy\|scipy" knowledge3d/cranium/codecs/` returns zero hits on hot-path files
+- Every new opcode has a §11 registry row before minting (see §13.3 failure-mode note)
+- `nvcc -arch=sm_86 -O3 -Xptxas -warn-spills` reports **zero spills** for every new kernel
+- Document stars contain zero raw text bytes — only Word/Character/Meaning star IDs
+
+### MVCIC failure-mode lesson (2026-04-20)
+
+The 6-partner MVCIC chain recommended opcodes 0x1D0–0x1FF — **already reserved** since April 18 for VIRTUAL_PAGE_*. Caught via grep of §11 before minting; relocated to 0x280+. Same failure as the 2026-04-19 incident. **Rule:** always grep [RPN_DOMAIN_OPCODE_REGISTRY.md §11](docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) before minting anything from MVCIC output.
+
+---
+
 ## Codex's Mandate
 
 **Wire ALL GRE specialist kernels into the composed head pipeline. Expand benchmark coverage. Shrink Python orchestration toward ~200 lines. Keep ARC 10/10 and Math 20/20 pinned.**

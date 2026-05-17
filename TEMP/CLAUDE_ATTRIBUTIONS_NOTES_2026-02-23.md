@@ -14,7 +14,7 @@
 ### Development Environment
 3. **VSCode** (Microsoft) → Command center for all K3D development
 4. **Mozilla Firefox** → Primary research browser, Avatar browser autonomy vision
-5. **Mozilla Thunderbird** → W3C PM-KR email collaboration
+5. **Mozilla Thunderbird** → PM-KR email collaboration
 6. **TransformerLab** → Local LLM experimentation
 
 ### Hardware & GPU Strategy
@@ -103,7 +103,7 @@
 
 ---
 
-## 5. W3C PM-KR COMMUNITY GROUP (Standardization)
+## 5. PM-KR COMMUNITY GROUP (Incubation)
 
 ### W3C Leadership
 50. **Ian Jacobs** (W3C Head of Communications) → PM-KR CG launch, editorial guidance (v2 → v3)
@@ -245,7 +245,7 @@ Tesla 3-6-9 (sacred geometry) → K3D Hyperparameters (18 instances, 6 steps, 69
 **Open Knowledge Chain**:
 Gutenberg Press (1440) → Aaron Swartz (2008) → K3D Public Prior Art (2025) → NO PATENTS, APACHE 2.0
 
-**W3C Standardization Chain**:
+**W3C Community Group Incubation Chain**:
 Ian Jacobs (W3C guidance) → PM-KR CG (Feb 20, 2026) → 6 early ingressors → OpenFn validation
 
 **MVCIC Swarm Chain**:

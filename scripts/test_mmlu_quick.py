@@ -16,7 +16,7 @@ def main():
 
     # Initialize Knowledgeverse
     print("[1/4] Initializing Knowledgeverse...")
-    kv = Knowledgeverse(storage_root="../Knowledge3D.local")
+    kv = Knowledgeverse(storage_root="/K3D/Knowledge3D.local")
     print(f"✓ Knowledgeverse ready (ID: {id(kv)})\n")
 
     # Initialize MMLU benchmark

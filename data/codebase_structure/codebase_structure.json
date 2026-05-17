@@ -26086,7 +26086,7 @@
       "description": "Documentation: how_to_join.md",
       "title": "How To Join PM-KR Collaboration",
       "sections": [
-        "1) Join the W3C PM-KR Community Group",
+        "1) Join the PM-KR Community Group",
         "2) Complete Contributor Requirements",
         "3) Join Discussion Channels",
         "4) Contribute Practically",
@@ -26125,7 +26125,7 @@
       "runs": "reference",
       "three_brain": "Documentation",
       "description": "Documentation: standardization_roadmap.md",
-      "title": "PM-KR Standardization Roadmap",
+      "title": "PM-KR Incubation Roadmap",
       "sections": [
         "Phase 1 (Q1-Q2 2026): Data Model",
         "Phase 2 (Q2-Q3 2026): Execution Semantics",
@@ -26440,7 +26440,7 @@
       "runs": "reference",
       "three_brain": "Documentation",
       "description": "Documentation: README.md",
-      "title": "PM-KR W3C Standardization Package",
+      "title": "PM-KR Community Group Package",
       "sections": [
         "Overview",
         "Document Structure"
@@ -34052,7 +34052,7 @@
       "title": "IEEE Standardization Strategy",
       "sections": [
         "Overview",
-        "Standardization Tracks",
+        "Development Tracks",
         "Why IEEE (Not W3C)?",
         "Current Status (February 2026)",
         "Timeline: 2027-2032"
@@ -34131,12 +34131,12 @@
       "runs": "reference",
       "three_brain": "Documentation",
       "description": "Documentation: README.md",
-      "title": "W3C PM-KR Specification Workspace — House Architecture",
+      "title": "PM-KR Specification Workspace — House Architecture",
       "sections": [
         "🏛️ What Is This?",
         "🧠 Agent Instructions (CRITICAL: Read This First!)",
         "📂 Room Overview",
-        "🎯 Current Mission: PM-KR W3C Community Group → Working Group",
+        "🎯 Current Mission: PM-KR Community Group → Working Group",
         "🤖 Multi-Vibe Methodology (AI Partnership)"
       ]
     },
@@ -37954,7 +37954,7 @@
       "sections": [
         "Overview: Two Publishing Tracks",
         "PART 1: Immediate Publishing (Already Working!)",
-        "PART 2: Official W3C PM-KR Setup (For Standards Work)"
+        "PART 2: Official PM-KR Setup (For Standards Work)"
       ]
     },
     {
@@ -37968,7 +37968,7 @@
       "runs": "reference",
       "three_brain": "",
       "description": "",
-      "title": "PM-KR Standardization Package: Complete",
+      "title": "PM-KR Incubation Package: Complete",
       "sections": [
         "Executive Summary",
         "Document Structure"
@@ -45565,7 +45565,7 @@
       "title": "IEEE Three-Layer Standardization Strategy",
       "sections": [
         "The Vision: Three Complementary Standards Layers",
-        "Layer 1: W3C PM-KR (Knowledge Representation) — CURRENT FOCUS",
+        "Layer 1: PM-KR (Knowledge Representation) - CURRENT FOCUS",
         "Layer 2: IEEE P2874 (Spatial Web Infrastructure) — COMPLEMENTARY"
       ]
     },

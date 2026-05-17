@@ -15,7 +15,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("../Knowledge3D.local/fundamental_augmentation/tool_nodes_phase0.jsonl"),
+        default=Path("/K3D/Knowledge3D.local/fundamental_augmentation/tool_nodes_phase0.jsonl"),
         help="Output JSONL file for Tool galaxy payloads.",
     )
     args = parser.parse_args()

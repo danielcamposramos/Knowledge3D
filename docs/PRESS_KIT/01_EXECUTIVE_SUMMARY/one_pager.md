@@ -23,6 +23,6 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 Published K3D reports show compression, deterministic reconstruction behavior, sovereign hot-path execution, and projected climate impact scenarios including a 12 Gt CO2 model.
 
 ## How To Learn More
-- W3C PM-KR: https://www.w3.org/community/pm-kr/
+- PM-KR: https://www.w3.org/community/pm-kr/
 - K3D README.md
 - Carbon projection: docs/CARBON_BLUEPRINT_10_YEAR_PROJECTION.md

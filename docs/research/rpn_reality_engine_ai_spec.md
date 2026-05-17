@@ -412,5 +412,5 @@ The K3D RPN Reality Engine represents a fundamental rearchitecture of game AI: f
 
 *Document generated for:*
 **Knowledge 3D Standard** · **GitHub Repository**  
-**Path:** `/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D/docs/research/rpn_reality_engine_ai_spec.md`  
+**Path:** `/K3D/GitHub/Knowledge3D/docs/research/rpn_reality_engine_ai_spec.md`
 **Version:** 1.0 · **Last Updated:** 2024-12-01 · **Status:** Active Specification

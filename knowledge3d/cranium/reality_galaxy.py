@@ -361,11 +361,12 @@ class RealityGalaxy:
             }
             return
 
-        # Lazy numpy import confined to compression path (outside hot loop)
-        import numpy as np  # type: ignore
-
+        # Sovereign compression path (2026-04-18): numpy staging was purged.
+        # ``features`` is handed through as a tuple of floats; any numpy
+        # internals remain the compressor's responsibility (ingestion-lane).
+        feature_tuple = tuple(float(v) for v in features)
         program_bytes, meta = compressor.compress(
-            np.asarray(features, dtype=np.float32), quality=quality, return_metadata=True
+            feature_tuple, quality=quality, return_metadata=True
         )
         node.embedding = {
             "tier": quality,
@@ -384,7 +385,7 @@ class RealityGalaxy:
         try:
             from knowledge3d.cranium.adaptive_procedural_bridge import AdaptiveDimensionCompressor
             self._compressor = AdaptiveDimensionCompressor()
-        except FileNotFoundError:
+        except (ImportError, ModuleNotFoundError):
             self._compressor = None
         return self._compressor
 

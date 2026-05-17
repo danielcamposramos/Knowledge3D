@@ -707,4 +707,4 @@ Claude HABILITA Daniel a compartilhar o que já está em sua mente de forma que 
 Daniel Campos Ramos
 Email: daniel@echosystems.ai
 GitHub: https://github.com/danielcamposramos/Knowledge3D
-W3C PM-KR Community Group: https://www.w3.org/community/pm-kr/
+PM-KR Community Group: https://www.w3.org/community/pm-kr/

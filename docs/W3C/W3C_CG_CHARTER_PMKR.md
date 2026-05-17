@@ -296,7 +296,7 @@ Develop and define **Procedural Memory Knowledge Representation (PM-KR)**, a nov
 ### 9.3 Copyright and Attribution
 
 **All specifications include**:
-- Copyright notice: "© 2026 W3C PM-KR Community Group Contributors"
+- Copyright notice: "© 2026 PM-KR Community Group Contributors"
 - License notice: "Published under CC-BY-4.0 license"
 - Attribution: List of editors and major contributors
 

@@ -17,12 +17,12 @@ def main() -> None:
     parser.add_argument("--max-problems", type=int, default=100, help="Max problems")
     parser.add_argument(
         "--output-dir",
-        default="../Knowledge3D.local/results/week14",
+        default="/K3D/Knowledge3D.local/results/week14",
         help="Directory to write result JSON files",
     )
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local",
+        default="/K3D/Knowledge3D.local",
         help="Knowledgeverse storage root",
     )
     args = parser.parse_args()

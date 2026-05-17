@@ -18,9 +18,10 @@ from knowledge3d.ingestion.proceduralizer_contract import (
     ProceduralizerBundle,
     ProceduralizerPacket,
     ProceduralizerRequest,
+    ProceduralizerReceipt,
     parse_bundle,
 )
-from knowledge3d.ingestion.proceduralizer_wine import ProceduralizerWineBridge
+from knowledge3d.tablet.wine.proceduralize_wine import ProceduralizerWineBridge
 from knowledge3d.ingestion.universal_knowledge import (
     build_meaning_layer_stars,
     iter_domains,
@@ -119,6 +120,10 @@ def _sha(text: str, *, size: int = 12) -> str:
     return hashlib.sha1(str(text or "").encode("utf-8", errors="ignore")).hexdigest()[:size]
 
 
+def _stable_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 @lru_cache(maxsize=1)
 def _english_synset_index() -> dict[str, list[str]]:
     synsets = load_all_omw()
@@ -149,6 +154,147 @@ def _meaning_star_refs(question_text: str, limit: int = 8) -> list[str]:
             if len(refs) >= limit:
                 return refs
     return refs
+
+
+def _row_identifier(row: dict[str, Any]) -> str:
+    return str(row.get("id") or row.get("star_id") or "").strip()
+
+
+def _row_anchor(row: dict[str, Any]) -> str:
+    metadata = dict(row.get("metadata") or {})
+    candidates = [
+        row.get("name"),
+        metadata.get("asset_name"),
+        metadata.get("keyword"),
+        metadata.get("label"),
+        metadata.get("task_id"),
+        metadata.get("source_hint"),
+        metadata.get("source_sentence"),
+    ]
+    for candidate in candidates:
+        text = str(candidate or "").strip()
+        if text:
+            return text
+    row_id = _row_identifier(row)
+    if "/" in row_id:
+        return row_id.split("/", 1)[1]
+    return row_id or "entry"
+
+
+def _row_domain_hint(row: dict[str, Any]) -> str:
+    galaxy = str(row.get("galaxy") or "").strip()
+    if galaxy:
+        return galaxy
+    domain = str(row.get("domain") or "").strip()
+    if domain:
+        return domain.replace("_", " ").title()
+    return "General"
+
+
+def _peer_sample_text(row: dict[str, Any]) -> str:
+    metadata = dict(row.get("metadata") or {})
+    parts = [
+        f"id={_row_identifier(row)}",
+        f"name={str(row.get('name') or '').strip()}",
+        f"galaxy={str(row.get('galaxy') or '').strip()}",
+        f"category={str(row.get('category') or '').strip()}",
+        f"rpn={str(row.get('rpn_program') or row.get('meaning_rpn') or '').strip()}",
+        f"keyword={str(metadata.get('keyword') or '').strip()}",
+        f"source_sentence={str(metadata.get('source_sentence') or '').strip()}",
+    ]
+    return " | ".join(part for part in parts if not part.endswith("="))[:1200]
+
+
+def _differentiation_query(row: dict[str, Any]) -> str:
+    anchor = _row_anchor(row)
+    galaxy = str(row.get("galaxy") or row.get("domain") or "").strip().lower()
+    if galaxy == "3dobjects" or galaxy == "3d_objects":
+        suffix = " object reference dimensions taxonomy"
+    elif galaxy == "drawing":
+        suffix = " drawing symbol reference definition"
+    elif galaxy == "audio":
+        suffix = " audio sound reference definition"
+    elif galaxy == "grammar":
+        suffix = " linguistic grammar definition usage"
+    elif galaxy == "math":
+        suffix = " mathematics definition formula properties"
+    else:
+        suffix = " authoritative reference definition properties"
+    return f"{anchor}{suffix}"
+
+
+def _differentiation_content(row: dict[str, Any]) -> str:
+    metadata = dict(row.get("metadata") or {})
+    focus = {
+        "id": _row_identifier(row),
+        "name": row.get("name"),
+        "galaxy": row.get("galaxy"),
+        "domain": row.get("domain"),
+        "category": row.get("category"),
+        "rpn_program": row.get("rpn_program"),
+        "metadata": {
+            "keyword": metadata.get("keyword"),
+            "asset_name": metadata.get("asset_name"),
+            "label": metadata.get("label"),
+            "source": metadata.get("source"),
+            "source_sentence": metadata.get("source_sentence"),
+            "task_id": metadata.get("task_id"),
+            "pattern_family": metadata.get("pattern_family"),
+        },
+    }
+    return _stable_json(focus)
+
+
+def _meaning_resolution_content(cluster_rows: list[dict[str, Any]]) -> str:
+    payload_rows = []
+    for row in cluster_rows:
+        metadata = dict(row.get("metadata") or {})
+        payload_rows.append(
+            {
+                "id": _row_identifier(row),
+                "name": row.get("name"),
+                "galaxy": row.get("galaxy"),
+                "domain": row.get("domain"),
+                "category": row.get("category"),
+                "content": row.get("content"),
+                "description": row.get("description"),
+                "rpn_program": row.get("rpn_program"),
+                "metadata": {
+                    "keyword": metadata.get("keyword"),
+                    "asset_name": metadata.get("asset_name"),
+                    "label": metadata.get("label"),
+                    "source": metadata.get("source"),
+                    "source_sentence": metadata.get("source_sentence"),
+                    "task_id": metadata.get("task_id"),
+                    "language": metadata.get("language"),
+                    "forms": metadata.get("forms"),
+                    "value": metadata.get("value"),
+                },
+            }
+        )
+    return _stable_json({"cluster_size": len(cluster_rows), "rows": payload_rows})
+
+
+@lru_cache(maxsize=2)
+def _load_star_rows_index_cached(path_text: str, mtime_ns: int) -> dict[str, dict[str, Any]]:
+    rows_by_id: dict[str, dict[str, Any]] = {}
+    path = Path(path_text)
+    with path.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            text = line.strip()
+            if not text:
+                continue
+            row = json.loads(text)
+            row_id = _row_identifier(row)
+            if row_id:
+                rows_by_id[row_id] = row
+    return rows_by_id
+
+
+def load_star_rows_index(path: Path) -> dict[str, dict[str, Any]]:
+    resolved = Path(path).resolve()
+    stat = resolved.stat()
+    return _load_star_rows_index_cached(str(resolved), int(stat.st_mtime_ns))
 
 
 def build_rag_context(domain: str, subject: str, question_text: str) -> str:
@@ -841,6 +987,208 @@ def proceduralize_text_content(
     )
 
 
+def differentiate_cluster_receipts(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_peer_samples: int = 3,
+    max_web_results: int = 5,
+    timeout: float = 180.0,
+) -> list[dict[str, Any]]:
+    if len(cluster_row_ids) <= 1:
+        raise ValueError("differentiate_cluster requires at least two row ids")
+    rows_by_id = load_star_rows_index(Path(merged_stars_path))
+    bridge = ProceduralizerWineBridge(
+        provider="ollama",
+        default_timeout=timeout,
+        ollama=ollama,
+    )
+    resolved_model = str(model or PROCEDURALIZER_MODEL_PROFILES["long_context_engineering"]).strip()
+    options = dict(MODEL_OPTIONS.get(resolved_model, {}))
+    options.setdefault("temperature", 0.1)
+    options.setdefault("num_predict", 3072)
+    options["num_ctx"] = int(num_ctx)
+    results: list[dict[str, Any]] = []
+    ordered_row_ids = [row_id for row_id in cluster_row_ids if row_id in rows_by_id]
+    for row_id in ordered_row_ids:
+        row = rows_by_id[row_id]
+        peer_samples = [
+            _peer_sample_text(rows_by_id[peer_id])
+            for peer_id in ordered_row_ids
+            if peer_id != row_id and peer_id in rows_by_id
+        ][: max(0, int(max_peer_samples))]
+        query = _differentiation_query(row)
+        evidence = list(web_search(query, int(max_web_results)))
+        request = ProceduralizerRequest(
+            source_kind="d3_duplicate_cluster",
+            source_id=row_id,
+            source_path=str(Path(merged_stars_path)),
+            domain_hint=_row_domain_hint(row),
+            content=_differentiation_content(row),
+            context_chunks=[
+                f"cluster_size={len(ordered_row_ids)}",
+                f"anchor={_row_anchor(row)}",
+            ],
+            existing_ref_menu=build_rag_context(_row_domain_hint(row), "", _row_anchor(row)),
+            quality_profile="long_context_engineering",
+            ingest_mode="augment",
+            mode="differentiation",
+            peer_content_sample=peer_samples,
+            web_evidence=evidence,
+        )
+        receipt = bridge.submit(
+            request,
+            model_profile="long_context_engineering",
+            model=resolved_model,
+            timeout=timeout,
+            options=options,
+        )
+        results.append(
+            {
+                "row_id": row_id,
+                "query": query,
+                "request": request,
+                "receipt": receipt,
+                "web_evidence": evidence,
+                "row": row,
+            }
+        )
+    return results
+
+
+def resolve_cluster_by_meaning_receipt(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_web_results: int = 5,
+    timeout: float = 180.0,
+) -> dict[str, Any]:
+    if len(cluster_row_ids) <= 1:
+        raise ValueError("resolve_cluster_by_meaning_receipt requires at least two row ids")
+    rows_by_id = load_star_rows_index(Path(merged_stars_path))
+    ordered_row_ids = [row_id for row_id in cluster_row_ids if row_id in rows_by_id]
+    cluster_rows = [rows_by_id[row_id] for row_id in ordered_row_ids]
+    evidence_payload: list[dict[str, Any]] = []
+    for row in cluster_rows:
+        query = _differentiation_query(row)
+        evidence_payload.append(
+            {
+                "row_id": _row_identifier(row),
+                "query": query,
+                "hits": list(web_search(query, int(max_web_results))),
+            }
+        )
+    bridge = ProceduralizerWineBridge(
+        provider="ollama",
+        default_timeout=timeout,
+        ollama=ollama,
+    )
+    resolved_model = str(model or PROCEDURALIZER_MODEL_PROFILES["long_context_engineering"]).strip()
+    options = dict(MODEL_OPTIONS.get(resolved_model, {}))
+    options.setdefault("temperature", 0.1)
+    options.setdefault("num_predict", 3072)
+    options["num_ctx"] = int(num_ctx)
+    request = ProceduralizerRequest(
+        source_kind="d3_duplicate_cluster",
+        source_id=f"cluster:{hashlib.sha256('|'.join(ordered_row_ids).encode('utf-8')).hexdigest()[:16]}",
+        source_path=str(Path(merged_stars_path)),
+        domain_hint=_row_domain_hint(cluster_rows[0]),
+        content=_meaning_resolution_content(cluster_rows),
+        context_chunks=[
+            f"cluster_size={len(cluster_rows)}",
+            "task=meaning_resolution",
+        ],
+        existing_ref_menu=build_rag_context(_row_domain_hint(cluster_rows[0]), "", " ".join(_row_anchor(row) for row in cluster_rows[:4])),
+        quality_profile="long_context_engineering",
+        ingest_mode="augment",
+        mode="meaning_resolution",
+        peer_content_sample=[_peer_sample_text(row) for row in cluster_rows[: min(8, len(cluster_rows))]],
+        web_evidence=evidence_payload,
+    )
+    receipt = bridge.submit(
+        request,
+        model_profile="long_context_engineering",
+        model=resolved_model,
+        timeout=timeout,
+        options=options,
+    )
+    return {
+        "cluster_row_ids": ordered_row_ids,
+        "request": request,
+        "receipt": receipt,
+        "rows": cluster_rows,
+        "web_evidence": evidence_payload,
+    }
+
+
+def resolve_cluster_by_meaning(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_web_results: int = 5,
+    timeout: float = 180.0,
+) -> ProceduralizerBundle:
+    return resolve_cluster_by_meaning_receipt(
+        cluster_row_ids,
+        merged_stars_path,
+        web_search,
+        ollama,
+        model=model,
+        num_ctx=num_ctx,
+        max_web_results=max_web_results,
+        timeout=timeout,
+    )["receipt"].parsed_bundle
+
+
+def differentiate_cluster(
+    cluster_row_ids: list[str],
+    merged_stars_path: Path,
+    web_search,
+    ollama: OllamaManager,
+    model: str = "qwen3.5:397b-cloud",
+    num_ctx: int = 65536,
+    max_peer_samples: int = 3,
+    max_web_results: int = 5,
+) -> list[ProceduralizerBundle]:
+    """
+    For each row in the cluster:
+      1. Load the current row from merged_stars.jsonl by row_id
+      2. Build a peer_content_sample by pulling up to max_peer_samples OTHER
+         rows from the same cluster (short text only — keep prompt bounded)
+      3. Derive a web query from the row's anchor concept and fetch
+         max_web_results hits via the web_search callable
+      4. Construct a ProceduralizerRequest with mode="differentiation",
+         peer_content_sample, web_evidence
+      5. Call the existing proceduralizer bridge on the long-context profile
+      6. parse_bundle() the result and return the list
+    Bundles with status="unresolvable" are returned as-is and handled by the
+    write-back step.
+    """
+
+    return [
+        result["receipt"].parsed_bundle
+        for result in differentiate_cluster_receipts(
+            cluster_row_ids,
+            merged_stars_path,
+            web_search,
+            ollama,
+            model=model,
+            num_ctx=num_ctx,
+            max_peer_samples=max_peer_samples,
+            max_web_results=max_web_results,
+        )
+    ]
+
+
 def proceduralize_dataset(
     entries: Iterable[dict[str, Any]],
     *,
@@ -1268,14 +1616,19 @@ __all__ = [
     "_subject_to_domain",
     "build_rag_context",
     "build_request_from_entry",
+    "differentiate_cluster",
+    "differentiate_cluster_receipts",
     "load_math_entries",
     "load_mmlu_entries",
+    "load_star_rows_index",
     "packet_to_star",
     "proceduralize_entry_receipt",
     "proceduralize_entry_to_payload_rows",
     "proceduralize_dataset",
     "proceduralize_entry",
     "proceduralize_text_content",
+    "resolve_cluster_by_meaning",
+    "resolve_cluster_by_meaning_receipt",
     "result_to_payload_row",
     "run_model_eval_harness",
     "write_bundle_jsonl",

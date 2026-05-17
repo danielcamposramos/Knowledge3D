@@ -52,7 +52,7 @@ def confusion(y_true: List[str], y_pred: List[str]) -> Dict[str, Dict[str, int]]
 def main():  # pragma: no cover
     import argparse
     p = argparse.ArgumentParser(description="Evaluate model predictions vs. gold actions from logs")
-    p.add_argument("--logs", required=True, help="Logs directory (../Knowledge3D.local/logs)")
+    p.add_argument("--logs", required=True, help="Logs directory (/K3D/Knowledge3D.local/logs)")
     a = p.parse_args()
     y_true, y_pred = load_pairs(Path(a.logs))
     print(json.dumps({"pairs": len(y_true), "labels": sorted(set(y_true) | set(y_pred)), "confusion": confusion(y_true, y_pred)}, indent=2))

@@ -105,12 +105,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local/galaxies_enriched",
+        default="/K3D/Knowledge3D.local/galaxies_enriched",
         help="Knowledgeverse storage root (contains galaxies/).",
     )
     parser.add_argument(
         "--dataset-root",
-        default="../Knowledge3D.local/datasets",
+        default="/K3D/Knowledge3D.local/datasets",
         help="Dataset root to scan.",
     )
     parser.add_argument(

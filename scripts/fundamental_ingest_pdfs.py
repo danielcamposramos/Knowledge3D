@@ -1010,7 +1010,7 @@ def main() -> int:
         help="Limit number of PDFs from --pdf-dir or --pdf-list (0 means no limit).",
     )
     parser.add_argument("--max-pages-per-pdf", type=int, default=0, help="0 means all pages")
-    parser.add_argument("--cache-dir", type=Path, default=Path("../Knowledge3D.local/pdf_cache"))
+    parser.add_argument("--cache-dir", type=Path, default=Path("/K3D/Knowledge3D.local/pdf_cache"))
     parser.add_argument("--provider", default="ollama", help="Canonical transport provider; ollama is default.")
     parser.add_argument("--model-profile", default="quality", help="Proceduralizer model profile.")
     parser.add_argument("--model", default=None, help="Optional explicit model override.")
@@ -1030,12 +1030,12 @@ def main() -> int:
     parser.add_argument(
         "--payload-output",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/external_payloads/pdf_intelligent_payload.jsonl"),
+        default=Path("/K3D/Knowledge3D.local/datasets/external_payloads/pdf_intelligent_payload.jsonl"),
     )
     parser.add_argument(
         "--report-output",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/external_payloads/pdf_intelligent_report.json"),
+        default=Path("/K3D/Knowledge3D.local/datasets/external_payloads/pdf_intelligent_report.json"),
     )
     parser.add_argument(
         "--stage-dir",
@@ -1054,12 +1054,12 @@ def main() -> int:
         default=25,
         help="Rebuild payload output every N processed PDFs (0 disables periodic checkpoints).",
     )
-    parser.add_argument("--storage-root", type=Path, default=Path("../Knowledge3D.local"))
+    parser.add_argument("--storage-root", type=Path, default=Path("/K3D/Knowledge3D.local"))
     parser.add_argument("--ingest", action="store_true", help="Run single-world ingestion after payload generation")
     parser.add_argument(
         "--ingest-report",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/external_payloads/pdf_intelligent_ingest_report.json"),
+        default=Path("/K3D/Knowledge3D.local/datasets/external_payloads/pdf_intelligent_ingest_report.json"),
     )
     parser.add_argument(
         "--skip-sources-output",

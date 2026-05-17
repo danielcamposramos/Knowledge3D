@@ -259,7 +259,7 @@
     current_shield: "TSMC manufacturing capability (92% advanced chips)",
     pm_kr_shield: {
       design_leadership: "TSMC becomes procedural design library leader (not just manufacturing)",
-      open_specification: "W3C PM-KR = internationally governed (not US/China monopoly)",
+      open_specification: "PM-KR = internationally governed (not US/China monopoly)",
       universal_need: "EVERY chip designer needs PM-KR procedural libraries",
       taiwan_role: "Taiwan = procedural semiconductor technology leader",
       duration: "Decades of leadership (not just current process node advantage)"

@@ -1,30 +1,21 @@
 from __future__ import annotations
 
+import ctypes
 import hashlib
-import importlib.util
 import re
-import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
-import numpy as np
+from knowledge3d.cranium.actions.action_types import (
+    ACTION_BUFFER_SIZE,
+    ActionBuffer,
+    ActionBufferStruct,
+    ActionType,
+)
 
 from .memory_tablet import MemoryTablet
-
-_ACTION_TYPES_PATH = Path(__file__).resolve().parent.parent / "cranium" / "actions" / "action_types.py"
-_ACTION_TYPES_SPEC = importlib.util.spec_from_file_location("_k3d_action_types_direct", _ACTION_TYPES_PATH)
-if _ACTION_TYPES_SPEC is None or _ACTION_TYPES_SPEC.loader is None:
-    raise ImportError(f"unable_to_load_action_types:{_ACTION_TYPES_PATH}")
-_ACTION_TYPES_MODULE = sys.modules.get(str(_ACTION_TYPES_SPEC.name))
-if _ACTION_TYPES_MODULE is None:
-    _ACTION_TYPES_MODULE = importlib.util.module_from_spec(_ACTION_TYPES_SPEC)
-    sys.modules[str(_ACTION_TYPES_SPEC.name)] = _ACTION_TYPES_MODULE
-    _ACTION_TYPES_SPEC.loader.exec_module(_ACTION_TYPES_MODULE)
-ACTION_BUFFER_DTYPE = _ACTION_TYPES_MODULE.ACTION_BUFFER_DTYPE
-ActionBuffer = _ACTION_TYPES_MODULE.ActionBuffer
-ActionType = _ACTION_TYPES_MODULE.ActionType
 
 
 class CommandHandler(Protocol):
@@ -39,6 +30,7 @@ SURFACE_KIND_SPATIAL_3D = "SPATIAL_3D"
 SURFACE_KIND_CHAT = "CHAT"
 SURFACE_KIND_GENERAL = "GENERAL"
 SURFACE_KIND_GRAMMAR = "GRAMMAR"
+SURFACE_KIND_INGEST = "INGEST"
 ROUTE_POLICY_ALL_LIVE_GALAXIES = "all_live_galaxies"
 TABLET_ALL_LIVE_GALAXIES = (
     "Drawing",
@@ -69,6 +61,7 @@ _SPECIALIST_CODES = {
     "chat": 3,
     "grammar": 4,
     "any": 5,
+    "ingest": 6,
 }
 
 TABLET_WORD_OFFSET_MUTATION_TYPE = 60
@@ -86,7 +79,9 @@ class _MathOperands:
 
 
 def _decode_signed_i32_word(value: Any) -> int:
-    return int(np.array([int(value) & 0xFFFFFFFF], dtype=np.uint32).view(np.int32)[0])
+    """Reinterpret the low 32 bits of ``value`` as a two's-complement int32."""
+    raw = ctypes.c_uint32(int(value) & 0xFFFFFFFF)
+    return int(ctypes.c_int32.from_buffer(raw).value)
 
 
 def _extract_math_operands(query: str) -> _MathOperands:
@@ -122,7 +117,6 @@ def _normalize_surface_kind(value: Any) -> str:
         "QUESTION": SURFACE_KIND_QUESTION,
         "QUESTION_TASK": SURFACE_KIND_QUESTION,
         "MMLU_TASK": SURFACE_KIND_QUESTION,
-        "LHE_TASK": SURFACE_KIND_QUESTION,
         "SPATIAL_3D": SURFACE_KIND_SPATIAL_3D,
         "CHAT": SURFACE_KIND_CHAT,
         "CHAT_TASK": SURFACE_KIND_CHAT,
@@ -130,6 +124,8 @@ def _normalize_surface_kind(value: Any) -> str:
         "GENERAL_TASK": SURFACE_KIND_GENERAL,
         "GRAMMAR": SURFACE_KIND_GRAMMAR,
         "GRAMMAR_TASK": SURFACE_KIND_GRAMMAR,
+        "INGEST": SURFACE_KIND_INGEST,
+        "INGEST_TASK": SURFACE_KIND_INGEST,
     }
     return mapping.get(token, token or SURFACE_KIND_GENERAL)
 
@@ -562,38 +558,36 @@ class TabletEnvelope:
         return payload
 
     def to_action_buffer(self, *, confidence: float = 0.95, curiosity: float = 0.0) -> ActionBuffer:
-        buf = ActionBuffer(np.zeros(1, dtype=ACTION_BUFFER_DTYPE))
-        buf.buffer["action_type"][0] = np.uint32(ActionType.UPDATE_TABLET.value)
-        buf.buffer["confidence"][0] = np.float32(confidence)
-        buf.buffer["curiosity"][0] = np.float32(curiosity)
+        buf = ActionBuffer()
+        struct = buf.buffer
+        struct.action_type = int(ActionType.UPDATE_TABLET.value)
+        struct.confidence = float(confidence)
+        struct.curiosity = float(curiosity)
         surface_kind = _normalize_surface_kind(self.surface_kind)
-        buf.buffer["tablet_mutation_type"][0] = np.uint32(_TABLET_MUTATION_TYPES.get(surface_kind, 0))
+        struct.tablet_mutation_type = int(_TABLET_MUTATION_TYPES.get(surface_kind, 0))
         task_lo, task_hi = _hash_words(surface_kind, self.task_id)
         query_lo, query_hi = _hash_words(self.query)
         specialist_code = _SPECIALIST_CODES.get(str(self.specialist).lower(), 0)
-        payload = np.array(
-            [
-                task_lo,
-                task_hi,
-                query_lo,
-                query_hi,
-                min(len(self.query.encode("utf-8")), 0xFFFFFFFF),
-                specialist_code,
-            ],
-            dtype=np.uint32,
+        payload = (
+            int(task_lo) & 0xFFFFFFFF,
+            int(task_hi) & 0xFFFFFFFF,
+            int(query_lo) & 0xFFFFFFFF,
+            int(query_hi) & 0xFFFFFFFF,
+            min(len(self.query.encode("utf-8")), 0xFFFFFFFF),
+            int(specialist_code) & 0xFFFFFFFF,
         )
-        buf.buffer["tablet_data"][0][:] = payload
+        for i, word in enumerate(payload):
+            struct.tablet_data[i] = word
         if surface_kind == SURFACE_KIND_MATH:
             operands = _extract_math_operands(self.query)
-            buf.buffer["tablet_reserved"][0][:] = np.array(
-                [
-                    operands.left & 0xFFFFFFFF,
-                    operands.right & 0xFFFFFFFF,
-                    operands.count & 0xFFFFFFFF,
-                    operands.operator_hint & 0xFFFFFFFF,
-                ],
-                dtype=np.uint32,
+            reserved = (
+                operands.left & 0xFFFFFFFF,
+                operands.right & 0xFFFFFFFF,
+                operands.count & 0xFFFFFFFF,
+                operands.operator_hint & 0xFFFFFFFF,
             )
+            for i, word in enumerate(reserved):
+                struct.tablet_reserved[i] = word
         return buf
 
 
@@ -688,7 +682,6 @@ class TabletIngest:
         normalized_result_kind = str(result_kind or "").strip().lower()
         action_option_values = [str(option) for option in (action_options or []) if str(option).strip()]
         task_payload = {
-            "type": "ARC_TASK",
             "surface_kind": SURFACE_KIND_GAME_2D,
             "task_id": str(task_id),
             "query": str(query),
@@ -735,14 +728,12 @@ class TabletIngest:
         task_id: str,
         question: str,
         expected_answer: Any | None = None,
-        competition: str | None = None,
         galaxies: Sequence[str] | None = None,
         route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
     ) -> TabletEnvelope:
         merged_metadata = dict(metadata or {})
         merged_metadata.setdefault("expected_answer", expected_answer)
-        merged_metadata.setdefault("competition", competition)
         return TabletEnvelope(
             surface_kind=SURFACE_KIND_MATH,
             task_id=str(task_id),
@@ -752,7 +743,6 @@ class TabletIngest:
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
             route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
-                "type": "MATH_TASK",
                 "surface_kind": SURFACE_KIND_MATH,
                 "task_id": str(task_id),
                 "query": str(question),
@@ -774,14 +764,16 @@ class TabletIngest:
         galaxies: Sequence[str] | None = None,
         route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
         metadata: Mapping[str, Any] | None = None,
+        surface_kind: str = SURFACE_KIND_QUESTION,
     ) -> TabletEnvelope:
         option_list = [str(option) for option in (options or []) if str(option).strip()]
         merged_metadata = dict(metadata or {})
         merged_metadata.setdefault("expected_answer", expected_answer)
         merged_metadata.setdefault("options", list(option_list))
         merged_metadata.setdefault("question_domain", str(domain or "general"))
+        normalized_surface_kind = _normalize_surface_kind(surface_kind)
         return TabletEnvelope(
-            surface_kind=SURFACE_KIND_QUESTION,
+            surface_kind=normalized_surface_kind,
             task_id=str(task_id),
             query=str(question),
             specialist=str(specialist or "auto"),
@@ -789,8 +781,7 @@ class TabletIngest:
             galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
             route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
             task={
-                "type": "QUESTION_TASK",
-                "surface_kind": SURFACE_KIND_QUESTION,
+                "surface_kind": normalized_surface_kind,
                 "task_id": str(task_id),
                 "query": str(question),
                 "prompt": str(question),
@@ -813,7 +804,7 @@ class TabletIngest:
     ) -> TabletEnvelope:
         return TabletIngest.game2d_task(
             task_id=task_id,
-            query="2d game transformation",
+            query="Transform this grid using the examples.",
             training_examples=training_examples,
             input_grid=input_grid,
             goal_grid=expected_output,
@@ -825,13 +816,11 @@ class TabletIngest:
         *,
         task_id: str,
         question: str,
-        competition: str | None = None,
         expected_answer: Any | None = None,
     ) -> TabletEnvelope:
         return TabletIngest.math_task(
             task_id=task_id,
             question=question,
-            competition=competition,
             expected_answer=expected_answer,
         )
 
@@ -867,6 +856,105 @@ class TabletIngest:
             options=options,
             domain=subject,
             expected_answer=expected_answer,
+        )
+
+    @staticmethod
+    def chat_task(
+        messages: Sequence[Mapping[str, str]],
+        *,
+        context: Mapping[str, Any] | None = None,
+        stream: bool = False,
+        task_id: str | None = None,
+    ) -> "TabletEnvelope":
+        """Build a CHAT surface envelope for the Tablet.
+
+        Mirrors self.math_task / self.question_task. Sets
+        surface_kind = SURFACE_KIND_CHAT and delegates envelope
+        construction to chat_wine.chat_envelope.
+
+        Args:
+            messages: Sequence of {"role": "user"|"assistant"|"system",
+                      "content": str}. Client sends full history each turn
+                      (stateless server).
+            context: Optional prior-turn references dict.
+            stream: Reserved for future streaming; ignored in MVP.
+            task_id: Optional caller-supplied task identifier.
+        """
+        from knowledge3d.tablet.wine.chat_wine import chat_envelope as _chat_envelope
+        raw = _chat_envelope(
+            messages,
+            context=context,
+            stream=stream,
+            task_id=task_id,
+        )
+        # Derive the prompt text from the last user message for `query`.
+        prompt = ""
+        for msg in reversed(list(messages)):
+            if isinstance(msg, dict) and str(msg.get("role", "")).strip().lower() == "user":
+                prompt = str(msg.get("content", "")).strip()
+                if prompt:
+                    break
+        task_payload = dict(raw.get("task") or {})
+        task_payload.setdefault("surface_kind", SURFACE_KIND_CHAT)
+        task_payload.setdefault("task_id", str(task_id or ""))
+        task_payload.setdefault("query", prompt)
+        task_payload.setdefault("prompt", prompt)
+        return TabletEnvelope(
+            surface_kind=SURFACE_KIND_CHAT,
+            task_id=str(task_id or ""),
+            query=prompt,
+            specialist="chat",
+            domain_hint=None,
+            galaxies=(),
+            route_policy=ROUTE_POLICY_ALL_LIVE_GALAXIES,
+            result_kind=None,
+            task=task_payload,
+            metadata={},
+        )
+
+    @staticmethod
+    def ingest_task(
+        *,
+        task_id: str,
+        source_uri: str,
+        mime: str,
+        chunking: Mapping[str, Any] | None = None,
+        lang_hint: str | None = None,
+        galaxies: Sequence[str] | None = None,
+        route_policy: str = ROUTE_POLICY_ALL_LIVE_GALAXIES,
+        metadata: Mapping[str, Any] | None = None,
+    ) -> "TabletEnvelope":
+        """Build an INGEST surface envelope for the Tablet.
+
+        Mirrors math_task / question_task / chat_task. Sets
+        surface_kind = SURFACE_KIND_INGEST. Task payload carries the
+        source reference; the daemon is responsible for assigning an
+        ingest_id and queueing the job.
+        """
+        merged_metadata = dict(metadata or {})
+        merged_metadata.setdefault("mime", str(mime))
+        if lang_hint is not None:
+            merged_metadata.setdefault("lang_hint", str(lang_hint))
+        task_payload: dict[str, Any] = {
+            "surface_kind": SURFACE_KIND_INGEST,
+            "task_id": str(task_id),
+            "query": str(source_uri),
+            "source_uri": str(source_uri),
+            "mime": str(mime),
+            "chunking": dict(chunking) if chunking else {},
+            "lang_hint": str(lang_hint) if lang_hint is not None else None,
+        }
+        return TabletEnvelope(
+            surface_kind=SURFACE_KIND_INGEST,
+            task_id=str(task_id),
+            query=str(source_uri),
+            specialist="ingest",
+            domain_hint=str(lang_hint) if lang_hint is not None else None,
+            galaxies=tuple(str(name) for name in (galaxies or ()) if str(name).strip()),
+            route_policy=str(route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
+            result_kind="ingest_receipt",
+            task=task_payload,
+            metadata=merged_metadata,
         )
 
 
@@ -1270,6 +1358,39 @@ class HeadlessTabletMPC:
             "tablet_session_trace",
             trace_record,
         )
+        navigator = getattr(kv, "navigator_specialist", None)
+        if navigator is not None and hasattr(navigator, "update_from_trace"):
+            trace_star_ids = [
+                str(value).strip()
+                for value in list(task_result.get("trace_star_ids") or emitted.get("trace_star_ids") or [])
+                if str(value).strip()
+            ]
+            retrieved_stars: list[dict[str, Any]] = []
+            lookup = getattr(kv, "_catalog_entry_by_id", None)
+            if callable(lookup):
+                for star_id in trace_star_ids:
+                    try:
+                        row_entry = lookup(star_id)
+                    except Exception:
+                        row_entry = None
+                    if isinstance(row_entry, dict):
+                        retrieved_stars.append(dict(row_entry))
+            try:
+                navigator.update_from_trace(
+                    {
+                        "query_text": str(frame.envelope.query or frame.envelope.task.get("query") or ""),
+                        "meaning_class": str(task_result.get("meaning_class") or route.get("meaning_class") or ""),
+                        "halting_weight_vec": list(task_result.get("halting_weight_vec") or []),
+                        "query_embedding": list(task_result.get("query_embedding") or []),
+                        "symlink_histogram": list(task_result.get("symlink_histogram") or []),
+                        "correct": bool(emitted.get("correct", False)),
+                        "task_payload": dict(frame.envelope.task or {}),
+                        "options": list(frame.envelope.task.get("options") or []),
+                        "retrieved_stars": retrieved_stars,
+                    }
+                )
+            except Exception:
+                pass
 
     def _build_trace_record(
         self,
@@ -1388,7 +1509,7 @@ class HeadlessTabletMPC:
                     "tablet_contract": {
                         "action_type": action_buffer.get_action_type().name,
                         "mutation_type": int(mutation_type),
-                        "payload_words": payload_words.tolist(),
+                        "payload_words": list(payload_words),
                         "surface_kind": _normalize_surface_kind(envelope.surface_kind),
                         "sovereign_path": "knowledgeverse_dispatch_session"
                         if backend == "knowledgeverse_dispatch"
@@ -1481,13 +1602,27 @@ class HeadlessTabletMPC:
             "galaxy_names": list(envelope.galaxies),
             "route_policy": str(envelope.route_policy or ROUTE_POLICY_ALL_LIVE_GALAXIES),
         }
-        response = kv.execute_task(
-            task=task_payload,
-            route=route,
-            specialist=str(envelope.specialist),
-            domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
-            use_enriched=bool(use_enriched),
+        bypass_enabled = bool(
+            hasattr(kv, "_bypass_game_loop_enabled") and kv._bypass_game_loop_enabled()
         )
+        loop_active = bool(hasattr(kv, "trm_game_loop_status") and kv.trm_game_loop_status().get("active"))
+        if bypass_enabled or not loop_active or not hasattr(kv, "enqueue_task"):
+            response = kv.execute_task(
+                task=task_payload,
+                route=route,
+                specialist=str(envelope.specialist),
+                domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+                use_enriched=bool(use_enriched),
+            )
+        else:
+            request_id = kv.enqueue_task(
+                task=task_payload,
+                route=route,
+                specialist=str(envelope.specialist),
+                domain_hint=str(envelope.domain_hint or _normalize_surface_kind(envelope.surface_kind).lower()),
+                use_enriched=bool(use_enriched),
+            )
+            response = kv.wait_output_buffer(request_id, max_ticks=1)
         return _canonicalize_live_runtime_response(response or {})
 
     def _bind_bridge_query_runtime(self) -> None:
@@ -1539,8 +1674,15 @@ class HeadlessTabletMPC:
 
     @staticmethod
     def _action_buffer_words(action_buffer: ActionBuffer) -> list[int]:
-        host = np.asarray(action_buffer.buffer)
-        return [int(value) for value in host.view(np.uint32).reshape(-1)[:72]]
+        """Return the 288-byte ActionBuffer as 72 uint32 host words.
+
+        Uses ctypes directly — the sovereign replacement for the
+        ``np.asarray(...).view(np.uint32)`` call. The underlying
+        ``ActionBufferStruct`` is already uint32-aligned throughout.
+        """
+        addr = ctypes.addressof(action_buffer.buffer)
+        words = (ctypes.c_uint32 * 72).from_address(addr)
+        return [int(word) & 0xFFFFFFFF for word in words]
 
     @staticmethod
     def _fallback_query_embedding(envelope: TabletEnvelope) -> list[float]:
@@ -1785,6 +1927,32 @@ class HeadlessTabletMPC:
         route_payload = envelope.to_route_payload(use_enriched=use_enriched)
         action_buffer = envelope.to_action_buffer()
         mutation_type, payload_words = action_buffer.extract_tablet_mutation()
+        kv = self._knowledgeverse
+        kv_bypass_enabled = bool(
+            kv is not None
+            and hasattr(kv, "_bypass_game_loop_enabled")
+            and kv._bypass_game_loop_enabled()
+        )
+        if kv is not None and hasattr(kv, "execute_task") and not kv_bypass_enabled:
+            response = self._run_live_envelope_via_knowledgeverse(envelope, use_enriched=use_enriched)
+            emitted = TabletEmit.emit(envelope, response)
+            return {
+                "envelope": envelope,
+                "route_payload": route_payload,
+                "response": response,
+                "raw_response": response,
+                "emitted": emitted,
+                "tablet_contract": {
+                    "action_type": action_buffer.get_action_type().name,
+                    "mutation_type": int(mutation_type),
+                    "payload_words": list(payload_words),
+                    "surface_kind": _normalize_surface_kind(envelope.surface_kind),
+                    "sovereign_path": "knowledgeverse_trm_game_loop",
+                    "output_action_type": str(
+                        _as_dict(response.get("task_result")).get("action_type") or ""
+                    ),
+                },
+            }
         bridge = self._resolve_sovereign_bridge()
         if bridge is not None and hasattr(bridge, "submit_query"):
             self._tick_seq += 1
@@ -1811,7 +1979,7 @@ class HeadlessTabletMPC:
                 "tablet_contract": {
                     "action_type": action_buffer.get_action_type().name,
                     "mutation_type": int(mutation_type),
-                    "payload_words": payload_words.tolist(),
+                    "payload_words": list(payload_words),
                     "surface_kind": _normalize_surface_kind(envelope.surface_kind),
                     "sovereign_path": "tablet_bridge_ring",
                     "output_action_type": response["task_result"]["action_type"],
@@ -1829,7 +1997,7 @@ class HeadlessTabletMPC:
             "tablet_contract": {
                 "action_type": action_buffer.get_action_type().name,
                 "mutation_type": int(mutation_type),
-                "payload_words": payload_words.tolist(),
+                "payload_words": list(payload_words),
                 "surface_kind": _normalize_surface_kind(envelope.surface_kind),
             },
         }

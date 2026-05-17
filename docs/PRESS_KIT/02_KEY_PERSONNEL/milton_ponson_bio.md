@@ -2,7 +2,7 @@
 
 [INSERT: Milton headshot, professional, 300x300px]
 
-Milton Ponson is a mathematician and AI researcher based in the Netherlands, with more than 30 years of environmental knowledge experience. He is co-chair of the W3C PM-KR Community Group and a lead contributor to the mathematical and governance foundations behind procedural memory knowledge representation.
+Milton Ponson is a mathematician and AI researcher based in the Netherlands, with more than 30 years of environmental knowledge experience. He is co-chair of the PM-KR Community Group and a lead contributor to the mathematical and governance foundations behind procedural memory knowledge representation.
 
 At Rainbow Warriors Core Foundation CIAMSD Institute, Milton focuses on formal structure, domains of discourse, and system-level sustainability framing. In PM-KR collaboration, he helps define how canonical procedural knowledge can support both machine execution and human verification without fragmenting into incompatible copies.
 

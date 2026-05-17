@@ -8,15 +8,15 @@
 
 ## Overview
 
-While **W3C PM-KR** standardizes K3D's knowledge representation layer (software), **IEEE** standardizes the hardware/physical protocols that make procedural transmission possible.
+While **PM-KR** develops K3D's knowledge representation layer (software), **IEEE** standardizes the hardware/physical protocols that make procedural transmission possible.
 
 **Key insight:** ALL existing protocols (HDMI, HTTP, WiFi, Ethernet) are **imperative** (transmit data). K3D proposes the **FIRST procedural protocols** (transmit programs).
 
 ---
 
-## Standardization Tracks
+## Development Tracks
 
-### Track 1: W3C PM-KR (Software Layer)
+### Track 1: PM-KR (Software Layer)
 - **What:** Procedural Memory Knowledge Representation
 - **Status:** Active (23+ members, 2026)
 - **K3D role:** Reference implementation
@@ -207,13 +207,13 @@ While **W3C PM-KR** standardizes K3D's knowledge representation layer (software)
 
 ## Strategic Positioning
 
-### W3C PM-KR (Software) + IEEE Procedural Protocols (Hardware)
+### PM-KR (Software) + IEEE Procedural Protocols (Hardware)
 
-**Together, these standardize K3D's full vision:**
+**Together, these cover K3D's full vision:**
 
 ```
 ┌─────────────────────────────────────────────┐
-│ W3C PM-KR (Knowledge Representation)        │
+│ PM-KR (Knowledge Representation)        │
 │ - Galaxy Universe (RPN programs in VRAM)    │
 │ - Procedural knowledge (canonical forms)    │
 │ - Dual-client reality (form + meaning)      │
@@ -257,11 +257,11 @@ While **W3C PM-KR** standardizes K3D's knowledge representation layer (software)
 
 ---
 
-## Complementary to W3C PM-KR
+## Complementary to PM-KR
 
 **Not competing, COMPLEMENTING:**
 
-- **W3C PM-KR:** How AI systems remember and reason (software)
+- **PM-KR:** How AI systems remember and reason (software)
 - **IEEE Procedural Protocols:** How that knowledge transmits and displays (hardware)
 
 **Both needed for K3D's full vision:**

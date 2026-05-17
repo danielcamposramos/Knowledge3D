@@ -9,7 +9,7 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-DATA_DIR=${K3D_DATA_DIR:-"$ROOT_DIR/../Knowledge3D.local/datasets"}
+DATA_DIR=${K3D_DATA_DIR:-"$ROOT_DIR//K3D/Knowledge3D.local/datasets"}
 TEXT="$DATA_DIR/wikipedia.en.txt"
 CSV="$DATA_DIR/wikipedia.en.embed.csv"
 META="$DATA_DIR/wikipedia.en.embed.meta.json"

@@ -1134,12 +1134,12 @@ jq -r '.events[].signature' pmkr_level_c_provenance_audit_2026-02-20.jsonl | \
 1. **Document Discrepancy**: Verifier records exact difference (test failure, checksum mismatch, etc.)
 2. **Request Clarification**: Verifier contacts implementation maintainer for explanation
 3. **Re-Verification**: Verifier repeats with updated artifacts or environment
-4. **Public Disclosure**: If unresolved, verifier publishes findings to W3C PM-KR CG mailing list
+4. **Public Disclosure**: If unresolved, verifier publishes findings to PM-KR Community Group mailing list
 
 **If implementation disputes verifier verdict**:
 
 1. **Evidence Submission**: Implementation provides counter-evidence (alternate test run, environment differences)
-2. **Independent Re-Verification**: W3C PM-KR CG solicits second independent verifier
+2. **Independent Re-Verification**: PM-KR Community Group solicits second independent verifier
 3. **Consensus Verdict**: Final verdict based on majority agreement (2/3 verifiers)
 
 ---
@@ -1156,7 +1156,7 @@ jq -r '.events[].signature' pmkr_level_c_provenance_audit_2026-02-20.jsonl | \
 
 **Next Steps**:
 1. Publish Level A artifacts (Q2 2026)
-2. Solicit independent verifier volunteers from W3C PM-KR CG
+2. Solicit independent verifier volunteers from PM-KR Community Group
 3. Conduct first independent verification (Q3 2026)
 4. Issue public verification report
 

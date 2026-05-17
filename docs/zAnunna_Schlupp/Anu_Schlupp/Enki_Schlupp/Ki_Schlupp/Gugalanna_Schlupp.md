@@ -3,7 +3,7 @@
 **Version:** 0.1 DRAFT (Defensive Publication)
 **Date:** March 20, 2026
 **Authors:** Daniel Campos Ramos (PM-KR Chair), Christoph Dorn, Milton Ponson
-**Organization:** W3C PM-KR Community Group
+**Organization:** PM-KR Community Group
 **License:** W3C Royalty-Free (Defensive Publication under W3C Patent Policy Section 3)
 
 **Companion Specifications:**

@@ -102,12 +102,12 @@ def main() -> None:
     parser.add_argument(
         "--analysis-file",
         type=Path,
-        default=Path("../Knowledge3D.local/results/iterative_learning/marathon_analysis.json"),
+        default=Path("/K3D/Knowledge3D.local/results/iterative_learning/marathon_analysis.json"),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/results/iterative_learning"),
+        default=Path("/K3D/Knowledge3D.local/results/iterative_learning"),
     )
     args = parser.parse_args()
 

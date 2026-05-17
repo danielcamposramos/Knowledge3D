@@ -12,7 +12,7 @@
 ### 1. ✅ GitHub README Updated (MERCOSUR-EU Section)
 - File: `/README.md`
 - Added: MERCOSUR-EU Collaboration section with Milton's canonical text
-- Positioned after W3C Standardization, before Core Innovations
+- Positioned after W3C Community Group Incubation, before Core Innovations
 - Includes: Daniel + Milton bios, W3C context, historic collaboration narrative, carbon impact
 
 ### 2. ✅ Phase 1 Spec Updated (Acknowledgments)

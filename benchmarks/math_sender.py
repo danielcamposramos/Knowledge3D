@@ -126,7 +126,6 @@ def main() -> int:
             {
                 "id": str(row["task_id"]),
                 "problem_text": str(row["question"]),
-                "competition": str(row.get("competition") or ""),
             }
             for row in questions
         ],

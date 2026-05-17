@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 
-DEFAULT_OUTPUT = Path("../Knowledge3D.local/fundamental_augmentation/lhe_foundational_corpus.jsonl")
+DEFAULT_OUTPUT = Path("/K3D/Knowledge3D.local/fundamental_augmentation/lhe_foundational_corpus.jsonl")
 BOOTSTRAP_TAG = "lhe_foundational_corpus_v1"
 
 DEFAULT_DOMAIN_ALLOCATIONS: dict[str, int] = {

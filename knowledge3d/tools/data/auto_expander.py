@@ -38,15 +38,8 @@ def auto_expand_and_build(limit: int = 200) -> None:
             f"build_theme_glbs('{theme}', max_files={limit})"
         )
 
-    # 4. Resume training using unified RLWHF policy trainer
-    print("🧠 Resuming training with RLWHF policy trainer...")
-    env = os.environ.copy()
-    env["PYTHONPATH"] = env.get("PYTHONPATH", ".")
-    subprocess.run(
-        [sys.executable, "-m", "knowledge3d.tools.training_pipelines.train_rlwhf_policy", "--resume"],
-        check=True,
-        env=env,
-    )
+    # 4. train_rlwhf_policy moved to Old_Attempts/training_pipelines/ (drift — LLM training paradigm).
+    # PTX sleeptime Lane A (0x300) + Lane B replaces this path. Do not re-add.
 
     print("✅ AUTO-EXPAND + AUTO-BUILD + AUTO-RESUME COMPLETE")
 

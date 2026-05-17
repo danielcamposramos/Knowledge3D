@@ -21,7 +21,7 @@ Because outputs come from deterministic procedures, you can inspect what happene
 3. Efficiency
 References are smaller than full copies. This can reduce storage and compute overhead, especially when applied across large knowledge bases.
 
-PM-KR is not anti-declarative standards. Declarative formats remain useful to describe relationships. PM-KR adds procedural execution so knowledge is not only described but reusable and operational.
+PM-KR is not anti-declarative specifications. Declarative formats remain useful to describe relationships. PM-KR adds procedural execution so knowledge is not only described but reusable and operational.
 
 Knowledge3D is the reference implementation used to test these ideas in real workflows: ingestion, composition, execution, and reporting. It is where claims are measured against benchmarks, reports, and conformance checks.
 

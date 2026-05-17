@@ -1,23 +1,29 @@
-"""
-Advanced (Tier-3) RPN bridge backed by modular_rpn_kernel_extended.ptx.
+"""Advanced (Tier-3) RPN bridge backed by modular_rpn_kernel_extended.ptx.
 
-This engine complements the standard sovereign RPN engine with matrix-aware
-operations including matmul, transpose, determinant, inverse, and trace. It
-maintains the same instance layout (15 instances, 64-deep stacks) while
-extending stack metadata to encode type and dimensionality.
+Sovereign resurrection (2026-04-18): the archived module
+(``Old_Attempts/2026-04-18/knowledge3d/cranium/bridges/advanced_rpn.py``)
+used ``numpy`` only to allocate small device-staging buffers (a 16-byte
+header and a stack-size float32 buffer). The Absolute Sovereignty Purge
+requires zero numpy in the hot path, so the numpy allocations have been
+replaced with ``ctypes`` equivalents and the public surface is preserved
+byte-for-byte.
+
+This engine complements the standard sovereign RPN engine with
+matrix-aware operations including matmul, transpose, determinant,
+inverse, and trace. It maintains the same instance layout (MAX_INSTANCES
+instances, deep stacks) while extending stack metadata to encode type
+and dimensionality.
 """
 from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence
-import numpy as np
+from typing import List, Optional, Sequence
+import struct
 
 from knowledge3d.cranium.sovereign import loader
 from .rpn_config import RPN_GRID_DIM, TIER3_BLOCK_DIM
-import struct
-from array import array
 
 
 @dataclass(frozen=True)
@@ -43,8 +49,8 @@ def _decode_meta(value: float) -> StackEntryMetadata:
 class AdvancedRPNEngine:
     """Tier-3 RPN bridge that activates matrix-aware PTX operations."""
 
-    MAX_INSTANCES = 18  # Tesla 3-6-9: 18/3=6 (ternary resonance)
-    STACK_DEPTH = 69    # Tesla 6-9: 6+9=15→6, 6×9=54→9, perfect balance
+    MAX_INSTANCES = 18  # Tesla 3-6-9
+    STACK_DEPTH = 69
     BLOCK_DIM = TIER3_BLOCK_DIM
     INSTANCE_STRIDE = 1040  # bytes per instance (header + 64*float4)
 
@@ -75,7 +81,7 @@ class AdvancedRPNEngine:
         vectors: Optional[Sequence[Sequence[float]]] = None,
         matrices: Optional[Sequence[float]] = None,
     ):
-        """Execute a Tier-3 RPN program and return the raw stack buffer."""
+        """Execute a Tier-3 RPN program and return stack rows as [4-float]."""
         if not (0 <= instance_id < self.MAX_INSTANCES):
             raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
 
@@ -143,8 +149,14 @@ class AdvancedRPNEngine:
         d_op_codes,
         d_scalars,
         n_opcodes: int,
-    ) -> np.ndarray:
-        """Execute using pre-uploaded opcode/scalar buffers."""
+    ) -> List[List[float]]:
+        """Execute using pre-uploaded opcode/scalar buffers.
+
+        Returns rows of 4 floats (identical layout to ``execute_program``)
+        — the legacy numpy return type was ``np.ndarray`` of shape
+        ``(stack_size, 4)``; the pure-ctypes version returns a list of
+        four-element lists with the same semantics.
+        """
         if not (0 <= instance_id < self.MAX_INSTANCES):
             raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
 
@@ -166,11 +178,11 @@ class AdvancedRPNEngine:
         )
         loader.synchronize()
 
-        header = np.zeros(4, dtype=np.uint32)
+        header = (ctypes.c_uint32 * 4)()
         loader.memcpy_dtoh(
-            header.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(header, ctypes.c_void_p),
             ctypes.c_void_p(self._state.value + instance_offset),
-            header.nbytes,
+            ctypes.sizeof(header),
         )
 
         error_code = int(header[2])
@@ -179,27 +191,28 @@ class AdvancedRPNEngine:
 
         stack_size = int(header[1])
         if stack_size == 0:
-            return np.zeros((0, 4), dtype=np.float32)
+            return []
 
-        stack_buffer = np.zeros((stack_size, 4), dtype=np.float32)
+        stack_buffer = (ctypes.c_float * (stack_size * 4))()
         loader.memcpy_dtoh(
-            stack_buffer.ctypes.data_as(ctypes.c_void_p),
+            ctypes.cast(stack_buffer, ctypes.c_void_p),
             ctypes.c_void_p(self._state.value + instance_offset + 16),
             stack_size * 16,
         )
-        return stack_buffer
+        flat = [float(stack_buffer[i]) for i in range(stack_size * 4)]
+        return [flat[i:i + 4] for i in range(0, len(flat), 4)]
 
     def reset_instance(self, instance_id: int) -> None:
         """Clear stack metadata for the given instance."""
         if not (0 <= instance_id < self.MAX_INSTANCES):
             raise ValueError(f"Invalid instance_id {instance_id} (expected 0-{self.MAX_INSTANCES - 1})")
 
-        header_zero = np.zeros(4, dtype=np.uint32)
+        header_zero = (ctypes.c_uint32 * 4)()
         offset = instance_id * self.INSTANCE_STRIDE
         loader.memcpy_htod(
             ctypes.c_void_p(self._state.value + offset),
-            header_zero.ctypes.data_as(ctypes.c_void_p),
-            header_zero.nbytes,
+            ctypes.cast(header_zero, ctypes.c_void_p),
+            ctypes.sizeof(header_zero),
         )
 
     def cleanup(self) -> None:
@@ -275,26 +288,26 @@ class AdvancedRPNEngine:
     # Internal helpers
     # ------------------------------------------------------------------ #
     @staticmethod
-    def _device_ptr(device_allocation: Optional[ctypes.c_void_p]) -> int:
+    def _device_ptr(device_allocation):
         return device_allocation.value if device_allocation is not None else 0
 
     @staticmethod
-    def _maybe_upload_float(array: Sequence[Sequence[float]] | Sequence[float]) -> Optional[ctypes.c_void_p]:
+    def _maybe_upload_float(array):
         if not array:
             return None
         flat: list[float] = []
-        if isinstance(array[0], (list, tuple)):  # type: ignore[index]
-            for row in array:  # type: ignore[assignment]
-                flat.extend([float(x) for x in row])  # type: ignore[arg-type]
+        if isinstance(array[0], (list, tuple)):
+            for row in array:
+                flat.extend([float(x) for x in row])
         else:
-            flat = [float(x) for x in array]  # type: ignore[list-item]
+            flat = [float(x) for x in array]
         buf = (ctypes.c_float * len(flat))(*flat)
         device_ptr = loader.gpu_malloc(ctypes.sizeof(buf))
         loader.memcpy_htod(device_ptr, ctypes.cast(buf, ctypes.c_void_p), ctypes.sizeof(buf))
         return device_ptr
 
     @staticmethod
-    def _maybe_upload_uint16(array: Sequence[int]) -> Optional[ctypes.c_void_p]:
+    def _maybe_upload_uint16(array):
         if not array:
             return None
         buf = (ctypes.c_uint16 * len(array))(*[int(x) for x in array])
@@ -303,6 +316,9 @@ class AdvancedRPNEngine:
         return device_ptr
 
     @staticmethod
-    def _maybe_free(device_allocation: Optional[ctypes.c_void_p]) -> None:
+    def _maybe_free(device_allocation):
         if device_allocation is not None:
             loader.gpu_free(device_allocation)
+
+
+__all__ = ["AdvancedRPNEngine", "StackEntryMetadata"]

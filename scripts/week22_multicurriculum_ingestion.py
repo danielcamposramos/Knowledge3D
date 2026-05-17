@@ -680,12 +680,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local/galaxies_enriched",
+        default="/K3D/Knowledge3D.local/galaxies_enriched",
         help="Knowledgeverse world root (contains galaxies/).",
     )
     parser.add_argument(
         "--dataset-root",
-        default="../Knowledge3D.local/datasets",
+        default="/K3D/Knowledge3D.local/datasets",
         help="Dataset root for corpus ingestion.",
     )
     parser.add_argument(
@@ -754,7 +754,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--output",
-        default="../Knowledge3D.local/results/week22_multicurriculum/week22_ingestion_report.json",
+        default="/K3D/Knowledge3D.local/results/week22_multicurriculum/week22_ingestion_report.json",
         help="Path to JSON report.",
     )
     args = parser.parse_args()

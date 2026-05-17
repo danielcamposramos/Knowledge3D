@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SESSION="k3d_week13"
-ROOT="/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D"
+ROOT="${ROOT:-$(cd -- "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 if tmux has-session -t "$SESSION" 2>/dev/null; then
   tmux attach -t "$SESSION"

@@ -1,7 +1,7 @@
 # W3C Group Touchpoints for PM-KR and K3D (Internet-Verified)
 
 **Date verified:** March 4, 2026  
-**Scope:** Objective mapping of W3C groups touched by PM-KR (standards effort) and K3D (reference implementation), separated by role.
+**Scope:** Objective mapping of W3C groups touched by PM-KR (Community Group effort) and K3D (reference implementation), separated by role.
 
 This file expands the earlier cross-group map using two sources:
 1. Current project documentation (`docs/`, `README.md`, selected `TEMP/` records).
@@ -9,7 +9,7 @@ This file expands the earlier cross-group map using two sources:
 
 ## 1. PM-KR Touchpoints
 
-PM-KR is primarily a standards initiative, so its touchpoints are driven by data model interoperability, governance, provenance, and cross-CG/WG alignment.
+PM-KR is primarily a Community Group incubation, so its touchpoints are driven by data model interoperability, governance, provenance, and cross-CG/WG alignment.
 
 ### 1.1 Core Group (Direct Ownership)
 
@@ -17,7 +17,7 @@ PM-KR is primarily a standards initiative, so its touchpoints are driven by data
 |---|---|---|---|
 | Procedural Memory Knowledge Representation (PM-KR) | Community Group | Active (W3C community page currently shows 22 participants) | PM-KR home group and publication channel |
 
-### 1.2 Active Standards/Community Interfaces (PM-KR)
+### 1.2 Active Standards and Community Interfaces
 
 | Group | Type | Current status (as of 2026-03-04) | PM-KR relevance |
 |---|---|---|---|
@@ -94,7 +94,7 @@ PM-KR and K3D touch many of the same W3C groups, but for different reasons:
 - **K3D:** execution/runtime implementation, rendering, performance paths, and deployable tooling.
 
 This separation helps keep messaging objective:
-- PM-KR speaks as a standards effort.
+- PM-KR speaks as a Community Group effort.
 - K3D speaks as a reference implementation and engineering substrate.
 
 ## 5. Local Grounding in This Repository

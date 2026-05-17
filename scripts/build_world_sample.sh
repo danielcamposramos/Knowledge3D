@@ -14,14 +14,14 @@
 #
 # Usage
 #   KEYWORDS="rain,street,car,child,city,speech" \
-#   BASE=../Knowledge3D.local/datasets \
+#   BASE=/K3D/Knowledge3D.local/datasets \
 #   scripts/build_world_sample.sh
 #
 # Viewer
 #   Default loads /galaxy.glb. To visualize cross‑modal edges: ?gltf=/galaxy.cross.glb
 set -euo pipefail
 
-BASE=${BASE:-../Knowledge3D.local/datasets}
+BASE=${BASE:-/K3D/Knowledge3D.local/datasets}
 OUT_DIR=${OUT_DIR:-viewer/public/_world}
 KEYWORDS=${KEYWORDS:-rain,street,car,city,child,speech}
 TEXT_MAX=${TEXT_MAX:-1200}

@@ -1,4 +1,4 @@
-# W3C PM-KR Specification Workspace — House Architecture
+# PM-KR Specification Workspace — House Architecture
 
 **Version:** 1.0
 **Created:** March 3, 2026
@@ -69,7 +69,7 @@ cd bathtub/  # Agent switches to INTROSPECTION mode (meta-analysis)
 
 ---
 
-## 🎯 Current Mission: PM-KR W3C Community Group → Working Group
+## 🎯 Current Mission: PM-KR Community Group → Working Group
 
 **Charter Goals:**
 - Study **data models** for procedural knowledge representation

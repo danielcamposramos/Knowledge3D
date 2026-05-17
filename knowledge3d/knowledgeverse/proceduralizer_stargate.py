@@ -536,6 +536,7 @@ def packet_metadata(packet: ProceduralizerPacket, request: ProceduralizerRequest
         "grammar_refs": _normalize_refs(packet.grammar_refs),
         "reality_refs": _normalize_refs(packet.reality_refs),
         "meta_refs": _normalize_refs(packet.meta_refs),
+        "sources": _normalize_refs(packet.sources),
         "relationships": list(packet.relationships),
         "confidence": float(packet.confidence),
         "needs_review": bool(packet.needs_review),

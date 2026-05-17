@@ -177,6 +177,9 @@ The principle from Section 1 ("programs before opcodes") is formalized here as a
 - Show that a dedicated opcode reduces complexity materially.
 
 ### Stage 3: PTX Kernel Admission
+
+**Pre-reservation prerequisite (Ruling 5, 2026-04-18)**: before a Stage 3 admission writes an opcode number into the registry, the lane MUST verify its reservation exists in §11 (Reserved Future Blocks). If no reservation covers the target number, the admission is blocked until the Reservation Table is amended. See `TEMP/CLAUDE_CODEX_OPCODE_RANGE_RESERVATION_DOCTRINE_04.18.2026.md` for the full workflow.
+
 - Add kernel only after ALL of the following are satisfied:
 
 | Criterion | Requirement |
@@ -291,6 +294,57 @@ case-based-reasoning primitives below.
 | `0x101` | `CASE_REBIND` | CBR | `[case_handle, rebind_spec] -> [bound_case]` | Clone/rebind a stored case program or solution handle to current symbols/facts. | Bound case preserves source support and rewrites value/context fields only. |
 | `0x102` | `CASE_REVISE` | CBR/Casuistry | `[bound_case, revise_constraint] -> [revised_case]` | Run bounded revise logic and ethical gating; returns `0` on failure. | Ethical polarity is preserved and may be vetoed by stage-3 style gate semantics. |
 | `0x103` | `CASE_RETAIN_HINT` | CBR | `[revised_case] -> [retain_hint]` | Emit a bounded shadow-copy retention hint for sleep-time materialisation. | Hint carries confidence/polarity but does not write permanent state in hot path. |
+| `0x104` | `LORA_LOAD_BASE` | Procedural Adapter | `[] -> [base_weights_ref]` | Push the referenced base-weight star for the active specialist adapter. | Residency/support of the base star determines confidence. |
+| `0x105` | `LORA_LOW_RANK_ADD` | Procedural Adapter | `[left_factor, right_factor] -> [delta]` | Materialize a low-rank adapter delta from factor pair(s). | Delta inherits factor confidence and sign. |
+| `0x106` | `LORA_SCALE` | Procedural Adapter | `[delta, alpha] -> [scaled_delta]` | Scale the adapter delta by the absorption factor. | Magnitude changes, polarity preserved. |
+| `0x107` | `LORA_TERNARY_MASK` | Procedural Adapter | `[delta, mask] -> [masked_delta]` | Apply {-1, 0, +1} gating per output row/dimension. | Mask trits map directly to polarity lanes. |
+| `0x108` | `LORA_SHADOW_ABSORB` | Procedural Adapter | `[shadow_delta, contrast_signal] -> [updated_shadow_delta]` | Absorb sleep-time contrast signal into the shadow adapter program. | Signal ternary-packs promote/hold/reject pressure. |
+
+### 7.2 Procedural Adapter Note
+
+The `0x104–0x108` block keeps the **programs before opcodes** doctrine intact:
+specialist deltas are still small executable programs over shared base weights,
+not an external tensor-training stack. These opcodes make the adapter program
+first-class, auditable, and sleep-time-updatable inside the sovereign RPN/TRM
+substrate.
+
+---
+
+### 7.3 WINE I/O Contract Block (0x180–0x18F)
+
+**Authority**: `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md` §4.2–4.3
+and `docs/vocabulary/CANONICAL_REGISTRY_SPECIFICATION.md` §8.5.
+
+These opcodes implement the Translation Surface: the device-side path from
+external bytes (DOM, ARC3, stdin, audio, image) through a Galaxy-resident
+`WineContractStar` and back. All execution is on-device. Python on the hot path
+never calls these ops directly — it only pushes bytes into the input ring.
+
+Admission class: **Class A** (immediately executable via existing `GALAXY_SCAN`
+and RPN dispatch infrastructure). `wine_contract_scan.cu` is the companion kernel.
+
+| Opcode | Mnemonic | Stack diagram | Semantics | Ternary packing |
+| --- | --- | --- | --- | --- |
+| `0x180` | `WINE_INGRESS_DECODE` | `[input_bytes_ptr, length, contract_ptr] -> [galaxy_form_ptr]` | Execute the `ingress_rpn_addr` program stored in the active `WineContractStar`. Reads raw I/O bytes, produces a Galaxy form pointer consumed by downstream phases. | `galaxy_form_ptr` confidence reflects parse completeness; polarity `+1` clean, `0` partial, `-1` decode error. |
+| `0x181` | `WINE_EGRESS_ENCODE` | `[galaxy_form_ptr, contract_ptr] -> [bytes_ptr, length]` | Execute the `egress_rpn_addr` program stored in the active `WineContractStar`. Serialises a Galaxy form to output bytes for the Tablet output ring. | `length` confidence reflects encode completeness; polarity mirrors `WINE_INGRESS_DECODE` convention. |
+| `0x182` | `WINE_RESOLVE` | `[paradigm_type] -> [contract_ptr]` | Scan the `WineContractStar` table (via `wine_contract_scan.cu`) for the entry whose `paradigm_type` field matches the input. Returns the contract VRAM pointer, or `0` if no contract is registered for that paradigm. On miss, the kernel writes `tick_status = CONTRACT_MISS`; sleep-time handles the craft ticket. | `contract_ptr` polarity: `+1` resolved, `0` miss (no matching paradigm), `-1` ambiguous (two entries share paradigm — loader conflict, see §8.5.5 invariant 2). |
+| `0x183–0x18F` | *(reserved)* | — | Reserved for future contract ops: audio frame windowing, image tile ingress, video keyframe sync, multi-modal interleave. Opcodes are placeholders; no PTX kernel is admitted until the Stage 0–3 promotion pipeline is complete for each. | — |
+
+### 7.4 Physics-to-Visual Bridge (0x190)
+
+**Authority**: `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md` §12
+(Nemotron warp-shuffle patterns, post-chain MVCIC note).
+
+This opcode closes the loop between the PHYSICS phase output and the Tablet
+visual surface, enabling live physics state rendering without any Python
+involvement.
+
+| Opcode | Mnemonic | Stack diagram | Semantics | Ternary packing |
+| --- | --- | --- | --- | --- |
+| `0x190` | `PHYSICS_EMIT_VISUAL` | `[phys_state_ptr] -> [draw_op_count]` | Pops a physics state struct pointer (`{float3 position, float3 velocity, float3 acceleration, uint32_t entity_id}`). Emits a sequence of Drawing Galaxy ops (`CIRCLE` for position, `LINE` for velocity vector, optional `LINE` for acceleration) targeting the Tablet surface buffer. Draw ops are pushed directly to the RPN stack for consumption by the act_phase renderer. | `draw_op_count` confidence reflects how many ops were emitted; polarity `+1` full, `0` partial (clipped by LOD), `-1` suppressed (entity culled by frustum). |
+
+`0x191–0x19F` are reserved for future physics visual ops (rigid-body wireframe,
+field-line render, heat-map overlay). Same admission gating applies.
 
 ---
 
@@ -326,4 +380,82 @@ All candidates MUST pass the Stage 0-3 pipeline documented above.
 - `knowledge3d/cranium/ptx_runtime/modular_rpn_engine.py`  
 - `knowledge3d/cranium/ptx_runtime/rpn_math_core.py`  
 - `docs/vocabulary/MATH_CORE_SPECIFICATION.md`  
+
+---
+
+## 11. Reserved Future Blocks (Range Reservation Table)
+
+**Authority**: `TEMP/CLAUDE_CODEX_OPCODE_RANGE_RESERVATION_DOCTRINE_04.18.2026.md` (Ruling 5, 2026-04-18).
+**Status**: Normative — this table is the single source of truth for opcode range reservations.
+
+Per the Opcode Range Reservation Doctrine, any parallel-lane task that will mint new opcodes MUST pre-reserve its block in this table before dispatching spec or implementation work. Opcodes assigned outside a reserved block fail the Gate R acceptance check. A reservation written only in a design doc is not a reservation.
+
+**Cross-reference**: §6.3 (Stage 3: PTX Kernel Admission) — the pre-reservation prerequisite blocks admission until §11 is amended.
+
+### 11.1 Schema
+
+| Field | Type | Meaning |
+|---|---|---|
+| `block_start` | hex u16 | Lowest opcode number in the block (inclusive) |
+| `block_end` | hex u16 | Highest opcode number in the block (inclusive) |
+| `owner_spec` | path | Relative path to the spec file governing opcode assignments inside this block |
+| `date_reserved` | YYYY-MM-DD | Date the reservation was appended |
+| `status` | enum | `active` (lane working) / `released` (lane done, opcodes permanent) / `superseded` (spec withdrawn, range free) |
+
+### 11.2 Initial Reservations (reconstructed 2026-04-18)
+
+| block_start | block_end | owner_spec | date_reserved | status |
+|---|---|---|---|---|
+| `0x100` | `0x10F` | `docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md §7.1` | 2026-04-13 | released |
+| `0x170` | `0x17F` | `TEMP/CLAUDE_CODEX_TRANSFER_YARD_AND_EMBEDDING_SOVEREIGNTY_04.18.2026.md` | 2026-04-18 | active |
+| `0x178` | `0x17A` | `TEMP/CLAUDE_CODEX_INSTANTIABLE_CORE_ISOLATION_04.18.2026.md` (queue ops — sub-reservation within 0x170–0x17F) | 2026-04-18 | active |
+| `0x180` | `0x18F` | `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §4.2–4.3` (WINE I/O) | 2026-04-18 | active |
+| `0x190` | `0x19F` | `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md §12` (physics-to-visual bridge) | 2026-04-18 | active |
+| `0x1A0` | `0x1A6` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (math/utility) | 2026-04-18 | active |
+| `0x1AA` | `0x1AF` | **BitNet b1.58 Attention** — 0x1AA (TERNARY_MATMUL_ADDSUB), 0x1AB (TERNARY_PACK5), 0x1AC (TERNARY_UNPACK5), 0x1AD (VEC_NORM_L2_INT8), 0x1AE (ATTENTION_MARGIN_SHIFT), 0x1AF (ATTENTION_MARGIN_SCALED). Corrected 2026-04-18: 0x1AD matches production kernel (`knowledge3d/cranium/kernels/bitnet_attention.cu`). | 2026-04-18 | active |
+| `0x1B0` | `0x1B0` | Reserved for future attention expansion (was draft assignment for VEC_NORM_L2_INT8; superseded by 0x1AD actual production). | 2026-04-18 | active |
+| `0x1B1` | `0x1B5` | **Attention Future Expansion** — halting gate variants, sparse-K attention, per `TEMP/supersession_patches_04.18.2026_v4.md §4` (Ruling 4, turn-6) | 2026-04-18 | active |
+| `0x1B6` | `0x1B9` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (TENSOR_INTERPOLATE, KMEANS_PLUS_INIT, CTYPES_VIEW_AS_PTX, CUDA_MALLOC_ASYNC — minted; not renumberable per expand-not-replace) | 2026-04-18 | active |
+| `0x1BA` | `0x1BF` | future normalization/attention headroom (narrowed from 0x1B1-0x1BF by v4 sub-reservation) | 2026-04-18 | active |
+| `0x1C0` | `0x1C5` | `TEMP/CLAUDE_CODEX_BULK_LIB_PURGE_HARD_ACCEPTANCE_04.18.2026.md` (IMAGE/SPARSE — relocated from 0x1AA–0x1AF per v2 supersession) | 2026-04-18 | active |
+| `0x1C6` | `0x1CF` | future physics expansion headroom (tied to §7.4) | 2026-04-18 | active |
+| `0x1D0` | `0x1FF` | `TEMP/CLAUDE_INGESTION_SYMLINK_REWIRE_04.18.2026.md §13` — `VIRTUAL_PAGE_*` graph-grammar RPN for ingestion-path virtual pages. Sub-families: `PAGE_*` / `FRAME_*` / `TABLE_*` / `PARAGRAPH_*` / `LINE_*` / `RUN_*` / `*_EMIT*` (WORD/GLYPH/NUMERAL/EQUATION/FIGURE/SYMBOL) / `LAYOUT_*` / `STYLE_*` / `BIDI_*` / `SCRIPT_*` / `HYPHEN_*`. Specific numbers NOT assigned in this reservation — only the range. Extension into 0x200+ permitted on registry-owner review if the ~58 planned opcodes exceed 48 slots. | 2026-04-18 | active |
+| `0x217` | `0x21F` | `TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md` — **DotMap procedural color-map codec** (procedural dot placement + procedural color): DOT_PLACE_PROCEDURAL (content-adaptive density), COLOR_RPN_REF (RPN/galaxy-symlink color source), COLOR_PALETTE_REF, DOTMAP_SCAN_EMIT (line-based scan), DOTMAP_RLE_ENCODE/DECODE, DOTMAP_DELTA_ENCODE/DECODE, DOTMAP_HEADER. Premise (Daniel 2026-04-20): the dots already exist as 0x213 DOT_EMIT; the *count, layout, and per-dot color are all procedural* — NOT fixed, NOT tied to ingested resolution. Image → procedural dot placement program (density field / importance sampling) + per-dot color RPN ref; decoder renders at any output resolution. | 2026-04-20 | active |
+| `0x240` | `0x24F` | `TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md` — **JPEG-equivalent line-scan image codec** (line-based, dot-grid native): LINE_SCAN_START, LINE_SCAN_ROW, LINE_SCAN_COL, BLOCK_8X8_ZIGZAG, BLOCK_8X8_INV_ZIGZAG, QUANT_APPLY, QUANT_INVERT, DCT_8X8_FORWARD, IDCT_8X8, CHROMA_SUBSAMPLE_422, CHROMA_UPSAMPLE_422, HUFF_ENCODE_RUN, HUFF_DECODE_RUN, IMG_HEADER_EMIT, IMG_HEADER_PARSE, IMG_FINALIZE. Existing `ternary_dct_2d.cu` may be promoted to back DCT_8X8_FORWARD. | 2026-04-20 | active |
+| `0x250` | `0x25F` | `TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md` — **Audio FFT / spectrogram family** (promotes §6.5 Stage 0 candidates): FFT_FORWARD_256, FFT_FORWARD_512, FFT_FORWARD_1024, FFT_FORWARD_2048, FFT_INVERSE, FFT_WINDOW_HANN, FFT_WINDOW_HAMM, STFT_FORWARD, STFT_INVERSE, MEL_FILTER_BANK, SPECTROGRAM_LINEAR, SPECTROGRAM_MEL, SPECTROGRAM_LOG, AUDIO_TO_DOTMAP (spectrogram as procedural image), DOTMAP_TO_AUDIO, HRTF_CONVOLVE. Backed by new `audio_fft.cu` + existing `ternary_mdct.cu`. | 2026-04-20 | active |
+| `0x260` | `0x26F` | `TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md` — **Frame codec / temporal video RPN**: FRAME_KEYFRAME, FRAME_DELTA, MOTION_VECTOR, FRAME_WARP, FRAME_BLEND, FRAME_SPRITE_LOAD, FRAME_SPRITE_DRAW, FRAME_SPRITE_BATCH, FRAME_PALETTE_SET, FRAME_CELL_FILL, FRAME_MORTON_2D, FRAME_SEQUENCE_RENDER, SCENE_LOAD, SCENE_QUEUE, SCENE_LOOP, FRAME_OBSERVE_64D (wraps existing `arc3_frame_encoder.cu`). | 2026-04-20 | active |
+| `0x270` | `0x27F` | `TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md` — **Projection screen / unified A/V playback** (K3D procedural video codec surface): VIDEO_FIELD_LOAD, AUDIO_FIELD_LOAD, SYNC_TIMELINE, TIMELINE_ADVANCE, PLAYBACK_TICK, PLAYBACK_START, PLAYBACK_STOP, SCREEN_PROJECT, SCREEN_RESIZE, SCREEN_COMPOSE, VIEWPORT_SET, LOD_SELECT, DOF_APERTURE, DOF_FOCUS, VIGNETTE, ATMOSPHERE_FOG. | 2026-04-20 | active |
+| `0x280` | `0x28F` | `TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md` §2.1 — **Lane A: Texture Forge** (Werkkzeug-class, sovereign): TEX_SPLAT, TEX_KUWAHARA, TEX_WAVE, TEX_RIPPLE, TEX_VORTEX, TEX_FRACTAL_NOISE, TEX_CELLULAR_F1F2, TEX_GRAPH_EVAL, TEX_GRAPH_BIND, TEX_GRAPH_DIFF, TEX_FIT_STEP, TEX_FIT_CONVERGE, TEX_PALETTE_EXTRACT, TEX_PALETTE_APPLY, TEX_TILE_SYMMETRIZE, TEX_NORMAL_FROM_HEIGHT. Relocated from draft-0x1D0 on discovery that 0x1D0-0x1FF was already reserved by `CLAUDE_INGESTION_SYMLINK_REWIRE_04.18.2026.md §13` for VIRTUAL_PAGE_*. | 2026-04-20 | active |
+| `0x290` | `0x29F` | `TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md` §2.2 — **Lane C: Image→3D**: IMG_TO_HEIGHTMAP, IMG_TO_SILHOUETTE, SILHOUETTE_EXTRUDE, HEIGHTMAP_TO_TERRAIN, HEIGHTMAP_TO_DISPLACEMENT, DEPTH_MONO_ESTIMATE, DEPTH_TO_POINTCLOUD, POINTCLOUD_TO_MESH, SPRITE_BILLBOARD, SPRITE_MULTIPLANE, DOODLE_TO_SYMMETRIC_MESH, LATHE_FROM_PROFILE, MESH_CSG_GPU, MESH_MARCHING_CUBES_GPU, MESH_NURBS_GPU, MESH_WRITE_GALAXY. Sovereign GPU-native replacements for host-fallback 0x170-0x176 (those entries remain per expand-not-replace; fallback path is DELETED in the same PR per `feedback_delete_dead_code_no_fallbacks_no_old_paths.md`). | 2026-04-20 | active |
+| `0x2A0` | `0x2AF` | `TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md` §2.3 — **Lane D: ARC3 live-screen wiring**: ARC3_FRAME_DECODE, ARC3_PALETTE_SET, ARC3_FRAME_TO_DOTMAP, ARC3_PROJECT_TO_SCREEN, ARC3_CLICK_INVERT, ARC3_ACTION_EMIT, ARC3_REPLAY_STEP, ARC3_DIFF_HIGHLIGHT, ARC3_LIVES_HUD, ARC3_GAME_ID_BIND. Closes human-sees-what-AI-sees loop by composing existing `arc3_frame_encoder.cu` → `dotmap_codec.cu` → `projection_screen.cu`. | 2026-04-20 | active |
+| `0x2B0` | `0x2BF` | `TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md` §10 — **Lane E: Memory-as-Image** (DeepSeek OCR extension per Daniel 2026-04-20): MEM_TO_DOTMAP, DOTMAP_TO_MEM, MEM_IMAGE_BIND, MEM_IMAGE_RECALL, MEM_IMAGE_COMPOSE, MEM_IMAGE_DIFF (0x2B0-0x2B5). 0x2B6-0x2BF reserved for expansion. Rationale: images as AI memory surfaces, not character recognition — reasoning traces bake to DotMap stars that are simultaneously raster + RPN program + Galaxy star + Matryoshka embedding (4-way addressable memory cell). | 2026-04-20 | active |
+| `0x2C0` | `0x2CF` | `TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md` §12.4 — **MVCIC-sourced extensions** (6-partner chain + post-grounding): TEX_TERNARY_STREAM (0x2C0, Idea A — frustum-gated resonance streaming), SLEEP_PHYSICS_WEIGHT (0x2C1, Idea B — physics impulse → sleep cluster weight), META_RPN_EDIT (0x2C2, Idea C — self-modifying RPN, GATED to Layer 4 anneal context), MEM_FOVEAL_ENCODE (0x2C3, Kimi post-grounding — variable-resolution memory-image), ARC3_ATTENTION_HEATMAP (0x2C4). 0x2C5-0x2CF reserved for future MVCIC findings. | 2026-04-20 | active |
+| `0x2D0` | `0x2DF` | `docs/vocabulary/DOCUMENT_GALAXY_SYMLINK_SPECIFICATION.md` — **Document Galaxy as Symlinks to Words** (Daniel 2026-04-20): DOC_STAR_NEW, DOC_WORD_REF, DOC_CHAR_REF, DOC_MEANING_REF, DOC_STYLE_SPAN, DOC_PARA_BREAK, DOC_STRUCT_EMIT, DOC_RENDER_IN_LANG, DOC_RENDER_DOTMAP, DOC_SYMLINK_RESOLVE, DOC_CONTENT_HASH, DOC_MATRYOSHKA_EMBED (0x2D0-0x2DB). 0x2DC-0x2DF reserved. Rationale: a document is a star whose content is an ordered list of symlinks to Word Galaxy stars; characters, glyphs, fonts, and meanings are NEVER duplicated in the document. "The" appears 10,000 times → stored ONCE. Meanings are language-agnostic (English "walk" / Portuguese "caminhar" / Japanese "歩く" → same Meaning star). | 2026-04-20 | active |
+| `0x2E0` | `0x2FF` | future expansion headroom (Minecraft-for-Cognition lane family) | 2026-04-20 | active |
+| `0x300` | `0x30F` | `knowledge3d/knowledgeverse/sleeptime_ingest.py` + `knowledge3d/cranium/kernels/sleeptime_lane_a.cu` — **Sleeptime Lane A: temporary-star consolidation**: SLEEPTIME_LANE_A_EVAL (0x300) — per-candidate gravity probe + defeasibility resolution → ternary promote/merge/discard trit; output: `out_trits[N]` int8 + `out_target_galaxy[N]` int32 + `out_best_house_idx[N]` int32. Inputs: candidate embeddings [N×16] float32, house embeddings [H×16] float32, grammar rule strengths [R] int8. Grid-stride, one thread per candidate. Reuses `gre_defeasible_resolver.cu` quantisation logic via device function call; reuses `ternary_depth_field.cu` cosine-similarity ternary encoding. 0x301-0x30F reserved for Lane A variants (merge-only pass, multi-pass anneal, confidence decay). | 2026-04-21 | active |
+| `0x310` | `0x312` | `knowledge3d/knowledgeverse/sleeptime_weights.py` + `knowledge3d/cranium/kernels/sleeptime_lane_b.cu` — **Sleeptime Lane B: wake-cycle weight consolidation**: SLEEPTIME_LANE_B_DELTA_AGGREGATE (0x310) — aggregate per-tile float32 deltas across wake-cycle shadow-copy traces weighted by success confidence; SLEEPTIME_LANE_B_TRIT_ACCEPT_REJECT (0x311) — ternary trit decision per tile: +1 accept / 0 pending / -1 reject via `quantize_trit` (symlinked from `gre_defeasible_resolver.cu`); SLEEPTIME_LANE_B_INPLACE_UPDATE (0x312) — fold accepted deltas into BitNet b1.58 1.6-bit-packed TRM + specialist weight tiles using `pack5`/`unpack5`/`bitnet_dot_add_sub_skip` (symlinked from `bitnet_attention.cu`), re-quantise, write back in place. Grid-stride, one thread per tile. Python launches kernel and writes final BitNet-packed weight checkpoint to disk; all tile iteration and trit math is PTX-only. | 2026-04-21 | active |
+| `0x313` | `0x313` | `knowledge3d/cranium/kernels/sleeptime_lane_b.cu` — **SLEEPTIME_LANE_B_TILE_QUANTIZE_F32_TO_BITNET** (Gap 2, 2026-04-21): per-tile float32 → BitNet b1.58 1.6-bit-packed quantiser; idempotent — reads per-tile `tile_format[T]` byte (WEIGHT_FORMAT_F32=0 / WEIGHT_FORMAT_BITNET=1), skips if already packed; calls `quantize_trit` (symlinked from `gre_defeasible_resolver.cu`) per trit and `pack5` (symlinked from `bitnet_attention.cu`) per 5-trit group; overwrites weight tile in place and sets `tile_format[tile_id]=WEIGHT_FORMAT_BITNET`. Runs live during sleeptime Lane B ticks — convert-on-first-touch, never at boot. Companion device function `lane_b_tile_quantize_f32_to_bitnet()` called as prologue of Stage B.3 (0x312). | 2026-04-21 | active |
+| `0x314` | `0x31F` | reserved for Lane B variants (LoRA-only pass, specialist-region-only pass, full-net pass, confidence-decay variant). | 2026-04-21 | active |
+| `0x320` | `0x32F` | `knowledge3d/knowledgeverse/wake_delta_capture.py` + `knowledge3d/cranium/kernels/wake_delta_capture.cu` — **Wake-Cycle Delta Capture** (Gap 1, 2026-04-20): WAKE_CYCLE_DELTA_CAPTURE (0x320) — per-tile activation-magnitude aggregator for successful convergence traces; gated by halting-gate threshold; produces signed per-tile float32 delta (sign = mean-activation direction, magnitude = L1-sum / N, normalised) written to `out_delta_tiles[T]` float32; `out_fired` int32 flag signals convergence (1) or skip (0). One thread per tile, grid-stride. Inputs: `activations[T×N]` float32, `halting_value` float32 scalar, `halting_threshold` float32 scalar. Feeds shadow_copy.event_buffer as `delta_tiles` (expanded to `n_tiles × TILE_TRITS` floats by Python readback) for Lane B consumption. Fires ONLY on successful halting-gate convergence; if `halting_value < halting_threshold` writes zero delta and `out_fired=0`. Python wrapper: ctypes readback I/O only; no numpy; no Python math over tiles. 0x321–0x32F reserved for delta-capture variants (per-specialist pass, contrastive delta, failure-trace anti-signal). | 2026-04-20 | active |
+
+**Note on 0xA0–0xF1**: the reasoning-paradigm block (§7) predates this doctrine; its reservation authority is `TEMP/CLAUDE_REASONING_PARADIGMS_AND_N_SWARM_SPEC_2026-04-13.md §4` and is treated as `released`.
+
+### 11.3 Maintenance Rules
+
+1. **Append-only.** Never delete a row.
+2. **Status transitions are one-way**: `active → released → superseded`. A `released` block's opcodes are permanent (expand-not-replace). A `superseded` range may be re-reserved by a new owner in a new row, but previously-assigned opcodes inside it remain permanent.
+3. **No overlapping `active` rows.** Gate R rejects them.
+4. **Size-1 reservations are valid.** Emergency single-opcode additions still require a row in the same commit as the opcode assignment.
+5. **The registry wins when specs disagree.** Patch the specs; never patch the registry to match a spec.
+
+### 11.4 Attention-Family Normative Notes (Turn-6 Rulings, 2026-04-18)
+
+Per `TEMP/supersession_patches_04.18.2026_v4.md`:
+
+- **0x1A9 `CONTRASTIVE_RANK_TOPK`** (Ruling 3 v4): accepts a 1-bit `margin_path` operand. Default `0` = Path A (SHIFT, 1-cycle SHR, no metadata load). Opt-in `1` = Path B (SCALED, smem-prefetch-mandatory, silent d-mismatch rescale). Lane-switchable mid-program.
+- **0x1A9 `CONTRASTIVE_RANK_TOPK`** (Ruling 2 v4): when invoked in Path B mode and `d_active != star.d_tier`, kernel applies `margin × d_active / d_tier` inline. No warning, no log, no exit.
+- **0x1AF `ATTENTION_MARGIN_SCALED`** (Ruling 1 v4): every kernel that invokes 0x1AF MUST cooperatively prefetch `confidence_margin` into shared memory before the scoring loop and issue `__syncthreads()`. This is part of the opcode's contract, not an optimization. Gate R-prefetch enforces.
+- **0x1AF `ATTENTION_MARGIN_SCALED`** (Ruling 2 v4): handles d-mismatch via silent in-kernel rescale (1 IMUL + 1 SHR; tier ratios are powers of 2). No log output.
+- **0x1B1-0x1B5 Sub-reservation** (Ruling 4 v4): "Attention Future Expansion — halting gate variants / sparse-K attention". Narrowed from pre-v4 generic "normalization/attention headroom". No opcodes minted yet; lane may pre-reserve per doctrine.
+
 - `docs/vocabulary/REALITY_ENABLER_SPECIFICATION.md`  

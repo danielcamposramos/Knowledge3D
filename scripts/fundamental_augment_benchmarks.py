@@ -208,7 +208,7 @@ def _iter_arc_tasks(dataset_root: Path, max_tasks: int) -> list[dict[str, Any]]:
         Path("/K3D/Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),
         Path("/K3D/Knowledge3D.local/datasets/arc_agi/ARC-AGI-master/data/evaluation"),
         Path("/K3D/Knowledge3D.local/datasets/arc_agi_2/evaluation"),
-        Path("../Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),
+        Path("/K3D/Knowledge3D.local/datasets/exams/arc-src/data/evaluation"),
     ]
     files: list[Path] = []
     for root in candidates:
@@ -373,7 +373,7 @@ def _iter_math_records(dataset_root: Path, max_problems: int) -> list[dict[str, 
     roots = [
         dataset_root / "math_competitions",
         Path("/K3D/Knowledge3D.local/datasets/math_competitions"),
-        Path("../Knowledge3D.local/datasets/math_competitions"),
+        Path("/K3D/Knowledge3D.local/datasets/math_competitions"),
     ]
     files: list[tuple[str, Path]] = []
     for root in roots:
@@ -501,8 +501,8 @@ def _iter_lhe_rows(dataset_root: Path, max_questions: int) -> list[dict[str, Any
         dataset_root / "exams" / "hle-src" / "questions.json",
         Path("/K3D/Knowledge3D.local/datasets/last_humanity_exam/questions.json"),
         Path("/K3D/Knowledge3D.local/datasets/exams/hle-src/questions.json"),
-        Path("../Knowledge3D.local/datasets/last_humanity_exam/questions.json"),
-        Path("../Knowledge3D.local/datasets/exams/hle-src/questions.json"),
+        Path("/K3D/Knowledge3D.local/datasets/last_humanity_exam/questions.json"),
+        Path("/K3D/Knowledge3D.local/datasets/exams/hle-src/questions.json"),
     ]
     for path in candidates:
         if not path.exists():
@@ -870,9 +870,9 @@ def _append_rows(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset-root", type=Path, default=Path("../Knowledge3D.local/datasets"))
-    parser.add_argument("--output", type=Path, default=Path("../Knowledge3D.local/datasets/external_payloads/benchmark_augmentation_payload.jsonl"))
-    parser.add_argument("--report", type=Path, default=Path("../Knowledge3D.local/datasets/external_payloads/benchmark_augmentation_report.json"))
+    parser.add_argument("--dataset-root", type=Path, default=Path("/K3D/Knowledge3D.local/datasets"))
+    parser.add_argument("--output", type=Path, default=Path("/K3D/Knowledge3D.local/datasets/external_payloads/benchmark_augmentation_payload.jsonl"))
+    parser.add_argument("--report", type=Path, default=Path("/K3D/Knowledge3D.local/datasets/external_payloads/benchmark_augmentation_report.json"))
 
     parser.add_argument("--max-arc-tasks", type=int, default=400, help="ARC tasks to augment (<=0 skips ARC)")
     parser.add_argument("--max-math-problems", type=int, default=2000, help="Math records to augment (<=0 skips Math)")

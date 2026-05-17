@@ -128,6 +128,33 @@ Query: "Janet had 16 ducks, lost 3, gave 4, bought 2x remaining. How many?"
 
 **Validated**: This exact chain produced answer=18 via `gpu_math_symlink_execution_chain` (commit 2dedddcc, March 31, 2026).
 
+## 1c. Router Contract — Meaning-Centric Navigator Lane (April 16, 2026)
+
+The router is an internal lane on the existing `AdaptiveSwarmTRM`, not an external coordinator.
+
+- `navigator` is registered through `AdaptiveSwarmTRM.register_specialist("navigator", required_dims=64, rank=8)`.
+- The lane rides on the same `MatryoshkaTRM` + `SelfUpdatingAdapter` surface as the other specialists.
+- Python assembles the VRAM packet only:
+  - `query_embedding: float32[64]`
+  - `symlink_histogram: float32[8]`
+- The lane emits two heads:
+  - `meaning_class_dist: float32[8]`
+  - `halting_weight_vec: float32[9]`
+- Sleep-time reinforcement updates the navigator lane through the existing adaptive swarm training path; no second router trainer exists.
+
+Seed meaning classes:
+
+- `FACTUAL_RECALL`
+- `MULTI_HOP_INFERENCE`
+- `NUMERIC_COMPUTE`
+- `SPATIAL_TRANSFORM`
+- `DEFINITION_LOOKUP`
+- `COMPARATIVE_CHOICE`
+- `GENERATIVE_COMPOSITION`
+- `GROUNDED_DIALOG`
+
+The route source of truth remains the Galaxy symlink surface. Meaning-class is emitted from the internal lane after it reads query embedding plus retrieved-star symlink structure.
+
 ---
 
 ## 2. Architecture Components

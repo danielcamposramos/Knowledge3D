@@ -13,7 +13,7 @@ and robust RWSF baseline that runs on a single consumer GPU.
 Usage:
   scripts/k3d_env.sh run python -m knowledge3d.models.rlwhf_policy \
     --dataset docs/reports/training/rlwhf_dataset.jsonl \
-    --out ../Knowledge3D.local/models/rlwhf_policy \
+    --out /K3D/Knowledge3D.local/models/rlwhf_policy \
     --model distilgpt2 --epochs 1 --batch 4 --max_len 384
 """
 

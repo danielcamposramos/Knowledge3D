@@ -35,7 +35,6 @@ def test_tablet_submit_uses_real_bridge_ring_query(tmp_path: Path) -> None:
         envelope = TabletIngest.math_problem(
             task_id="tablet_ring_cuda_demo",
             question="What is 2 + 2?",
-            competition="AMC",
             expected_answer="4",
         )
 

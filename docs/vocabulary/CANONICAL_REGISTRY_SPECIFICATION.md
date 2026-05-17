@@ -124,7 +124,7 @@ The first five kinds are live in Phase 7.0. The remaining kinds are reserved by 
 
 ## 4. Deterministic ID Functions
 
-All deterministic ID helpers live in [canonical_lookup.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/canonical_lookup.py).
+All deterministic ID helpers live in [canonical_lookup.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/canonical_lookup.py).
 
 ### 4.1 `canonical_slug(text)`
 
@@ -230,7 +230,7 @@ Example:
 
 ## 5. Credential Resolution
 
-Credential resolution lives in [qdrant_credentials.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/qdrant_credentials.py).
+Credential resolution lives in [qdrant_credentials.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/qdrant_credentials.py).
 
 ### 5.1 Resolution Order
 
@@ -315,7 +315,7 @@ This is the registry’s core contract:
 
 ## 7. Symlink Helpers
 
-Symlink helpers live in [symlink_helpers.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/symlink_helpers.py).
+Symlink helpers live in [symlink_helpers.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/symlink_helpers.py).
 
 ### 7.1 `append_ref(star, field_path, ref_id)`
 
@@ -385,7 +385,7 @@ This round-trip is the reference-preservation invariant made explicit.
 
 ## 8. Bootstrap Seed Script
 
-Bootstrap seeding lives in [ingest_canonical_to_qdrant.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/scripts/ingest_canonical_to_qdrant.py).
+Bootstrap seeding lives in [ingest_canonical_to_qdrant.py](/K3D/GitHub/Knowledge3D/scripts/ingest_canonical_to_qdrant.py).
 
 ### 8.1 What It Seeds
 
@@ -461,21 +461,124 @@ This script is safe to rerun because IDs are deterministic and the seed set is a
 
 ---
 
+## 8.5 WINE Contract Stars (Layer 2 — Translation Surface)
+
+### 8.5.1 Purpose
+
+WINE Contract Stars occupy **Layer 2 (Meaning)** of the four-layer foundational
+architecture. Each contract describes a full round-trip translation boundary
+between the GPU-sovereign Galaxy and one external I/O paradigm (DOM, ARC3 game
+frames, stdin/stdout text, audio, image). The contracts are the ONLY authorised
+description of how bytes leave or enter the sovereign hot path.
+
+**No Python adapter may duplicate a contract.** Python's Tablet surface class is
+bytes-in / bytes-out only. Contract logic lives exclusively in Galaxy as RPN
+programs.
+
+### 8.5.2 Struct Schema
+
+```c
+struct WineContractStar {
+    uint64_t contract_hash;        // murmur3 of paradigm signature (computed at Galaxy load)
+    uint8_t  paradigm_type;        // 0x01=DOM, 0x02=ARC3, 0x03=TEXT, 0x04=AUDIO, 0x05=IMAGE
+    uint64_t ingress_rpn_addr;     // VRAM ptr → Layer 3 Grammar Galaxy RPN program
+                                   //   stack: [...input_bytes_ptr, length, contract_ptr]
+                                   //   result: Galaxy form pointer
+    uint64_t egress_rpn_addr;      // VRAM ptr → Layer 3 Grammar Galaxy RPN program
+                                   //   stack: [...galaxy_form_ptr, contract_ptr]
+                                   //   result: [bytes_ptr, length]
+    uint64_t visual_rpn_symlink;   // optional → Layer 1 Drawing Galaxy RPN (0 if absent)
+};
+```
+
+Fields that point to programs (`ingress_rpn_addr`, `egress_rpn_addr`,
+`visual_rpn_symlink`) are **symlinks into Layer 3 (Grammar Galaxy)**. The
+contract star itself is a Layer 2 (Meaning) entry; it holds no logic —
+only pointers to logic.
+
+### 8.5.3 Canonical Registry Kind
+
+| kind | Purpose | Key shape | star_id shape | Metadata shape |
+| --- | --- | --- | --- | --- |
+| `wine_contract` | Translation surface between Galaxy and external I/O paradigm | `paradigm::{name}` | `wine_contract_{name}` | `paradigm_type`, `ingress_key`, `egress_key`, `visual_key` |
+
+`ingress_key` and `egress_key` are canonical slug keys pointing to `grammar_template`
+or `rpn_template` entries that resolve the actual RPN addresses at load time.
+
+### 8.5.4 Device-Side Contract Resolution (Galaxy Scan Flow)
+
+The persistent tick resolves the active WINE contract by `paradigm_type` using the
+opcode sequence below. This entire path runs on-device; Python never participates.
+
+```text
+// perceive_phase produces work.header.paradigm_type from the input ring slot
+PUSH  work.header.paradigm_type          // [ptype]
+0x182 WINE_RESOLVE                       // GALAXY_SCAN over WineContractStar table
+                                         // predicate: star.paradigm_type == ptype
+                                         // [contract_ptr] or 0
+
+// if contract_ptr != 0:
+PUSH  work.input_bytes_ptr
+PUSH  work.input_length
+PUSH  contract_ptr
+0x180 WINE_INGRESS_DECODE                // → [galaxy_form_ptr]
+
+// ... downstream phases (NAVIGATE, REASON, DECIDE) consume galaxy_form_ptr ...
+
+PUSH  galaxy_form_ptr
+PUSH  contract_ptr
+0x181 WINE_EGRESS_ENCODE                 // → [out_bytes_ptr, out_length]
+// act_phase writes out_bytes_ptr to the output ring
+```
+
+`WINE_RESOLVE` is backed by `GALAXY_SCAN` over the `WineContractStar` table
+(opcode `0xE2` / `AGENDA_INSERT` is the Rete agenda primitive; the Galaxy scan
+is performed internally by the `wine_contract_scan.cu` kernel wired into the
+PERCEIVE phase — see `knowledge3d/cranium/ptx_kernels/wine_contract_scan.cu`).
+
+### 8.5.5 Invariants
+
+1. The `ingress_rpn_addr` and `egress_rpn_addr` fields MUST point to Grammar
+   Galaxy programs registered in the canonical registry under `kind=grammar_template`
+   or `kind=rpn_template`. They are resolved at Galaxy load time and must never
+   be 0 for an active contract (only `visual_rpn_symlink` may be 0).
+
+2. One `paradigm_type` value maps to exactly **one** active contract at any time.
+   If multiple stars share the same `paradigm_type`, the loader takes the highest
+   `contract_hash` as canonical and logs a conflict to the boot log.
+
+3. Seed files (`docs/vocabulary/seeds/wine_contracts_seed.jsonl`) are
+   **ingestion-path only**. They are consumed once at Galaxy load time.
+   The sovereign runtime reads VRAM; it never reads the seed JSONL.
+
+4. Contract logic is version-controlled via the canonical registry. To update a
+   contract, register a new `grammar_template` for the ingress/egress program,
+   update the `wine_contract` canonical row to point to it, then reload the Galaxy.
+
+### 8.5.6 Cross-References
+
+- `TEMP/CLAUDE_CODEX_GPU_GAME_LOOP_CLOSURE_04.18.2026.md` §4.1–4.3 — authoritative struct and resolution spec
+- `THREE_BRAIN_SYSTEM_SPECIFICATION.md` — Layer 1–4 architecture (Form → Meaning → Rules → Meta-Rules)
+- `RPN_DOMAIN_OPCODE_REGISTRY.md` §8 — opcodes 0x180–0x183 (WINE_INGRESS_DECODE, WINE_EGRESS_ENCODE, WINE_RESOLVE)
+- `docs/vocabulary/seeds/wine_contracts_seed.jsonl` — three seed entries (DOM, ARC3, TEXT)
+
+---
+
 ## 9. Cross-References
 
 This specification builds on:
 
-- [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md)
-- [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
-- [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
-- [RPN_DOMAIN_OPCODE_REGISTRY.md](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)
+- [MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](/K3D/GitHub/Knowledge3D/docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md)
+- [DUAL_CLIENT_CONTRACT_SPECIFICATION.md](/K3D/GitHub/Knowledge3D/docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
+- [FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](/K3D/GitHub/Knowledge3D/docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
+- [RPN_DOMAIN_OPCODE_REGISTRY.md](/K3D/GitHub/Knowledge3D/docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)
 
 Related implementation files:
 
-- [canonical_lookup.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/canonical_lookup.py)
-- [qdrant_credentials.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/qdrant_credentials.py)
-- [symlink_helpers.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/knowledge3d/ingestion/symlink_helpers.py)
-- [ingest_canonical_to_qdrant.py](/mnt/arquivos/EchoSystems%20AI%20Studios/Knowledge%203D%20Standard/GitHub/Knowledge3D/scripts/ingest_canonical_to_qdrant.py)
+- [canonical_lookup.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/canonical_lookup.py)
+- [qdrant_credentials.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/qdrant_credentials.py)
+- [symlink_helpers.py](/K3D/GitHub/Knowledge3D/knowledge3d/ingestion/symlink_helpers.py)
+- [ingest_canonical_to_qdrant.py](/K3D/GitHub/Knowledge3D/scripts/ingest_canonical_to_qdrant.py)
 
 ---
 

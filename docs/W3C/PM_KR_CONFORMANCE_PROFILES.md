@@ -854,7 +854,7 @@ W3C Community Group MAY establish third-party certification by:
 2. Running conformance tests on submitted implementations
 3. Publishing certification registry
 
-**Proposed**: W3C PM-KR Conformance Registry (similar to HTML5 validator).
+**Proposed**: PM-KR Conformance Registry (similar to HTML5 validator).
 
 ---
 

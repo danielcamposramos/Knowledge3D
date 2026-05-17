@@ -66,7 +66,7 @@ Create `/TEMP/PRESS_KIT/` with subfolders:
 ├── 08_MEDIA_RESOURCES/
 │   ├── videos.md                      # YouTube links, descriptions, timestamps
 │   ├── screenshots.md                 # K3D viewer screenshots (placeholder paths)
-│   ├── logos.md                       # EchoSystems, RWI CIAMSD, W3C PM-KR
+│   ├── logos.md                       # EchoSystems, RWI CIAMSD, PM-KR
 │   └── social_media_copy.md           # Pre-written Twitter/LinkedIn posts
 ├── 09_QUOTES/
 │   ├── daniel_quotes.md               # 5-10 quotable statements
@@ -268,7 +268,7 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 ### 6. W3C Collaboration (06_W3C_COLLABORATION/)
 
 **pm_kr_cg_overview.md**:
-- Mission: Study and standardize procedural knowledge representation
+- Mission: Study and develop procedural knowledge representation
 - Members: 24+ (Manu Sporny, Milton Ponson, Adam Sobieski, etc.)
 - Phase 1: Data model (April 2026), Phase 2: Execution semantics (June 2026)
 - Reference implementation: Knowledge3D (K3D GitHub)
@@ -308,7 +308,7 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 - Symbolism: Global South + EU = inclusive standards development
 
 **frontier_technologies.md**:
-- AI standards (W3C PM-KR CG)
+- AI incubation (PM-KR Community Group)
 - Procedural memory (single source of truth for knowledge)
 - Spatial computing (3D workspaces, House Universe)
 - Sustainable computing (12 Gt CO₂ savings projection)
@@ -336,7 +336,7 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 **logos.md**:
 - EchoSystems AI Studios: [Placeholder path or "Contact Daniel"]
 - Rainbow Warriors Core Foundation CIAMSD Institute: [Placeholder path or "Contact Milton"]
-- W3C PM-KR CG: Use official W3C logo + "PM-KR Community Group" text
+- PM-KR Community Group: Use official W3C logo + "PM-KR Community Group" text
 
 **social_media_copy.md**:
 - 5 pre-written tweets (280 chars, carbon hook, MERCOSUR-EU narrative, W3C credibility)
@@ -420,7 +420,7 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 6. Who else is involved? (Intel, Huawei, W3C members)
 7. When will this be available? (Phase 1 spec April 2026, prototype Q3 2026)
 8. What are the use cases? (Procedural displays, sustainable AI, web standards)
-9. How can readers get involved? (Join W3C PM-KR CG, GitHub contributions)
+9. How can readers get involved? (Join PM-KR Community Group, GitHub contributions)
 10. Where can I see a demo? (YouTube videos, NotebookLM research space)
 
 ---

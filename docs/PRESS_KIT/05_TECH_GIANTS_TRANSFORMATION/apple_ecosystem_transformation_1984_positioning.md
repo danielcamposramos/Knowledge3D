@@ -24,7 +24,7 @@
 
 **Jobs understood**: Monopolies kill innovation, lock users in, and centralize control.
 
-**PM-KR embodies the same spirit**: Open standards, user sovereignty, transparent AI (vs. opaque black boxes).
+**PM-KR embodies the same spirit**: Open specifications, user sovereignty, transparent AI (vs. opaque black boxes).
 
 **Apple + PM-KR = 1984 fight against Big AI monopolies.**
 

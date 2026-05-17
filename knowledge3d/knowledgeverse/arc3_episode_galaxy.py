@@ -5,8 +5,11 @@ from __future__ import annotations
 from collections import Counter, deque
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import nullcontext
+import ctypes
 import hashlib
 import json
+import os
+import struct
 from typing import Any
 
 from knowledge3d.knowledgeverse.meaning_star import MeaningCentricStar
@@ -141,14 +144,16 @@ def _changed_cells(prev_grid: list[list[int]], next_grid: list[list[int]]) -> in
 
 
 def _detect_gpu_count() -> int:
-    try:
-        import torch  # type: ignore
-    except Exception:
-        return 0
-    try:
-        return max(0, int(torch.cuda.device_count()))
-    except Exception:
-        return 0
+    """Return visible GPU count without pulling torch.
+
+    Reads CUDA_VISIBLE_DEVICES. Sovereign single-GPU rigs (RTX 3070) report 1;
+    multi-GPU rigs report the comma-count. Tests monkeypatch this function.
+    """
+    env = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if env is None:
+        return 1
+    tokens = [tok for tok in env.split(",") if tok.strip()]
+    return len(tokens)
 
 
 _ACTION_DIRECTION = {
@@ -242,6 +247,7 @@ class ARC3EpisodeGalaxy:
         self._gpu_count = _detect_gpu_count()
         self.device_roles = self._resolve_device_roles(self._gpu_count)
         self._last_sleep_errors: list[str] = []
+        self._gpu_ring: ARC3EpisodeGPURing | None = _maybe_build_gpu_ring(self.game_id)
         self._seed_game_mechanics_priors()
         loaded = self._load_persisted_rules()
         if loaded > 0:
@@ -653,6 +659,11 @@ class ARC3EpisodeGalaxy:
             "level": int(levels_completed),
         }
         self.frames.append(frame_record)
+        if self._gpu_ring is not None:
+            try:
+                self._gpu_ring.record_frame(frame_record, normalized)
+            except Exception as exc:
+                self._last_sleep_errors = (self._last_sleep_errors + [f"gpu_ring_record:{exc}"])[-8:]
         avatar_color = _adjacent_color(normalized, "ACTION6")
         if avatar_color is not None:
             record = self._objects_by_color.setdefault(
@@ -1204,6 +1215,187 @@ class ARC3EpisodeGalaxy:
     def close(self) -> None:
         self._drain_pending_futures()
         self._executor.shutdown(wait=False, cancel_futures=True)
+        if self._gpu_ring is not None:
+            try:
+                self._gpu_ring.release()
+            except Exception:
+                pass
+            self._gpu_ring = None
+
+    def bind_for_trm_inference(self) -> dict[str, Any]:
+        """Expose the GPU ring descriptor for PTX kernel binding.
+
+        Returns an empty dict when the ring is not resident (CPU-only tests,
+        CUDA context unavailable). PTX kernels read `gpu_ptr`, `stride_bytes`,
+        and `capacity` from this descriptor.
+        """
+        if self._gpu_ring is None:
+            return {}
+        return self._gpu_ring.descriptor()
 
 
-__all__ = ["ARC3EpisodeGalaxy"]
+# ---------------------------------------------------------------------------
+# Sovereign GPU ring buffer: frame summaries resident in VRAM.
+#
+# Daniel's directive (2026-04-20): advance episode galaxy sovereign, not
+# Python, internal — no CPU copyback during inference. This class allocates a
+# 64-byte-per-frame ring on the device; seed_frame() does a single
+# `memcpy_htod()` per tick. Microlearning (crystallize/classify) still runs on
+# CPU during sleep-time; that path is intentionally kept because the rule
+# crystallization feeds Galaxy stars (ingestion path, not hot path).
+#
+# Layout per frame (64 bytes, struct-packed little-endian, matches
+# ARC3FrameStruct in ctypes below). Capacity fixed at 128 frames → 8 KiB VRAM.
+# PTX kernels reading the ring should index `(write_index - k) mod capacity`
+# for the k-th most-recent frame.
+# ---------------------------------------------------------------------------
+
+
+class ARC3FrameStruct(ctypes.Structure):
+    _pack_ = 4
+    _fields_ = [
+        ("step_count", ctypes.c_uint32),
+        ("grid_height", ctypes.c_uint32),
+        ("grid_width", ctypes.c_uint32),
+        ("action_index", ctypes.c_int32),
+        ("agent_row", ctypes.c_float),
+        ("agent_col", ctypes.c_float),
+        ("reward", ctypes.c_float),
+        ("budget_pct", ctypes.c_float),
+        ("lives_remaining", ctypes.c_int32),
+        ("level", ctypes.c_int32),
+        ("cells_changed", ctypes.c_int32),
+        ("flags", ctypes.c_uint32),         # bit0=blocked, bit1=death, bit2=level_complete, bit3=agent_moved
+        ("adjacent_color", ctypes.c_int32),
+        ("foreground_mask", ctypes.c_uint32),  # bitmap of foreground colors 0..31
+        ("grid_hash_low", ctypes.c_uint32),
+        ("grid_hash_high", ctypes.c_uint32),
+    ]
+
+
+assert ctypes.sizeof(ARC3FrameStruct) == 64, "ARC3FrameStruct must pack to exactly 64 bytes"
+
+
+def _maybe_build_gpu_ring(game_id: str) -> "ARC3EpisodeGPURing | None":
+    """Best-effort ring construction. Returns None if CUDA is not available."""
+    if os.environ.get("K3D_ARC3_DISABLE_GPU_RING", "").strip() not in {"", "0", "false", "False"}:
+        return None
+    try:
+        from knowledge3d.cranium.sovereign import loader  # type: ignore
+    except Exception:
+        return None
+    try:
+        return ARC3EpisodeGPURing(game_id=game_id, loader_mod=loader, capacity=128)
+    except Exception:
+        return None
+
+
+class ARC3EpisodeGPURing:
+    """VRAM-resident ring of ARC3FrameStruct. Write-only on the hot path."""
+
+    FRAME_BYTES = 64
+
+    def __init__(self, *, game_id: str, loader_mod: Any, capacity: int = 128) -> None:
+        self.game_id = str(game_id or "unknown")
+        self._loader = loader_mod
+        self.capacity = max(8, int(capacity))
+        self._total_bytes = self.capacity * self.FRAME_BYTES
+        self._gpu_ptr = loader_mod.gpu_malloc(self._total_bytes)
+        # Zero the ring so PTX readers see a consistent initial state.
+        zeros = bytearray(self._total_bytes)
+        self._memcpy_htod(self._gpu_ptr, zeros)
+        self._write_index = 0
+        self._frame_count = 0
+
+    @staticmethod
+    def _action_to_index(action: Any) -> int:
+        name = str(action or "").strip().upper()
+        if name.startswith("ACTION"):
+            try:
+                return int(name.replace("ACTION", "")) - 1
+            except Exception:
+                return -1
+        if isinstance(action, int):
+            return int(action)
+        return -1
+
+    @staticmethod
+    def _foreground_mask(colors: list[int]) -> int:
+        mask = 0
+        for color in colors or []:
+            try:
+                idx = int(color)
+            except Exception:
+                continue
+            if 0 <= idx < 32:
+                mask |= (1 << idx)
+        return mask
+
+    @staticmethod
+    def _hash_halves(grid_hash_hex: str) -> tuple[int, int]:
+        text = str(grid_hash_hex or "").strip()
+        if len(text) < 8:
+            return (0, 0)
+        low = int(text[:8], 16) if len(text) >= 8 else 0
+        high = int(text[8:16], 16) if len(text) >= 16 else 0
+        return (low & 0xFFFFFFFF, high & 0xFFFFFFFF)
+
+    def _memcpy_htod(self, dst_ptr: Any, payload: bytes | bytearray) -> None:
+        host = ctypes.c_void_p(ctypes.addressof(ctypes.c_ubyte.from_buffer(bytearray(payload))))
+        self._loader.memcpy_htod(dst_ptr, host, len(payload))
+
+    def record_frame(self, frame_record: dict[str, Any], grid: list[list[int]]) -> None:
+        flags = 0
+        flags |= 0x1 if bool(frame_record.get("is_blocked", False)) else 0
+        flags |= 0x2 if bool(frame_record.get("is_death", False)) else 0
+        flags |= 0x4 if bool(frame_record.get("is_level_complete", False)) else 0
+        flags |= 0x8 if bool(frame_record.get("agent_moved", False)) else 0
+        hash_low, hash_high = self._hash_halves(str(frame_record.get("grid_hash", "")))
+        entry = ARC3FrameStruct(
+            step_count=int(max(0, int(frame_record.get("step_count", 0) or 0))),
+            grid_height=int(max(0, int(frame_record.get("grid_height", 0) or 0))),
+            grid_width=int(max(0, int(frame_record.get("grid_width", 0) or 0))),
+            action_index=int(self._action_to_index(frame_record.get("action_taken", ""))),
+            agent_row=float(frame_record.get("agent_row", -1.0) or -1.0),
+            agent_col=float(frame_record.get("agent_col", -1.0) or -1.0),
+            reward=float(frame_record.get("reward", 0.0) or 0.0),
+            budget_pct=float(frame_record.get("budget_pct", -1.0) or -1.0),
+            lives_remaining=int(frame_record.get("lives_remaining", -1) or -1),
+            level=int(frame_record.get("level", 0) or 0),
+            cells_changed=int(frame_record.get("cells_changed", 0) or 0),
+            flags=ctypes.c_uint32(flags).value,
+            adjacent_color=int(frame_record.get("adjacent_color", -1) if frame_record.get("adjacent_color") is not None else -1),
+            foreground_mask=ctypes.c_uint32(self._foreground_mask(list(frame_record.get("foreground_colors", []) or []))).value,
+            grid_hash_low=ctypes.c_uint32(hash_low).value,
+            grid_hash_high=ctypes.c_uint32(hash_high).value,
+        )
+        slot = self._write_index % self.capacity
+        offset = slot * self.FRAME_BYTES
+        dst = type(self._gpu_ptr)(int(self._gpu_ptr.value) + offset) if hasattr(self._gpu_ptr, "value") else self._gpu_ptr
+        host_ptr = ctypes.c_void_p(ctypes.addressof(entry))
+        self._loader.memcpy_htod(dst, host_ptr, self.FRAME_BYTES)
+        self._write_index = (self._write_index + 1) % (self.capacity * 1_000_000)
+        self._frame_count = min(self.capacity, self._frame_count + 1)
+
+    def descriptor(self) -> dict[str, Any]:
+        return {
+            "gpu_ptr": int(self._gpu_ptr.value) if hasattr(self._gpu_ptr, "value") else int(self._gpu_ptr),
+            "capacity": int(self.capacity),
+            "stride_bytes": int(self.FRAME_BYTES),
+            "frame_count": int(self._frame_count),
+            "write_index": int(self._write_index),
+            "total_bytes": int(self._total_bytes),
+            "game_id": self.game_id,
+        }
+
+    def release(self) -> None:
+        if self._gpu_ptr is None:
+            return
+        try:
+            self._loader.gpu_free(self._gpu_ptr)
+        finally:
+            self._gpu_ptr = None
+            self._frame_count = 0
+
+
+__all__ = ["ARC3EpisodeGalaxy", "ARC3EpisodeGPURing", "ARC3FrameStruct"]

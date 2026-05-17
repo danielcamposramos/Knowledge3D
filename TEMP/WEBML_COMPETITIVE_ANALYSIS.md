@@ -12,7 +12,7 @@ Goal: Position PM-KR as complementary to ongoing WebML proposal directions.
 | #12 | WebMCP API | Agent/tool interoperability | PM-KR focuses on canonical procedural knowledge units and auditable execution traces | Use PM-KR artifacts as reusable tool semantics payloads in MCP workflows |
 | #5 | Hybrid AI Exploration | Model distribution, caching, partitioning | PM-KR emphasizes deduplicated procedural composition for reusable knowledge | Pair PM-KR deduplication profile with hybrid model distribution efforts |
 | #8 | Prompt API local RAG use cases | Retrieval and prompting UX | PM-KR emphasizes deterministic procedural memory, not prompt UX surface | Use PM-KR as structured retrieval substrate behind RAG pipelines |
-| #9 | Local Inference extension | Fast prototyping path | PM-KR is standardizable representation layer, not extension delivery mechanism | Pilot PM-KR artifacts inside extension prototypes to generate evidence |
+| #9 | Local Inference extension | Fast prototyping path | PM-KR is a specification-ready representation layer, not extension delivery mechanism | Pilot PM-KR artifacts inside extension prototypes to generate evidence |
 
 ## 2. Where PM-KR Must Avoid Competition Framing
 

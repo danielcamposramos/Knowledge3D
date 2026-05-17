@@ -3,7 +3,7 @@
 # Usage: scripts/queue_wiki_embed_build.sh [N]
 set -euo pipefail
 ROOT_DIR=$(cd "$(dirname "$0")/.." && pwd)
-DATA_DIR=${K3D_DATA_DIR:-"$ROOT_DIR/../Knowledge3D.local/datasets"}
+DATA_DIR=${K3D_DATA_DIR:-"$ROOT_DIR//K3D/Knowledge3D.local/datasets"}
 N=${1:-500000}
 LOG="$DATA_DIR/wikipedia_embed.log"
 PID="$DATA_DIR/wikipedia_embed.pid"

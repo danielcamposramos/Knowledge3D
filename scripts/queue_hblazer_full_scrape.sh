@@ -7,8 +7,8 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON_BIN="/K3D/Knowledge3D.local/envs/k3d-cranium/bin/python"
 
-TOPICAL_STATE="$PROJECT_ROOT/../Knowledge3D.local/scrapes/hblazer_substack/state.json"
-FULL_OUTPUT="$PROJECT_ROOT/../Knowledge3D.local/scrapes/hblazer_substack_full"
+TOPICAL_STATE="/K3D/Knowledge3D.local/scrapes/hblazer_substack/state.json"
+FULL_OUTPUT="/K3D/Knowledge3D.local/scrapes/hblazer_substack_full"
 LOG_FILE="/tmp/k3d_hblazer_full_queue.log"
 
 MIN_DELAY="${MIN_DELAY:-60}"

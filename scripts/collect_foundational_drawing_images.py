@@ -78,22 +78,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Download diagram images from source HTML.")
     parser.add_argument(
         "--manifest",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/manifest.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/manifest.jsonl",
         help="Source manifest path",
     )
     parser.add_argument(
         "--raw-dir",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/raw_html",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/raw_html",
         help="Raw HTML dir",
     )
     parser.add_argument(
         "--image-dir",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/raw_images",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/raw_images",
         help="Image output directory",
     )
     parser.add_argument(
         "--output-catalog",
-        default="../Knowledge3D.local/datasets/foundational_drawing_sources/image_catalog.jsonl",
+        default="/K3D/Knowledge3D.local/datasets/foundational_drawing_sources/image_catalog.jsonl",
         help="Image catalog output JSONL",
     )
     parser.add_argument("--max-images", type=int, default=500, help="Maximum images to download")

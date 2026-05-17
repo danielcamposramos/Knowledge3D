@@ -58,6 +58,7 @@ Return this schema exactly:
       "grammar_refs": ["grammar_quantity_unit_binding"],
       "reality_refs": ["unit_money_dollar"],
       "meta_refs": ["source_span:0-120"],
+      "sources": ["https://example.com/reference"],
       "relationships": [{"from": "x", "relation": "part_of", "to": "y"}],
       "route_contract": {
         "route_family": "MATH|QUESTION|GENERAL|GRAMMAR|GAME_2D",
@@ -83,6 +84,286 @@ Rules:
 - Every id and label must be meaning-named, never benchmark-named
 """
 
+PROCEDURALIZER_DIFFERENTIATION_PREAMBLE = """
+You are in DIFFERENTIATION MODE.
+
+The source row you see shares a content hash with peer rows in the same galaxy.
+Peer content samples are provided so you can see what sibling rows already say.
+Your task is to extend the current row with concrete, web-sourced specifics that
+the peers do not already contain.
+
+Differentiation rules:
+- Use only details supported by the attached web_evidence payload.
+- When you introduce a concrete fact, property, date, dimension, taxonomy term,
+  named part, or authoritative definition, cite at least one supporting URL in
+  the packet field `sources`.
+- If the web_evidence is empty or not distinctive enough to separate this row
+  from its peers, return:
+  {"status":"unresolvable","ingest_action":"skip","knowledge_packets":[]}
+- Do not fabricate. Do not cite URLs that are not present in web_evidence.
+"""
+
+
+PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE = """
+You are in MEANING RESOLUTION MODE.
+
+The source content is a duplicate-content cluster, not an individual row.
+Your task is to decide whether the cluster should collapse by meaning,
+split by polysemy, partially merge/split, or remain unresolved.
+
+Allowed outcomes:
+- merge_to_meaning_star
+- split_polysemy
+- mixed
+- unresolvable
+
+### Core principle — language is NOT a distinguishing meaning
+
+Rows that refer to the SAME real-world concept but write it in different
+languages, scripts, or spellings are ONE meaning. They MUST collapse into a
+single meaning star. Language is a surface property and belongs on the
+surface_symlink, NEVER on the meaning star.
+
+### Concept families that ALWAYS merge across languages, scripts, spellings
+
+If the cluster matches any of these, the outcome is merge_to_meaning_star
+unless the web_evidence affirmatively contradicts it:
+
+1. Cardinal numbers / ordinal numbers / integers (e.g. 208, 483, 959)
+2. SI units, imperial units, currency units (metre / meter, kilogram, °C, $)
+3. Chemical elements and compounds (gold / Au, water / H2O / 水)
+4. Named entities: people, places, organizations, titles, product names
+5. Scientific / mathematical constants (π, e, c, Avogadro, golden ratio)
+6. Physical quantities with a canonical value (speed of light, G, ℏ)
+7. ISO standards, codes, abbreviations (ISO 8601, UTF-8, RGB)
+8. Dates / date components (March, Monday, year 2026)
+9. Taxonomic names (Canis lupus familiaris)
+10. Technical terms with a single agreed definition (algorithm, entropy, pH)
+11. Unicode codepoints referring to the same abstract character
+12. Identical glyph variants across scripts that denote the same concept
+
+### ID convention — MANDATORY
+
+- Every meaning star id MUST be language-neutral.
+- Forbidden suffixes on any meaning star id:
+  `_en`, `_ja`, `_pt`, `_zh`, `_es`, `_fr`, `_de`, `_it`, `_ru`,
+  `_ar`, `_hi`, `_ko`, `_nl`, `_sv`, `_pl`, `_tr`, `_he`, `_vi`,
+  `_id`, `_th`, and any two-letter ISO-639-1 language suffix.
+- Forbidden prefixes indicating language: `en_`, `ja_`, `pt_`, etc.
+- Preferred id styles: `synset_<digits>_<pos>` (WordNet), `cardinal_<N>`,
+  `unit_<slug>`, `element_<symbol>`, `constant_<slug>`, `concept_<slug>`.
+- Every meaning star MUST set `surface_forms` as a dict keyed by ISO-639-1
+  language code, containing ONE entry per input language that appears in the
+  cluster (e.g. `{"en": "...", "ja": "...", "pt": "..."}`). Do NOT emit a
+  separate meaning star per language.
+
+### Word symlink cascade — MEANING stars symlink to WORD stars
+
+K3D is meaning-centric, not word-centric. The full symlink cascade is:
+
+    drawing primitive  ->  character  ->  word  ->  meaning star
+    (RPN shape)           (glyph+lang)   (chars)    (concept)
+
+A single meaning can map to MANY words in ONE language (e.g. Portuguese
+"depois" and "apos" both point at the same temporal concept) and a single
+word can point at MANY meanings in another language (e.g. English "bank" ->
+river-bank + financial-bank). That is precisely why we dedupe by meaning.
+
+When a word-level row in the cluster already has a known star id in the
+Word Galaxy, the meaning star SHOULD reference it through two fields:
+
+  `word_refs`: a FLAT array of word-star ids (symlink targets). This form
+               is what the galaxy normalizer + audit track as a bidirectional
+               ref-list field (matches other *_refs conventions).
+  `word_refs_by_language`: a DICT keyed by ISO-639-1 language code, values
+               are arrays of word-star ids for that language. This form
+               preserves the many-to-many word<->meaning mapping
+               (e.g. "depois" + "apos" in pt both pointing at the same
+               temporal meaning). Must be the per-language union of the
+               flat `word_refs`.
+
+Prefer refs over re-copying strings. `surface_forms` remains the fallback
+when no stable word star id exists yet for that language; a sleep-time
+compaction pass will upgrade strings to refs as word stars are registered.
+Emit BOTH refs and surface strings when you can: the refs carry the
+symlink graph, the strings carry a human-readable anchor for the dual
+client.
+
+### Sources — required for factual claims, optional for common vocabulary
+
+`sources` is a grounding anchor, not a universal gate. The rule:
+
+- REQUIRED when the meaning asserts a factual claim that must be verifiable:
+  scientific constants, SI units, chemical elements, named entities, dates,
+  ISO standards, taxonomic names, and any value that changes meaning if
+  wrong. `meaning_class` in {"fact", "scientific_constant", "named_entity",
+  "iso_standard", "date", "taxonomic_name", "unit"} -> sources REQUIRED.
+- OPTIONAL when the meaning is a common vocabulary item, grammatical
+  particle, preposition, or concept whose meaning is self-evident from the
+  cluster's surface rows (e.g. "after", "with", "space character"). Emit
+  `sources: []` if you have none; do NOT fabricate URLs to satisfy a schema.
+- NEVER invent URLs. If web_evidence is empty and the meaning is factual,
+  emit `"status":"unresolvable"` instead of making things up.
+
+### Polysemy is STRICT
+
+split_polysemy is only valid when DIFFERENT senses share the SAME surface form
+AND the web_evidence contains two or more distinct definitions for that
+surface. Examples: "bank" (river / financial), "light" (photon / low-weight),
+"acuity" (visual sharpness / mental sharpness).
+
+split_polysemy is INVALID and you MUST reject it when:
+- Rows differ by language, script, or spelling variant.
+- Surface forms differ between rows (e.g. "483" vs "四百八十三" vs
+  "quatrocentos e oitenta e tres") — those are translations, not senses.
+- You would produce meaning star ids differing only by a language suffix.
+
+If the cluster mixes one-to-many polysemy on one surface together with
+translations of another surface, use outcome="mixed".
+
+### Sources and honesty
+
+- Do not cite URLs that are not present in web_evidence.
+- For factual meaning classes (fact, scientific_constant, named_entity,
+  iso_standard, date, taxonomic_name, unit), sources MUST contain at least
+  one URL drawn from web_evidence. If none are available, emit:
+  `{"status":"unresolvable","outcome":"unresolvable","ingest_action":"skip",
+    "meaning_stars":[], "surface_symlinks":[], "knowledge_packets":[]}`
+- For common vocabulary (meaning_class in {"word","concept","grammatical",
+  "preposition","conjunction","symbol","punctuation","space"}), sources is
+  optional — emit `[]` if you have none. Semantic content plus multi-language
+  surface_forms is sufficient grounding for these.
+- Never guess. Never fabricate.
+
+### Output shape — STRICT JSON ONLY, no prose before/after
+
+Return ONLY this object, no markdown fences, no prefix/suffix text:
+
+{
+  "ingest_action": "augment|skip",
+  "status": "resolved|unresolvable",
+  "outcome": "merge_to_meaning_star|split_polysemy|mixed|unresolvable",
+  "meaning_stars": [ { ... row object ... } ],
+  "surface_symlinks": [ { ... row object ... } ],
+  "knowledge_packets": []
+}
+
+Each meaning_star object MUST include:
+  id, layer_kind="meaning", meaning_class, meaning_rpn, summary, domain,
+  surface_forms (multi-language dict), sources (array; empty array is legal
+  for non-factual meaning classes), confidence, needs_review.
+
+Each meaning_star SHOULD include (when word stars exist for the languages
+present in the cluster):
+  word_refs: FLAT array of word-star ids (dedup union of all languages).
+             Normalizer + audit treat this as a bidirectional ref list.
+  word_refs_by_language: object keyed by ISO-639-1 language code, values
+             are arrays of word-star ids per language. Multiple words per
+             language are allowed and common (Portuguese has many words
+             for one concept; English has one word for many concepts).
+             Must be the per-language partition of `word_refs`.
+
+Each surface_symlink object MUST include:
+  id, layer_kind="form", meaning_class="symbol", meaning_rpn,
+  points_to (string id of the target meaning star, OR list of such ids),
+  surface_forms (single-language dict), sources (optional for common
+  vocabulary), confidence, needs_review.
+
+### Positive exemplar (merge_to_meaning_star)
+
+Input rows: `word_two_hundred_eight` (en), `word_ja_num_208` (ja),
+`word_pt_num_208` (pt), all describing the cardinal 208. Note the input
+row ids ARE the word-star ids in the Word Galaxy and MUST appear on BOTH
+`word_refs` (flat) and `word_refs_by_language` (partitioned).
+
+Correct output:
+{
+  "ingest_action": "augment",
+  "status": "resolved",
+  "outcome": "merge_to_meaning_star",
+  "meaning_stars": [{
+    "id": "synset_03182795_n",
+    "layer_kind": "meaning",
+    "meaning_class": "fact",
+    "meaning_rpn": "num_208 VALUE",
+    "summary": "The cardinal number 208.",
+    "domain": "Language",
+    "surface_forms": {"en": "two hundred eight", "ja": "二百八",
+                      "pt": "duzentos e oito"},
+    "word_refs": ["word_two_hundred_eight", "word_ja_num_208",
+                  "word_pt_num_208"],
+    "word_refs_by_language": {"en": ["word_two_hundred_eight"],
+                              "ja": ["word_ja_num_208"],
+                              "pt": ["word_pt_num_208"]},
+    "sources": ["https://www.merriam-webster.com/..."],
+    "confidence": 0.98, "needs_review": false
+  }],
+  "surface_symlinks": [
+    {"id": "word_two_hundred_eight", "layer_kind": "form",
+     "meaning_class": "symbol", "meaning_rpn":
+     "LOOKUP synset_03182795_n LANGUAGE_en",
+     "points_to": "synset_03182795_n",
+     "surface_forms": {"en": "two hundred eight"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false},
+    {"id": "word_ja_num_208", "points_to": "synset_03182795_n",
+     "layer_kind": "form", "meaning_class": "symbol",
+     "meaning_rpn": "LOOKUP synset_03182795_n LANGUAGE_ja",
+     "surface_forms": {"ja": "二百八"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false},
+    {"id": "word_pt_num_208", "points_to": "synset_03182795_n",
+     "layer_kind": "form", "meaning_class": "symbol",
+     "meaning_rpn": "LOOKUP synset_03182795_n LANGUAGE_pt",
+     "surface_forms": {"pt": "duzentos e oito"},
+     "sources": ["https://www.merriam-webster.com/..."],
+     "confidence": 0.95, "needs_review": false}
+  ],
+  "knowledge_packets": []
+}
+
+### Second positive exemplar — common vocabulary, no URL source
+
+Input rows: `word_en_after` (en, "after"), `word_pt_depois` (pt, "depois"),
+`word_pt_apos` (pt, "apos"). Three words, one meaning (temporal ordering).
+This is NOT a factual claim — no URL is required.
+
+Correct output (abbreviated):
+{
+  "meaning_stars": [{
+    "id": "concept_temporal_after",
+    "layer_kind": "meaning",
+    "meaning_class": "preposition",
+    "meaning_rpn": "TIME_ORDERING LATER_THAN",
+    "summary": "Occurring later in time than a reference point.",
+    "domain": "Language",
+    "surface_forms": {"en": "after", "pt": "depois"},
+    "word_refs": ["word_en_after", "word_pt_depois", "word_pt_apos"],
+    "word_refs_by_language": {"en": ["word_en_after"],
+                              "pt": ["word_pt_depois", "word_pt_apos"]},
+    "sources": [],
+    "confidence": 0.95, "needs_review": false
+  }],
+  ...
+}
+
+Note: Portuguese has TWO words (`depois`, `apos`) pointing at the ONE
+meaning. English has ONE word (`after`) but the SAME word could point at
+OTHER meanings in different clusters (that is polysemy — handled by its
+own split_polysemy outcome when it occurs).
+
+### Negative exemplar — what NOT to do (the 483 failure)
+
+DO NOT produce three meaning stars `synset_num_483_en`, `synset_num_483_ja`,
+`synset_num_483_pt`. That violates the ID convention (language suffix on
+meaning star) AND the core principle (language is not a differentiating
+meaning). For that input, produce ONE meaning star `cardinal_483` or
+`synset_<wnid>_n` with all three languages on its `surface_forms` dict,
+plus three surface_symlink rows pointing at it, AND the flat `word_refs`
+plus `word_refs_by_language` dict linking each input row id to its
+language code.
+"""
+
 
 PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -90,6 +371,21 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
         "ingest_action": {
             "type": "string",
             "enum": ["skip", "augment", "needs_context", "reject"],
+        },
+        "status": {
+            "type": "string",
+        },
+        "outcome": {
+            "type": "string",
+            "enum": ["enriched", "merge_to_meaning_star", "split_polysemy", "mixed", "unresolvable"],
+        },
+        "meaning_stars": {
+            "type": "array",
+            "items": {"type": "object"},
+        },
+        "surface_symlinks": {
+            "type": "array",
+            "items": {"type": "object"},
         },
         "knowledge_packets": {
             "type": "array",
@@ -117,6 +413,7 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
                     "grammar_refs": {"type": "array", "items": {"type": "string"}},
                     "reality_refs": {"type": "array", "items": {"type": "string"}},
                     "meta_refs": {"type": "array", "items": {"type": "string"}},
+                    "sources": {"type": "array", "items": {"type": "string"}},
                     "relationships": {
                         "type": "array",
                         "items": {
@@ -147,6 +444,7 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
                     "grammar_refs",
                     "reality_refs",
                     "meta_refs",
+                    "sources",
                     "relationships",
                     "confidence",
                     "needs_review",
@@ -160,9 +458,139 @@ PROCEDURALIZER_BUNDLE_JSON_SCHEMA: dict[str, Any] = {
 }
 
 
+# Two-letter ISO-639-1 language codes that MUST NOT appear as an `_<code>`
+# suffix on any meaning star id. Used by both the parser and (informally) by
+# the meaning-resolution preamble.
+LANGUAGE_SUFFIX_BLACKLIST: tuple[str, ...] = (
+    "en", "ja", "pt", "zh", "es", "fr", "de", "it", "ru", "ar", "hi", "ko",
+    "nl", "sv", "pl", "tr", "he", "vi", "id", "th", "cs", "da", "el", "fa",
+    "fi", "hu", "no", "ro", "sk", "uk", "ur", "bn", "ms", "tl",
+)
+
+
+PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "ingest_action": {
+            "type": "string",
+            "enum": ["skip", "augment", "needs_context", "reject"],
+        },
+        "status": {
+            "type": "string",
+            "enum": ["resolved", "unresolvable"],
+        },
+        "outcome": {
+            "type": "string",
+            "enum": [
+                "merge_to_meaning_star",
+                "split_polysemy",
+                "mixed",
+                "unresolvable",
+            ],
+        },
+        "meaning_stars": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "layer_kind": {"type": "string", "enum": ["meaning"]},
+                    "meaning_class": {"type": "string"},
+                    "meaning_rpn": {"type": "string"},
+                    "summary": {"type": "string"},
+                    "domain": {"type": "string"},
+                    "surface_forms": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                        "minProperties": 1,
+                    },
+                    "word_refs": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                    "word_refs_by_language": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "type": "array",
+                            "items": {"type": "string", "minLength": 1},
+                        },
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "confidence": {"type": "number"},
+                    "needs_review": {"type": "boolean"},
+                },
+                "required": [
+                    "id",
+                    "layer_kind",
+                    "meaning_rpn",
+                    "summary",
+                    "surface_forms",
+                ],
+                "additionalProperties": True,
+            },
+        },
+        "surface_symlinks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "minLength": 1},
+                    "layer_kind": {"type": "string", "enum": ["form"]},
+                    "meaning_class": {"type": "string"},
+                    "meaning_rpn": {"type": "string"},
+                    "points_to": {
+                        "oneOf": [
+                            {"type": "string", "minLength": 1},
+                            {
+                                "type": "array",
+                                "items": {"type": "string", "minLength": 1},
+                                "minItems": 1,
+                            },
+                        ],
+                    },
+                    "surface_forms": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                        "minProperties": 1,
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                    "confidence": {"type": "number"},
+                    "needs_review": {"type": "boolean"},
+                },
+                "required": [
+                    "id",
+                    "layer_kind",
+                    "points_to",
+                    "surface_forms",
+                ],
+                "additionalProperties": True,
+            },
+        },
+        "knowledge_packets": {
+            "type": "array",
+            "items": {"type": "object"},
+        },
+    },
+    "required": [
+        "ingest_action",
+        "outcome",
+        "meaning_stars",
+        "surface_symlinks",
+    ],
+    "additionalProperties": False,
+}
+
+
 _NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
 _BENCHMARK_TOKEN_RE = re.compile(r"\b(mmlu|gsm8k|lhe|arc|imo|aime|amc|omni|benchmark)\b", re.IGNORECASE)
 _THINK_RE = re.compile(r"<think>.*?</think>", re.IGNORECASE | re.DOTALL)
+_URL_RE = re.compile(r"^https?://\S+$", re.IGNORECASE)
 
 
 def _sha(text: str, *, size: int = 12) -> str:
@@ -227,6 +655,9 @@ class ProceduralizerRequest:
     existing_ref_menu: str = ""
     quality_profile: str = "quality"
     ingest_mode: str = "augment"
+    mode: str = "standard"
+    peer_content_sample: list[str] | None = None
+    web_evidence: list[dict[str, Any]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -248,6 +679,7 @@ class ProceduralizerPacket:
     grammar_refs: list[str] = field(default_factory=list)
     reality_refs: list[str] = field(default_factory=list)
     meta_refs: list[str] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
     relationships: list[dict[str, str]] = field(default_factory=list)
     route_contract: dict[str, Any] | None = None
     confidence: float = 0.0
@@ -260,11 +692,19 @@ class ProceduralizerPacket:
 @dataclass
 class ProceduralizerBundle:
     ingest_action: str
+    status: str = ""
+    outcome: str = "enriched"
+    meaning_stars: list[dict[str, Any]] = field(default_factory=list)
+    surface_symlinks: list[dict[str, Any]] = field(default_factory=list)
     knowledge_packets: list[ProceduralizerPacket] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "ingest_action": self.ingest_action,
+            "status": self.status,
+            "outcome": self.outcome,
+            "meaning_stars": self.meaning_stars,
+            "surface_symlinks": self.surface_symlinks,
             "knowledge_packets": [packet.to_dict() for packet in self.knowledge_packets],
         }
 
@@ -326,6 +766,25 @@ def _normalize_ref_list(value: Any) -> list[str]:
     return out
 
 
+def _normalize_sources(value: Any, *, allowed_urls: set[str] | None = None) -> list[str]:
+    out: list[str] = []
+    if not isinstance(value, list):
+        return out
+    seen: set[str] = set()
+    for item in value:
+        text = str(item or "").strip()
+        if not text or not _URL_RE.match(text):
+            continue
+        if allowed_urls is not None and text not in allowed_urls:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(text)
+    return out
+
+
 def _normalize_relationships(value: Any) -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     if not isinstance(value, list):
@@ -363,6 +822,177 @@ def _normalize_route_contract(value: Any) -> dict[str, Any] | None:
     }
 
 
+def _allowed_urls_from_request(request: ProceduralizerRequest) -> set[str] | None:
+    urls: set[str] = set()
+    for item in list(request.web_evidence or []):
+        if not isinstance(item, dict):
+            continue
+        direct = str(item.get("url") or "").strip()
+        if direct:
+            urls.add(direct)
+        for hit in list(item.get("hits") or []):
+            if not isinstance(hit, dict):
+                continue
+            nested = str(hit.get("url") or "").strip()
+            if nested:
+                urls.add(nested)
+    return urls or None
+
+
+def _cluster_size_from_request(request: ProceduralizerRequest) -> int:
+    for chunk in list(request.context_chunks or []):
+        text = str(chunk or "").strip()
+        if not text.startswith("cluster_size="):
+            continue
+        _, _, value = text.partition("=")
+        try:
+            return max(0, int(value.strip()))
+        except ValueError:
+            return 0
+    return 0
+
+
+def _normalize_points_to(value: Any) -> str | list[str] | None:
+    if isinstance(value, list):
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            text = str(item or "").strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            out.append(text)
+        return out or None
+    text = str(value or "").strip()
+    return text or None
+
+
+def _normalize_emitted_row(value: Any, *, allowed_urls: set[str] | None) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    row = json.loads(json.dumps(value, ensure_ascii=False))
+    row_id = str(row.get("id") or row.get("row_id") or row.get("star_id") or row.get("proposed_star_id") or "").strip()
+    if not row_id:
+        return None
+    row["id"] = row_id
+    if "star_id" not in row:
+        row["star_id"] = row_id
+    metadata = dict(row.get("metadata") or {})
+    packet_sources = metadata.get("sources")
+    if not packet_sources:
+        packet_sources = row.get("sources")
+    sources = _normalize_sources(packet_sources, allowed_urls=allowed_urls)
+    metadata["sources"] = sources
+    for key in ("surface_forms", "symbol_refs", "word_refs", "taxonomy_refs", "grammar_refs", "reality_refs", "meta_refs", "relationships"):
+        if key not in metadata and key in row:
+            metadata[key] = row.get(key)
+    if "name" not in row:
+        row["name"] = str(row.get("summary") or row_id).strip()
+    if "content" not in row:
+        row["content"] = str(row.get("summary") or row.get("meaning_rpn") or row_id).strip()
+    if "rpn_program" not in row and str(row.get("meaning_rpn") or "").strip():
+        row["rpn_program"] = str(row.get("meaning_rpn") or "").strip()
+    star_type = str(row.get("star_type") or "").strip().lower()
+    layer_kind = str(row.get("layer_kind") or "").strip().lower()
+    if not star_type:
+        row["star_type"] = "meaning_concept" if layer_kind == "meaning" else "surface_symlink"
+    if "galaxy" not in row or not str(row.get("galaxy") or "").strip():
+        if str(row.get("star_type") or "").strip().lower() == "meaning_concept":
+            row["galaxy"] = "meaning_layer_stars"
+    relationships = list(row.get("relationships") or metadata.get("relationships") or [])
+    if "points_to" in row:
+        normalized = _normalize_points_to(row.get("points_to"))
+        if normalized is None:
+            row.pop("points_to", None)
+        else:
+            row["points_to"] = normalized
+    else:
+        relationship_targets = []
+        for item in relationships:
+            if not isinstance(item, dict):
+                continue
+            if str(item.get("relation") or "").strip() != "points_to":
+                continue
+            target = str(item.get("to") or "").strip()
+            if target:
+                relationship_targets.append(target)
+        normalized = _normalize_points_to(relationship_targets)
+        if normalized is not None:
+            row["points_to"] = normalized
+    if "points_to" in row:
+        normalized = _normalize_points_to(row.get("points_to"))
+        if normalized is None:
+            row.pop("points_to", None)
+        else:
+            row["points_to"] = normalized
+    elif "points_to" in metadata:
+        normalized = _normalize_points_to(metadata.get("points_to"))
+        if normalized is not None:
+            row["points_to"] = normalized
+    row["metadata"] = metadata
+    return row
+
+
+def _row_sources(row: dict[str, Any]) -> list[str]:
+    metadata = dict(row.get("metadata") or {})
+    return [str(item).strip() for item in list(metadata.get("sources") or []) if str(item).strip()]
+
+
+# Meaning classes whose content is a verifiable factual claim — sources must
+# be grounded in web_evidence URLs for these. Everything else (common
+# vocabulary, prepositions, symbols, grammatical particles) can legitimately
+# carry an empty sources list.
+FACTUAL_MEANING_CLASSES: frozenset[str] = frozenset(
+    {
+        "fact",
+        "scientific_constant",
+        "physical_constant",
+        "mathematical_constant",
+        "named_entity",
+        "person",
+        "place",
+        "organization",
+        "title",
+        "product",
+        "iso_standard",
+        "standard",
+        "date",
+        "taxonomic_name",
+        "unit",
+        "si_unit",
+        "chemical_element",
+        "compound",
+    }
+)
+
+
+def _is_factual_meaning(row: dict[str, Any]) -> bool:
+    meaning_class = str(row.get("meaning_class") or "").strip().lower()
+    if meaning_class in FACTUAL_MEANING_CLASSES:
+        return True
+    domain = str(row.get("domain") or "").strip().lower()
+    if domain in {"reality", "physics", "chemistry", "biology", "math", "mathematics"}:
+        return True
+    return False
+
+
+def _row_points_to(row: dict[str, Any]) -> list[str]:
+    value = row.get("points_to")
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def proceduralizer_system_prompt(request: ProceduralizerRequest) -> str:
+    mode = str(request.mode or "standard").strip().lower()
+    if mode == "differentiation":
+        return f"{PROCEDURALIZER_SYSTEM_PROMPT.strip()}\n\n{PROCEDURALIZER_DIFFERENTIATION_PREAMBLE.strip()}"
+    if mode == "meaning_resolution":
+        return f"{PROCEDURALIZER_SYSTEM_PROMPT.strip()}\n\n{PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE.strip()}"
+    return PROCEDURALIZER_SYSTEM_PROMPT
+
+
 def _fallback_bundle(
     request: ProceduralizerRequest,
     *,
@@ -382,6 +1012,9 @@ def _fallback_bundle(
         "timeout",
         "context_exhausted",
         "plan_limit_consumed",
+        "missing_sources",
+        "language_suffixed_meaning_id",
+        "language_variant_over_split",
     }:
         action = "reject"
     else:
@@ -405,11 +1038,135 @@ def _fallback_bundle(
     return ProceduralizerBundle(ingest_action="augment", knowledge_packets=[packet])
 
 
+_LANGUAGE_SUFFIX_RE = re.compile(
+    r"_(" + "|".join(LANGUAGE_SUFFIX_BLACKLIST) + r")$",
+    re.IGNORECASE,
+)
+
+
+def _has_forbidden_language_suffix(row_id: str) -> bool:
+    return bool(_LANGUAGE_SUFFIX_RE.search(str(row_id or "").strip().lower()))
+
+
+def _meaning_ids_collapse_to_one_stem(meaning_ids: set[str]) -> bool:
+    """True if every id shares the same stem after stripping a trailing
+    language-code suffix — i.e. the split is really language variants, not
+    polysemy."""
+    if len(meaning_ids) <= 1:
+        return False
+    stems: set[str] = set()
+    for row_id in meaning_ids:
+        text = str(row_id or "").strip().lower()
+        stripped = _LANGUAGE_SUFFIX_RE.sub("", text)
+        if stripped == text:
+            return False  # at least one id has no language suffix → not a pure-language split
+        stems.add(stripped)
+    return len(stems) == 1
+
+
+def _parse_meaning_resolution_bundle(
+    payload: dict[str, Any],
+    raw_text: str,
+    request: ProceduralizerRequest,
+) -> tuple[ProceduralizerBundle, bool, str]:
+    status = str(payload.get("status") or "").strip().lower()
+    action = str(payload.get("ingest_action") or "").strip().lower()
+    outcome = str(payload.get("outcome") or "").strip().lower()
+    if action not in {"skip", "augment", "needs_context", "reject"}:
+        action = "augment"
+    if outcome not in {"merge_to_meaning_star", "split_polysemy", "mixed", "unresolvable"}:
+        outcome = "unresolvable" if status == "unresolvable" else ""
+    allowed_urls = _allowed_urls_from_request(request)
+    meaning_stars = [
+        normalized
+        for normalized in (
+            _normalize_emitted_row(item, allowed_urls=allowed_urls)
+            for item in list(payload.get("meaning_stars") or [])
+        )
+        if normalized is not None
+    ]
+    surface_symlinks = [
+        normalized
+        for normalized in (
+            _normalize_emitted_row(item, allowed_urls=allowed_urls)
+            for item in list(payload.get("surface_symlinks") or [])
+        )
+        if normalized is not None
+    ]
+    if status == "unresolvable" or outcome == "unresolvable":
+        return (
+            ProceduralizerBundle(
+                ingest_action="skip",
+                status="unresolvable",
+                outcome="unresolvable",
+                meaning_stars=[],
+                surface_symlinks=[],
+                knowledge_packets=[],
+            ),
+            True,
+            "",
+        )
+    if action != "augment" or not outcome:
+        return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    # Language-suffix guard runs first so bad ids surface with the specific
+    # diagnostic instead of being masked by a missing-sources failure.
+    for row in meaning_stars:
+        if _has_forbidden_language_suffix(str(row.get("id") or "")):
+            return _fallback_bundle(request, failure_code="language_suffixed_meaning_id", raw_text=raw_text), False, "language_suffixed_meaning_id"
+    # Factual meaning stars MUST be grounded; common-vocabulary stars may
+    # ship with empty sources. Surface symlinks inherit the factual status of
+    # the meaning star they point to (enforced by the meaning star itself).
+    for row in meaning_stars:
+        if _is_factual_meaning(row) and not _row_sources(row):
+            return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
+    meaning_ids = {str(row.get("id") or "").strip() for row in meaning_stars if str(row.get("id") or "").strip()}
+    cluster_size = _cluster_size_from_request(request)
+    if outcome == "merge_to_meaning_star":
+        if len(meaning_stars) != 1 or (cluster_size and len(surface_symlinks) != cluster_size):
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        expected_id = next(iter(meaning_ids))
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if targets != [expected_id]:
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    elif outcome == "split_polysemy":
+        if len(meaning_stars) <= 1 or not surface_symlinks:
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        # Reject language-variant "splits": if every meaning star id collapses
+        # to the same stem once a trailing language code is stripped, this is
+        # not polysemy — it's a translation cluster that should have merged.
+        if _meaning_ids_collapse_to_one_stem(meaning_ids):
+            return _fallback_bundle(request, failure_code="language_variant_over_split", raw_text=raw_text), False, "language_variant_over_split"
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if not targets or any(target not in meaning_ids for target in targets):
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    elif outcome == "mixed":
+        if not meaning_stars or not surface_symlinks:
+            return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+        for row in surface_symlinks:
+            targets = _row_points_to(row)
+            if not targets or any(target not in meaning_ids for target in targets):
+                return _fallback_bundle(request, failure_code="invalid_schema", raw_text=raw_text), False, "invalid_schema"
+    bundle = ProceduralizerBundle(
+        ingest_action=action,
+        status=status or "resolved",
+        outcome=outcome,
+        meaning_stars=meaning_stars,
+        surface_symlinks=surface_symlinks,
+        knowledge_packets=[],
+    )
+    return bundle, True, ""
+
+
 def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[ProceduralizerBundle, bool, str]:
     payload = extract_json_object(raw_text)
     if not isinstance(payload, dict):
         return _fallback_bundle(request, failure_code="invalid_json", raw_text=raw_text), False, "invalid_json"
+    if str(request.mode or "standard").strip().lower() == "meaning_resolution":
+        return _parse_meaning_resolution_bundle(payload, raw_text, request)
 
+    status = str(payload.get("status") or "").strip().lower()
     action = str(payload.get("ingest_action") or "").strip().lower()
     if action not in {"skip", "augment", "needs_context", "reject"}:
         # Compat: accept old single-packet proceduralizer payloads as augment.
@@ -421,6 +1178,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
     if not isinstance(packets_raw, list):
         packets_raw = []
 
+    allowed_urls = _allowed_urls_from_request(request)
     packets: list[ProceduralizerPacket] = []
     for item in packets_raw:
         if not isinstance(item, dict):
@@ -446,6 +1204,7 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
             grammar_refs=_normalize_ref_list(item.get("grammar_refs")),
             reality_refs=_normalize_ref_list(item.get("reality_refs")),
             meta_refs=_normalize_ref_list(item.get("meta_refs")),
+            sources=_normalize_sources(item.get("sources"), allowed_urls=allowed_urls),
             relationships=_normalize_relationships(item.get("relationships")),
             route_contract=_normalize_route_contract(item.get("route_contract")),
             confidence=max(0.0, min(1.0, float(item.get("confidence", 0.35) or 0.35))),
@@ -457,7 +1216,16 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
             packet.proposed_star_id = f"{layer_kind}_{slugify_meaning_name(packet.summary)}_{_sha(packet.summary + '|' + request.source_id)}"
         packets.append(packet)
 
-    bundle = ProceduralizerBundle(ingest_action=action, knowledge_packets=packets)
+    if status == "unresolvable":
+        return ProceduralizerBundle(ingest_action="skip", status="unresolvable", knowledge_packets=[]), True, ""
+    if str(request.mode or "standard").strip().lower() == "differentiation" and action == "augment":
+        if not packets:
+            return ProceduralizerBundle(ingest_action="skip", status="unresolvable", knowledge_packets=[]), True, ""
+        for packet in packets:
+            if not packet.sources:
+                return _fallback_bundle(request, failure_code="missing_sources", raw_text=raw_text), False, "missing_sources"
+
+    bundle = ProceduralizerBundle(ingest_action=action, status=status, knowledge_packets=packets)
     schema_ok = action in {"skip", "augment", "needs_context", "reject"}
     if action == "augment" and not packets:
         return _fallback_bundle(request, failure_code="empty_packets", raw_text=raw_text), False, "empty_packets"
@@ -465,7 +1233,11 @@ def parse_bundle(raw_text: str, request: ProceduralizerRequest) -> tuple[Procedu
 
 
 __all__ = [
+    "LANGUAGE_SUFFIX_BLACKLIST",
     "PROCEDURALIZER_BUNDLE_JSON_SCHEMA",
+    "PROCEDURALIZER_DIFFERENTIATION_PREAMBLE",
+    "PROCEDURALIZER_MEANING_RESOLUTION_PREAMBLE",
+    "PROCEDURALIZER_MEANING_RESOLUTION_SCHEMA",
     "PROCEDURALIZER_MODEL_PROFILES",
     "PROCEDURALIZER_SYSTEM_PROMPT",
     "ProceduralizerBundle",
@@ -474,6 +1246,7 @@ __all__ = [
     "ProceduralizerRequest",
     "extract_json_object",
     "parse_bundle",
+    "proceduralizer_system_prompt",
     "request_hash",
     "response_hash",
     "slugify_meaning_name",

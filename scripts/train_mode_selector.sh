@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Training Mode Selector..."
 
 OUTCOMES_PATH="docs/reports/training/mode_selector_outcomes.jsonl"
-MODEL_PATH="../Knowledge3D.local/models/mode_selector.pkl"
+MODEL_PATH="/K3D/Knowledge3D.local/models/mode_selector.pkl"
 
 if [[ ! -f "$OUTCOMES_PATH" ]]; then
   echo "No outcome logs found at $OUTCOMES_PATH"

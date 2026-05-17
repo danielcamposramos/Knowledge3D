@@ -21,9 +21,7 @@ Phase F: True GPU kernel batching (CUDA grid parallelization)
 
 from __future__ import annotations
 
-from typing import List, Dict, Tuple
-
-import numpy as np
+from typing import Any, Dict, Tuple
 
 from knowledge3d.cranium.sovereign.trm_launcher import TRMLauncher
 
@@ -56,48 +54,28 @@ class TRMBatchLauncher:
 
     def refine_batch(
         self,
-        q_batch: np.ndarray,  # (batch_size, 512)
-        y_batch: np.ndarray,  # (batch_size, 512)
-        z_batch: np.ndarray,  # (batch_size, 512)
-        W1: np.ndarray,       # (1024, 512)
-        W2: np.ndarray,       # (512, 1024)
-        W3: np.ndarray,       # (1024, 512)
-        W4: np.ndarray,       # (512, 1024)
+        q_batch: Any,
+        y_batch: Any,
+        z_batch: Any,
+        W1: Any,
+        W2: Any,
+        W3: Any,
+        W4: Any,
         n_steps: int = 6,
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Execute batched TRM refinement.
-
-        Args:
-            q_batch: Question embeddings (batch_size, 512)
-            y_batch: Initial answer states (batch_size, 512)
-            z_batch: Initial latent states (batch_size, 512)
-            W1, W2, W3, W4: TRM weight matrices
-            n_steps: Number of Tesla recursions (default: 6)
-
-        Returns:
-            (y_out_batch, z_out_batch) each (batch_size, 512)
-        """
-        actual_batch_size = q_batch.shape[0]
-
-        # Phase E.5: Sequential processing in tight loop
-        # Phase F: Parallel GPU kernel (CUDA grid with batch_size blocks)
-
-        y_out_batch = np.zeros((actual_batch_size, 512), dtype=np.float32)
-        z_out_batch = np.zeros((actual_batch_size, 512), dtype=np.float32)
-
-        for i in range(actual_batch_size):
-            y_out, z_out = self.trm.refine(
-                q_batch[i],
-                y_batch[i],
-                z_batch[i],
-                W1, W2, W3, W4,
-                n_steps=n_steps
-            )
-            y_out_batch[i] = y_out
-            z_out_batch[i] = z_out
-
-        return y_out_batch, z_out_batch
+    ) -> Tuple[Any, Any]:
+        # Sovereign successor: batched PTX kernel launch with a CUDA grid of
+        # batch_size blocks (originally planned as Phase F). The prior Python
+        # tight-loop + numpy output-buffer implementation is archived at
+        # Old_Attempts/2026-04-18/knowledge3d/cranium/sovereign/... (trm_batch
+        # variants) and must be replaced by a pure PTX launch before this call
+        # is reinstated.
+        raise NotImplementedError(
+            "sovereign successor pending — see "
+            "TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.2. "
+            "This method was a Python-orchestrated batch loop; the sovereign "
+            "path is a batched PTX kernel launch (CUDA grid of batch_size "
+            "blocks) that returns raw device pointers, not numpy arrays."
+        )
 
     def estimate_vram_usage(self, batch_size: int) -> Dict[str, float]:
         """

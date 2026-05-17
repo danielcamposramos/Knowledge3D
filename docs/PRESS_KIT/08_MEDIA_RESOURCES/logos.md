@@ -9,7 +9,7 @@
 - Status: request canonical logo package from Milton
 - Placeholder: [INSERT PATH: assets/logos/rwi_ciamsd_primary.png]
 
-3. W3C PM-KR
+3. PM-KR
 - Use official W3C brand guidance plus "PM-KR Community Group" text treatment
 - Placeholder: [INSERT PATH: assets/logos/w3c_pmkr_lockup.png]
 

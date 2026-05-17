@@ -11,37 +11,29 @@ def main() -> int:
         MDCT_KERNEL_SRC,
         _load_cuda,
     )
+    from knowledge3d.cranium.sovereign import loader
 
     cuda, nvrtc = _load_cuda()
 
-    print("Step 1: cuInit")
-    (err,) = cuda.cuInit(0)
-    print(f"  cuInit: {err}")
+    print("Step 1: Ensure CUDA context via sovereign loader")
+    loader.ensure_init()
+    err, ctx = cuda.cuCtxGetCurrent()
+    print(f"  cuCtxGetCurrent: {err}, ctx={ctx}")
+    if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+        raise RuntimeError("No CUDA context after loader.ensure_init()")
 
     print("\nStep 2: Get device")
     err, dev = cuda.cuDeviceGet(0)
     print(f"  cuDeviceGet: {err}, dev={dev}")
 
-    print("\nStep 3: Create context (using cuCtxCreate, not cuDevicePrimaryCtxRetain)")
-    err, ctx = cuda.cuCtxCreate(0, dev)
-    print(f"  cuCtxCreate: {err}, ctx={ctx}")
-
-    if err != cuda.CUresult.CUDA_SUCCESS:
-        print("  Failed! Trying cuDevicePrimaryCtxRetain...")
-        err, ctx = cuda.cuDevicePrimaryCtxRetain(dev)
-        print(f"  cuDevicePrimaryCtxRetain: {err}, ctx={ctx}")
-
-        (err,) = cuda.cuCtxSetCurrent(ctx)
-        print(f"  cuCtxSetCurrent: {err}")
-
-    print("\nStep 4: Get compute capability")
+    print("\nStep 3: Get compute capability")
     maj_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR
     min_attr = cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR
     err, maj = cuda.cuDeviceGetAttribute(maj_attr, dev)
     err2, minu = cuda.cuDeviceGetAttribute(min_attr, dev)
     print(f"  Compute capability: {maj}.{minu}")
 
-    print("\nStep 5: Compile PTX")
+    print("\nStep 4: Compile PTX")
     res, prog = nvrtc.nvrtcCreateProgram(
         MDCT_KERNEL_SRC.encode("utf-8"), b"mdct.cu", 0, [], []
     )
@@ -69,7 +61,7 @@ def main() -> int:
     (res,) = nvrtc.nvrtcGetPTX(prog, buf)
     nvrtc.nvrtcDestroyProgram(prog)
 
-    print("\nStep 6: Load PTX into module")
+    print("\nStep 5: Load PTX into module")
     err, module = cuda.cuModuleLoadData(bytes(buf))
     print(f"  cuModuleLoadData: error={err}")
 
@@ -84,7 +76,7 @@ def main() -> int:
 
     print("  ✓ PTX loaded successfully!")
 
-    print("\nStep 7: Get function")
+    print("\nStep 6: Get function")
     err, func = cuda.cuModuleGetFunction(module, b"ternary_mdct_forward")
     print(f"  cuModuleGetFunction: error={err}")
     if err == cuda.CUresult.CUDA_SUCCESS:

@@ -103,7 +103,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 
 **Connection #9: Mozilla Thunderbird → W3C Collaboration**
 - **Disciplines**: Email clients + Professional collaboration + Open-source tools
-- **Insight**: "Open-source email for open-standards work (W3C PM-KR CG)"
+- **Insight**: "Open-source email for open-specification work (PM-KR Community Group)"
 - **Result**: W3C AI-KR/PM-KR correspondence with 5 early ingressors
 
 **Connection #10: Gmail (Google) → W3C Professional Email**
@@ -1144,7 +1144,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 - **Cross-Cutting Modularity**: Each level can be independently versioned, tested, and replaced
 - **Formal Definition**: **First architecture to achieve simultaneous modularity across memory (Galaxy/House), execution (Cranium), and learning (TRM) hierarchies**
 - **Industry Validation**: Debian `apt` model demonstrates hyper-modularity scales to global distribution (40+ countries, 97.7% compression)
-- **Result**: Coined term, W3C PM-KR CG launched based on this synthesis
+- **Result**: Coined term, PM-KR Community Group launched based on this synthesis
 - **Validation**: Ian Jacobs (W3C) published PM-KR CG on February 20, 2026
 - **Prior art**: NONE — term coined February 20, 2026
 
@@ -1184,7 +1184,7 @@ This document maps **103+ distinct cross-disciplinary connections** made by Dani
 17. Ancient History (Gutenberg, Alexandria, monasteries)
 18. Open Access Movement (Aaron Swartz, Tesla, Jobs)
 19. Mathematical Logic (Gödel, Turing, Rice's Theorem)
-20. W3C Standardization (Community Groups, specifications)
+20. W3C Community Group Incubation (Community Groups, specifications)
 
 ---
 
@@ -1361,7 +1361,7 @@ Daniel Ramos exhibits a **rare and extreme cross-disciplinary connection ability
 ✅ **Validation**: Confirmed by 6+ external experts (W3C Head of Comms, JSON-LD co-creator, WICG visionary, mathematician, Gremlin creator)
 ✅ **Reproducibility**: 15-month longitudinal record (547+ commits, 2,100+ files, 2,141-line ATTRIBUTIONS.md)
 ✅ **Innovation**: Coined "Hyper-Modular Architecture" (W3C recognized same day)
-✅ **Impact**: W3C PM-KR CG launched, 5 early ingressors, OpenFn validation (40+ countries, 10M+ transactions/year)
+✅ **Impact**: PM-KR Community Group launched, 5 early ingressors, OpenFn validation (40+ countries, 10M+ transactions/year)
 
 **Rarity estimate (updated)**: Top 0.001-0.01% (1 in 10,000 to 1 in 100,000)
 

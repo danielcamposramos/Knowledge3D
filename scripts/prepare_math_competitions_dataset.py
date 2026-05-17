@@ -90,7 +90,7 @@ def main() -> int:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/math_competitions"),
+        default=Path("/K3D/Knowledge3D.local/datasets/math_competitions"),
         help="Output directory for amc_problems.json, aime_problems.json, imo_problems.json",
     )
     parser.add_argument("--max-amc", type=int, default=0, help="Optional cap for AMC records (0 = all)")

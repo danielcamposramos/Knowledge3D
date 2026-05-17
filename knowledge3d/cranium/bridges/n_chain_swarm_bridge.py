@@ -98,6 +98,15 @@ class NChainSwarmBridge:
         self._n_active.value = self.N_DEFAULT
         self._d_halting_counter = loader.gpu_malloc(4)
         loader.memset_d32(self._d_halting_counter, 0, 1)
+        # First-class halting scalar readback (PTX writes Q15 fixed-point
+        # max-belief into this scalar at the halt-flip; host divides by
+        # 32768.0 to yield a float in [0.0, 1.0]).
+        # See TEMP/CLAUDE_HALTING_READBACK_HOOK_SPEC_04.21.2026.md §3.3
+        self._d_halting_value_q15_host, self._d_halting_value_q15 = loader.mapped_host_alloc(4)
+        self._halting_value_q15 = ctypes.c_uint32.from_address(
+            int(self._d_halting_value_q15_host.value)
+        )
+        self._halting_value_q15.value = 0
 
         self._calibration_host, self._calibration_device = loader.mapped_host_alloc(ctypes.sizeof(SwarmPerfCalibration))
         self._calibration = SwarmPerfCalibration.from_address(int(self._calibration_host.value))
@@ -219,6 +228,7 @@ class NChainSwarmBridge:
         self._kernel_control.halt_epoch = 0
         self._n_active.value = self.N_DEFAULT
         loader.memset_d32(self._d_halting_counter, 0, 1)
+        self._halting_value_q15.value = 0
         loader.launch_cooperative(
             self._kernel,
             grid=self.GRID,
@@ -235,6 +245,7 @@ class NChainSwarmBridge:
                 ctypes.c_uint64(int(self._d_perf_ring_head.value)),
                 ctypes.c_uint32(self.LANE_PERF_RING_ENTRIES - 1),
                 ctypes.c_uint64(int(self._calibration_device.value)),
+                ctypes.c_uint64(int(self._d_halting_value_q15.value)),
             ],
         )
         self._launched = True
@@ -259,6 +270,7 @@ class NChainSwarmBridge:
         self._n_active.value = self.N_DEFAULT
         self._kernel_control.halting_counter = 0
         loader.memset_d32(self._d_halting_counter, 0, 1)
+        self._halting_value_q15.value = 0
         halt_epoch_before = int(self._kernel_control.halt_epoch)
         self._kernel_control.tick_epoch += 1
         self._kernel_control.state = self.FLAG_RUN
@@ -271,10 +283,18 @@ class NChainSwarmBridge:
         while int(self._kernel_control.halt_epoch) <= halt_epoch_before and time.perf_counter() < settle_deadline:
             time.sleep(0.0005)
         self._kernel_control.halting_counter = int(self._n_active.value)
+        # First-class halting scalar: PTX wrote Q15 max-belief at halt-flip.
+        # See TEMP/CLAUDE_HALTING_READBACK_HOOK_SPEC_04.21.2026.md §2, §3.1, §3.3
+        halting_value = float(int(self._halting_value_q15.value)) / 32768.0
+        if halting_value < 0.0:
+            halting_value = 0.0
+        elif halting_value > 1.0:
+            halting_value = 1.0
         return {
             "halting_flag": int(self._kernel_control.state),
             "halting_counter": int(self._kernel_control.halting_counter),
             "n_active": int(self._n_active.value),
+            "halting_value": halting_value,
             "tick_epoch": int(self._kernel_control.tick_epoch),
             "halt_epoch": int(self._kernel_control.halt_epoch),
             "calibration_hint": int(self._calibration.n_hint),
@@ -305,6 +325,10 @@ class NChainSwarmBridge:
         if getattr(self, "_d_halting_counter", None):
             loader.gpu_free(self._d_halting_counter)
             self._d_halting_counter = None
+        if getattr(self, "_d_halting_value_q15_host", None):
+            loader.mapped_host_free(self._d_halting_value_q15_host)
+            self._d_halting_value_q15_host = None
+            self._d_halting_value_q15 = None
         if getattr(self, "_kernel_control_host", None):
             loader.mapped_host_free(self._kernel_control_host)
             self._kernel_control_host = None

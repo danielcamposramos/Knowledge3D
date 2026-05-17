@@ -937,12 +937,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--output-dir",
-        default="../Knowledge3D.local/results/week14",
+        default="/K3D/Knowledge3D.local/results/week14",
         help="Directory for benchmark outputs",
     )
     parser.add_argument(
         "--storage-root",
-        default="../Knowledge3D.local",
+        default="/K3D/Knowledge3D.local",
         help="Base storage root used to derive benchmark roots",
     )
     parser.add_argument(

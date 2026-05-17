@@ -8,13 +8,13 @@
 
 ## Project Overview
 
-**Knowledge3D (K3D)** is a sovereign spatial AI system where humans and AI cohabit one 3D reality, reason through unified procedural memory, and consolidate knowledge as explorable worlds. K3D serves as the **reference implementation** for the W3C Procedural Memory Knowledge Representation (PM-KR) Community Group standards.
+**Knowledge3D (K3D)** is a sovereign spatial AI system where humans and AI cohabit one 3D reality, reason through unified procedural memory, and consolidate knowledge as explorable worlds. K3D serves as the **reference implementation** for the W3C Procedural Memory Knowledge Representation (PM-KR) Community Group specifications.
 
-### W3C Standardization: PM-KR Community Group
+### W3C Community Group Incubation: PM-KR Community Group
 
 **Published:** February 20, 2026
 **W3C Page:** https://www.w3.org/community/pm-kr/
-**Mission:** Study and standardize procedural knowledge representation for AI systems
+**Mission:** Study and develop procedural knowledge representation for AI systems
 
 **Core Innovation:** Procedural Memory (PM-KR) stores knowledge **once** as executable programs + metadata, eliminating duplication across fonts, embeddings, accessibility tools, and visual rendering. All consumers (human, AI, accessibility, documentation) reference the same canonical source.
 
@@ -46,7 +46,7 @@
 **Role:**
 - K3D reference implementation architect
 - Hardware design (PTX kernels, GPU-native execution)
-- W3C PM-KR Community Group Co-Chair
+- PM-KR Community Group Co-Chair
 - MERCOSUR technology leadership
 
 **Background:**
@@ -66,7 +66,7 @@
 **Role:**
 - Foundational mathematical framework for procedural memory
 - 30 years environmental knowledge integration
-- W3C PM-KR Community Group Co-Chair
+- PM-KR Community Group Co-Chair
 - European Union technology leadership
 
 **Background:**
@@ -181,7 +181,7 @@ The collaboration between the electrical engineer from Brazil and mathematician 
 ### Documentation
 - **NotebookLM Research Space**: https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f
 - **GitHub Repository**: https://github.com/danielcamposramos/Knowledge3D
-- **W3C PM-KR Page**: https://www.w3.org/community/pm-kr/
+- **PM-KR Page**: https://www.w3.org/community/pm-kr/
 - **Carbon Blueprint**: https://github.com/danielcamposramos/Knowledge3D/blob/main/docs/CARBON_BLUEPRINT_10_YEAR_PROJECTION.md
 
 ### Press Contacts

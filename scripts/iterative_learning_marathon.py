@@ -175,13 +175,13 @@ def main() -> None:
     parser.add_argument(
         "--output-root",
         type=Path,
-        default=Path("../Knowledge3D.local/results/iterative_learning"),
+        default=Path("/K3D/Knowledge3D.local/results/iterative_learning"),
     )
-    parser.add_argument("--storage-root", type=Path, default=Path("../Knowledge3D.local"))
+    parser.add_argument("--storage-root", type=Path, default=Path("/K3D/Knowledge3D.local"))
     parser.add_argument(
         "--dataset-root",
         type=Path,
-        default=Path("../Knowledge3D.local/datasets/global_benchmarks"),
+        default=Path("/K3D/Knowledge3D.local/datasets/global_benchmarks"),
     )
     parser.add_argument("--max-arc-tasks", type=int, default=100)
     parser.add_argument("--max-math-problems", type=int, default=100)

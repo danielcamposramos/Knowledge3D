@@ -139,7 +139,7 @@ def main() -> int:
     parser.add_argument(
         "--index-jsonl",
         type=Path,
-        default=Path("../Knowledge3D.local/scrapes/hblazer_substack_full/index.jsonl"),
+        default=Path("/K3D/Knowledge3D.local/scrapes/hblazer_substack_full/index.jsonl"),
     )
     parser.add_argument(
         "--output-root",

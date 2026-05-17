@@ -735,27 +735,27 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="../Knowledge3D.local/logs/tool_promotion_pressure.jsonl",
+        default="/K3D/Knowledge3D.local/logs/tool_promotion_pressure.jsonl",
         help="Path to tool_promotion_pressure.jsonl",
     )
     parser.add_argument(
         "--events-input",
-        default="../Knowledge3D.local/logs/execution_events.jsonl",
+        default="/K3D/Knowledge3D.local/logs/execution_events.jsonl",
         help="Path to execution_events.jsonl",
     )
     parser.add_argument(
         "--grammar-input",
-        default="../Knowledge3D.local/logs/execution_grammar_patterns.jsonl",
+        default="/K3D/Knowledge3D.local/logs/execution_grammar_patterns.jsonl",
         help="Path to execution_grammar_patterns.jsonl",
     )
     parser.add_argument(
         "--quality-state-input",
-        default="../Knowledge3D.local/checkpoints/execution_quality_tracker.json",
+        default="/K3D/Knowledge3D.local/checkpoints/execution_quality_tracker.json",
         help="Path to execution_quality_tracker.json",
     )
     parser.add_argument(
         "--output",
-        default="../Knowledge3D.local/results/tool_promotion_report.json",
+        default="/K3D/Knowledge3D.local/results/tool_promotion_report.json",
         help="Path to write aggregated JSON report",
     )
     args = parser.parse_args()

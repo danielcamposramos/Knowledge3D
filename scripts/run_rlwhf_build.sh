@@ -26,7 +26,7 @@ scripts/k3d_env.sh run python -m knowledge3d.tools.merge_jsonl \
 echo "[4/4] Train RLWHF policy (distilgpt2, 10 epochs)"
 scripts/k3d_env.sh run python -m knowledge3d.tools.train_rlwhf_policy \
   --dataset docs/reports/training/rlwhf_dataset_unified.jsonl \
-  --out ../Knowledge3D.local/models/rlwhf_policy \
+  --out /K3D/Knowledge3D.local/models/rlwhf_policy \
   --model distilgpt2 --epochs 10 --batch 4 --max_len 384 --lr 5e-5
 
 echo "Done. RLWHF unified dataset + policy ready."

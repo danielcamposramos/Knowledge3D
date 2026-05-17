@@ -269,6 +269,25 @@ OP_CASE_FETCH = 0x100
 OP_CASE_REBIND = 0x101
 OP_CASE_REVISE = 0x102
 OP_CASE_RETAIN_HINT = 0x103
+OP_LORA_LOAD_BASE = 0x104
+OP_LORA_LOW_RANK_ADD = 0x105
+OP_LORA_SCALE = 0x106
+OP_LORA_TERNARY_MASK = 0x107
+OP_LORA_SHADOW_ABSORB = 0x108
+
+# ── BitNet b1.58 Attention Opcodes (0x1AA–0x1AF) ─────────────────────────────
+# Ternary-weight × INT8-activation projections + contrastive margin ranking.
+# Per: attention_opcode_expansion_v2.md (2026-04-18)
+# Kernels: knowledge3d/cranium/kernels/bitnet_attention.cu
+# Rules: Path B (0x1AF) mandatory smem-prefetch (RULING 1); silent d-mismatch rescale (RULING 2);
+#        Path A (0x1AE) default, lane-switch to Path B via opcode arg (RULING 3).
+
+OP_TERNARY_MATMUL_ADDSUB = 0x1AA       # ternary weight × INT8 activation (add/sub/skip, no mul)
+OP_TERNARY_PACK5 = 0x1AB               # pack 5 trits {-1,0,+1} → 1 byte (base-3)
+OP_TERNARY_UNPACK5 = 0x1AC             # unpack 1 byte → 5 trits via LUT
+OP_VEC_NORM_L2_INT8 = 0x1AD            # integer L2 normalization (scale=127 default, MANDATORY post-attn)
+OP_ATTENTION_MARGIN_SHIFT = 0x1AE      # Path A: normalize Q·K^T score DOWN (shift-based, 1 cycle)
+OP_ATTENTION_MARGIN_SCALED = 0x1AF     # Path B: pre-scaled confidence margin (smem-prefetch, 3 cycles)
 
 # Temporal/trit opcodes are the live modular-kernel owners of 0x70-0x76.
 OP_TADD = 0x70
@@ -368,6 +387,19 @@ OP_DRAW_VECTORDOTMAP_DECODE = 0x215  # field_coeffs → pixels
 
 # Phase 4 — Lighting and Layer Ops
 OP_DRAW_LAYER_NEW   = 0x216
+
+# Phase 3b — DotMap procedural color-map codec (0x217-0x21F).
+# Count/layout/color all procedural — NOT fixed, NOT tied to ingested resolution.
+# Ternary-first: delta + color indices pack via BitNet b1.58 (5 trits/byte, 0x1AB/0x1AC).
+OP_DOT_PLACE_PROCEDURAL = 0x217  # density_field, importance → dot positions
+OP_COLOR_RPN_REF        = 0x218  # ref_id → resolve color from RPN program
+OP_COLOR_PALETTE_REF    = 0x219  # palette_id, idx → resolved RGB8
+OP_DOTMAP_SCAN_EMIT     = 0x21A  # dots[] → linearized scan stream
+OP_DOTMAP_RLE_ENCODE    = 0x21B  # stream → run-length (zero-trit aware)
+OP_DOTMAP_RLE_DECODE    = 0x21C  # rle → stream
+OP_DOTMAP_DELTA_ENCODE  = 0x21D  # stream → ternary-delta
+OP_DOTMAP_DELTA_DECODE  = 0x21E  # ternary-delta → stream
+OP_DOTMAP_HEADER        = 0x21F  # W, H, dot_count, palette_id → header tag
 OP_LAYER_BLEND      = 0x79
 OP_BLEND_MULTIPLY   = 0x7A
 OP_BLEND_SCREEN     = 0x7B
@@ -425,6 +457,167 @@ OP_TEX_TURBULENCE = 0x1C9
 OP_TEX_MARBLE = 0x1CA
 OP_TEX_TRANSFORM = 0x1CB
 OP_TEX_BAKE = 0x1CF
+
+# CRAFT codec family — sovereign procedural A/V pipeline (0x240-0x27F).
+# Reserved per TEMP/CLAUDE_CODEC_SOVEREIGNTY_AUDIT_04.20.2026.md and §11.
+# Ternary retarget: zero-class coeffs skip via 0x1AC UNPACK5 kernel; deltas
+# pack via BitNet b1.58 5-trits-per-byte where cheaper than int16.
+
+# 0x240-0x24F — JPEG-equivalent line-scan image codec (Loeffler IDCT path).
+OP_LINE_SCAN_START      = 0x240
+OP_LINE_SCAN_ROW        = 0x241
+OP_LINE_SCAN_COL        = 0x242
+OP_BLOCK_8X8_ZIGZAG     = 0x243
+OP_BLOCK_8X8_INV_ZIGZAG = 0x244
+OP_QUANT_APPLY          = 0x245
+OP_QUANT_INVERT         = 0x246
+OP_DCT_8X8_FORWARD      = 0x247
+OP_IDCT_8X8             = 0x248
+OP_CHROMA_SUBSAMPLE_422 = 0x249
+OP_CHROMA_UPSAMPLE_422  = 0x24A
+OP_HUFF_ENCODE_RUN      = 0x24B
+OP_HUFF_DECODE_RUN      = 0x24C
+OP_IMG_HEADER_EMIT      = 0x24D
+OP_IMG_HEADER_PARSE     = 0x24E
+OP_IMG_FINALIZE         = 0x24F
+
+# 0x250-0x25F — Audio FFT / spectrogram family (Stockham radix-2).
+OP_FFT_FORWARD_256      = 0x250
+OP_FFT_FORWARD_512      = 0x251
+OP_FFT_FORWARD_1024     = 0x252
+OP_FFT_FORWARD_2048     = 0x253
+OP_FFT_INVERSE          = 0x254
+OP_FFT_WINDOW_HANN      = 0x255
+OP_FFT_WINDOW_HAMM      = 0x256
+OP_STFT_FORWARD         = 0x257
+OP_STFT_INVERSE         = 0x258
+OP_MEL_FILTER_BANK      = 0x259
+OP_SPECTROGRAM_EMIT     = 0x25A
+OP_AUDIO_TO_DOTMAP      = 0x25B
+OP_DOTMAP_TO_AUDIO      = 0x25C
+OP_HRTF_CONVOLVE        = 0x25D
+
+# 0x260-0x26F — Frame codec / temporal video RPN.
+OP_FRAME_KEYFRAME       = 0x260
+OP_FRAME_DELTA          = 0x261
+OP_MOTION_VECTOR        = 0x262
+OP_FRAME_WARP           = 0x263
+OP_FRAME_BLEND          = 0x264
+OP_FRAME_SPRITE_EMIT    = 0x265
+OP_FRAME_SPRITE_BATCH   = 0x266
+OP_FRAME_PALETTE_SET    = 0x267
+OP_FRAME_CELL_FILL      = 0x268
+OP_FRAME_MORTON_2D      = 0x269
+OP_FRAME_SEQUENCE_RENDER = 0x26A
+OP_SCENE_LOAD           = 0x26B
+OP_SCENE_QUEUE          = 0x26C
+OP_SCENE_LOOP           = 0x26D
+OP_FRAME_OBSERVE_64D    = 0x26E
+
+# 0x270-0x27F — Projection screen / unified A/V playback.
+OP_VIDEO_FIELD_LOAD     = 0x270
+OP_AUDIO_FIELD_LOAD     = 0x271
+OP_SYNC_TIMELINE        = 0x272
+OP_TIMELINE_ADVANCE     = 0x273
+OP_PLAYBACK_TICK        = 0x274
+OP_PLAYBACK_START       = 0x275
+OP_PLAYBACK_STOP        = 0x276
+OP_SCREEN_PROJECT       = 0x277
+OP_SCREEN_RESIZE        = 0x278
+OP_SCREEN_COMPOSE       = 0x279
+OP_VIEWPORT_SET         = 0x27A
+OP_LOD_SELECT           = 0x27B
+OP_DOF_APERTURE         = 0x27C
+OP_DOF_FOCUS            = 0x27D
+OP_VIGNETTE_SCREEN      = 0x27E
+OP_ATMOSPHERE_FOG_SCREEN = 0x27F
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Minecraft-for-Cognition lanes (relocated 2026-04-20 from 0x1D0-0x1FF which
+# was already reserved by CLAUDE_INGESTION_SYMLINK_REWIRE_04.18.2026.md §13
+# for VIRTUAL_PAGE_*). Registry §11 authoritative.
+# Spec: TEMP/CLAUDE_TEXTURE_FORGE_IMAGE_TO_3D_ARC3_SCREEN_04.20.2026.md
+# ──────────────────────────────────────────────────────────────────────────────
+
+# 0x280-0x28F — Lane A: Texture Forge (Werkkzeug-class, sovereign).
+OP_TEX_SPLAT             = 0x280
+OP_TEX_KUWAHARA          = 0x281
+OP_TEX_WAVE              = 0x282
+OP_TEX_RIPPLE            = 0x283
+OP_TEX_VORTEX            = 0x284
+OP_TEX_FRACTAL_NOISE     = 0x285
+OP_TEX_CELLULAR_F1F2     = 0x286
+OP_TEX_GRAPH_EVAL        = 0x287
+OP_TEX_GRAPH_BIND        = 0x288
+OP_TEX_GRAPH_DIFF        = 0x289
+OP_TEX_FIT_STEP          = 0x28A  # Lane B primitive: ternary-annealed gradient step
+OP_TEX_FIT_CONVERGE      = 0x28B  # Lane B halting gate (returns trit)
+OP_TEX_PALETTE_EXTRACT   = 0x28C  # backed by sleep_cluster_refiner.cu k-means
+OP_TEX_PALETTE_APPLY     = 0x28D
+OP_TEX_TILE_SYMMETRIZE   = 0x28E
+OP_TEX_NORMAL_FROM_HEIGHT = 0x28F
+
+# 0x290-0x29F — Lane C: Image→3D.
+OP_IMG_TO_HEIGHTMAP         = 0x290
+OP_IMG_TO_SILHOUETTE        = 0x291
+OP_SILHOUETTE_EXTRUDE       = 0x292
+OP_HEIGHTMAP_TO_TERRAIN     = 0x293
+OP_HEIGHTMAP_TO_DISPLACEMENT = 0x294
+OP_DEPTH_MONO_ESTIMATE      = 0x295  # reads prior from Reality Galaxy star
+OP_DEPTH_TO_POINTCLOUD      = 0x296
+OP_POINTCLOUD_TO_MESH       = 0x297
+OP_SPRITE_BILLBOARD         = 0x298
+OP_SPRITE_MULTIPLANE        = 0x299
+OP_DOODLE_TO_SYMMETRIC_MESH = 0x29A
+OP_LATHE_FROM_PROFILE       = 0x29B
+OP_MESH_CSG_GPU             = 0x29C  # sovereign path; 0x174-0x176 host-fallback deprecated
+OP_MESH_MARCHING_CUBES_GPU  = 0x29D  # sovereign path; 0x171 host-fallback deprecated
+OP_MESH_NURBS_GPU           = 0x29E  # sovereign path; 0x170 host-fallback deprecated
+OP_MESH_WRITE_GALAXY        = 0x29F
+
+# 0x2A0-0x2AF — Lane D: ARC3 live-screen wiring.
+OP_ARC3_FRAME_DECODE       = 0x2A0  # 64x64 index → RGB via palette LUT
+OP_ARC3_PALETTE_SET        = 0x2A1  # binds 16-entry palette to constant mem
+OP_ARC3_FRAME_TO_DOTMAP    = 0x2A2  # raster → DotMap (reuses 0x217)
+OP_ARC3_PROJECT_TO_SCREEN  = 0x2A3  # DotMap → projection_screen rect
+OP_ARC3_CLICK_INVERT       = 0x2A4  # screen pixel → grid cell
+OP_ARC3_ACTION_EMIT        = 0x2A5  # grid cell + action → ACTION1-7 tuple
+OP_ARC3_REPLAY_STEP        = 0x2A6
+OP_ARC3_DIFF_HIGHLIGHT     = 0x2A7  # changed cells overlay
+OP_ARC3_LIVES_HUD          = 0x2A8  # 3-lives + movement-budget HUD
+OP_ARC3_GAME_ID_BIND       = 0x2A9  # bind hashed id pattern (ls20-<hash>)
+
+# 0x2B0-0x2B5 — Lane E: Memory-as-Image (DeepSeek extension, 2026-04-20).
+OP_MEM_TO_DOTMAP         = 0x2B0  # reasoning trace → DotMap memory-image
+OP_DOTMAP_TO_MEM         = 0x2B1  # DotMap → trace (requires Lane B fit loop)
+OP_MEM_IMAGE_BIND        = 0x2B2  # bind DotMap star as addressable memory cell
+OP_MEM_IMAGE_RECALL      = 0x2B3  # Matryoshka-prefix coarse→fine resolve
+OP_MEM_IMAGE_COMPOSE     = 0x2B4  # semantic-gravity blend of two memory images
+OP_MEM_IMAGE_DIFF        = 0x2B5  # visualize delta between two memory states
+
+# 0x2C0-0x2CF — MVCIC-sourced extensions (Kimi/Qwen/GLM/DeepSeek/Nemotron/Gemini).
+OP_TEX_TERNARY_STREAM    = 0x2C0  # Idea A: frustum-gated tex streaming via resonance trit
+OP_SLEEP_PHYSICS_WEIGHT  = 0x2C1  # Idea B: physics impulse → sleep cluster weight
+OP_META_RPN_EDIT         = 0x2C2  # Idea C: self-modifying RPN (gated to Layer 4 context)
+OP_MEM_FOVEAL_ENCODE     = 0x2C3  # Variable-resolution memory-image (fovea mimicry)
+OP_ARC3_ATTENTION_HEATMAP = 0x2C4  # TRM attention overlay for ARC3 replay UX
+
+# 0x2D0-0x2DF — Document Galaxy as Symlinks (Daniel 2026-04-20).
+# A document = star + ordered list of Word Galaxy symlinks (no duplicated metadata).
+# Words → Characters → Font/Drawing + Meaning Galaxy. Language-agnostic center.
+# Spec: docs/vocabulary/DOCUMENT_GALAXY_SYMLINK_SPECIFICATION.md
+OP_DOC_STAR_NEW           = 0x2D0  # create document star (id, title, structural metadata)
+OP_DOC_WORD_REF           = 0x2D1  # append symlink to Word Galaxy star by id
+OP_DOC_CHAR_REF           = 0x2D2  # append symlink to Character Galaxy star (rare: symbols)
+OP_DOC_MEANING_REF        = 0x2D3  # append symlink to language-agnostic Meaning star
+OP_DOC_STYLE_SPAN         = 0x2D4  # open/close a style span (bold, italic, header)
+OP_DOC_PARA_BREAK         = 0x2D5  # paragraph/section break marker
+OP_DOC_STRUCT_EMIT        = 0x2D6  # emit structural node (list, table, figure) with symlinks
+OP_DOC_RENDER_IN_LANG     = 0x2D7  # swap terminal font/lang symlinks at render time
+OP_DOC_RENDER_DOTMAP      = 0x2D8  # document → DotMap artifact (memory-image bridge)
+OP_DOC_SYMLINK_RESOLVE    = 0x2D9  # resolve symlink chain down to glyph paths
+OP_DOC_CONTENT_HASH       = 0x2DA  # deterministic hash of symlink-sequence (dedup key)
+OP_DOC_MATRYOSHKA_EMBED   = 0x2DB  # prefix-compatible embedding for semantic gravity
 
 # Drawing Galaxy Layers 4-7 (gradients, filters, lighting, scenes)
 OP_GRADIENT_LINEAR = 0xF3     # x1 y1 x2 y2 GRADIENT_LINEAR
@@ -607,6 +800,13 @@ __all__ = [
     "OP_TEMPORAL_COHERENCE",
     "OP_TEMPORAL_MASK",
     "OP_TEMPORAL_AGGREGATE",
+    # BitNet b1.58 Attention (0x1AA–0x1AF)
+    "OP_TERNARY_MATMUL_ADDSUB",
+    "OP_TERNARY_PACK5",
+    "OP_TERNARY_UNPACK5",
+    "OP_VEC_NORM_L2_INT8",
+    "OP_ATTENTION_MARGIN_SHIFT",
+    "OP_ATTENTION_MARGIN_SCALED",
     # Temporal / trit surface
     "OP_TADD",
     "OP_TMUL",
@@ -822,4 +1022,43 @@ __all__ += [
     "OP_CASE_REBIND",
     "OP_CASE_REVISE",
     "OP_CASE_RETAIN_HINT",
+    "OP_LORA_LOAD_BASE",
+    "OP_LORA_LOW_RANK_ADD",
+    "OP_LORA_SCALE",
+    "OP_LORA_TERNARY_MASK",
+    "OP_LORA_SHADOW_ABSORB",
+]
+
+__all__ += [
+    # Lane A — Texture Forge (0x280-0x28F)
+    "OP_TEX_SPLAT", "OP_TEX_KUWAHARA", "OP_TEX_WAVE", "OP_TEX_RIPPLE",
+    "OP_TEX_VORTEX", "OP_TEX_FRACTAL_NOISE", "OP_TEX_CELLULAR_F1F2",
+    "OP_TEX_GRAPH_EVAL", "OP_TEX_GRAPH_BIND", "OP_TEX_GRAPH_DIFF",
+    "OP_TEX_FIT_STEP", "OP_TEX_FIT_CONVERGE",
+    "OP_TEX_PALETTE_EXTRACT", "OP_TEX_PALETTE_APPLY",
+    "OP_TEX_TILE_SYMMETRIZE", "OP_TEX_NORMAL_FROM_HEIGHT",
+    # Lane C — Image→3D (0x290-0x29F)
+    "OP_IMG_TO_HEIGHTMAP", "OP_IMG_TO_SILHOUETTE", "OP_SILHOUETTE_EXTRUDE",
+    "OP_HEIGHTMAP_TO_TERRAIN", "OP_HEIGHTMAP_TO_DISPLACEMENT",
+    "OP_DEPTH_MONO_ESTIMATE", "OP_DEPTH_TO_POINTCLOUD", "OP_POINTCLOUD_TO_MESH",
+    "OP_SPRITE_BILLBOARD", "OP_SPRITE_MULTIPLANE",
+    "OP_DOODLE_TO_SYMMETRIC_MESH", "OP_LATHE_FROM_PROFILE",
+    "OP_MESH_CSG_GPU", "OP_MESH_MARCHING_CUBES_GPU", "OP_MESH_NURBS_GPU",
+    "OP_MESH_WRITE_GALAXY",
+    # Lane D — ARC3 screen (0x2A0-0x2AF)
+    "OP_ARC3_FRAME_DECODE", "OP_ARC3_PALETTE_SET", "OP_ARC3_FRAME_TO_DOTMAP",
+    "OP_ARC3_PROJECT_TO_SCREEN", "OP_ARC3_CLICK_INVERT", "OP_ARC3_ACTION_EMIT",
+    "OP_ARC3_REPLAY_STEP", "OP_ARC3_DIFF_HIGHLIGHT", "OP_ARC3_LIVES_HUD",
+    "OP_ARC3_GAME_ID_BIND",
+    # Lane E — Memory-as-Image (0x2B0-0x2B5)
+    "OP_MEM_TO_DOTMAP", "OP_DOTMAP_TO_MEM", "OP_MEM_IMAGE_BIND",
+    "OP_MEM_IMAGE_RECALL", "OP_MEM_IMAGE_COMPOSE", "OP_MEM_IMAGE_DIFF",
+    # MVCIC-sourced (0x2C0-0x2C4)
+    "OP_TEX_TERNARY_STREAM", "OP_SLEEP_PHYSICS_WEIGHT", "OP_META_RPN_EDIT",
+    "OP_MEM_FOVEAL_ENCODE", "OP_ARC3_ATTENTION_HEATMAP",
+    # Document Galaxy Symlinks (0x2D0-0x2DB)
+    "OP_DOC_STAR_NEW", "OP_DOC_WORD_REF", "OP_DOC_CHAR_REF", "OP_DOC_MEANING_REF",
+    "OP_DOC_STYLE_SPAN", "OP_DOC_PARA_BREAK", "OP_DOC_STRUCT_EMIT",
+    "OP_DOC_RENDER_IN_LANG", "OP_DOC_RENDER_DOTMAP", "OP_DOC_SYMLINK_RESOLVE",
+    "OP_DOC_CONTENT_HASH", "OP_DOC_MATRYOSHKA_EMBED",
 ]

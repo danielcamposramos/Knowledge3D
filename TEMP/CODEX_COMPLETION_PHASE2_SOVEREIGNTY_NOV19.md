@@ -497,7 +497,7 @@ self._math_core.scalar_multiply(a_vec, -lr)
    - Memory optimization for large-scale training
    - Distributed training across multiple GPUs (optional)
 
-2. **W3C Standardization:**
+2. **W3C Community Group Incubation:**
    - Finalize atomic units specification (dual-program star schema)
    - Document sovereignty proofs (GPU-native, sub-100µs inference)
    - Prepare W3C AIKR submission with Phase 2 evidence

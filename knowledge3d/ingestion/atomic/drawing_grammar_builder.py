@@ -19,16 +19,18 @@ import json
 from pathlib import Path
 from typing import List, Dict
 
+from knowledge3d.ingestion.canonical_lookup import canonical_drawing_primitive_id
+
 
 def build_primitives() -> List[Dict]:
     primitives = [
-        {"id": "PRIM_LINE", "type": "primitive", "visual_rpn": "LINE x0 y0 x1 y1"},
-        {"id": "PRIM_ARC", "type": "primitive", "visual_rpn": "ARC cx cy r theta0 theta1"},
-        {"id": "PRIM_QUAD", "type": "primitive", "visual_rpn": "QUAD x0 y0 x1 y1 x2 y2"},
-        {"id": "PRIM_CUBIC", "type": "primitive", "visual_rpn": "CUBIC x0 y0 x1 y1 x2 y2 x3 y3"},
-        {"id": "PRIM_CIRCLE", "type": "primitive", "visual_rpn": "CIRCLE cx cy r"},
-        {"id": "PRIM_RECT", "type": "primitive", "visual_rpn": "RECT x y w h"},
-        {"id": "PRIM_TRI", "type": "primitive", "visual_rpn": "TRI x0 y0 x1 y1 x2 y2"},
+        {"id": canonical_drawing_primitive_id("line"), "type": "primitive", "visual_rpn": "LINE x0 y0 x1 y1"},
+        {"id": canonical_drawing_primitive_id("arc"), "type": "primitive", "visual_rpn": "ARC cx cy r theta0 theta1"},
+        {"id": canonical_drawing_primitive_id("quad"), "type": "primitive", "visual_rpn": "QUAD x0 y0 x1 y1 x2 y2"},
+        {"id": canonical_drawing_primitive_id("cubic"), "type": "primitive", "visual_rpn": "CUBIC x0 y0 x1 y1 x2 y2 x3 y3"},
+        {"id": canonical_drawing_primitive_id("circle"), "type": "primitive", "visual_rpn": "CIRCLE cx cy r"},
+        {"id": canonical_drawing_primitive_id("rect"), "type": "primitive", "visual_rpn": "RECT x y w h"},
+        {"id": canonical_drawing_primitive_id("tri"), "type": "primitive", "visual_rpn": "TRI x0 y0 x1 y1 x2 y2"},
     ]
     return primitives
 
@@ -53,19 +55,19 @@ def build_shapes(strokes: List[Dict]) -> List[Dict]:
         {
             "id": "SHAPE_ARROW_RIGHT",
             "type": "shape",
-            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] in {"PRIM_LINE", "PRIM_TRI"}],
+            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] in {canonical_drawing_primitive_id("line"), canonical_drawing_primitive_id("tri")}],
             "procedural_programs": {"composition": "ARROW_RIGHT"},
         },
         {
             "id": "SHAPE_BOX",
             "type": "shape",
-            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] == "PRIM_RECT"],
+            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] == canonical_drawing_primitive_id("rect")],
             "procedural_programs": {"composition": "BOX"},
         },
         {
             "id": "SHAPE_CIRCLE_FILL",
             "type": "shape",
-            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] == "PRIM_CIRCLE"],
+            "stroke_refs": [s["id"] for s in strokes if s["primitive_ref"] == canonical_drawing_primitive_id("circle")],
             "procedural_programs": {"composition": "CIRCLE_FILL"},
         },
     ]

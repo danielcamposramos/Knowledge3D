@@ -20,11 +20,15 @@ extern "C" __global__ void add_one(float* data, int n) {
 
     cuda, nvrtc = _load_cuda()
 
-    print("Initializing CUDA...")
-    cuda.cuInit(0)
+    from knowledge3d.cranium.sovereign import loader
+
+    print("Initializing CUDA via sovereign loader...")
+    loader.ensure_init()
     err, dev = cuda.cuDeviceGet(0)
-    err, ctx = cuda.cuCtxCreate(0, dev)
-    print(f"Context created: {ctx}")
+    err, ctx = cuda.cuCtxGetCurrent()
+    if err != cuda.CUresult.CUDA_SUCCESS or ctx is None or int(ctx) == 0:
+        raise RuntimeError("No CUDA context after loader.ensure_init()")
+    print(f"Context active: {ctx}")
 
     err, maj = cuda.cuDeviceGetAttribute(
         cuda.CUdevice_attribute.CU_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, dev

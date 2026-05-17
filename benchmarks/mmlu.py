@@ -1,4 +1,4 @@
-"""MMLU benchmark integration routed through the sovereign Knowledgeverse query path."""
+"""Multi-subject multiple-choice question benchmark (MMLU corpus, sovereign tablet path)."""
 
 from __future__ import annotations
 
@@ -15,14 +15,13 @@ from benchmarks.sampling import stratified_sample
 from knowledge3d.bridge.headless_tablet import HeadlessTabletMPC
 from knowledge3d.knowledgeverse.knowledgeverse import Knowledgeverse
 from knowledge3d.tablet.wine.question_wine import (
-    QUESTION_ROUTE_GALAXIES,
     build_question_session_tape,
     mmlu_question_envelope,
 )
 
 
 class MMLUBenchmark:
-    """Run MMLU multiple-choice questions through `Knowledgeverse.execute_task()`."""
+    """Run MMLU multiple-choice questions through the sovereign tablet boundary."""
 
     def __init__(
         self,
@@ -43,6 +42,7 @@ class MMLUBenchmark:
         self.split = str(split).strip().lower()
         self.runtime_seed_knowledge = bool(runtime_seed_knowledge)
         self.tablet_boundary = tablet_boundary
+        self._ensure_tablet_boundary()
         self.used_synthetic_fallback = False
         self.questions = self._load_questions()
         self.results: list[dict[str, Any]] = []
@@ -51,6 +51,14 @@ class MMLUBenchmark:
         self.dataset_source = "MMLU"
         self.dataset_file = str(self.dataset_path) if self.dataset_path.exists() else "not_found"
         self.synthetic_fallback = self.used_synthetic_fallback
+
+    def _ensure_tablet_boundary(self) -> HeadlessTabletMPC:
+        if self.tablet_boundary is None:
+            self.tablet_boundary = HeadlessTabletMPC(
+                knowledgeverse=self.kv,
+                storage_root=getattr(self.kv, "storage_root", None),
+            )
+        return self.tablet_boundary
 
     def _resolve_dataset_path(self, dataset_path: str | Path | None) -> Path:
         if dataset_path is not None:
@@ -217,28 +225,22 @@ class MMLUBenchmark:
         total = len(self.questions)
         step = max(1, int(progress_every or 100))
         start = time.monotonic()
-        tablet_rows: list[dict[str, Any]] = []
-        if self.tablet_boundary is not None:
-            tape = build_question_session_tape(
-                session_id=f"mmlu_{int(time.time() * 1000)}",
-                suite_name="mmlu",
-                rows=self.questions[resume_index:],
-                use_enriched=use_enriched,
-            )
-            tablet_rows = list(self.tablet_boundary.run_tape_session(tape)["results"])
+        boundary = self._ensure_tablet_boundary()
+        tape = build_question_session_tape(
+            session_id=f"question_{int(time.time() * 1000)}",
+            suite_name="question",
+            rows=self.questions[resume_index:],
+            use_enriched=use_enriched,
+        )
+        tablet_rows = list(boundary.run_tape_session(tape)["results"])
         for offset, question in enumerate(self.questions[resume_index:]):
             index = resume_index + offset + 1
-            if self.tablet_boundary is not None:
-                result = self._question_result_from_tablet(question=question, tablet_result=tablet_rows[offset])
-                task_result = dict(result.get("task_result") or {})
-                result["elapsed_s"] = round(
-                    max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
-                    3,
-                )
-            else:
-                row_start = time.monotonic()
-                result = self._solve_question(question=question, use_enriched=use_enriched)
-                result["elapsed_s"] = round(max(0.0, time.monotonic() - row_start), 3)
+            result = self._question_result_from_tablet(question=question, tablet_result=tablet_rows[offset])
+            task_result = dict(result.get("task_result") or {})
+            result["elapsed_s"] = round(
+                max(0.0, float(task_result.get("trm_latency_us", 0.0) or 0.0) / 1_000_000.0),
+                3,
+            )
             result["elapsed_ms"] = round(float(result["elapsed_s"]) * 1000.0, 3)
             self.results.append(result)
             if result["correct"]:
@@ -252,7 +254,7 @@ class MMLUBenchmark:
                         "total": total,
                         "correct": correct,
                         "elapsed_s": time.monotonic() - start,
-                        "benchmark": "mmlu",
+                        "surface_kind": "QUESTION",
                         "subject": question.get("subject"),
                     }
                 )
@@ -276,73 +278,7 @@ class MMLUBenchmark:
         return summary
 
     def _solve_question(self, *, question: dict[str, Any], use_enriched: bool) -> dict[str, Any]:
-        if self.tablet_boundary is not None:
-            return self._solve_question_via_tablet(question=question, use_enriched=use_enriched)
-        route = self._apply_query_scope(
-            {
-                "specialist": "chat",
-                "domain_hint": question["subject"],
-                "galaxy_names": list(QUESTION_ROUTE_GALAXIES),
-            }
-        )
-        task_result = self.kv.execute_task(
-            task={
-                "type": "QUESTION_TASK",
-                "surface_kind": "QUESTION",
-                "task_id": question["id"],
-                "query": question["question_text"],
-                "question": question["question_text"],
-                "prompt": question["question_text"],
-                "messages": [{"role": "user", "content": question["question_text"]}],
-                "options": list(question["options"]),
-                "choices": list(question["options"]),
-                "benchmark": "mmlu",
-                "dataset": "mmlu",
-                "subject": question["subject"],
-                "expected_answer": question["correct_answer"],
-            },
-            route=route,
-            specialist="chat",
-            domain_hint=question["subject"],
-            use_enriched=use_enriched,
-        )
-        raw_answer = task_result.get("response", task_result.get("answer", task_result.get("result")))
-        predicted = self._normalize_option_prediction(
-            raw_answer=raw_answer,
-            options=question["options"],
-        )
-        correct = predicted == question["correct_answer"]
-        return {
-            "id": question["id"],
-            "subject": question["subject"],
-            "domain": question["domain"],
-            "question_text": question["question_text"],
-            "options": list(question["options"]),
-            "correct_answer": question["correct_answer"],
-            "raw_answer": "" if raw_answer is None else str(raw_answer).strip(),
-            "predicted_answer": predicted,
-            "predicted_matches_option_text": bool(predicted and predicted in question["options"]),
-            "answer_format": self._classify_answer_format(
-                raw_answer=raw_answer,
-                predicted_answer=predicted,
-                options=question["options"],
-            ),
-            "correct": correct,
-            "reasoning_trace": list(task_result.get("reasoning_trace", [])),
-            "route": task_result.get("route", route),
-            "solver": str(task_result.get("solver", "")),
-            "runtime": str(task_result.get("runtime", "")),
-            "gpu_execution": bool(task_result.get("gpu_execution", False)),
-            "program_id": str(task_result.get("program_id", "")),
-            "task_result": task_result,
-        }
-
-    def _solve_question_via_tablet(
-        self,
-        *,
-        question: dict[str, Any],
-        use_enriched: bool,
-    ) -> dict[str, Any]:
+        boundary = self._ensure_tablet_boundary()
         envelope = mmlu_question_envelope(
             task_id=str(question["id"]),
             question=str(question["question_text"]),
@@ -350,7 +286,7 @@ class MMLUBenchmark:
             subject=str(question["subject"]),
             expected_answer=str(question["correct_answer"]),
         )
-        tablet_result = self.tablet_boundary.submit(envelope, use_enriched=use_enriched)
+        tablet_result = boundary.submit(envelope, use_enriched=use_enriched)
         return self._question_result_from_tablet(question=question, tablet_result=tablet_result)
 
     def _question_result_from_tablet(
@@ -463,22 +399,6 @@ class MMLUBenchmark:
             return "normalized_to_option_text"
         return "free_text"
 
-    @staticmethod
-    def _normalize_option_prediction(raw_answer: Any, options: list[str]) -> str:
-        text = str(raw_answer or "").strip()
-        if not text:
-            return ""
-        lowered = f" {text.lower()} "
-        for option in options:
-            candidate = str(option).strip()
-            if not candidate:
-                continue
-            if f" {candidate.lower()} " in lowered or lowered.strip() == candidate.lower():
-                return candidate
-        if text in options:
-            return text
-        return text
-
     def _normalize_query_scope(self, value: str | list[str] | None) -> list[str] | None:
         if isinstance(value, list):
             raw = [str(item).strip() for item in value]
@@ -497,18 +417,6 @@ class MMLUBenchmark:
             seen.add(key)
             out.append(item)
         return out or None
-
-    def _apply_query_scope(self, route: dict[str, Any]) -> dict[str, Any]:
-        if not self.query_scope_galaxies:
-            return route
-        route_names = [str(name) for name in route.get("galaxy_names") or [] if str(name).strip()]
-        if not route_names:
-            route["galaxy_names"] = list(self.query_scope_galaxies)
-            return route
-        scope_keys = {name.lower() for name in self.query_scope_galaxies}
-        filtered = [name for name in route_names if name.lower() in scope_keys]
-        route["galaxy_names"] = filtered if filtered else list(self.query_scope_galaxies)
-        return route
 
     def save_results(self, output_path: str | Path) -> None:
         path = Path(output_path)

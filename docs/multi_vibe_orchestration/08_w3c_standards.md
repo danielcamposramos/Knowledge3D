@@ -629,7 +629,7 @@ Develop **one small W3C spec section** using multi-vibe methodology as proof-of-
 
 ### Expected Outcome
 
-**If successful**: CG adopts multi-vibe as standard methodology
+**If successful**: CG adopts multi-vibe as a shared methodology
 
 **Benefits**:
 - Faster spec development (6-12× speedup)

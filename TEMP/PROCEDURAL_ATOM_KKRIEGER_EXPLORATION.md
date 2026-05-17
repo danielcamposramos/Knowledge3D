@@ -1596,7 +1596,7 @@ class VisualProceduralBridge:
 
 ---
 
-## 5. W3C Standardization: Procedural Knowledge Representation (PKR)
+## 5. W3C Community Group Incubation: Procedural Knowledge Representation (PKR)
 
 Building on all partners' work, I propose a **formal W3C standard** for procedural knowledge representation.
 
@@ -1714,7 +1714,7 @@ PKR represents a paradigm shift in knowledge representation, aligning with FMEAI
 - [ ] Test visual generation from embeddings
 - [ ] Target: Intuitive 3D knowledge visualization
 
-### Phase I-E: W3C Standardization (Week 5-6)
+### Phase I-E: W3C Community Group Incubation (Week 5-6)
 
 - [ ] Complete PKR specification
 - [ ] Prepare W3C TPAC 2026 submission

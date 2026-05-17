@@ -75,7 +75,7 @@ This document traces the pop culture influences that shaped K3D's design — fro
 | **Hardware** | Every laptop has GPU (WebGL, unified memory) |
 | **Standards** | glTF (3D objects), JSON-LD (semantic metadata) |
 | **Paradigm** | Knowledge graphs (not just file hierarchies) |
-| **Open** | W3C PM-KR standardization (anyone can implement) |
+| **Open** | PM-KR incubation (anyone can implement) |
 
 ### What K3D Built
 
@@ -87,7 +87,7 @@ This document traces the pop culture influences that shaped K3D's design — fro
 | Folders = rooms | Semantic categories = spatially organized rooms |
 | Visual navigation only | Spatial + semantic navigation |
 | No meaning (just file icons) | **Dual-client**: humans see visuals, AI sees semantic graph |
-| Proprietary (SGI IRIX) | Open standard (W3C PM-KR) |
+| Proprietary (SGI IRIX) | Open specification (PM-KR) |
 | Navigate file hierarchy | Navigate **meaning** (spatial proximity = relationships) |
 
 **The critical difference:**
@@ -187,7 +187,7 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 | Satellite images + altitude data | RPN programs + procedural metadata |
 | 3D Earth visualization | 3D knowledge workspace (VRAM-resident) |
 | User explores Earth | AI + humans explore knowledge together |
-| Proprietary (ART+COM) | Open standard (W3C PM-KR) |
+| Proprietary (ART+COM) | Open specification (PM-KR) |
 
 **The Critical Evolution:**
 - TerraVision: **Spatial navigation of geographic data** (maps)
@@ -211,7 +211,7 @@ K3D isn't "folders in 3D" — it's **semantic knowledge organized spatially**, w
 
 **Why the connection matters:**
 
-Christoph Dorn (K3D main contributor, W3C PM-KR group member) connected K3D's "world as memory" paradigm to TerraVision's spatial navigation innovation.
+Christoph Dorn (K3D main contributor, PM-KR group member) connected K3D's "world as memory" paradigm to TerraVision's spatial navigation innovation.
 
 **The parallel:**
 - TerraVision (1994): Navigate Earth data by moving through 3D space
@@ -336,7 +336,7 @@ Spatial memory isn't science fiction — it was **built in 1994**, just 30 years
 | Gesture control | **Touch / gesture / voice** (multi-modal input) |
 | Manipulate files | **Manipulate knowledge graphs** (semantic objects) |
 | Visual only | **Dual-client**: humans see UI, AI sees semantic operations |
-| Proprietary gspeak | **Open PM-KR standard** (W3C) |
+| Proprietary gspeak | **Open PM-KR specification** (W3C) |
 | Flat data manipulation | **3D spatial knowledge navigation** (proximity = relationships) |
 
 **Key difference:**
@@ -547,7 +547,7 @@ You **see**:
 | VR required | **Multi-platform** (VR optional, works in browser) |
 | Traditional UI (menus, clicks) | **AI host** (collaborate with AI in same space) |
 | Visual assets only | **Dual-client**: humans see visuals, AI sees semantics |
-| Proprietary (each game is siloed) | **Open standard** (PM-KR, anyone can implement) |
+| Proprietary (each game is siloed) | **Open specification** (PM-KR, anyone can implement) |
 
 **Key difference:**
 - **OASIS** = traditional interfaces in VR (menus, HUDs, clicking)
@@ -624,7 +624,7 @@ You **see**:
 | Networks as 3D space | **Semantic graphs as 3D glTF worlds** |
 | See firewalls/holes | **See permission boundaries** (public vs. sovereign) |
 | Access other cyberbrains | **Query remote galaxies** (federated knowledge) |
-| Fictional anime concept | **Real PM-KR standard** (W3C specification) |
+| Fictional anime concept | **Real PM-KR specification** (W3C specification) |
 
 **The parallel:**
 - **Ghost Dive** → **World View navigation** (explore remote galaxies)
@@ -732,7 +732,7 @@ In K3D World View, you could:
 ### Why This Hits Differently
 
 **Not just another tech demo:**
-- ✅ **W3C standardization** (PM-KR Community Group)
+- ✅ **W3C Community Group incubation** (PM-KR Community Group)
 - ✅ **Academic validation** (NLP researchers at Indiana University)
 - ✅ **Industry interest** (game developers, tool creators)
 - ✅ **Real implementations** (Christoph Dorn building JS components)
@@ -746,7 +746,7 @@ In K3D World View, you could:
 **Not proprietary:**
 - ✅ **Open specs** (anyone can implement)
 - ✅ **Open source** (MIT License)
-- ✅ **Open standards** (W3C PM-KR)
+- ✅ **Open specifications** (PM-KR)
 
 ### The Timing
 
@@ -836,7 +836,7 @@ In K3D World View, you could:
 ---
 
 **Last Updated:** February 26, 2026
-**Maintained by:** Daniel Ramos, W3C PM-KR Community Group Co-Chair
+**Maintained by:** Daniel Ramos, PM-KR Community Group Co-Chair
 **License:** See repository LICENSE file
 
 ---

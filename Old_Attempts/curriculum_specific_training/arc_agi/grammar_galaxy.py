@@ -7,8 +7,13 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 import json
 
-from knowledge3d.cranium.bridges.cosine_similarity_bridge import CosineSimilarityBridge
 from knowledge3d.cranium.math_galaxy import get_math_galaxy
+
+# Sovereign successor to the numpy-native host bridge archived on 2026-04-18
+# lives at ``knowledge3d.cranium.bridges.cosine_similarity_bridge``. We import
+# lazily so that non-GPU contexts (pure CPU tooling, tests) can still load this
+# module — the bridge is only constructed when ``_get_cosine_bridge`` is hit.
+CosineSimilarityBridge = None  # type: ignore[assignment]
 
 
 @dataclass
@@ -390,16 +395,19 @@ class GrammarGalaxy:
         self.variants = variants or default_variants()
         # Lazy-init GPU bridge: many call sites (tests, CPU tooling) only need the
         # word-sequence matcher and should not require CUDA availability.
-        self.cosine_bridge: Optional[CosineSimilarityBridge] = None
+        self.cosine_bridge = None
         self._local_discoveries: Dict[str, Dict] = {}
         self._discovery_threshold = 0.6
         self._promotion_threshold = 0.7
         self._min_usage_for_promotion = 3
         self._current_epoch = 0
 
-    def _get_cosine_bridge(self) -> CosineSimilarityBridge:
+    def _get_cosine_bridge(self):
         if self.cosine_bridge is None:
-            self.cosine_bridge = CosineSimilarityBridge()
+            from knowledge3d.cranium.bridges.cosine_similarity_bridge import (
+                CosineSimilarityBridge as _SovereignCosineBridge,
+            )
+            self.cosine_bridge = _SovereignCosineBridge()
         return self.cosine_bridge
 
     def get_rule(self, rule_id: str) -> GrammarRule:

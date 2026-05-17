@@ -3,7 +3,9 @@
 
 import numpy as np
 import sys
-sys.path.insert(0, '/mnt/arquivos/EchoSystems AI Studios/Knowledge 3D Standard/GitHub/Knowledge3D')
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from knowledge3d.cranium.ocr.deepseek_ocr_model import DeepSeekOCRModel
 from knowledge3d.cranium.ocr.gpu_trainer import GPUCNNTrainer

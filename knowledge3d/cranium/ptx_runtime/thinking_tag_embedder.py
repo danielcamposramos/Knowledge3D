@@ -2,42 +2,44 @@ from __future__ import annotations
 
 from typing import List
 
-try:
-    import torch
-    import torch.nn as nn
-except Exception:  # pragma: no cover
-    torch = None
-    nn = None
 
+class ThinkingTagEmbedder:
+    """Sovereign stub for the thinking-tag embedder.
 
-class ThinkingTagEmbedder(nn.Module):  # type: ignore[misc]
-    def __init__(self, input_dim: int = 512, hidden_dim: int = 256, num_tags: int = 100):
-        super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, num_tags)
-        self.dropout = nn.Dropout(0.3)
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+    The prior implementation was a torch ``nn.Module`` (Linear+Dropout+ReLU+
+    Sigmoid) loaded from a ``.pth`` checkpoint. Per the 2026-04-18 absolute
+    sovereignty purge, torch is banned from the hot path. The sovereign
+    successor is a ternary-quantised embedding model executed through the PTX
+    thinking-tag kernel using ``.trit`` weights; until that lands, this stub
+    preserves the import surface so callers (``knowledge3d/bridge/live_server.py``)
+    keep parsing and simply get an empty tag list.
 
-    def forward(self, embedding):
-        x = self.relu(self.fc1(embedding))
-        x = self.dropout(x)
-        x = self.relu(self.fc2(x))
-        x = self.dropout(x)
-        x = self.fc3(x)
-        return self.sigmoid(x)
+    Spec pointer: ``TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md`` §5.4.
+    """
+
+    def __init__(self, input_dim: int = 512, hidden_dim: int = 256, num_tags: int = 100) -> None:
+        self.input_dim = int(input_dim)
+        self.hidden_dim = int(hidden_dim)
+        self.num_tags = int(num_tags)
+
+    def load_state_dict(self, *_args, **_kwargs) -> None:
+        # Torch weight-loading is replaced by the sovereign ternary weight
+        # loader. Until that loader is wired in, accept any input and keep the
+        # stub silent so boot does not abort.
+        return None
+
+    def eval(self) -> "ThinkingTagEmbedder":
+        return self
+
+    def forward(self, *_args, **_kwargs):  # pragma: no cover - sovereign successor pending
+        raise NotImplementedError(
+            "sovereign successor pending — see "
+            "TEMP/CLAUDE_ABSOLUTE_SOVEREIGNTY_PURGE_04.18.2026.md §5.4. "
+            "Replace with a PTX ternary-embedding forward pass."
+        )
 
     def predict_thinking_tags(self, embedding: List[float], tag_names: List[str]) -> List[str]:
-        if torch is None:
-            return []
-        with torch.no_grad():
-            import torch as _t
-            emb = _t.tensor(embedding, dtype=_t.float32).unsqueeze(0)
-            probs = self.forward(emb).squeeze(0).tolist()
-            out: List[str] = []
-            for i, p in enumerate(probs):
-                if i < len(tag_names) and p > 0.5:
-                    out.append(tag_names[i])
-            return out
-
+        # Until the sovereign PTX successor is wired, predict no tags. The
+        # caller (live_server.py) treats an empty list as "no tag annotations
+        # available" and continues without failing.
+        return []

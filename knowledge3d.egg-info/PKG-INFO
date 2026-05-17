@@ -88,7 +88,7 @@ Dynamic: license-file
 When humans and AI share the same spatial reality — when we can both point at knowledge, navigate through reasoning, and witness each other's paths — we move beyond prompt-response into genuine collaboration. This is not incremental improvement. This is architecture-level transformation.
 
 **Perfect For:**
-- W3C PM-KR Community Group members
+- PM-KR Community Group members
 - Researchers exploring explainable AI
 - Anyone asking "how do we build AI we can actually trust?"
 
@@ -228,20 +228,20 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 ---
 
-## 🌐 W3C Standardization & Newly Coined Terms
+## 🌐 W3C Community Group Incubation & Newly Coined Terms
 
 ### Procedural Memory Knowledge Representation (PM-KR) Community Group
 
 **Published**: February 20, 2026
 **Status**: ✅ OPEN for participation! World-class experts joining rapidly.
 **W3C Page**: https://www.w3.org/community/pm-kr/
-**Standards Repo**: https://github.com/w3c-cg/pm-kr ⭐ (official W3C specifications)
+**Community Group Repo**: https://github.com/w3c-cg/pm-kr ⭐ (Community Group materials)
 **Reference Implementation**: https://github.com/danielcamposramos/Knowledge3D (this repo)
 
-**Mission**: Study and standardize procedural knowledge representation for AI systems, with K3D as reference implementation.
+**Mission**: Study and develop procedural knowledge representation for AI systems, with K3D as reference implementation.
 
 **Repository Relationship**:
-- **w3c-cg/pm-kr** = Open standards, collaborative specifications, test suites (standards track)
+- **w3c-cg/pm-kr** = Open incubation, collaborative specifications, test suites (Community Group track)
 - **Knowledge3D** = Reference implementation, production system, living documentation (implementation track)
 - Think: WebKit/Chromium (browsers) vs. W3C HTML/CSS specs (standards)
 
@@ -249,7 +249,7 @@ Knowledge3D stands on the shoulders of giants. We build upon foundational resear
 
 ### 🎯 PM-KR Strategic Steering (February 2026)
 
-**CRITICAL SHIFT:** PM-KR Community Group is actively steering K3D's development from standalone prototype to **foundational web standard reference implementation**.
+**CRITICAL SHIFT:** PM-KR Community Group is actively steering K3D's development from standalone prototype to **foundational web technology reference implementation**.
 
 **The 6 Strategic Imperatives** (driven by founding members):
 
@@ -376,7 +376,7 @@ Key architecture and protocol specs live under `docs/vocabulary/`:
 ### Accessibility
 - **[UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md](docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)** — Multi-modal accessibility (text, Braille Galaxy, Sign Language Galaxy, audio, haptics)
 
-### W3C Standardization
+### W3C Community Group Incubation
 - **[PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md](docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)** — PM-KR internal vocabulary spec (K3D-specific details)
 
 ---
@@ -632,7 +632,7 @@ sha256sum ../Knowledge3D.local/results/reproduction_run/*.json > checksums.txt
 - **[FMEAI NotebookLM](https://notebooklm.google.com/notebook/000bf428-f258-4c05-89d0-bc138b05fa1b)** — 233 sources exploring the metaphysical, energetic, and consciousness-based foundations of K3D's architecture (C-Field theory, ancient wisdom traditions, quantum consciousness, digital physics)
 - [docs/PHILOSOPHY.md](docs/PHILOSOPHY.md) — Core principles (We are identical in our differences, Everything is energy, Coexistence as survival imperative)
 - **[CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md](docs/CUDA_PTX_VERSION_COMPATIBILITY_GUIDE.md)** — CUDA Error 222 troubleshooting
-- **[W3C Standardization Package](docs/W3C/README.md)** — PM-KR Community Group documentation
+- **[W3C Community Group Package](docs/W3C/README.md)** — PM-KR Community Group documentation
 
 ### Vocabulary Specifications
 
@@ -686,7 +686,7 @@ Knowledge3D is built through Multi-Vibe Code In Chain (MVCIC) — human-AI partn
 
 🌌 **Explore K3D**: [NotebookLM Research Space](https://notebooklm.google.com/notebook/1bd10bda-8900-4c41-931e-c9ec67ac865f)
 🎬 **Watch Videos**: [Multi-Language Playlist](https://www.youtube.com/playlist?list=PLmWTHH0cS_OgQ7h_xRMhZ6UqE5mRYAhD7)
-🌐 **W3C Standardization**: [PM-KR Community Group](https://www.w3.org/community/pm-kr/)
+🌐 **W3C Community Group Incubation**: [PM-KR Community Group](https://www.w3.org/community/pm-kr/)
 📚 **Dive Deep**: [docs/vocabulary/](docs/vocabulary/)
 
 **Built with collective intelligence. Shared with open hearts. For a sovereign, spatial future.** ✨

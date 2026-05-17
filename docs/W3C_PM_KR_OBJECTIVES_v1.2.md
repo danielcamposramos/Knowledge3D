@@ -6,7 +6,7 @@
 
 ## Mission
 
-The PM-KR Community Group develops standards for **procedural knowledge representation** that enable both humans and AI systems to consume the same canonical knowledge sources.
+The PM-KR Community Group develops specifications for **procedural knowledge representation** that enable both humans and AI systems to consume the same canonical knowledge sources.
 
 **Core insight (Milton Ponson, mandala graph theory):** Nothing is "wrong" with declarative approaches — they're **necessary but insufficient**. PM-KR provides **procedural optimization given declarative foundation**.
 
@@ -214,7 +214,7 @@ Current knowledge representation systems suffer from massive duplication and fra
 
 ### Technical Impact
 
-- **Standardize** procedural knowledge representation for AI systems
+- **Study and develop** procedural knowledge representation for AI systems
 - **Reduce** knowledge duplication across systems (50-90% compression demonstrated)
 - **Enable** dual-client knowledge sources (humans + AI from same source)
 - **Complement** declarative standards (add execution layer to RDF/OWL/JSON-LD)

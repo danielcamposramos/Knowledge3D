@@ -26,8 +26,8 @@ fi
 #   MAX_MMLU_QUESTIONS=2000
 #   MAX_WORD_ENTRIES=50000
 
-STORAGE_ROOT="${1:-../Knowledge3D.local}"
-OUTPUT_ROOT="${2:-../Knowledge3D.local/datasets/external_payloads}"
+STORAGE_ROOT="${1:-/K3D/Knowledge3D.local}"
+OUTPUT_ROOT="${2:-/K3D/Knowledge3D.local/datasets/external_payloads}"
 RUN_DIR="${OUTPUT_ROOT%/}/benchmark_aug_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$RUN_DIR"
 

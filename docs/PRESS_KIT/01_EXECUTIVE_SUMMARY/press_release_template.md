@@ -6,7 +6,7 @@ FOR IMMEDIATE RELEASE
 
 ## [CITY, COUNTRY] - [HEADLINE IN TITLE CASE]
 
-[ORGANIZATION] today announced [EVENT/RELEASE], advancing the W3C PM-KR effort for procedural knowledge representation and the Knowledge3D reference implementation.
+[ORGANIZATION] today announced [EVENT/RELEASE], advancing the PM-KR effort for procedural knowledge representation and the Knowledge3D reference implementation.
 
 [PARAGRAPH 1: WHAT HAPPENED]
 [Insert one paragraph with concrete event details, date, and scope.]
@@ -39,7 +39,7 @@ Media Contact:
 [TIMEZONE]
 
 Examples of [EVENT]:
-- W3C PM-KR Community Group milestone publication
+- PM-KR Community Group milestone publication
 - WebML and PM-KR integration proposal update
 - GPU for the Web collaboration announcement
 - Carbon blueprint methodology release
