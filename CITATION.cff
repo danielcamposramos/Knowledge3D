@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "Knowledge3D: a GPU-native reference implementation for W3C PM-KR"
+abstract: "Web knowledge is fragmented: duplicated across fonts, embeddings, metadata and renderings. Humans see pixels, AI sees tokens, and neither shares the source. Knowledge3D is a sovereign, GPU-native reference implementation for the W3C PM-KR Community Group, where humans and AI consume the same procedural knowledge from one source. Code under Apache-2.0; the white paper under CC BY 4.0."
+authors:
+  - family-names: "Ramos"
+    given-names: "Daniel Campos"
+    orcid: "https://orcid.org/0009-0001-4546-8673"
+    affiliation: "EchoSystems AI Studios"
+license:
+  - Apache-2.0
+  - CC-BY-4.0
+repository-code: "https://github.com/danielcamposramos/Knowledge3D"
+keywords:
+  - "knowledge representation"
+  - "procedural knowledge"
+  - "W3C PM-KR"
+  - "neurosymbolic AI"
+  - "spatial knowledge"
+  - "GPU-native"
+  - "glTF"
+  - "RPN"
