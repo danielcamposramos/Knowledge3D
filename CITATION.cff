@@ -11,6 +11,7 @@ authors:
 license:
   - Apache-2.0
   - CC-BY-4.0
+doi: "10.5281/zenodo.23308993"
 repository-code: "https://github.com/danielcamposramos/Knowledge3D"
 keywords:
   - "knowledge representation"
