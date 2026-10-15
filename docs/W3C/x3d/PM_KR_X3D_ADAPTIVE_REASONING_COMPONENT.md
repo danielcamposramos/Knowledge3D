@@ -1,10 +1,9 @@
 # PM-KR X3D Adaptive Reasoning Component
 
 **Version**: 0.1 (Initial Draft)
-**Status**: W3C PM-KR Community Group Working Draft
+**Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: PM-KR Community Group (Daniel Campos Ramos, Chair; Milton Ponson, Co-Chair)
-**Liaison**: Web3D Consortium (Don Brutzman, Advisory Committee Representative)
+**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
 
 **Normative References**:

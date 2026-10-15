@@ -1,10 +1,9 @@
 # PM-KR Procedural Memory Component for X3D
 
 **Version**: 0.1 (Initial Draft)
-**Status**: W3C PM-KR Community Group Working Draft
+**Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: PM-KR Community Group (Daniel Campos Ramos, Chair; Milton Ponson, Co-Chair)
-**Liaison**: Web3D Consortium (Don Brutzman, Advisory Committee Representative)
+**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
 
 **Normative References**:
@@ -1367,4 +1366,4 @@ See RPN Domain Opcode Registry (docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) f
 
 **End of Document**
 
-*This specification is a working draft of the PM-KR Community Group (W3C). It is intended for review by the Web3D Consortium and the broader standards community. Feedback should be directed to the PM-KR Community Group mailing list.*
+*This document is an early non-fruitful attempt by Daniel Campos Ramos, offered as individual input to the PM-KR Community Group; it is not a group document. Feedback should be directed to the PM-KR Community Group mailing list.*

@@ -1,10 +1,9 @@
 # PM-KR RPN-to-X3D Scene Graph Emission
 
 **Version**: 0.1 (Initial Draft)
-**Status**: W3C PM-KR Community Group Working Draft
+**Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: PM-KR Community Group (Daniel Campos Ramos, Chair; Milton Ponson, Co-Chair)
-**Liaison**: Web3D Consortium (Don Brutzman, Advisory Committee Representative)
+**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
 
 **Normative References**:
@@ -1582,4 +1581,4 @@ SAI.setField(answerNode, "meaningProgram", "2 RECALL_X MUL")  // 2x
 
 **End of Document**
 
-*This specification is a working draft of the PM-KR Community Group (W3C). It defines how PM-KR's executable knowledge programs produce X3D-compliant scene graphs for interchange between procedural memory systems. Feedback should be directed to the PM-KR Community Group mailing list.*
+*This document is an early non-fruitful attempt by Daniel Campos Ramos, offered as individual input to the PM-KR Community Group; it is not a group document. It defines how PM-KR's executable knowledge programs produce X3D-compliant scene graphs for interchange between procedural memory systems. Feedback should be directed to the PM-KR Community Group mailing list.*
