@@ -1,5 +1,7 @@
 # PM-KR Community Group — Objectives (v1.3)
 
+> **Document context, clarified 19 October 2026:** This February 2026 text is a project-hosted proposal and historical discussion input. It does not establish adopted W3C requirements or institutional endorsement. Current discussion and decisions belong in the [PM-KR group repository](https://github.com/w3c-cg/pm-kr). See the [document index](W3C/README.md) for status and evidence guidance.
+
 **Last Updated:** February 28, 2026
 
 ---
@@ -250,7 +252,7 @@ Current knowledge representation systems suffer from massive duplication and fra
 
 **Chairs:**
 - Daniel Campos Ramos: capitain_jack@yahoo.com
-- Milton Ponson: rwiciamsd@gmail.com
+- Milton Ponson: contact through the [PM-KR group](https://www.w3.org/community/pm-kr/)
 
 **Mailing List:** public-pm-kr@w3.org
 

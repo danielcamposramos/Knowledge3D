@@ -8,9 +8,13 @@
 
 ---
 
-# Knowledge3D — Reference Implementation for W3C PM-KR
+# Knowledge3D — Spatial AI and procedural knowledge research
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-green.svg)](LICENSE) [![status](https://img.shields.io/badge/status-Phase_H_House_Construction-blue)](docs/ROADMAP.md) [![W3C PM-KR](https://img.shields.io/badge/W3C-PM--KR_Community_Group-005A9C)](https://www.w3.org/community/pm-kr/) [![Awesome ML](https://img.shields.io/badge/Awesome_ML-CUDA__PTX-orange)](https://github.com/josephmisiti/awesome-machine-learning#cuda-ptx)
+
+Knowledge3D is an independently developed reference implementation for concepts proposed to the [W3C PM-KR Community Group](https://www.w3.org/community/pm-kr/). It explores shared procedural knowledge for human and AI clients, with a GPU execution path and a spatial interface. It is not a W3C standard or a group deliverable, and the group is open to other implementations.
+
+Start with the [W3C-facing document and evidence index](docs/W3C/README.md). It separates proposals, implementation records and review questions. Architectural goals and illustrative scenarios below do not imply that every modality or cross-implementation path is already complete.
 
 ## Participate
 
@@ -23,32 +27,21 @@
 
 ## The User-Facing Problem
 
-A single Unicode character today exists as: a font glyph, an embedding vector, accessibility metadata, a visual rendering, and an AI token — **five separate copies of the same knowledge**, maintained independently, drifting apart. Multiply this by every character, formula, and concept on the web.
+A lesson, character or scientific concept may be represented by geometry, text, semantics, accessible descriptions and AI-facing data. These representations serve different purposes, but overlapping facts can drift when maintained independently. K3D explores a common procedural source and explicit references so clients can share identity and provenance while retaining the presentation each user needs.
 
-**For end users:**
-- A blind student's screen reader, a sighted student's display, and a classroom AI each consume different representations of the same lesson — none can share context with the others
-- Knowledge is locked in flat documents and search bars — you can't walk through it, point at it, or explore it spatially
-- AI systems are black boxes: billions of parameters hiding how they think, with no way to inspect, verify, or collaborate with their reasoning
-
-**For developers:**
-- The same knowledge must be encoded separately for each modality (visual, semantic, tactile, audio) — creating massive duplication and maintenance burden
-- No standard exists for storing knowledge once as an executable procedure consumable by both humans and AI
-- Current AI frameworks require heavy external dependencies (numpy, scipy, torch) even for simple reasoning tasks
-
-**For the web:**
-- Tim Berners-Lee's Giant Global Graph vision remains unrealized — knowledge is siloed, not linked
-- Accessibility is an afterthought, bolted on rather than built in
-- The desktop metaphor (files, folders, windows) has not evolved in 40 years
+A concrete goal is a spatial lesson that a sighted student, a screen-reader user and an AI partner can inspect consistently. That requires both a knowledge model and tested presentation/accessibility paths; a 3D scene alone does not supply either semantic equivalence or accessibility.
 
 ---
 
 ## Proposed Approach
 
-Knowledge3D stores knowledge **once** as executable Reverse Polish Notation (RPN) programs with symlink-style composition. One procedural source renders visually for humans, executes semantically for AI, produces Braille for tactile readers, and synthesizes audio descriptions — all from the same canonical entry.
+Knowledge3D develops executable Reverse Polish Notation (RPN) programs with symlink-style composition as a way to reuse knowledge. The design links semantic identity, visual programs and language-specific forms. Speech, Braille and other accessible presentations need modality-specific rules and validation; sharing an entry is the architectural aim, not proof that all outputs are implemented.
 
 **The architecture in one sentence:** A 3D spatial reality (the House) where knowledge lives as permanent objects, processed by an AI brain (the Galaxy) that loads concepts on demand and reasons over them on GPU via sovereign PTX kernels — with zero external dependencies in the hot path.
 
-### How It Works (Code Example)
+### Conceptual data example
+
+This illustrates the proposed relationship between fields; it is not a complete executable example or an accessibility test.
 
 A character like "A" is stored once as a procedural star:
 
@@ -70,7 +63,7 @@ star = MeaningCentricStar(
     polarity=1,
 )
 
-# Same star → human sees the glyph, AI executes the meaning, Braille reader gets tactile output
+# Intended clients share the entry; each presentation path needs its own implementation.
 ```
 
 The visual_rpn draws the glyph. The meaning_rpn carries the semantic identity. The surface_forms link to language-specific words without duplicating them. **One source, every client.**
@@ -78,6 +71,8 @@ The visual_rpn draws the glyph. The meaning_rpn carries the semantic identity. T
 ---
 
 ## Use Cases
+
+These are target scenarios for development and evaluation, not end-to-end test results.
 
 ### 1. Inclusive Education
 A physics teacher says "demonstrate a pulley system." The classroom AI builds a working 3D pulley — visible on screen, navigable by screen reader, explorable by touch. The blind student and sighted student share the **same** spatial lesson, not parallel approximations.
@@ -89,7 +84,7 @@ When K3D's AI reasons about "Is water an element?", you can watch the reasoning 
 A university's knowledge base stores "photosynthesis" once — as a procedural star with RPN programs for the biochemical process, visual diagrams, audio explanations, and multi-language surface forms. Every course, every modality, every AI assistant references the same canonical entry. Zero duplication.
 
 ### 4. Multi-Modal Accessibility
-The same procedural font program that renders "A" on screen also drives a Braille cell, generates an audio description ("uppercase Latin letter A"), and provides the AI with semantic identity — all from one 47-byte RPN program.
+The same procedural font program that renders "A" on screen also drives a Braille cell, generates an audio description ("uppercase Latin letter A"), and provides the AI with semantic identity — with a shared semantic reference. A glyph program alone does not encode every accessible representation; end-to-end size and usability must be measured.
 
 ---
 
@@ -97,7 +92,7 @@ The same procedural font program that renders "A" on screen also drives a Braill
 
 - **Replacing LLMs** — K3D is not a chatbot or language model. It's a knowledge system that AI agents (including LLMs) can inhabit and use.
 - **Cloud dependency** — K3D runs on consumer GPUs (RTX 3060 12GB). No cloud required for core reasoning.
-- **Backward-compatible with RDF/OWL** — K3D interoperates with Semantic Web standards but does not adopt their architecture. PM-KR is procedural, not declarative.
+- **Replacing RDF/OWL** — K3D explores a procedural layer alongside declarative semantics. Proposed mappings require explicit equivalence and round-trip tests.
 - **Game engine** — K3D uses game industry technology (3D rendering, spatial indexing, LOD) but is a knowledge system, not an entertainment platform.
 
 ---
@@ -151,16 +146,16 @@ The reasoning path uses **only** PTX kernels + Galaxy queries + RPN composition.
 ## Alternatives Considered
 
 ### Why Not Traditional Knowledge Graphs (RDF/OWL)?
-Knowledge graphs describe what things ARE (declarative). PM-KR describes how things WORK (procedural). A KG says "A is a letter"; PM-KR stores the executable program that draws A, pronounces A, and reasons about A. KGs require external reasoners; PM-KR knowledge executes itself.
+RDF/OWL already support explicit meaning, relationships and reasoning. K3D explores how reusable procedures can connect those descriptions to executable behavior. Both approaches need an execution environment. Proposed mappings must show what meaning survives exchange and where information is lost.
 
 ### Why Not LLM Embeddings?
 Embeddings are opaque vectors — you can't inspect why two concepts are similar. K3D's meaning-centric stars carry explicit RPN programs, surface forms, and taxonomic references. The reasoning is auditable. Additionally, embeddings duplicate knowledge per model; stars store it once.
 
 ### Why Not Existing Game Engines (Unity/Unreal)?
-Game engines are designed for entertainment, not knowledge representation. K3D uses game industry technology (3D rendering, spatial indexing, LOD) but the knowledge architecture — Galaxy Universe, meaning-centric stars, procedural composition — has no equivalent in game engines.
+Game engines provide mature rendering, spatial indexing and simulation. K3D builds on such techniques while investigating a knowledge model shared by human and AI clients. Whether that additional model helps a workflow must be demonstrated against existing approaches.
 
 ### Why Not Framework-Based AI (PyTorch/TensorFlow)?
-Frameworks add layers of abstraction that prevent sovereignty and inspection. K3D's PTX kernels execute directly on GPU via ctypes + libcuda.so. No framework overhead, no hidden state, no opaque autograd. Every operation is auditable.
+K3D chooses direct GPU execution for control over its reasoning path. That choice has engineering and portability costs. Framework-based systems remain useful alternatives; comparisons need matched workloads and measured results, not an assumption that abstraction prevents inspection.
 
 ### Why Build the House as Literal 3D Space?
 The IT industry borrowed spatial metaphors (windows, desktop, doors, folders, addresses) and kept them flat. K3D reverses this: spatial metaphors become actual 3D objects. A "door" is a real door you walk through. A "window" is a real window you look out of. This isn't metaphor — it's software as a space.
@@ -169,21 +164,11 @@ The IT industry borrowed spatial metaphors (windows, desktop, doors, folders, ad
 
 ## Benchmark Results
 
-### Current State (March 2026, Phase B+ Complete)
+### Published evidence and its limits
 
-| Benchmark | Score | Notes |
-|-----------|-------|-------|
-| **ARC-AGI** | 10/10 | Visual reasoning (composed head pipeline) |
-| **Math** | 20/20 | Symbolic reasoning (sovereign GPU path) |
-| **GSM8K** | 10/10 | Word-problem decomposition |
-| **LHE** | 7/10 | Multi-hop reasoning |
-| **MMLU** | 15/50 shared, 19/50 isolated | Broad knowledge (Galaxy expansion ongoing) |
+Benchmark scores are tied to a particular pipeline, dataset subset, checkpoint and environment. The [April 11 implementation record](CODEX.md#current-benchmark-state) distinguishes curated results, broader tests, known failures and the embodied rebuild. It explicitly says earlier ARC/Math pins are not merge gates for that rebuild. Those snapshots are not full-benchmark scores or evidence of general intelligence.
 
-All benchmarks run on **composed head pipeline** with **zero Python fallbacks**. PTX sovereignty rate = 1.0.
-
-**Hardware**: RTX 3070 8GB, consumer-grade GPU. ~132 MiB of 12 GB VRAM used.
-
-**Key achievement**: First sovereign GPU-converged answer ("What is 2+3?" = 5) with ZERO Python in the reasoning path.
+The [March 30 live ARC3 report](docs/reports/ARC3_LIVE_LEVEL1_MILESTONE_2026-03-30.md) records one completed live level and its conditions. The [PM-KR evidence matrix](docs/W3C/PM_KR_EVIDENCE_VALIDATION_MATRIX.md) separates repository checks, run-log claims and targets. Independent conformance artifacts and reruns remain separate work. This editorial update introduces no new benchmark measurements.
 
 ### Historical Results
 
@@ -249,18 +234,18 @@ See the [full reproduction guide](#scientific-reproduction-week-219-results) wit
 ## Accessibility, Internationalization, Privacy, and Security Considerations
 
 ### Accessibility
-Multi-modal by architecture, not by add-on. The same procedural source renders for visual displays, Braille readers, audio synthesis, and haptic devices. The Dual-Client Contract ensures humans and AI consume identical knowledge — a blind user navigating the House via screen reader accesses the same semantic content as a sighted user.
+The Dual-Client Contract is the design goal that clients share underlying identity and meaning. Visual, speech, Braille, haptic and non-spatial interaction paths need separate implementation, assistive-technology tests and review with users. A shared source does not by itself establish accessible equivalence.
 
 **Spec**: [UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md](docs/vocabulary/UNIVERSAL_ACCESSIBILITY_SPECIFICATION.md)
 
 ### Internationalization
-Knowledge is meaning-centric, not language-centric. "Cat" is one star containing surface forms for every language (English "cat", Portuguese "gato", Japanese "猫"). Reasoning operates on meaning (Layer 2-4), not language surface (Layer 1). New languages add surface forms to existing stars — they don't create new knowledge.
+Knowledge is meaning-centric, not language-centric. "Cat" is one star containing surface forms for every language (English "cat", Portuguese "gato", Japanese "猫"). Reasoning operates on meaning (Layer 2-4), not language surface (Layer 1). Language-specific forms can reference shared entries, while context, ambiguity and culturally distinct concepts may require separate modeling and review.
 
 ### Privacy
 K3D runs on local consumer hardware. No cloud dependencies for core reasoning. The House (personal knowledge) stays on the user's device. Network interfaces (portals between Houses) are explicit and permissioned.
 
 ### Security
-Sovereign execution means zero external dependencies in the hot path — no supply chain risk from ML frameworks. PTX kernels are hand-written and auditable. The sovereignty test suite actively fails if any external library enters the reasoning path.
+The hot-path design avoids external ML frameworks and includes sovereignty checks. Drivers, build tools, runtimes, input procedures and surrounding services still require security review. Inspectable code and provenance help review; they do not establish that execution is safe.
 
 ---
 
@@ -276,6 +261,8 @@ Sovereign execution means zero external dependencies in the hot path — no supp
 
 ## Stakeholder Feedback
 
+These are attributed interactions and historical participation notes, not institutional endorsements or independent validation of the complete system.
+
 - **Manu Sporny** (JSON-LD co-creator, RDF Canonicalization editor): Cryptographic C14N guidance
 - **Milton Ponson** (PM-KR Co-Chair, Mathematician): Official supporter, Gödelian KR foundations
 - **Jonathan DeRouchie** (Persistent memory AI): Security boundaries + Developer UX
@@ -284,13 +271,15 @@ Sovereign execution means zero external dependencies in the hot path — no supp
 - **Nitin Pasumarthy** (LinkedIn, KDD Best Paper): Production KG optimization
 - **24+ early ingressors** as of March 2026
 
-**Independent analyses (Claude.ai):**
+**AI-generated discussion material (Claude.ai), not independent peer review:**
 - [K3D's architectural novelty](https://claude.ai/public/artifacts/e79b9a70-7907-4a63-9052-d94c386f83f9) — why the raw PTX + spatial KR stack is essentially unique
 - [Fulfilling the Giant Global Graph](https://claude.ai/public/artifacts/0f8e078a-dd13-473d-b419-03f56e4d224b) — alignment with Berners-Lee's GGG/Semantic Web vision
 
 ---
 
 ## Contributing
+
+For W3C-facing material, follow the [document skills and evidence rules](docs/W3C/README.md#writing-and-review). You may explain ideas in your preferred language and work with AI partners on an English draft. **Se for mais fácil para você, pode explicar em sua própria língua.** Preserve meaning, uncertainty and attribution.
 
 Knowledge3D is built through human-AI partnership:
 - **Claude** — architecture, specifications, documentation
@@ -303,7 +292,7 @@ Knowledge3D is built through human-AI partnership:
 3. Check [docs/vocabulary/](docs/vocabulary/) for specifications
 4. Open issues/PRs
 
-**Complete attributions**: [ATTRIBUTIONS.md](ATTRIBUTIONS.md) | **Pop culture heritage**: [POP_CULTURE_HERITAGE.md](POP_CULTURE_HERITAGE.md)
+**Complete attributions**: [ATTRIBUTIONS.md](ATTRIBUTIONS.md) | **Pop culture heritage**: [POP_CULTURE_HERITAGE.md](docs/POP_CULTURE_HERITAGE.md)
 
 ---
 

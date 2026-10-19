@@ -1,5 +1,7 @@
 # PM-KR Evidence and Validation Matrix
 
+> **Evidence scope, clarified 19 October 2026:** This is a project-maintained evidence inventory, not an independent conformance assessment or a W3C approval. Its dated figures and labels are historical claims; readers should follow the artifact references and distinguish runnable tests, retained logs, illustrative pseudocode and targets. A local or missing artifact cannot support an independently reproducible public result until published. No benchmarks were rerun for this editorial clarification. See [the evidence review procedure](README.md#evidence-for-public-claims).
+
 **Document Type**: W3C Community Group Evidence Report (Draft)
 **Version**: 1.2
 **Date**: February 20, 2026

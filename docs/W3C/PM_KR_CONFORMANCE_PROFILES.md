@@ -1,6 +1,9 @@
 # PM-KR Conformance Profiles: Implementation Guide
 
-**Document Type**: W3C Community Group Implementation Guide (Draft)
+> **Publication status, clarified 19 October 2026:** This is a Knowledge3D project proposal offered for PM-KR discussion. It is not an adopted Community Group report or a W3C standard. Requirement words describe the proposed model, not an approved W3C conformance regime. See the [document and evidence index](README.md).
+
+
+**Document Type**: Knowledge3D candidate implementation guide for PM-KR discussion
 **Version**: 1.2
 **Date**: February 20, 2026
 **Authors**: Knowledge3D Project Contributors

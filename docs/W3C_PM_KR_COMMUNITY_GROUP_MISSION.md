@@ -1,5 +1,7 @@
 # PM-KR Community Group — Mission Statement
 
+> **Document context, clarified 19 October 2026:** This February 2026 text is a project-hosted proposal and historical discussion input. It does not establish adopted W3C requirements or institutional endorsement. Current discussion and decisions belong in the [PM-KR group repository](https://github.com/w3c-cg/pm-kr). See the [document index](W3C/README.md) for status and evidence guidance.
+
 **Last Updated:** February 28, 2026
 **Version:** 1.1 (Revised based on community feedback)
 
