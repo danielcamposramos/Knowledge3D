@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="156" viewBox="0 0 720 156" role="img" aria-labelledby="title desc">
+  <title id="title">Proposed shared lesson</title>
+  <desc id="desc">A person and an AI read the same lesson, with its drawing, meaning and source.</desc>
+  <rect width="720" height="156" rx="12" fill="#f3f6fa"/>
+  <g font-family="sans-serif" fill="#172c45">
+    <text x="24" y="28" font-size="14">Proposed design</text>
+    <rect x="24" y="47" width="315" height="85" rx="8" fill="#e0ebf7" stroke="#426b9b"/>
+    <text x="44" y="80" font-size="22">One shared lesson</text>
+    <text x="44" y="110" font-size="17">Drawing · Meaning · Source</text>
+    <path d="M339 89 H410 V62 H458 M410 89 V117 H458" fill="none" stroke="#426b9b" stroke-width="2"/>
+    <path d="m451 57 8 5-8 5 m0 45 8 5-8 5" fill="none" stroke="#426b9b" stroke-width="2"/>
+    <text x="476" y="68" font-size="20">A person reads it</text>
+    <text x="476" y="123" font-size="20">AI reads it</text>
+  </g>
+</svg>
