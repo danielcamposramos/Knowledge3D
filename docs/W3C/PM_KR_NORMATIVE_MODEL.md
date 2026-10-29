@@ -1,5 +1,9 @@
 # Procedural Memory Knowledge Representation: Normative Model
 
+> **Status, 29 October 2026: Draft.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+
 > **Publication status, clarified 19 October 2026:** This is a Knowledge3D project proposal offered for PM-KR discussion. It is not an adopted Community Group report or a W3C standard. Requirement words describe the proposed model, not an approved W3C conformance regime. See the [document and evidence index](README.md).
 
 
@@ -13,7 +17,9 @@
 
 ## Abstract
 
-This document defines the **normative model** for Procedural Memory Knowledge Representation (PM-KR), a knowledge representation technology that treats knowledge as executable procedures organized in compositional layers with symlink-style references. PM-KR enables compression-preserving knowledge representation, dual-client consistency (human and AI), and sovereign execution (zero external dependencies in inference hot path).
+This document proposes a **normative model** for Procedural Memory Knowledge Representation (PM-KR): executable procedures organized in compositional layers with explicit references.
+Its goals are reference reuse, consistency between human and AI views, and a declared execution boundary.
+These properties require implementation-specific tests.
 
 ---
 
@@ -43,10 +49,10 @@ This document is a **draft specification** proposed to the W3C AI Knowledge Repr
 
 ### 1.1 Motivation
 
-Traditional knowledge representation systems suffer from:
-- **Duplication**: Same concepts stored redundantly (~70% waste measured in K3D)
-- **Opacity**: Humans and AI see different representations (no shared ground truth)
-- **Dependency**: Inference requires external libraries (sovereignty violations)
+This proposal addresses possible integration problems:
+- **Duplication**: Related representations can repeat facts and drift when updated independently.
+- **Opacity**: Different client views need explicit mappings and tests to establish consistent identity and meaning.
+- **Dependencies**: The project proposes a declared runtime boundary; implementations must state the dependencies inside that boundary.
 
 PM-KR addresses these via **procedural canonicalization** + **symlink composition** + **dual-client consistency**.
 
@@ -244,7 +250,7 @@ PM-KR does NOT mandate specific procedural languages, but implementations MUST d
 
 **Requirement**: If node B reuses canonical content from node A, then B MUST reference A; B MUST NOT inline duplicate canonical payload unless explicitly marked as materialized cache.
 
-**Rationale**: Achieves ~70% compression via symlink graphs.
+**Rationale**: Reusing references can avoid repeated payloads; net storage depends on the data, metadata and reference overhead.
 
 **Example Violation**:
 ```json
@@ -274,7 +280,7 @@ PM-KR does NOT mandate specific procedural languages, but implementations MUST d
 
 ### 5.4 Dual-Client Equivalence Invariant
 
-**Requirement**: Human and synthetic users MUST observe/consume the same underlying node truth, differing only in representation modality (visual vs semantic).
+**Requirement**: People and AI clients MUST observe/consume the same underlying node truth, differing only in representation modality (visual vs semantic).
 
 **Rationale**: Ensures shared ground truth, enables verification.
 
@@ -379,7 +385,8 @@ Implementations MAY add:
 3. Maintain sovereignty (zero external dependencies in hot path)
 4. Provide error traces (for debugging)
 
-**K3D Reference**: RPN programs executed via PTX kernels with `LatencyGuard` telemetry (<100µs median latency).
+**K3D design reference**: RPN programs execute through PTX kernels; telemetry must measure the declared execution boundary.
+This draft establishes no latency result.
 
 ### 7.3 Dual-Client Rendering
 
@@ -425,7 +432,8 @@ Implementations claiming PM-KR conformance SHOULD provide:
 4. **Dual-Client Tests**: Human and AI retrieve same node metadata
 5. **Sovereignty Tests**: Hot path uses zero external dependencies
 
-**Reference Test Suite**: PM-KR CG conformance suite (to be published); current K3D anchors include `tests/test_knowledgeverse_*.py`, `tests/test_hot_path_sovereignty.py`, and `tests/test_procedural_fonts.py`.
+**Proposed test suite**: A shared conformance suite remains a deliverable to agree and publish.
+Repository test files are implementation inputs, not certification of this model.
 
 ---
 
@@ -438,7 +446,7 @@ Implementations claiming PM-KR conformance SHOULD provide:
 **Mitigation**: Implementations SHOULD:
 - Cryptographically sign canonical procedures (e.g., SHA-256 + RSA signature)
 - Verify provenance chains before execution
-- Sandbox procedural execution (e.g., PTX has built-in memory safety)
+- Define and test an execution sandbox, memory-access checks and resource limits for untrusted procedures.
 
 ### 9.2 Reference Integrity
 
@@ -548,47 +556,23 @@ Implementations claiming PM-KR conformance SHOULD provide:
 
 ## Appendix B: Compression Analysis
 
+This appendix describes measurements needed to evaluate reference reuse.
+It contains no verified compression result.
+
 ### B.1 Character Galaxy (K3D Validation)
 
-**Traditional Approach** (duplicated payloads):
-```
-21,915 characters × 4KB per char = 87.7 MB
-```
-
-**PM-KR Approach** (procedural + symlinks):
-```
-21,915 procedural fonts + metadata = 26.3 MB
-Reduction: 70%
-```
+Compare complete font or glyph assets with procedure code, metadata and references for the same glyphs.
+Include shaping behavior and reconstruction differences in the report.
 
 ### B.2 Semantic Tags (Math Benchmark)
 
-**Traditional Approach** (duplicated strings):
-```
-400 tasks × 3 semantic tags × 50 bytes avg = 60 KB
-(duplicate strings: "rotation_task", "asymmetric_input", etc.)
-```
-
-**PM-KR Approach** (word references):
-```
-400 tasks × 3 word_refs × 8 bytes = 9.6 KB
-+ ~50 unique words × 200 bytes = 10 KB
-Total: 19.6 KB
-Reduction: 67%
-```
+Compare the actual serialized tags against canonical entries and references.
+Record which tags can share an identity without changing their contextual meaning.
 
 ### B.3 PDF Knowledge (Overnight Ingestion)
 
-**Raw PDFs**:
-```
-1,952 PDFs × ~21 MB avg = 42 GB
-```
-
-**PM-KR Expected** (after symlink compression):
-```
-15,000-25,000 Galaxy entries × ~300 KB avg = 6 GB
-Reduction: 85%
-```
+Retain the original corpus manifest and all extracted content needed for the task.
+A smaller derived knowledge representation is not lossless compression of the PDFs unless reconstruction is demonstrated.
 
 ---
 
@@ -599,16 +583,16 @@ Reduction: 85%
 **Status**: Proposed to W3C AI KR Community Group
 **License**: CC-BY-4.0 (free to share, adapt, with attribution)
 **Reference Implementation**: Knowledge3D (K3D) - https://github.com/danielcamposramos/Knowledge3D
-**Test Suite**: PM-KR external conformance suite (planned) + current K3D anchor tests (`tests/test_knowledgeverse_*.py`, `tests/test_hot_path_sovereignty.py`, `tests/test_procedural_fonts.py`)
+**Test suite status**: No external conformance result is established by this document.
 
 ---
 
 ## Acknowledgments
 
-This specification builds on 13 months of collaborative development by the Knowledge3D (K3D) swarm:
+The project credits its contributors in [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md):
 - **Daniel Ramos** (Architect and founder)
 - **AI Partners**: Claude, Codex, Grok, GLM, Kimi, DeepSeek, Qwen
-- **W3C Community** (feedback and validation)
+- Public feedback is summarized with sources in the [explainer](EXPLAINER.md#stakeholder-feedback).
 
 **Foundational Standards**:
 - glTF 2.0 (Khronos Group) — 3D asset format

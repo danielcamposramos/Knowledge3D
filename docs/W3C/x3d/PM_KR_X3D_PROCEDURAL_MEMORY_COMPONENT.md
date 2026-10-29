@@ -3,20 +3,25 @@
 **Version**: 0.1 (Initial Draft)
 **Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
+**Original draft credits**: Daniel Campos Ramos, Milton Ponson
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
+
+The components, profiles and node types below are proposed extensions in this historical input.
+Their inclusion here does not establish X3D registration, browser support or a tested implementation.
+Examples describe intended behavior and have not been validated here as executable scenes.
+See the [current explainer](../EXPLAINER.md) for the scope now under discussion.
 
 **Normative References**:
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
 - ISO/IEC 19776-1 (X3D XML Encoding)
 - ISO/IEC 19774 (HAnim Humanoid Animation)
-- PM-KR Technology Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
-- Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
-- Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
-- Knowledgeverse Specification v5.1 (docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
-- Sovereign NSI Specification (docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md)
-- RPN Domain Opcode Registry v0.1 (docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)
-- Spatial General Intelligence Specification (docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)
+- PM-KR Technology Specification v1.0 ([PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md](../../../docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md))
+- Foundational Knowledge Specification v1.0 ([FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](../../../docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md))
+- Dual-Client Contract Specification v1.1 ([DUAL_CLIENT_CONTRACT_SPECIFICATION.md](../../../docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md))
+- Knowledgeverse Specification v5.1 ([KNOWLEDGEVERSE_SPECIFICATION.md](../../../docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md))
+- Sovereign NSI Specification ([SOVEREIGN_NSI_SPECIFICATION.md](../../../docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md))
+- RPN Domain Opcode Registry v0.1 ([RPN_DOMAIN_OPCODE_REGISTRY.md](../../../docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md))
+- Spatial General Intelligence Specification ([SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](../../../docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md))
 
 ---
 
@@ -44,7 +49,7 @@
 
 ### 1.1 Purpose
 
-This document defines two new X3D components and one new X3D profile that extend the X3D Architecture (ISO/IEC 19775-1:2023) with **procedural memory knowledge representation** capabilities:
+This document proposes two X3D components and one profile for procedural memory knowledge representation:
 
 - **ProceduralMemory component**: Introduces node types for representing knowledge as executable procedures organized in a four-layer compositional hierarchy (Form, Meaning, Rules, Meta-Rules), connected by canonical references instead of data duplication.
 
@@ -56,11 +61,14 @@ This document defines two new X3D components and one new X3D profile that extend
 
 X3D provides a comprehensive architecture for declarative 3D scene representation with scripting capabilities (Script nodes, ROUTE event wiring, Scene Access Interface). The X3D Ontology (Brutzman & Flotynski, 2020) demonstrates that X3D scenes can be formalized for semantic web querying via OWL 2.
 
-However, X3D's current architecture treats knowledge as **passive scene data with behavior attached via scripts**. Script nodes are escape hatches from the declarative model --- they add behavior to otherwise inert geometry.
+X3D already provides scene structure and behavior mechanisms.
+This proposal explores explicit procedural knowledge fields within that scene model.
 
-PM-KR inverts this relationship: **knowledge IS executable programs**. A mathematical symbol is not geometry with metadata --- it is an RPN program that draws itself (form) AND carries its mathematical semantics (meaning). Rules are programs that operate on those programs. Strategy is programs that select among rules. The four-layer stack (Form, Meaning, Rules, Meta-Rules) composes upward through canonical references, achieving 69--666x compression while preserving full reconstructibility.
+The proposed model associates procedures for form with explicit meaning and composition rules.
+Its Form, Meaning, Rules and Meta-Rules layers reuse canonical references.
+Compression and reconstruction quality require measurements on a stated corpus and runtime.
 
-This extension brings PM-KR's procedural-first knowledge representation into the X3D ecosystem, enabling:
+The proposed extension has these goals:
 
 1. **Knowledge interchange**: X3D scenes where knowledge nodes carry executable procedures, not just geometry and metadata.
 2. **Dual-client rendering**: The same node serves human viewers (visual rendering via UV Map 0) and machine consumers (procedural execution via UV Map 1) with guaranteed identity.
@@ -82,7 +90,7 @@ The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **S
 | **Rules** | Executable transformation programs referencing lower layers (Layer 3) | Foundational Knowledge Spec §1.4 |
 | **Meta-Rules** | Strategy and control over rule selection and consolidation (Layer 4) | Foundational Knowledge Spec §1.5 |
 | **RPN Program** | A sequence of opcodes executed on a stack machine (Reverse Polish Notation) | RPN Domain Opcode Registry §1 |
-| **Dual-Client** | Architecture where human and synthetic users consume the same node truth | Dual-Client Contract §1.3 |
+| **Dual-Client** | Architecture where human and AI clients consume the same node data | Dual-Client Contract §1.3 |
 | **Galaxy** | A named collection of knowledge nodes in a domain (e.g., Math Galaxy, Grammar Galaxy) | Knowledgeverse Spec §2.1 |
 | **House** | A persistent 3D spatial environment (Memory Palace) containing rooms, objects, and knowledge | Three Brain System Spec |
 | **Sovereignty** | Execution using only self-contained, inspectable primitives (no external framework dependencies in the hot path) | Sovereign NSI Spec §1.2 |
@@ -155,7 +163,8 @@ Layer 1: FORM (Primitives / Appearance)
 
 **Critical constraint**: Higher layers MUST reference lower layers via canonical symlink references. Higher layers MUST NOT duplicate lower-layer payload data. This is the **Reference Preservation Invariant** (PM-KR Spec §5.2).
 
-**Rationale**: Without reference preservation, a grammar rule that uses 20 mathematical symbols would store 20 copies of each symbol's procedural program. With reference preservation, it stores 20 lightweight references (4 bytes each). At scale (1,000 rules x 152 symbols), this yields 190,000x compression (PM-KR Spec §4.3, Foundational Knowledge Spec §2.2).
+**Rationale**: A rule can reference a shared symbol procedure instead of embedding another copy.
+Any size comparison must include the canonical procedures, references, metadata and execution dependencies on both sides.
 
 **Cross-domain discovery** emerges naturally: when multiple rules across different domains (calculus, statistics, finance) reference the same canonical symbol (e.g., summation ∑), the system discovers cross-domain connections through shared references.
 
@@ -183,7 +192,7 @@ Every PM-KR node in the scene graph serves two clients simultaneously:
 - Standard X3D Appearance/Material for visual presentation
 - Readable fonts, proper layout, interactive highlights
 
-**Synthetic Client** perceives the node through procedural execution:
+**AI client** perceives the node through procedural execution:
 - UV Map 1 texture: compressed semantic data (256x256)
 - RPN program fields for executable knowledge
 - Embedding vectors for spatial similarity queries
@@ -673,7 +682,8 @@ CompressionProgram : X3DNode {
    LOAD_PROTOTYPE(prototypeIndex) → ADD_DELTA(deltaIndices, deltaValues) → NORMALIZE
    ```
 
-2. `dimension` constrains the output dimensionality. Standard values: 64 (ultrafast, ~100 bytes), 128 (fast, ~115 bytes), 512 (balanced, ~340 bytes), 2048 (maximum, ~700 bytes).
+2. `dimension` constrains the output dimensionality.
+   The proposed values are 64, 128, 512 and 2048; encoded size and reconstruction time must be measured for the actual input.
 
 3. `fidelity` is the expected cosine similarity between the original embedding and the reconstructed embedding. Implementations MUST verify this during validation.
 
@@ -1033,7 +1043,8 @@ For implementations supporting autonomous agents and full spatial reasoning:
 
 ### 12.1 Mapping to glTF Extensions
 
-Since X3D 4.0 supports glTF integration, PM-KR nodes map to glTF via the `extras.k3d` extension pattern already defined in the K3D implementation:
+This draft proposes mapping PM-KR nodes to glTF using the [K3D extras data description](../../../spec/glTF_K3D_extension.md).
+The mapping below is a design to test for information loss:
 
 ```json
 {
@@ -1352,7 +1363,7 @@ Subset of RPN opcodes relevant to X3D PM-KR scenes:
 | TNOT | 0x72 | Extended | Ternary negation |
 | TPACK | 0x75 | Extended | Pack (D, d) trit pair |
 
-See RPN Domain Opcode Registry (docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) for the complete registry.
+See RPN Domain Opcode Registry ([RPN_DOMAIN_OPCODE_REGISTRY.md](../../../docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)) for the complete registry.
 
 ---
 

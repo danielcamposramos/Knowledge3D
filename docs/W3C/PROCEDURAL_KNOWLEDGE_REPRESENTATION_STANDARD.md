@@ -1,29 +1,28 @@
 # Procedural Knowledge Representation (PKR) Draft Specification
 
-*Status: Community Draft (2025‑11‑09)*  
-*Authors: K3D MVCIC Swarm — NotebookLM, Grok, Qwen, Claude, Kimi, GLM, DeepSeek, Codex*
+**Status: input.**
+This is a historical format proposal dated 9 November 2025, retained for technical review.
+It is not a W3C standard or a claim that the current code implements this opcode table.
+Start with the [explainer](EXPLAINER.md) for the current direction.
+**Original credited authors:** K3D MVCIC Swarm, comprising NotebookLM, Grok, Qwen, Claude, Kimi, GLM, DeepSeek and Codex.
 
 ---
 
 ## 1. Motivation
-Traditional embeddings persist millions of floating‑point values per concept, bloating storage and obscuring provenance. The PKR format treats knowledge as **procedural programs** that regenerate embeddings on demand through sovereign GPU kernels. This mirrors the demoscene ethos popularized by *.kkrieger* (procedurally expanding 96 KB into a full game), delivering 200‑800× compression without sacrificing fidelity.
-
-Key goals:
-
-1. **Compression:** ≥200:1 (baseline) and ≥800:1 (prototype + delta) storage savings.
-2. **Latency:** <100 µs execution on RTX 3060 (sm_86) for 128‑dimension targets.
-3. **Explainability:** Each opcode is auditable, enabling visual tracing through the RPN stack.
-4. **Sovereignty:** Pure PTX implementation; no dependency on PyTorch/TensorFlow.
+The proposal explores storing a program that reconstructs an embedding instead of storing only the expanded vector.
+Its value would depend on the data, reconstruction error, shared tables and cost of executing the program.
+The former compression and latency figures did not establish a general result and have been removed.
+The design goals are explicit reconstruction steps, reusable procedures and inspectable execution.
 
 ---
 
 ## 2. Program Structure
 
-PKR programs are byte blobs with four sections:
+The proposed binary program contains a header, an instruction stream and scalar and vector literal pools:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `version` | `uint8` | Format version (current: 1) |
+| `version` | `uint8` | Format version (1 in this proposal) |
 | `opcode_count` | `uint16` | Number of opcodes |
 | `scalar_count` | `uint16` | Number of scalar literals |
 | `vector_count` | `uint16` | Number of vector literal components (triplets) |
@@ -33,7 +32,9 @@ PKR programs are byte blobs with four sections:
 
 ### 2.1 Opcode Set
 
-The RPN VM supports legacy instructions plus the new procedural extensions listed below. Opcodes map 1:1 to `knowledge3d/cranium/kernels/modular_rpn_kernel.cu`.
+This historical proposal assigns the following instruction values.
+Their names describe intended behavior; this table does not establish a matching runtime implementation.
+The [opcode registry](../vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md) is a separate design input that must be reconciled before implementation.
 
 | Opcode | Name | Description |
 |--------|------|-------------|
@@ -54,7 +55,7 @@ The RPN VM supports legacy instructions plus the new procedural extensions liste
 | `0x52` | `COLLAPSE` | Threshold-based measurement collapse |
 | `0x60` | `CHECKPOINT` | Save current stack snapshot |
 | `0x61` | `ROLLBACK` | Restore checkpointed stack |
-| `0x62` | `VERIFY` | Formal verification (NaN/Inf guard) |
+| `0x62` | `VERIFY` | Reject non-finite values (NaN/Inf guard) |
 
 ---
 
@@ -75,41 +76,43 @@ The RPN VM supports legacy instructions plus the new procedural extensions liste
    Optionally normalize with `NORMALIZE_L2`.
 
 3. **Prototype Reuse (Optional)**  
-   For similar characters, store a canonical program and compile others via `PROTOTYPE + DELTA` to achieve ≥800:1 compression.
+   For similar characters, the proposal stores a shared program and represents differences with `PROTOTYPE + DELTA`.
+   Any size comparison must include that shared program and the prototype table.
 
 ---
 
 ## 4. Execution Semantics
 
-PKR programs execute inside the modular RPN kernel using shared memory stacks per warp. The interpreter guarantees:
+The proposed execution model uses a stack machine with the following intended constraints:
 
 - Stack depth: 64 entries (vector/scalar tagged)
 - Error codes: stack overflow/underflow, type mismatch, verification failure
 - Determinism: hash + pseudo-random generators seeded solely from inputs
 
-CPU parity is available via `ProceduralCompiler.decompile_program`, enabling offline verification.
+CPU and GPU reconstruction would need comparison on the same inputs before a parity claim.
+Seeded inputs alone do not settle numerical reproducibility across execution environments.
 
 ---
 
-## 5. Verification & Fidelity Targets
+## 5. Verification and fidelity
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Reconstruction Fidelity | ≥99.99% cosine similarity | Compare dense vs procedural embeddings |
-| Latency | <100 µs per embedding | GPU profiler (sm_86, RTX 3060) |
-| Compression | ≥200:1 baseline | `embedding.nbytes / len(program_bytes)` |
-| Safety | Zero NaN/Inf | `VERIFY` opcode enforces |
+| Question | Evidence needed |
+| --- | --- |
+| Reconstruction | Expected vectors, error metric, tolerances and failed cases |
+| Latency | Complete measured path and execution environment |
+| Storage | Original data, program, shared tables, metadata and all necessary dependencies |
+| Numeric checks | Cases that trigger non-finite values and documented error handling |
+| Parsing | Defined byte order, length bounds, version handling and malformed-input tests |
 
----
+These are review questions, not a report that a runtime has passed them.
+The proposal still needs unambiguous vector counts and a reconciled instruction registry before independent parsers can be expected to agree.
 
-## 6. Integration Path
+## 6. Integration path
 
-1. **Phase G Bridge:** `PhaseGProceduralBridge` compiles embeddings during character training and stores programs in the Procedural Galaxy.
-2. **Procedural Galaxy:** Disk-backed store (`/K3D/Knowledge3D.local/procedural_galaxy`) plus metadata for compression analytics.
-3. **Sleep Consolidation:** During SleepTime, programs can be replayed (“procedural dreaming”) before being committed to House (glTF extensions carrying PKR payloads).
-4. **W3C Alignment:** PKR can become the knowledge payload for the proposed `.k3d` glTF extension, ensuring cross-platform interoperability.
-
----
+The older design proposed compiling data into procedural entries, storing them with metadata and moving consolidated knowledge into persistent House storage.
+It also proposed carrying procedural payloads alongside spatial data in glTF.
+These are integration ideas requiring a defined representation and exchange tests.
+See the [glTF data description](../../spec/glTF_K3D_extension.md), [interoperability guide](PM_KR_INTEROPERABILITY_GUIDE.md) and [evidence matrix](PM_KR_EVIDENCE_VALIDATION_MATRIX.md).
 
 ## 7. Sublexical Hierarchy (Words as Compositions of Procedural Parts)
 
@@ -124,12 +127,12 @@ CPU parity is available via `ProceduralCompiler.decompile_program`, enabling off
 - Store procedural drawing programs as primary data (visual_rpn + transforms); embeddings are secondary/regenerable for search/LOD.
 - Same dual-client contract: humans render the executed drawing; AI consumes procedural programs/embeddings from the same node (extras.k3d).
 
-## 9. References
+## 9. References and acknowledgments
 
-- *.kkrieger* (2004) — Farbrausch / .theprodukkt (procedural FPS, 96 KB)
-- Milton Ponson, *Mathematical Foundations for Convergent Models* (2024)
-- Knowledge3D Sovereign Stack (GitHub: `danielcamposramos/Knowledge3D`)
+- [Current explainer](EXPLAINER.md).
+- [Normative-model draft](PM_KR_NORMATIVE_MODEL.md).
+- [Project attributions](../../ATTRIBUTIONS.md).
 
----
-
-*This document is intended for discussion within the W3C AI KR Community Group ahead of TPAC 2025.*
+The original proposal acknowledged .kkrieger, Farbrausch and .theprodukkt as procedural-generation inspiration, and Milton Ponson's mathematical work.
+No compression result or mathematical endorsement is inferred from those acknowledgments.
+The [original repository version](https://github.com/danielcamposramos/Knowledge3D/blob/33cb47454c056a267e78554d459c091af9c67476/docs/W3C/PROCEDURAL_KNOWLEDGE_REPRESENTATION_STANDARD.md) records the earlier text and the claims withdrawn here.

@@ -3,8 +3,13 @@
 **Version**: 0.1 (Initial Draft)
 **Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
+**Original draft credits**: Daniel Campos Ramos, Milton Ponson
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
+
+The components, profiles and node types below are proposed extensions in this historical input.
+Their inclusion here does not establish X3D registration, browser support or a tested implementation.
+Examples describe intended behavior and have not been validated here as executable scenes.
+See the [current explainer](../EXPLAINER.md) for the scope now under discussion.
 
 **Normative References**:
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
@@ -12,11 +17,11 @@
 - ISO/IEC 19776-1 (X3D XML Encoding)
 - ISO/IEC 19776-2 (X3D ClassicVRML Encoding)
 - ISO/IEC 19776-3 (X3D Compressed Binary Encoding)
-- PM-KR X3D Procedural Memory Component v0.1 (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)
-- RPN Domain Opcode Registry v0.1 (docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)
-- Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
-- Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
-- Knowledgeverse Specification v5.1 (docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
+- PM-KR X3D Procedural Memory Component v0.1 ([PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md](../../../docs/W3C/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md))
+- RPN Domain Opcode Registry v0.1 ([RPN_DOMAIN_OPCODE_REGISTRY.md](../../../docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md))
+- Foundational Knowledge Specification v1.0 ([FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](../../../docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md))
+- Dual-Client Contract Specification v1.1 ([DUAL_CLIENT_CONTRACT_SPECIFICATION.md](../../../docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md))
+- Knowledgeverse Specification v5.1 ([KNOWLEDGEVERSE_SPECIFICATION.md](../../../docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md))
 
 ---
 
@@ -478,7 +483,9 @@ Required when:
 
 ### 5.4 CSG Emission
 
-CSG (Constructive Solid Geometry) opcodes produce computed mesh results. X3D 4.0 includes the CADGeometry component with Boolean operations, but support is limited. The emitter MUST emit the computed IndexedFaceSet result:
+CSG (Constructive Solid Geometry) opcodes produce computed mesh results.
+The [X3D CADGeometry component](https://www.web3d.org/documents/specifications/19775-1/V4.0/Part01/components/CADGeometry.html) defines product structure and quad geometry nodes, not Boolean-operation nodes.
+Under this proposal, the emitter MUST emit the computed IndexedFaceSet result:
 
 ```
 CSG_UNION(meshA, meshB) →
@@ -491,7 +498,7 @@ CSG_UNION(meshA, meshB) →
   </Shape>
 ```
 
-The emitter MAY additionally emit the CADGeometry BooleanOperation metadata for browsers that support it, as a progressive enhancement:
+The emitter MAY additionally record the operation using application metadata:
 
 ```xml
 <MetadataSet name="pmkr:csg">
@@ -580,7 +587,7 @@ MAT4_MUL(translate, MAT4_MUL(rotate, scale)) →
   </Transform>
 ```
 
-If the matrix contains shear or cannot be cleanly decomposed, the emitter MUST use a Matrix4 node (X3D 4.0 RigidBodyPhysics component) or emit pre-transformed vertex data in the Coordinate node.
+If the matrix cannot be represented by the chosen X3D Transform fields, the emitter MUST emit transformed vertex data in the Coordinate node.
 
 ### 6.3 Spatial Positioning from Morton Code
 
@@ -593,7 +600,8 @@ entry.embedding → morton_encode → (x, y, z)
   </Transform>
 ```
 
-This preserves the spatial semantics invariant: **semantically similar knowledge is spatially proximate** in the emitted X3D scene.
+This preserves the assigned position.
+Whether nearby entries are semantically related depends on the upstream placement method and requires separate evaluation.
 
 ---
 
@@ -1046,13 +1054,9 @@ The emitter MUST preserve the symlink reference structure. When emitting a meani
 
 The emitter SHOULD report compression metrics in the scene header:
 
-```xml
-<meta name='pmkr:totalNodes' content='352'/>
-<meta name='pmkr:uniqueCanonicalSources' content='152'/>
-<meta name='pmkr:referenceCount' content='1847'/>
-<meta name='pmkr:estimatedSavingsBytes' content='2847296'/>
-<meta name='pmkr:compressionRatio' content='69.3'/>
-```
+The proposed metadata keys are `pmkr:totalNodes`, `pmkr:uniqueCanonicalSources`, `pmkr:referenceCount`, `pmkr:estimatedSavingsBytes` and `pmkr:compressionRatio`.
+Values must come from the emitted scene and a documented baseline.
+No measurement is supplied by this example.
 
 ---
 
@@ -1329,7 +1333,6 @@ An emitter claiming Level N conformance MUST pass:
     <meta name='pmkr:sourceArtifact' content='artifact:math:calculus_intro'/>
     <meta name='pmkr:sourceGalaxies' content='Math Character Word Grammar'/>
     <meta name='pmkr:entryCount' content='10'/>
-    <meta name='pmkr:compressionRatio' content='42.7'/>
   </head>
   <Scene>
     <!-- Spatial index for knowledge queries within this book -->
@@ -1549,7 +1552,7 @@ SAI.setField(answerNode, "meaningProgram", "2 RECALL_X MUL")  // 2x
 
 ## Appendix B: Emission Pipeline Implementation Reference
 
-**K3D Implementation Files:**
+**Related source files to inspect when implementing this proposal:**
 
 | File | Role in Emission Pipeline |
 |------|--------------------------|
@@ -1560,7 +1563,7 @@ SAI.setField(answerNode, "meaningProgram", "2 RECALL_X MUL")  // 2x
 | `knowledge3d/tools/gltf_export.py` | MeshBuffer → glTF node conversion (Stage 5: Serialize to .glb) |
 | `knowledge3d/tools/export_house.py` | House → glTF scene export (Stage 1+5: Trigger + Serialize) |
 
-**New files needed for X3D emission (implementation targets for Codex):**
+**Proposed X3D emission modules:**
 
 | File | Role |
 |------|------|

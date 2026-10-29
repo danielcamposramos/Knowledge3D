@@ -1,5 +1,9 @@
 # Procedural Memory Knowledge Representation: Problem Statement
 
+> **Status, 29 October 2026: Draft.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+
 **Document Type**: W3C Community Group Contribution (Draft)
 **Version**: 1.0
 **Date**: February 20, 2026
@@ -10,7 +14,9 @@
 
 ## Abstract
 
-This document presents the problem statement motivating **Procedural Memory Knowledge Representation (PM-KR)**, a novel knowledge representation paradigm that addresses fundamental inefficiencies in how AI systems store, compress, and reason over knowledge. PM-KR proposes treating knowledge as **executable procedures with symlinked references** rather than duplicated static payloads, achieving 70%+ compression while maintaining dual-client consistency for both humans and AI.
+This draft asks how people and AI could use the same knowledge while retaining the views each needs.
+PM-KR proposes reusable procedures, explicit meanings and references between entries.
+Storage savings and consistency across clients are questions to test, not results established by this problem statement.
 
 ---
 
@@ -18,7 +24,8 @@ This document presents the problem statement motivating **Procedural Memory Know
 
 ### 1.1 Current State: Static Payload Duplication
 
-Traditional knowledge representation systems suffer from pervasive duplication:
+The following hypothetical examples illustrate duplication that can arise when related representations are maintained separately.
+They do not describe every knowledge graph, font system or deployment.
 
 **Example 1: Character Knowledge**
 ```
@@ -26,10 +33,11 @@ Traditional System (per-language duplication):
 ├─ English: "A" stored with [font, unicode, meaning, pronunciation]
 ├─ Spanish: "A" stored with [font, unicode, meaning, pronunciation]
 ├─ French:  "A" stored with [font, unicode, meaning, pronunciation]
-└─ Result: 3× storage, 3× maintenance burden, 3× inconsistency risk
+└─ Risk: separately maintained copies can drift
 ```
 
-**Problem**: Same glyph with same meaning duplicated across contexts, with no canonical source of truth.
+**Problem illustrated**: Independently maintained copies can drift.
+Sharing a glyph does not imply sharing a character identity or meaning in every language and context.
 
 **Example 2: Semantic Knowledge**
 ```
@@ -44,9 +52,8 @@ Traditional Knowledge Graph:
 ### 1.2 Consequences of Duplication
 
 1. **Storage Explosion**
-   - Encyclopedia knowledge: ~5GB raw text → ~15GB with embeddings + metadata
-   - Character sets: 150K+ Unicode chars × 4KB per char = 600MB+ for glyphs alone
-   - Semantic tags: 1,200 duplicate strings vs 400 references (~70% waste)
+   - Independently maintained text, embeddings and metadata can duplicate facts.
+   - Measure the complete stored representation, including references and indexes, before claiming a saving.
 
 2. **Maintenance Burden**
    - Update "rotation" semantics → must find all 400 duplicates
@@ -54,7 +61,7 @@ Traditional Knowledge Graph:
    - Version control nightmare: which copy is canonical?
 
 3. **Consistency Violations**
-   - Different systems interpret "A" differently (Latin vs Cyrillic)
+   - Similar-looking characters can have different identities; visual similarity alone cannot justify merging them.
    - Semantic drift: "rotation" means different things in different contexts
    - No single source of truth
 
@@ -69,7 +76,8 @@ Traditional Knowledge Graph:
 
 ### 2.1 Form Without Meaning
 
-Current systems separate visual form from executable meaning:
+The proposed model distinguishes visual form, semantic identity and executable behavior.
+The example below illustrates their association; it is not a description of font internals.
 
 **Example: Mathematical Symbol "π"**
 
@@ -77,7 +85,7 @@ Traditional System:
 ```json
 {
   "symbol": "π",
-  "visual": "unicode_U+03C0.ttf",  // Static font file
+  "visual": "glyph_reference",  // Reference to a glyph in a font
   "meaning": "Ratio of circumference to diameter",  // String description
   "execution": "use_python_math_pi()"  // External dependency!
 }
@@ -86,8 +94,8 @@ Traditional System:
 **Problems**:
 - Visual form (font) separate from meaning (description)
 - Meaning is textual description, not executable
-- Execution delegates to external libraries (numpy, scipy) → sovereignty violation
-- Humans see one thing (glyph), AI sees another (embedding) → no shared reality
+- Execution environments and dependencies need to be declared for reproducible evaluation.
+- The visual and machine views need an explicit shared identity and consistency tests.
 
 ### 2.2 The Dual-Client Opacity Problem
 
@@ -101,7 +109,7 @@ Traditional System:
 - Executes opaque transformations
 - No guarantee it corresponds to what human sees
 
-**Result**: Humans and AI operate in **parallel realities** with no verifiable shared ground truth.
+**Question**: Do the human and machine views identify the same object and version, and where do their interpretations differ?
 
 ---
 
@@ -109,21 +117,9 @@ Traditional System:
 
 ### 3.1 Current Compression Approaches
 
-**Approach 1: Embedding Compression** (e.g., Matryoshka)
-- Compresses embeddings (2048D → 128D)
-- Loses semantic precision
-- Still duplicates underlying knowledge
-- Example: 10 similar words share 90% semantic content, but each has full embedding
-
-**Approach 2: Deduplication** (e.g., content-addressable storage)
-- Removes byte-identical duplicates
-- Misses semantic duplicates ("A" in English vs Spanish = different bytes)
-- No compositional understanding ("rotation_task" ≠ "rotation" + "task")
-
-**Approach 3: Delta Encoding** (e.g., git)
-- Compresses sequences via diffs
-- Assumes linear progression (doesn't model semantic graphs)
-- Example: "A" in different fonts = different deltas, not references to canonical glyph
+Candidate baselines include existing fonts, knowledge graphs, content-addressed storage, embedding compression and ordinary file compression.
+The comparison must preserve the same content and account for indexes, references, execution costs and reconstruction loss.
+Semantic similarity alone does not establish that two entries are interchangeable.
 
 ### 3.2 The Missing Compression Paradigm
 
@@ -133,7 +129,7 @@ Traditional System:
 3. **Meaning-Aware Compression**: "rotation_task" = word_ref("rotation") + word_ref("task")
 4. **Dual-Client Consistency**: Same procedural program generates both human visual + AI semantic
 
-**Result**: Compression that **preserves** meaning instead of trading it off.
+**Goal**: Reduce repeated storage without losing the meaning required by a use case.
 
 ---
 
@@ -176,7 +172,7 @@ def solve_equation(problem):
 - **GPU-native** (no CPU preprocessing bottlenecks)
 - **Auditable** (trace every operation to source code)
 
-**Current reality**: Most AI systems fail all four criteria.
+These are design requirements of the proposed K3D execution profile, not a survey of other AI systems.
 
 ---
 
@@ -193,7 +189,7 @@ def solve_equation(problem):
 - Higher layers reference lower canonical procedures
 - Words = char_refs (not duplicate glyphs)
 - Semantic tags = word_refs (not duplicate strings)
-- Result: ~70% compression via reference graphs
+- Goal: reuse canonical content through references; measure any storage saving.
 
 **Principle 3: Dual-Client Reality**
 - Same procedural program generates:
@@ -260,40 +256,34 @@ strategy = {
 - **Zero duplication**: All symbols canonical, all higher layers use references
 - **Dual-client**: Visual rendering + semantic execution from same RPN
 - **Sovereign**: All math operations via PTX kernels (no sympy/numpy)
-- **Compressed**: 70%+ reduction vs static payloads
+- **Compression goal**: compare complete procedural and baseline representations on the same inputs.
 
 ---
 
 ## 6. Validation Evidence (K3D Implementation)
 
+This problem statement establishes no benchmark result.
+The [evidence matrix](PM_KR_EVIDENCE_VALIDATION_MATRIX.md) describes the artifacts needed to evaluate the proposal.
+
 ### 6.1 Compression Results
 
-| Layer | Traditional | PM-KR | Reduction |
-|-------|------------|-------|-----------|
-| **Character Galaxy** | 21,915 chars × 4KB = 87.7MB | 21,915 procedural fonts + metadata = 26.3MB | **70% reduction** |
-| **Semantic Tags** | 1,200 duplicate strings (400 tasks × 3 tags) | 400 word_refs + ~50 unique words | **70% reduction** |
-| **PDF Knowledge** | 1,952 PDFs = 42GB raw | Expected 15-25k Galaxy entries (~6GB) | **85% reduction** |
+Compare identical content, including procedure code, references, metadata, indexes and caches.
+Retain source assets and reconstruction checks alongside byte counts.
 
 ### 6.2 Sovereignty Validation
 
-**Math Benchmark (Week 22)**:
-- 400 tasks, 38.5% accuracy (154/400 solved)
-- **100% GPU sovereignty**: 154 GPU calls = 154 solved tasks (zero fallbacks)
-- **Zero external dependencies**: All solving via PTX kernels + Galaxy navigation
-- **Deterministic**: Same seed → same results (verified across 10 runs)
+Trace the actual execution path, including failed tasks and preloaded dependencies.
+A count of solved tasks or an import scan alone does not establish GPU execution.
 
 ### 6.3 Dual-Client Consistency
 
-**ARC-AGI Visual Reasoning**:
-- 46.7% accuracy on ARC-AGI-1 (production validation)
-- **Shared reality**: Humans see geometric transformations, AI executes same RPN programs
-- **Verification**: Human click (x,y,z) → AI retrieves same node embedding (100% match rate)
+Check identity, version and meaning across human and machine views.
+Accessible presentation requires additional user and assistive-technology testing.
 
 ### 6.4 Production Metrics
 
-- **Galaxy Universe**: 51,532 nodes, <200MB VRAM
-- **Knowledgeverse**: 7 regions, deterministic boot, 28/28 tests passing
-- **Shadow Copy Learning**: Continuous inference-time learning (validated)
+No production deployment or operational readiness is established here.
+Any future report needs a public revision, reproducible command, inputs, environment and output artifacts.
 
 ---
 
@@ -301,7 +291,7 @@ strategy = {
 
 ### 7.1 Computer Science Implications
 
-**PM-KR challenges foundational assumptions**:
+**The proposal explores these design choices:**
 
 | Traditional Assumption | PM-KR Alternative |
 |----------------------|------------------|
@@ -310,11 +300,11 @@ strategy = {
 | AI and humans see different things | Dual-client shared reality via procedural source |
 | Inference requires external libraries | Sovereign PTX-only hot path |
 
-**Result**: A new knowledge representation paradigm for the AI era.
+These choices need comparison with existing representations on bounded use cases.
 
 ### 7.2 Web Standards Implications
 
-**PM-KR enables next-generation spatial web**:
+**Candidate spatial-web uses to evaluate:**
 
 1. **Spatial Knowledge Navigation** (not hypertext search)
    - Users walk through 3D knowledge spaces
@@ -365,7 +355,7 @@ strategy = {
 ### 9.1 For W3C Community
 
 **We propose**:
-1. **Community Group formation** around Procedural Memory KR
+1. **Community Group participation** through the [existing PM-KR group](https://www.w3.org/community/pm-kr/)
 2. **Draft specification development** (normative model, test suites)
 3. **Interoperability testing** with existing KR standards (RDF, JSON-LD)
 
@@ -387,14 +377,9 @@ strategy = {
 
 ## 10. Conclusion
 
-**PM-KR addresses three crises** in modern AI knowledge representation:
-1. **Duplication Crisis**: 70%+ wasted storage via symlink composition
-2. **Opacity Crisis**: Dual-client shared reality via procedural programs
-3. **Sovereignty Crisis**: Zero external dependencies via PTX-only hot path
-
-**Validation**: 38.5% math accuracy, 46.7% ARC-AGI, 100% GPU sovereignty (K3D production system)
-
-**Proposal**: Formalize PM-KR as W3C candidate technology for next-generation spatial knowledge representation.
+The proposal connects reusable procedures to meaning and provenance for people and AI.
+Its next step is a small vocabulary and knowledge repository, as [Daniel proposed on 28 October 2026](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+Compression, accessible equivalence, scale and execution behavior remain evaluation questions.
 
 ---
 
@@ -406,8 +391,8 @@ strategy = {
 - Adaptive Procedural Compression Specification (PD04 codecs)
 - Sovereign NSI Specification (PTX-only hot path)
 
-**W3C Standards**:
-- glTF 2.0 Specification (3D asset format)
+**Standards references**:
+- [glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html), maintained by Khronos
 - WebXR Device API (spatial interfaces)
 - RDF 1.1 Specification (comparison baseline)
 
@@ -429,11 +414,11 @@ strategy = {
 | Aspect | Traditional KR | PM-KR |
 |--------|---------------|-------|
 | **Storage** | Static payloads | Executable procedures |
-| **Duplication** | Pervasive (~70% waste) | Symlink references (~70% saved) |
-| **Compression** | Trades off meaning | Preserves meaning |
+| **Duplication** | Depends on the representation and reuse model | Proposed canonical references; savings need measurement |
+| **Compression** | Lossless and lossy approaches are available | Proposed reference reuse; semantic preservation needs tests |
 | **Human-AI** | Separate views | Shared procedural reality |
 | **Dependencies** | External libs (numpy, scipy) | Sovereign PTX kernels |
-| **Determinism** | Library-dependent | Guaranteed (PTX semantics) |
+| **Determinism** | Must specify runtime and inputs | Required by the proposed profile for a fixed runtime; needs tests |
 | **Auditability** | Opaque transformations | Traceable RPN programs |
 
-**Bottom line**: PM-KR inverts the traditional paradigm—knowledge as programs, compression via composition, shared reality via procedural source.
+PM-KR proposes procedures and references as a common source for human and machine views.

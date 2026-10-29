@@ -3,8 +3,13 @@
 **Version**: 0.1 (Initial Draft)
 **Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
+**Original draft credits**: Daniel Campos Ramos, Milton Ponson
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
+
+The components, profiles and node types below are proposed extensions in this historical input.
+Their inclusion here does not establish X3D registration, browser support or a tested implementation.
+Examples describe intended behavior and have not been validated here as executable scenes.
+See the [current explainer](../EXPLAINER.md) for the scope now under discussion.
 
 **Normative References**:
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
@@ -15,15 +20,15 @@
 - X3D Ontology for Semantic Web (Brutzman, 2020; Flotynski, 2019)
 - GeoSPARQL 1.0 (OGC 11-052r4, spatial query extension)
 - PROV-O: The PROV Ontology (W3C Recommendation, 2013-04-30)
-- PM-KR X3D Procedural Memory Component v0.1 (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)
-- PM-KR X3D Avatar Embodiment Specification v0.1 (docs/w3c/x3d/PM_KR_X3D_AVATAR_SPECIFICATION.md)
-- K3D Formal Ontology Specification v1.0 (docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md)
-- PM-KR Technology Specification v1.0 (docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md)
-- Foundational Knowledge Specification v1.0 (docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md)
-- Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
-- Meaning-Centric Star Schema Specification v1.0 (docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md)
-- Sovereign NSI Specification v2.0 (docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md)
-- RPN Domain Opcode Registry v0.1 (docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md)
+- PM-KR X3D Procedural Memory Component v0.1 ([PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md](../../../docs/W3C/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md))
+- PM-KR X3D Avatar Embodiment Specification v0.1 ([PM_KR_X3D_AVATAR_SPECIFICATION.md](../../../docs/W3C/x3d/PM_KR_X3D_AVATAR_SPECIFICATION.md))
+- K3D Formal Ontology Specification v1.0 ([FORMAL_ONTOLOGY_SPECIFICATION.md](../../../docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md))
+- PM-KR Technology Specification v1.0 ([PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md](../../../docs/vocabulary/PROCEDURAL_MEMORY_KR_STANDARD_SPECIFICATION.md))
+- Foundational Knowledge Specification v1.0 ([FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md](../../../docs/vocabulary/FOUNDATIONAL_KNOWLEDGE_SPECIFICATION.md))
+- Dual-Client Contract Specification v1.1 ([DUAL_CLIENT_CONTRACT_SPECIFICATION.md](../../../docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md))
+- Meaning-Centric Star Schema Specification v1.0 ([MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md](../../../docs/vocabulary/MEANING_CENTRIC_STAR_SCHEMA_SPECIFICATION.md))
+- Sovereign NSI Specification v2.0 ([SOVEREIGN_NSI_SPECIFICATION.md](../../../docs/vocabulary/SOVEREIGN_NSI_SPECIFICATION.md))
+- RPN Domain Opcode Registry v0.1 ([RPN_DOMAIN_OPCODE_REGISTRY.md](../../../docs/vocabulary/RPN_DOMAIN_OPCODE_REGISTRY.md))
 
 ---
 
@@ -57,7 +62,7 @@
 
 ### 1.1 Purpose
 
-This document defines the **PM-KR X3D Ontology** — an OWL 2 DL formalization that maps the K3D Formal Ontology (docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md) and the PM-KR X3D node types (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md) into a Semantic Web ontology. It enables:
+This document defines the **PM-KR X3D Ontology** — an OWL 2 DL formalization that maps the K3D Formal Ontology ([FORMAL_ONTOLOGY_SPECIFICATION.md](../../../docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md)) and the PM-KR X3D node types ([PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md](../../../docs/W3C/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)) into a Semantic Web ontology. It enables:
 
 1. **SPARQL querying** of procedural knowledge scenes — find all concepts in a Galaxy, discover cross-domain bridges through shared symlink references, identify navigation traces through spatial regions.
 2. **OWL 2 reasoning** over procedural knowledge — subsumption, classification, and consistency checking over the four-layer PM-KR hierarchy.
@@ -67,7 +72,7 @@ This document defines the **PM-KR X3D Ontology** — an OWL 2 DL formalization t
 
 ### 1.2 Relationship to the K3D Formal Ontology
 
-The K3D Formal Ontology (docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md) defines the **conceptual framework**: the Upper Ontology Diamond (Procedure, Space, Agent, Substrate), the four-layer stratification, ternary commitment, and normative invariants.
+The K3D Formal Ontology ([FORMAL_ONTOLOGY_SPECIFICATION.md](../../../docs/vocabulary/FORMAL_ONTOLOGY_SPECIFICATION.md)) defines the **conceptual framework**: the Upper Ontology Diamond (Procedure, Space, Agent, Substrate), the four-layer stratification, ternary commitment, and normative invariants.
 
 This X3D Ontology is the **formal serialization** of that framework in OWL 2 DL. It translates each K3D ontological category into an OWL 2 class, each ontological relation into an OWL 2 property, and each invariant into an OWL 2 axiom or SHACL constraint. Where the K3D Formal Ontology says "what kinds of things exist," this specification says "how to encode them as RDF triples so that OWL reasoners and SPARQL engines can process them."
 
@@ -116,7 +121,9 @@ This ontology targets **OWL 2 DL** (Description Logics profile) to ensure decida
 - Cardinality restrictions use only non-negative integers.
 - No property chains of unbounded length.
 
-The DL profile guarantees that standard OWL reasoners (Pellet, HermiT, ELK) can perform subsumption checking, consistency validation, and instance classification over K3D knowledge graphs.
+Compatibility with a reasoner requires checking both the ontology and the language fragment that reasoner supports.
+The [OWL 2 profiles](https://www.w3.org/TR/owl2-profiles/) impose distinct restrictions.
+This draft includes no reasoner compatibility results.
 
 ### 2.4 Relationship to X3D Extension Mechanisms
 
@@ -224,7 +231,8 @@ PM-KR extends the X3D Ontology at six specific points, each corresponding to a n
 k3d:X3DProceduralNode rdfs:subClassOf x3do:X3DChildNode .
 ```
 
-This ensures that any OWL reasoner that loads the PM-KR ontology also loads the X3D Ontology, and all PM-KR individuals are valid X3D scene graph members.
+The import declares a dependency on the X3D ontology.
+It does not validate an emitted X3D scene or establish browser support for the proposed classes.
 
 ---
 
@@ -1183,13 +1191,9 @@ Negated (−1) and unknown (0) assertions MUST always use the reified form.
 
 ### 13.4 Ternary-Native Substrate Alignment
 
-On current binary hardware, the reification encoding works but carries overhead (4 triples per assertion instead of 1). When ternary-native substrates become available:
-
-- Each balanced trit natively represents the polarity without reification.
-- The RDF serialization can be optimized to a single triple with an embedded trit literal.
-- The ontological semantics remain unchanged — only the serialization efficiency improves.
-
-The PM-KR ontology is designed for the hardware that SHOULD exist, deployed on the hardware that currently exists.
+The reified example carries additional statements to describe an assertion and its polarity.
+A different hardware encoding would still need an explicit mapping to RDF semantics and an interoperability test.
+This draft supplies no deployment or storage-efficiency result.
 
 ---
 

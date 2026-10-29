@@ -3,8 +3,13 @@
 **Version**: 0.1 (Initial Draft)
 **Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
+**Original draft credits**: Daniel Campos Ramos, Milton Ponson
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
+
+The components, profiles and node types below are proposed extensions in this historical input.
+Their inclusion here does not establish X3D registration, browser support or a tested implementation.
+Examples describe intended behavior and have not been validated here as executable scenes.
+See the [current explainer](../EXPLAINER.md) for the scope now under discussion.
 
 **Normative References**:
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
@@ -12,15 +17,15 @@
 - ISO/IEC 19776-1 (X3D XML Encoding)
 - ISO/IEC 19776-2 (X3D ClassicVRML Encoding)
 - ISO/IEC 19776-3 (X3D JSON Encoding)
-- PM-KR X3D Procedural Memory Component v0.1 (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)
-- PM-KR X3D RPN Scene Emission Specification v0.1 (docs/w3c/x3d/PM_KR_RPN_X3D_SCENE_EMISSION.md)
-- Avatar Embodiment Specification v1.0 (docs/vocabulary/AVATAR_EMBODIMENT_SPECIFICATION.md)
-- Three Brain System Specification v1.1 (docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md)
-- Hyper-Parallel Processing Specification v1.0 (docs/vocabulary/HYPER_PARALLEL_PROCESSING.md)
-- Dual-Client Contract Specification v1.1 (docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md)
-- Spatial General Intelligence Specification v1.0 (docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md)
-- Memory Tablet Specification v1.0 (docs/vocabulary/MEMORY_TABLET_SPECIFICATION.md)
-- Knowledgeverse Specification v5.1 (docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
+- PM-KR X3D Procedural Memory Component v0.1 ([PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md](../../../docs/W3C/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md))
+- PM-KR X3D RPN Scene Emission Specification v0.1 ([PM_KR_RPN_X3D_SCENE_EMISSION.md](../../../docs/W3C/x3d/PM_KR_RPN_X3D_SCENE_EMISSION.md))
+- Avatar Embodiment Specification v1.0 ([AVATAR_EMBODIMENT_SPECIFICATION.md](../../../docs/vocabulary/AVATAR_EMBODIMENT_SPECIFICATION.md))
+- Three Brain System Specification v1.1 ([THREE_BRAIN_SYSTEM_SPECIFICATION.md](../../../docs/vocabulary/THREE_BRAIN_SYSTEM_SPECIFICATION.md))
+- Hyper-Parallel Processing Specification v1.0 ([HYPER_PARALLEL_PROCESSING.md](../../../docs/vocabulary/HYPER_PARALLEL_PROCESSING.md))
+- Dual-Client Contract Specification v1.1 ([DUAL_CLIENT_CONTRACT_SPECIFICATION.md](../../../docs/vocabulary/DUAL_CLIENT_CONTRACT_SPECIFICATION.md))
+- Spatial General Intelligence Specification v1.0 ([SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md](../../../docs/vocabulary/SPATIAL_GENERAL_INTELLIGENCE_SPECIFICATION.md))
+- Memory Tablet Specification v1.0 ([MEMORY_TABLET_SPECIFICATION.md](../../../docs/vocabulary/MEMORY_TABLET_SPECIFICATION.md))
+- Knowledgeverse Specification v5.1 ([KNOWLEDGEVERSE_SPECIFICATION.md](../../../docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md))
 
 ---
 
@@ -84,7 +89,7 @@ The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **S
 | **HAnim** | ISO/IEC 19774 Humanoid Animation standard for X3D | ISO/IEC 19774:2019 |
 | **LOA** | Level of Articulation — HAnim's joint count classification (LOA 0--4) | HAnim §4 |
 | **Site** | A named point on the body surface (HAnim HAnimSite) used for attachment | HAnim §7 |
-| **Dual-Client** | Architecture where human and synthetic clients consume the same node | Dual-Client Contract §1.3 |
+| **Dual-Client** | Architecture where human and AI clients consume the same node | Dual-Client Contract §1.3 |
 | **TRM** | Tiny Recursive Model (~7M params) — the autonomous cognitive entity | Three Brain System Spec §2 |
 | **Game Loop** | Continuous perceive→navigate→reason→decide→act→learn cycle on GPU | Three Brain System Spec §3 |
 | **Specialist** | A LoRA-like domain-biased adapter within the TRM swarm | Hyper-Parallel Processing Spec §1 |
@@ -114,7 +119,9 @@ The keywords **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **S
 
 ### 2.3 Design Rationale: Extension, Not Replacement
 
-This specification follows the X3D extension philosophy: **add, do not modify**. No existing HAnim node type is redefined. The K3D joints are new HAnimJoint instances with specific `name` values that HAnim-unaware browsers can render as standard joints. The CranialGalaxy is a new grouping node that HAnim-unaware browsers skip. Dual-client texturing adds a second texture set that browsers without PM-KR support simply do not sample.
+This proposal adds nodes alongside the existing HAnim definitions.
+An exporter would need a fallback using supported nodes for a browser without the proposed components.
+Skipping unknown nodes or texture sets cannot be assumed to preserve the scene; this requires browser tests.
 
 This means:
 
@@ -146,7 +153,8 @@ HAnim Humanoid (LOA-2 minimum)
 
 **AI-driven avatar**: The TRM game loop (`trm_step_fused.ptx`) produces joint transforms each frame as procedural animation computed from cognitive state. Perception originates from frustum culling at the avatar's position and `skullbase` orientation. The cranial volume contains a live CranialGalaxy.
 
-The body does not know which driver controls it. Any animation designed for one avatar type works on the other. Any interaction mechanism works between any combination of avatar types.
+The design goal is to reuse the body definition across human and AI control.
+Animation and interaction compatibility must be tested for each controller and representation.
 
 ### 3.2 Cranial Galaxy as Renderable Volume
 
@@ -687,9 +695,11 @@ When a CranialGalaxy is visible (visibilityMode ≠ "hidden"), the rendering pip
 
 Knowledge stars inside the CranialGalaxy SHOULD be rendered as:
 
-- **Point sprites** (PointSet with per-point color/size): Most efficient for thousands of stars.
-- **Billboarded quads** (Billboard node with textured quad): Better visual quality, higher cost.
-- **Volumetric particles** (ParticleSystem): Best visual quality for small star counts.
+- **Points**: a PointSet with a color for each point.
+- **Billboarded quads**: a Billboard node with a textured quad.
+- **Particles**: a ParticleSystem.
+
+Visual quality and cost depend on the scene and renderer and need comparison.
 
 Star size SHOULD be modulated by:
 - **Activation level**: Stars in the active navigation path are larger.
@@ -698,7 +708,8 @@ Star size SHOULD be modulated by:
 
 ### 8.3 Performance Considerations
 
-A CranialGalaxy may contain hundreds of thousands of knowledge entries (e.g., 247,889 entries across 19 galaxies — see Phase D.3 report). Rendering all stars as individual nodes would overwhelm any scene graph.
+Rendering each knowledge entry as an individual scene node can increase rendering cost.
+Measure the chosen representation with representative scenes before setting a supported scale.
 
 Conforming implementations SHOULD:
 - Use GPU instancing (one draw call for all stars, per-instance color/position/size).

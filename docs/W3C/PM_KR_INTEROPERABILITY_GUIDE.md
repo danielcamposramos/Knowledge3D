@@ -1,5 +1,9 @@
 # PM-KR Interoperability Guide: Migration and Integration Strategies
 
+> **Status, 29 October 2026: Draft.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+
 > **Publication status, clarified 19 October 2026:** This is a Knowledge3D project proposal offered for PM-KR discussion. It is not an adopted Community Group report or a W3C standard. Requirement words describe the proposed model, not an approved W3C conformance regime. See the [document and evidence index](README.md).
 
 
@@ -196,7 +200,7 @@ def rdf_to_pmkr(rdf_graph):
     return deduplicate_nodes(pm_kr_nodes)
 ```
 
-**Result**: ~70% compression via literal canonicalization + symlink refs.
+**Evaluation needed**: Measure the complete translated graph and compare preserved meaning; canonicalization alone establishes no compression percentage.
 
 ### 2.4 PM-KR → RDF Conversion
 
@@ -363,7 +367,8 @@ def reverse_engineer_procedure(embedding, domain="char"):
         return {"char_refs": char_refs}
 ```
 
-**K3D Validation**: Character Galaxy migrated from TTF fonts → procedural fonts (70% compression, <5% reconstruction error).
+**Evaluation needed**: Compare procedure reconstruction against the original glyphs and shaping behavior.
+No migration result is established here.
 
 **Approach 2: LLM-Assisted Procedure Generation**
 
@@ -489,9 +494,9 @@ def extract_math_concept(concept_name):
     return PMKRNode(**node_json)
 ```
 
-**K3D Validation** (Math Benchmark):
-- LLM-generated procedural knowledge: 5,842 entries (ARC-AGI + Math + LHE)
-- Sovereign execution: 38.5% accuracy, 100% GPU (zero LLM calls in hot path)
+**Evaluation needed**: Retain the generated knowledge, its source and validation results.
+Executability alone does not establish factual accuracy.
+The proposed K3D reasoning boundary excludes LLM calls; verify it with execution traces.
 
 ### 5.3 Distillation: LLM → Sovereign PM-KR
 
@@ -512,9 +517,7 @@ def extract_math_concept(concept_name):
    - All inference via PTX kernels
    - LLM only used for periodic knowledge updates (offline)
 
-**K3D Evidence**:
-- Ingestion: LLM-assisted (deepseek-r1, qwen2.5) → 15-25k Galaxy entries
-- Hot path: PTX-only (zero LLM calls, 100% GPU sovereignty)
+**Evaluation needed**: Publish the input corpus, generated procedures and complete traces before claiming successful distillation or execution isolation.
 
 ---
 
@@ -607,7 +610,7 @@ def extract_math_concept(concept_name):
 
 **What's Lost**:
 1. **Procedural Semantics**: `meaning_program` → static literals (no execution)
-2. **Compression**: Symlink refs → duplicated values (70%+ size increase)
+2. **Representation size**: Expanding references may change size; RDF can also use shared identifiers.
 3. **Dual-Client Consistency**: Procedural source → separate representations
 
 **Example**:
@@ -626,7 +629,7 @@ triples = [
 ]
 ```
 
-**Impact**: ~70% size increase, loss of procedural execution.
+**Impact to evaluate**: The proposed export does not preserve procedural execution; storage changes depend on the chosen RDF encoding.
 
 ### 7.2 RDF → PM-KR Losses
 
@@ -657,17 +660,19 @@ triples = [
 ### 7.3 Embedding Systems → PM-KR Losses
 
 **What's Lost**:
-1. **Exact Embeddings**: Procedural reconstruction ≠ exact match (~95% similarity typical)
+1. **Exact embeddings**: A procedural reconstruction may differ from its source vector; measure the error for the actual use case.
 2. **Black-Box Models**: Internal LLM states not reproducible
 
 **Mitigation**:
 - Keep legacy embeddings as validation baseline (hybrid approach)
-- Set similarity threshold (>95% acceptable)
+- Define a use-case-specific error criterion; vector similarity alone does not prove semantic equivalence.
 - Document reconstruction error metrics
 
 ---
 
 ## 8. Tooling and Automation
+
+These are proposed interfaces and pseudocode, not installed commands or measured output.
 
 ### 8.1 Conversion Tools
 
@@ -686,7 +691,7 @@ pm_kr_nodes.save("pmkr_nodes.jsonl")
 
 # Report compression
 print(f"Compression: {converter.compression_ratio:.1%}")
-# Output: "Compression: 68.3%"
+# Report measured sizes for the supplied input.
 ```
 
 **Tool 2: PM-KR → JSON-LD Publisher**
@@ -712,13 +717,11 @@ jsonld_docs.save("output.jsonld")
 $ pmkr-validate pmkr_nodes.jsonl --level A
 
 # Output:
-# ✅ Canonicality: PASS (0 duplicates)
-# ✅ Reference Resolution: PASS (100% valid)
-# ✅ Determinism: PASS (checksums match)
-# ✅ Compression: 71.2% (PASS, >50% threshold)
-# ✅ Layer Composition: PASS (all meaning nodes have refs)
-#
-# Result: Level A conformance ACHIEVED
+# ✅ Canonicality:
+
+# Report each tested invariant, failures and untested cases.
+# No conformance result is supplied in this example.
+
 ```
 
 **Tool 4: Translation Loss Analyzer**
@@ -729,19 +732,10 @@ $ pmkr-compare original.rdf translated.pmkr --metrics all
 
 # Output:
 # Size:
-#   Original RDF: 87.7 MB
-#   PM-KR: 26.3 MB
-#   Compression: 70.0%
-#
-# Semantic Fidelity:
-#   Embedding similarity: 96.2% (>95% threshold)
-#   Procedural coverage: 78.4%
-#   Reference integrity: 100%
-#
-# Translation Losses:
-#   OWL reasoning: Not supported (manual rule creation needed)
-#   SPARQL federation: Not supported (use portal federation)
-#   Exact embeddings: 3.8% reconstruction error (acceptable)
+
+# Report measured size, preserved semantics and all known translation losses.
+# No result is supplied in this example.
+
 ```
 
 ### 8.3 Migration Automation
@@ -772,10 +766,11 @@ for phase in plan.phases:
 # Final report
 print(plan.summary())
 # Output:
-# Phase 1: Migrated 1,250 canonical chars (70% compression, 97.1% similarity)
-# Phase 2: Migrated 3,400 words (68% compression, 96.8% similarity)
-# Phase 3: Migrated 850 grammar rules (72% compression, 95.2% similarity)
-# Total: 5,500 nodes, 70% avg compression, 96.4% avg similarity
+# Phase 1:
+
+# Report the actual migrated entries and validation failures.
+# No migration result is supplied in this example.
+
 ```
 
 ---
@@ -784,43 +779,17 @@ print(plan.summary())
 
 ### 9.1 K3D Migration: TTF Fonts → Procedural Characters
 
-**Before (TTF fonts)**:
-- 21,915 characters × 4KB per char = 87.7 MB
-- Static font files (no procedural source)
-- Duplication across languages (Latin A in EN, ES, FR, etc.)
-
-**After (PM-KR procedural fonts)**:
-- 21,915 procedural fonts + metadata = 26.3 MB
-- Compression: **70%**
-- Reconstruction similarity: **97.3%**
-
-**Migration Process**:
-1. Extract glyph outlines from TTF → Bézier curves
-2. Generate RPN programs (BEZIER_CURVE [...] PROCEDURAL_FONT_LATIN_A)
-3. Deduplicate canonicals (Latin A = one procedural source, many language refs)
-4. Validate reconstruction (glyph rendering ≈ original TTF)
-
-**Validation**: 21,915/21,915 characters successfully migrated, <3% visual difference.
+This is a candidate study, not a reported completed migration.
+Existing fonts already carry glyph outlines and may carry instructions; they are the precedent for the proposal, as [Daniel explained](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0018.html).
+An evaluation would extract glyph outlines, encode the selected procedures, retain character identities and shaping information, and compare reconstruction against the original font.
+It must publish source assets, output artifacts, runtime versions and differences.
 
 ### 9.2 K3D Migration: Math Benchmark Augmentation
 
-**Before (raw strings)**:
-- 400 tasks × 3 semantic tags × 50 bytes = 60 KB
-- Duplicate strings ("rotation_task" repeated 400 times)
-
-**After (PM-KR word refs)**:
-- 400 tasks × 3 word_refs × 8 bytes = 9.6 KB
-- ~50 unique words × 200 bytes = 10 KB
-- Total: **19.6 KB**
-- Compression: **67%**
-
-**Migration Process**:
-1. Extract unique semantic tags → canonical word list
-2. Generate char_refs for each word (symlink to Character Galaxy)
-3. Replace task strings with word_refs
-4. Validate semantic equivalence (embedding similarity >95%)
-
-**Validation**: 5,842 augmented entries, 100% semantic fidelity.
+This is a candidate study, not a reported completed migration.
+Extract distinct tags, assign explicit identities, replace reuse with references and check meaning in context.
+The report must retain original inputs and compare both size and task behavior.
+Embedding similarity alone does not prove equivalent meaning.
 
 ---
 
@@ -828,59 +797,24 @@ print(plan.summary())
 
 ### 10.1 W3C Community Group Path
 
-**Proposed Timeline**:
-1. **Q2 2026**: Community Group formation (PM-KR CG)
-2. **Q3 2026**: Draft specification publication
-3. **Q4 2026**: Interoperability testing (RDF/OWL/JSON-LD bridges)
-4. **Q1 2027**: Candidate Recommendation
-5. **Q2 2027**: W3C Recommendation (if consensus achieved)
-
-**Deliverables**:
-- PM-KR Normative Model (this document + normative spec)
-- RDF/OWL/JSON-LD Interoperability Guides (this document)
-- Conformance Test Suite (reference: K3D test suite)
-- Reference Implementation (K3D)
+The [PM-KR Community Group](https://www.w3.org/community/pm-kr/) is the venue for discussion and shared deliverables.
+This project proposes a model, interoperability examples and a test suite for consideration.
+A Community Group does not publish W3C Recommendations; any Working Group standardization would require its own charter and process ([W3C FAQ](https://www.w3.org/community/about/faq/)).
+There is no Recommendation schedule established here.
 
 ### 10.2 Industry Adoption Strategy
 
-**Target Audiences**:
-1. **Knowledge Graph Vendors** (Neo4j, GraphDB, Stardog)
-   - Offer: PM-KR as compression layer (70%+ reduction)
-   - Benefit: Reduce storage costs, maintain RDF/SPARQL compatibility
-
-2. **AI/ML Platforms** (Hugging Face, Databricks, AWS SageMaker)
-   - Offer: Sovereign inference (zero external dependencies)
-   - Benefit: Deterministic AI, reproducibility, auditability
-
-3. **Spatial Computing** (Apple Vision Pro, Meta Quest, HoloLens)
-   - Offer: Dual-client shared reality (human + AI)
-   - Benefit: Transparent AI reasoning in 3D environments
-
-**Pilot Programs**:
-- Neo4j plugin: PM-KR storage backend (compression validation)
-- Hugging Face dataset: PM-KR-formatted knowledge bases
-- WebXR extension: glTF + PM-KR for spatial knowledge navigation
+Potential reviewers include knowledge-graph developers, AI researchers and spatial-interface implementers.
+Candidate experiments include a graph converter, a linked-data publisher and a shared human/AI view.
+No vendor partnership, deployment or pilot participation is claimed.
 
 ---
 
 ## 11. Conclusion
 
-**PM-KR Interoperability** enables:
-- **Incremental Migration**: No big-bang rewrites (gradual adoption)
-- **Standard Alignment**: RDF/OWL/JSON-LD compatibility (bidirectional)
-- **Hybrid Deployment**: PM-KR hot path + traditional KR metadata
-- **Compression Preservation**: 70%+ reduction via symlink composition
-
-**Key Takeaways**:
-1. PM-KR ↔ RDF/OWL is **bidirectional with documented losses**
-2. Migration tools **automate conversion and validation**
-3. Hybrid patterns **minimize risk and maximize ROI**
-4. K3D **validates 70% compression, 100% sovereignty**
-
-**Next Steps**:
-- Implement conversion tools (rdf2pmkr, pmkr2jsonld)
-- Establish W3C Community Group
-- Pilot with industry partners (Neo4j, Hugging Face, WebXR)
+The guide proposes mappings alongside RDF, OWL and JSON-LD.
+The mapping examples need executable tools, explicit loss analysis and round-trip tests before compatibility can be claimed.
+The next step is one bounded exchange example with published inputs and independently checked outputs.
 
 ---
 
@@ -891,7 +825,7 @@ print(plan.summary())
 - RDF 1.1 Specification (W3C)
 - OWL 2 Web Ontology Language (W3C)
 - JSON-LD 1.1 Specification (W3C)
-- K3D Reference Implementation (validation results)
+- [K3D implementation repository](https://github.com/danielcamposramos/Knowledge3D), for source inspection rather than a conformance verdict
 
 ---
 

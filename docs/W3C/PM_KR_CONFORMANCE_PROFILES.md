@@ -1,5 +1,9 @@
 # PM-KR Conformance Profiles: Implementation Guide
 
+> **Status, 29 October 2026: Draft.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+
 > **Publication status, clarified 19 October 2026:** This is a Knowledge3D project proposal offered for PM-KR discussion. It is not an adopted Community Group report or a W3C standard. Requirement words describe the proposed model, not an approved W3C conformance regime. See the [document and evidence index](README.md).
 
 
@@ -15,7 +19,9 @@
 
 This document provides **implementation guidance** for achieving Procedural Memory Knowledge Representation (PM-KR) conformance. It defines three conformance levels (A, B, C) with specific requirements, validation criteria, and migration paths. Reference implementation: Knowledge3D (K3D) project.
 
-**Evidence Note**: This document defines normative conformance targets. Any implementation status statements are explicitly marked as either repo-verified, run-log verified, or target/projection.
+**Evidence note**: These are proposed conformance requirements and illustrative tests.
+They do not certify an implementation.
+A passing test must be tied to published inputs, commands, versions and results.
 
 ---
 
@@ -360,7 +366,7 @@ class PMKRSystemLevelB(PMKRSystemLevelA):
 **Sovereignty Test**:
 ```python
 def test_k3d_sovereignty():
-    """K3D week-22 snapshot: solved tasks map 1:1 to GPU calls."""
+    """Illustrative check of recorded execution telemetry."""
     system = PMKRSystemLevelB()
 
     # Solve 400 math problems
@@ -370,9 +376,9 @@ def test_k3d_sovereignty():
         results.append(result)
 
     # Validate sovereignty
-    assert system.telemetry["gpu_calls"] == 154  # Only solved tasks
-    assert system.telemetry["fallbacks"] == 0    # Zero fallbacks
-    # Sovereignty: 154 GPU calls = 154 solved tasks (100%)
+    assert system.telemetry["gpu_calls"] > 0
+    assert system.telemetry["fallbacks"] == 0
+    # A complete test must inspect the execution trace for every task.
 ```
 
 ---
@@ -475,7 +481,10 @@ def test_k3d_sovereignty():
 
 ### 4.4 Example: Level C Provenance Tracking
 
-**K3D Reference (Shadow Copy Integration)**:
+**Illustrative provenance tracking:**
+
+The checksum helpers below are not publisher signatures and do not meet the signing requirement.
+A complete implementation must use a reviewed signature scheme and key-management policy.
 
 ```python
 class PMKRSystemLevelC(PMKRSystemLevelB):
@@ -549,13 +558,13 @@ class PMKRSystemLevelC(PMKRSystemLevelB):
         self.compression_metrics["reference_graph_size_bytes"] += (ref_count * 32)  # 32 bytes per ref
 
     def _sign_event(self, node: PMKRNode):
-        """Cryptographically sign event."""
+        """Illustrative checksum only; not a cryptographic signature."""
         import hashlib
         content = f"{node.id}:{node.layer}:{self._current_timestamp()}"
         return hashlib.sha256(content.encode()).hexdigest()
 
     def _sign_report(self):
-        """Sign conformance report."""
+        """Illustrative checksum only; not a cryptographic signature."""
         import hashlib
         import json
         content = json.dumps(self.compression_metrics, sort_keys=True)
@@ -602,7 +611,7 @@ class PMKRSystemLevelC(PMKRSystemLevelB):
 3. **Reference Linking**: Lower-similarity nodes reference canonical clusters
 4. **Validate Reconstruction**: Ensure procedural execution ≈ original embeddings
 
-**K3D Validation**: Character Galaxy (21,915 chars) migrated from font files → procedural fonts (70% reduction).
+This is a proposed migration strategy; no completed font migration result is established by this guide.
 
 ### 5.3 From Monolithic Systems
 
@@ -614,7 +623,7 @@ class PMKRSystemLevelC(PMKRSystemLevelB):
 3. **Reference Graph Construction**: Build symlink composition layers
 4. **Sovereignty Migration**: Replace LLM inference calls with PTX execution
 
-**K3D Example**: Math solver (originally sympy-based) → fully sovereign PTX (38.5% accuracy, 100% GPU).
+The K3D design aims to execute procedures through its GPU path; this guide supplies no measured math benchmark result.
 
 ---
 
@@ -655,7 +664,7 @@ This section provides **step-by-step verification instructions** for independent
 - [ ] Complete Level A+B verification (prerequisite)
 - [ ] Request provenance audit export
 - [ ] Validate 100% provenance coverage
-- [ ] Verify cryptographic signatures (SHA-256)
+- [ ] Verify artifact checksums and, separately, publisher signatures
 - [ ] Check compression metrics reporting
 - [ ] Validate conformance report completeness
 - [ ] Issue verdict: PASS or FAIL
@@ -664,20 +673,9 @@ This section provides **step-by-step verification instructions** for independent
 
 ### 6.3 Environment Requirements
 
-**Minimum Requirements**:
-
-| Component | Level A | Level B | Level C |
-|-----------|---------|---------|---------|
-| **Python** | 3.10+ | 3.10+ | 3.10+ |
-| **GPU** | Not required | NVIDIA 8GB+ VRAM | NVIDIA 8GB+ VRAM |
-| **CUDA** | Not required | 11.8+ | 11.8+ |
-| **Disk Space** | 2GB | 5GB | 10GB |
-| **Network** | Git clone only | Git clone only | Git clone only |
-
-**Recommended** (for K3D verification):
-- NVIDIA RTX 3060 (12GB VRAM) or equivalent
-- Ubuntu 22.04 LTS
-- 16GB system RAM
+The implementation under test must publish its supported environment and pinned dependencies.
+The data model itself does not establish GPU memory, operating-system or disk-space minimums.
+For a K3D GPU evaluation, record the GPU, driver, CUDA toolchain and runtime revision actually used.
 
 ---
 
@@ -741,7 +739,8 @@ nvidia-smi
 nvcc --version
 ```
 
-**Resolution**: Level B/C require NVIDIA GPU. Skip GPU tests only if documentation explicitly allows CPU fallback (non-normative for K3D).
+**Resolution**: State which execution profile is being tested.
+K3D GPU tests require their declared hardware; an unavailable GPU is an untested case, not a pass.
 
 ---
 
@@ -812,23 +811,9 @@ For the full verification report template, see Evidence Validation Matrix §11.5
 
 ### 6.7 K3D Verification Readiness
 
-**Current Status** (February 2026):
-
-| Conformance Level | Artifacts Status | Verification Readiness |
-|-------------------|------------------|------------------------|
-| **Level A** | 🟠 Pending publication | Not ready (Q2 2026 target) |
-| **Level B** | 🟡 Partial (repo tests + run logs) | Not ready (Q3 2026 target) |
-| **Level C** | 🟠 In progress | Not ready (Q4 2026 target) |
-
-**Blockers**:
-- Level A: Test suite externalization (currently integrated in Knowledgeverse tests)
-- Level B: Telemetry exporter (telemetry captured but needs dedicated export)
-- Level C: Audit pack generator (provenance journal exists but needs consolidation)
-
-**Timeline**:
-- Q2 2026: Level A artifacts published
-- Q3 2026: Level B artifacts published + first independent verification
-- Q4 2026: Level C artifacts published
+This guide makes no readiness claim for the paused implementation.
+An independent assessment requires a published test suite, fixture set, environment description and reference results.
+See the [evidence matrix](PM_KR_EVIDENCE_VALIDATION_MATRIX.md) for the proposed record.
 
 ---
 
@@ -842,22 +827,19 @@ Implementers MAY self-certify conformance by:
 3. Documenting procedural language and execution environment
 
 **K3D Self-Certification**:
-- Level: **Provisional B+ (run-log verified), Level C target**
-- Test Results:
-  - Repo-verified: 28/28 Knowledgeverse tests
-  - Run-log verified: hot-path sovereignty and benchmark snapshots
-  - Pending: externalized PM-KR A/B/C conformance suite
-- Public Repo: https://github.com/danielcamposramos/Knowledge3D
-- Documentation: `docs/vocabulary/` (full spec suite)
+
+No K3D conformance level is certified by this document.
+The [repository](https://github.com/danielcamposramos/Knowledge3D) contains implementation material for review.
 
 ### 7.2 Third-Party Certification (Future)
 
-W3C Community Group MAY establish third-party certification by:
+A future community review process could consider:
 1. Maintaining reference test suite (independent of K3D)
 2. Running conformance tests on submitted implementations
 3. Publishing certification registry
 
-**Proposed**: W3C PM-KR Conformance Registry (similar to HTML5 validator).
+A registry is a proposal; no W3C certification programme is asserted.
+[Community Groups incubate technologies and do not create W3C standards](https://www.w3.org/community/about/faq/).
 
 ---
 
@@ -871,10 +853,10 @@ W3C Community Group MAY establish third-party certification by:
 | **Reference Resolution** | avg latency (ms) | <10ms | <1ms | <0.1ms (GPU) |
 | **Canonicalization** | duplicate detection rate | >95% | >99% | >99.9% |
 
-**K3D Results** *(run-log verified unless otherwise stated)*:
-- Compression: **70%** (Character Galaxy: 87.7MB → 26.3MB)
-- Resolution: **<0.1ms** (PTX kernel, sub-100µs validated)
-- Canonicalization: **100%** (content-addressable IDs)
+**K3D results status:**
+
+No measured result is supplied here.
+The thresholds above are draft targets requiring justification against representative workloads.
 
 ### 8.2 Sovereignty Benchmarks
 
@@ -884,10 +866,10 @@ W3C Community Group MAY establish third-party certification by:
 | **Fallback Rate** | (fallbacks / total calls) | <1% | 0% |
 | **External Deps** | count in hot path | 0 | 0 |
 
-**K3D Results** (Math benchmark snapshot, 400 tasks):
-- GPU Sovereignty: **1.0** (154 GPU calls = 154 solved tasks)
-- Fallback Rate: **0%** (zero fallbacks)
-- External Deps: **0** (PTX-only hot path)
+**K3D results status:**
+
+No measured result is supplied here.
+GPU-call counts must be collected from execution instrumentation rather than inferred from task outcomes.
 
 ---
 
@@ -899,10 +881,9 @@ W3C Community Group MAY establish third-party certification by:
 - **Level C**: + Auditability + metrics (12 tests)
 
 **K3D Reference Snapshot**:
-- Repo-verified Level B signals: Knowledgeverse integration tests + sovereign runtime checks
-- Level C status: target profile defined; full third-party auditable certification pack pending
 
-**Next Steps**: Implement conformance test suite, establish W3C certification registry, onboard early adopters.
+Implementation status is unverified by this guide.
+The next step is a published test suite and artifact package that another implementation can run.
 
 ---
 

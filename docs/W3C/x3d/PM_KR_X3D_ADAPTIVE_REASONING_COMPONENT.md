@@ -3,17 +3,22 @@
 **Version**: 0.1 (Initial Draft)
 **Status**: Early non-fruitful attempt: individual input from Daniel Campos Ramos to the PM-KR Community Group, not a group document
 **Date**: March 26, 2026
-**Authors**: Daniel Campos Ramos (PM-KR Chair), Milton Ponson (PM-KR Co-Chair)
+**Original draft credits**: Daniel Campos Ramos, Milton Ponson
 **License**: CC-BY-4.0 (Documentation), Apache 2.0 (Reference Implementation)
+
+The components, profiles and node types below are proposed extensions in this historical input.
+Their inclusion here does not establish X3D registration, browser support or a tested implementation.
+Examples describe intended behavior and have not been validated here as executable scenes.
+See the [current explainer](../EXPLAINER.md) for the scope now under discussion.
 
 **Normative References**:
 - ISO/IEC 19775-1:2023 (X3D Architecture and Base Components, Version 4.0)
-- PM-KR X3D Procedural Memory Component v0.1 (docs/w3c/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md)
-- PM-KR X3D Avatar Embodiment Specification v0.1 (docs/w3c/x3d/PM_KR_X3D_AVATAR_SPECIFICATION.md)
-- PM-KR X3D Ontology v0.1 (docs/w3c/x3d/PM_KR_X3D_ONTOLOGY.md)
-- Adaptive Reasoning Budget Specification v1.0 (docs/vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md)
-- Hyper-Parallel Processing Specification v1.0 (docs/vocabulary/HYPER_PARALLEL_PROCESSING.md)
-- Knowledgeverse Specification v5.1 (docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md)
+- PM-KR X3D Procedural Memory Component v0.1 ([PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md](../../../docs/W3C/x3d/PM_KR_X3D_PROCEDURAL_MEMORY_COMPONENT.md))
+- PM-KR X3D Avatar Embodiment Specification v0.1 ([PM_KR_X3D_AVATAR_SPECIFICATION.md](../../../docs/W3C/x3d/PM_KR_X3D_AVATAR_SPECIFICATION.md))
+- PM-KR X3D Ontology v0.1 ([PM_KR_X3D_ONTOLOGY.md](../../../docs/W3C/x3d/PM_KR_X3D_ONTOLOGY.md))
+- Adaptive Reasoning Budget Specification v1.0 ([ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](../../../docs/vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md))
+- Hyper-Parallel Processing Specification v1.0 ([HYPER_PARALLEL_PROCESSING.md](../../../docs/vocabulary/HYPER_PARALLEL_PROCESSING.md))
+- Knowledgeverse Specification v5.1 ([KNOWLEDGEVERSE_SPECIFICATION.md](../../../docs/vocabulary/KNOWLEDGEVERSE_SPECIFICATION.md))
 
 ---
 
@@ -46,7 +51,7 @@ This document defines the **AdaptiveReasoning** component for X3D, extending the
 
 ### 1.2 Motivation
 
-The PM-KR Procedural Memory Component defines knowledge nodes and agent entities. The Avatar Embodiment Specification defines the avatar's body and cranial Galaxy. Neither addresses HOW MUCH reasoning the agent should apply to a given query. The Adaptive Reasoning Budget Specification (docs/vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md) defines the computational governance model. This X3D component provides the **scene graph representation** for that governance model — enabling:
+The PM-KR Procedural Memory Component defines knowledge nodes and agent entities. The Avatar Embodiment Specification defines the avatar's body and cranial Galaxy. Neither addresses HOW MUCH reasoning the agent should apply to a given query. The Adaptive Reasoning Budget Specification ([ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md](../../../docs/vocabulary/ADAPTIVE_REASONING_BUDGET_SPECIFICATION.md)) defines the computational governance model. This X3D component provides the **scene graph representation** for that governance model — enabling:
 
 1. **Interchange**: Export/import reasoning configurations between K3D systems.
 2. **Visualization**: Render budget allocation, decomposition trees, and scheduling state as 3D geometry inside the Cranial Galaxy.

@@ -1,18 +1,20 @@
 # PM-KR Strategic Steering for K3D Development
 
-**Status:** Active Development Roadmap
+> **Status, 29 October 2026: Superseded roadmap.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+
+**Status:** Historical project roadmap; current priorities are in the [explainer](EXPLAINER.md).
 **Last Updated:** February 26, 2026
-**Source:** W3C PM-KR Community Group early ingressor discussions + NotebookLM strategic analysis
+**Source:** Knowledge3D project planning input; not a group decision.
 
 ---
 
 ## Executive Summary
 
-The formation of the W3C Procedural Memory Knowledge Representation (PM-KR) Community Group shifts Knowledge3D's development trajectory from being a standalone, highly advanced prototype into becoming the **foundational reference implementation** for a global web technology.
-
-**Analogy:** If PM-KR is the HTML/CSS specification, K3D is the WebKit browser engine that proves it works.
-
-Based on intense discussions and expert feedback from PM-KR's early ingressors (Manu Sporny, Adam Sobieski, Jonathan DeRouchie, Milton Ponson, Christoph Dorn, ixo.world, and others), K3D's development is now steered by **6 strategic imperatives** that transform it from a cognitive OS into a **secure, cryptographically verifiable, and highly interoperable web technology**.
+This historical draft records proposed work on access control, provenance, planning, interoperability, documentation and conformance tests.
+Its schedules and APIs are planning sketches, not implementation results or Community Group commitments.
+The current focus is specifications and a small shared vocabulary, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
 
 ---
 
@@ -20,10 +22,10 @@ Based on intense discussions and expert feedback from PM-KR's early ingressors (
 
 ### 1. Formalizing Access Control and Sovereignty Boundaries
 
-**Driver:** Jonathan DeRouchie (persistent memory AI systems expert)
+**Status:** Project proposal; no participant endorsement is asserted.
 
 **The Challenge:**
-Industry needs strict boundaries between public shared knowledge and private permissioned execution. Current AI systems blur these lines dangerously.
+The proposed design needs explicit boundaries between shared knowledge and permissioned execution.
 
 **K3D Development Goal:**
 Rigorously formalize K3D's **House (private/sovereign) and Galaxy (public/canonical)** architecture into a standardized access control model.
@@ -77,10 +79,11 @@ Rigorously formalize K3D's **House (private/sovereign) and Galaxy (public/canoni
 
 ### 2. Procedural Canonicalization (C14N) and Cryptographic Trust
 
-**Driver:** Manu Sporny (JSON-LD co-creator, RDF Canonicalization editor)
+**Status:** Project proposal; no participant endorsement is asserted.
 
 **The Challenge:**
-K3D's 70% compression is validated, but procedural programs need **deterministic canonicalization** so they can be cryptographically signed and verified.
+Procedural programs need a defined canonical encoding before their signatures can be checked reproducibly.
+This draft establishes no compression result.
 
 **K3D Development Goal:**
 Develop deterministic ways to canonicalize RPN procedural programs to support **Verifiable Procedural Credentials**.
@@ -93,7 +96,7 @@ Develop deterministic ways to canonicalize RPN procedural programs to support **
    - Hash-based content addressing (symlink integrity)
    - Reproducible across platforms (IEEE 754 floating-point handling)
 
-2. **Example Use Case (ixo.world):**
+2. **Hypothetical credential use case:**
    ```json
    {
      "@context": [
@@ -102,15 +105,15 @@ Develop deterministic ways to canonicalize RPN procedural programs to support **
        "https://w3id.org/vc/v1"
      ],
      "@type": "VerifiableProceduralCredential",
-     "id": "did:ixo:carbon_credit_verification_v2",
-     "issuer": "did:ixo:shaun-conway",
+     "id": "did:example:carbon_credit_verification_v2",
+     "issuer": "did:example:publisher",
      "issuanceDate": "2026-02-26T12:00:00Z",
      "credentialSubject": {
        "@type": "ProceduralProgram",
        "program": [
          "LOAD", "satellite_data",
-         "CALL", "did:ixo:forest_analysis_v2",
-         "CALL", "did:ixo:carbon_calculation",
+         "CALL", "did:example:forest_analysis_v2",
+         "CALL", "did:example:carbon_calculation",
          "VERIFY", "stakeholder_signatures",
          "ISSUE", "carbon_credit"
        ],
@@ -122,7 +125,7 @@ Develop deterministic ways to canonicalize RPN procedural programs to support **
        "type": "Ed25519Signature2020",
        "created": "2026-02-26T12:00:00Z",
        "proofPurpose": "assertionMethod",
-       "verificationMethod": "did:ixo:shaun-conway#key-1",
+       "verificationMethod": "did:example:publisher#key-1",
        "proofValue": "z3j4k5L6m7N8..."
      }
    }
@@ -150,10 +153,11 @@ Develop deterministic ways to canonicalize RPN procedural programs to support **
 
 ### 3. Enabling AI Planning (STRIPS and PDDL)
 
-**Driver:** Adam Sobieski (W3C veteran, founded 3 CGs)
+**Status:** Project proposal; no participant endorsement is asserted.
 
 **The Challenge:**
-Procedural knowledge isn't just for execution — AI agents need to **plan** with it. K3D currently executes RPN programs but doesn't enable AI to reason *over* procedures to generate complex workflows.
+The proposed planning layer would compose procedures into workflows.
+This remains a design topic, not an implemented planning capability established here.
 
 **K3D Development Goal:**
 Expand K3D's procedural metadata to include **preconditions and postconditions (effects)**, inspired by AI planning languages like STRIPS and PDDL.
@@ -263,10 +267,10 @@ Build bidirectional translation tools so legacy RDF graphs can be compressed int
 
 ### 5. Lowering Cognitive Load for Developer Adoption
 
-**Driver:** Jonathan DeRouchie (developer experience expert)
+**Status:** Project proposal; no participant endorsement is asserted.
 
 **Key Insight:**
-*"Users are more likely to adopt a framework that uses or simplifies existing language, concept or structure."*
+The proposed documentation should introduce the user problem before unfamiliar project terminology.
 
 **The Challenge:**
 K3D's architecture is revolutionary but unfamiliar. Developers need **familiar analogies** to onboard quickly.
@@ -328,10 +332,11 @@ Map K3D concepts to familiar industry paradigms — file systems, object-oriente
 
 ### 6. Achieving "Level C" Conformance (Auditable Production)
 
-**Driver:** W3C PM-KR Conformance Profiles (see [PM_KR_CONFORMANCE_PROFILES.md](PM_KR_CONFORMANCE_PROFILES.md))
+**Input:** Project draft [conformance profiles](PM_KR_CONFORMANCE_PROFILES.md).
 
 **The Challenge:**
-K3D is currently "Provisional Level B+" — it proves zero-dependency GPU sovereignty but lacks externalized test suites and independent audit tooling.
+No conformance level is established here.
+Independent verification requires public test artifacts and an agreed evaluation process.
 
 **K3D Development Goal:**
 Reach **Level C (Auditable Production)** by finalizing externalized test suites, cryptographic signatures, and provenance audit logs for third-party verification.
@@ -340,9 +345,9 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 
 | Level | Requirements | K3D Status |
 |-------|--------------|------------|
-| **Level A** | Basic PM-KR implementation (JSON-LD + RPN) | ✅ Complete |
-| **Level B** | Sovereign execution (PTX-only hot path) | ✅ Complete |
-| **Level C** | Auditable production (external tests, crypto signatures) | 🚧 In Progress (50%) |
+| **Level A** | Basic PM-KR implementation (JSON-LD + RPN) | No conformance result established |
+| **Level B** | Sovereign execution (PTX-only hot path) | No conformance result established |
+| **Level C** | Auditable production (external tests, crypto signatures) | Proposed evaluation work |
 
 **Implementation Requirements:**
 
@@ -382,34 +387,22 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 
 ## Strategic Transformation Summary
 
-| Before PM-KR | After PM-KR Steering |
-|--------------|----------------------|
-| **Standalone prototype** | **W3C reference implementation** |
-| **Cognitive OS** | **Web standard (like WebKit for HTML)** |
-| **Sovereignty focus** | **Sovereignty + Security + Provenance** |
-| **Internal execution** | **Cryptographically verifiable execution** |
-| **K3D-specific** | **Interoperable with Semantic Web** |
-| **Developer-unfriendly** | **Familiar analogies (file system, OOP, graphs)** |
-| **Self-validated** | **Third-party auditable (Level C)** |
+The proposed work connects execution control to permission checks, provenance and exchange tests.
+These are development topics, not evidence of web-scale operation, interoperability or certification.
 
 ---
 
 ## Influence Mapping: Expert Contributions
 
-| Expert | Primary Contribution | K3D Impact |
-|--------|---------------------|------------|
-| **Manu Sporny** (JSON-LD co-creator) | Procedural C14N + Verifiable Credentials | Cryptographic trust layer |
-| **Adam Sobieski** (W3C veteran) | STRIPS/PDDL planning metadata | AI reasoning over procedures |
-| **Jonathan DeRouchie** (Persistent memory AI) | Access control + Developer UX | Security boundaries + analogies |
-| **Milton Ponson** (Gödelian KR) | Domains of discourse formalization | House-Galaxy separation |
-| **Christoph Dorn** (K3D main contributor, PM-KR group member) | "Semantic gravity cohered by meaning"; TerraVision heritage | Spatial navigation + force paradigm |
-| **ixo.world** (Shaun Conway) | W3C DIDs + Verifiable Claims | Blockchain-backed provenance |
-| **Nitin Pasumarthy** (LinkedIn GNNs) | Production KG scaling patterns | Galaxy Universe optimization |
-| **Marko Rodriguez** (Apache TinkerPop) | Gremlin graph query analogies | Developer onboarding |
+The earlier roster and assigned contributions are withdrawn as evidence because this draft did not cite public records establishing them.
+Project credits remain in [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md).
+The [explainer](EXPLAINER.md#stakeholder-feedback) describes the public October discussion with source links.
 
 ---
 
 ## Implementation Phases
+
+These dated phases are the original proposal; they are superseded by the code pause and current specification work.
 
 **Phase J (Q2 2026): Developer UX**
 - [ ] Write Developer Onboarding Guide (analogies)
@@ -447,26 +440,15 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 
 ## Alignment with Existing K3D Architecture
 
-**Already Implemented (Validated):**
-1. ✅ **Hyper-Modular Architecture** (7 levels, 70% compression)
-2. ✅ **Sovereign PTX Execution** (45+ kernels, zero external frameworks)
-3. ✅ **Three-Brain System** (Cranium, Galaxy, House)
-4. ✅ **Unified Persistent Memory** (Knowledgeverse 7-region substrate)
-5. ✅ **Dual-Client Contract** (Human visual + AI executable)
-
-**Now Adding (PM-KR Strategic Steering):**
-6. 🚧 **Security & Access Control** (House-Galaxy firewall, permission metadata)
-7. 🚧 **Cryptographic Provenance** (Procedural C14N, Verifiable Credentials)
-8. 🚧 **AI Planning Layer** (STRIPS/PDDL metadata, TRM workflow generation)
-9. 🚧 **Interoperability Tooling** (RDF converters, JSON-LD export)
-10. 🚧 **Developer Familiarity** (Analogies, migration guides)
-11. 🚧 **Level C Conformance** (External tests, audit logs)
+The roadmap refers to the project's proposed procedural execution, shared knowledge and spatial interface designs.
+Security metadata, canonicalization, planning, interoperability and conformance artifacts require implementation-specific evidence.
+No completion status or current code inventory is claimed here.
 
 ---
 
 ## Success Metrics
 
-**By Q4 2026, K3D should demonstrate:**
+**Historical evaluation targets, not an agreed schedule or measured outcome:**
 
 1. **Security:**
    - 100% of Galaxy procedures have permission metadata
@@ -475,7 +457,7 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 
 2. **Cryptographic Trust:**
    - All canonical Galaxy procedures cryptographically signed
-   - Verifiable Credential integration (at least 1 real-world use case with ixo.world)
+   - A credential use case with published consent and provenance requirements
    - Reproducible execution traces (same input → same trace + same signature)
 
 3. **AI Planning:**
@@ -496,28 +478,17 @@ Reach **Level C (Auditable Production)** by finalizing externalized test suites,
 6. **Level C Conformance:**
    - Independent test suite runs on ≥3 different implementations
    - Third-party audit (academia or industry) validates sovereignty claims
-   - W3C PM-KR CG issues "Level C Conformant" badge
+   - An independently published conformance assessment against an agreed profile
 
 ---
 
 ## Conclusion: From Prototype to Technology
 
-The W3C PM-KR Community Group transforms K3D's mission:
+The useful next step is a bounded specification and exchange example that other participants can evaluate.
+This roadmap supplies no evidence of adoption, external validation or a completed web standard.
 
-**Before:** Build the world's most advanced spatial AI cognitive OS.
-**Now:** Build the world's most advanced spatial AI cognitive OS **AND** prove it can become a global web technology.
-
-**The stakes are higher. The validation is external. The impact is permanent.**
-
-If K3D succeeds in implementing these 6 strategic imperatives, it won't just be a research project — it will be **the reference implementation that proves procedural knowledge representation works at web scale**.
-
-**This is K3D's path from revolutionary prototype to foundational infrastructure.**
-
----
-
-**Last Updated:** February 26, 2026
-**Maintained by:** Daniel Ramos (K3D architect), W3C PM-KR Community Group
-**Feedback:** public-pm-kr@w3.org
+**Maintained by:** Daniel Ramos, Knowledge3D.
+**Discussion:** [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
 
 ---
 

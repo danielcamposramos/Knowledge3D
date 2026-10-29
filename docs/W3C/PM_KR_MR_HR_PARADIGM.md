@@ -1,5 +1,11 @@
 # PM-KR: Machine-Readable (MR) vs. Human-Readable (HR) Dual Versioning Paradigm
-## A Procedural Knowledge Standard for AI-Generated Code in Multi-Agent Systems
+
+> **Status, 29 October 2026: Input.** This is project input to the [PM-KR Community Group](https://www.w3.org/community/pm-kr/).
+> Knowledge3D code is paused while work focuses on specifications and group deliverables, as [Daniel explained on 28 October](https://lists.w3.org/Archives/Public/public-pm-kr/2026Oct/0016.html).
+> Requirements and examples below describe proposals, not implemented features or adopted W3C conformance rules.
+<a id="a-procedural-knowledge-standard-for-ai-generated-code-in-multi-agent-systems"></a>
+
+## A Proposal for Procedural Knowledge in Multi-Agent Systems
 
 **Document Status**: Draft for PM-KR Community Group (Year 1)
 **Authors**: Daniel Campos Ramos (Knowledge3D), GLM-4.5 (Zhipu AI)
@@ -10,19 +16,13 @@
 
 ## Executive Summary
 
-As we enter the era of **AI-generated code** (2026+), a critical infrastructure problem emerges: **interpreted languages (Python, JavaScript, etc.) load comments and documentation into runtime memory, creating waste when machines execute code they don't need to read.**
+This draft proposes two linked presentations of procedural knowledge: a machine representation (MR) for execution and a human representation (HR) for explanation and review.
+Both should derive from the same authored source and identify the same version.
+The purpose is traceable generation and review.
+No runtime-memory saving, deployment or safety result is established here.
 
-This document proposes **MR-HR Dual Versioning** as a PM-KR technology:
-- **MR (Machine-Readable)**: Stripped, optimized code for execution (no comments, compressed)
-- **HR (Human-Readable)**: Documented, explained code for humans and AI agents to study
-
-**Why this matters for PM-KR:**
-1. **Multi-agent systems** — Dozens of agents executing workflows simultaneously need memory efficiency
-2. **Robotics safety** — Robots download verified workflows (MR for execution, HR for audit/explanation)
-3. **Edge deployment** — Raspberry Pi, Jetson Nano, mobile devices benefit from 20-40% memory savings
-4. **Procedural knowledge distribution** — Galaxy workflows have MR (executable RPN) + HR (documented, signed)
-
-**K3D Implementation**: Knowledge3D already implements MR-HR dual versioning via `codeopt` (GLM-4.5 dual-code compiler), achieving **20-40% memory reduction** with **zero semantic changes**.
+The repository contains a [`codeopt` source transformer](../../codeopt/) and [its documentation](../DUAL_CODE.md).
+Its presence is evidence of source code, not proof of semantic equivalence or measured memory savings.
 
 ---
 
@@ -30,86 +30,21 @@ This document proposes **MR-HR Dual Versioning** as a PM-KR technology:
 
 ### The Scenic Road Analogy (Cabot Trail, Canada)
 
-Imagine you're driving along the **Cabot Trail in Canada** — one of the world's most scenic coastal roads. The ocean stretches to your left, mountains rise to your right, and the view is breathtaking.
-
-Now imagine you're driving with an **augmented reality windshield** that overlays navigation instructions:
-- "Turn left in 500 meters"
-- "Speed limit 80 km/h"
-- "Scenic viewpoint ahead"
-
-**This is helpful** — the information enhances your drive.
-
-But suddenly, the AR system starts **outputting Python docstrings and comments on every line**:
-
-```python
-# FUNCTION: calculate_route
-# PURPOSE: Compute optimal path from A to B using Dijkstra's algorithm
-# PARAMETERS:
-#   - start: Starting location (lat, lon tuple)
-#   - end: Destination location (lat, lon tuple)
-#   - avoid_tolls: Boolean flag for toll road avoidance
-# RETURNS: List of waypoints as (lat, lon) tuples
-# COMPLEXITY: O(E log V) where E=edges, V=vertices
-# AUTHOR: Navigation Team
-# LAST MODIFIED: 2025-10-15
-def calculate_route(start, end, avoid_tolls=False):
-    """
-    Calculate optimal route between two points.
-
-    This function implements Dijkstra's shortest path algorithm
-    with optional toll road avoidance. It uses a priority queue
-    for efficient vertex selection during graph traversal.
-
-    Args:
-        start (tuple): Starting coordinates (latitude, longitude)
-        end (tuple): Destination coordinates (latitude, longitude)
-        avoid_tolls (bool): If True, excludes toll roads from search
-
-    Returns:
-        list: Ordered waypoints from start to end
-
-    Raises:
-        ValueError: If start or end coordinates are invalid
-        PathNotFoundError: If no route exists between points
-
-    Example:
-        >>> route = calculate_route((45.5, -73.6), (46.8, -71.2))
-        >>> len(route)
-        42
-    """
-    # Initialize priority queue for Dijkstra's algorithm
-    # Using heapq for O(log n) push/pop operations
-    ...
-```
-
-**Now your windshield is COVERED with text.** The scenic view is obscured behind a wall of comments. You can still see through (alpha channel transparency), but the road, ocean, and mountains are **blurred and ruined** behind the documentation.
-
-**This is what machines experience when executing commented code in interpreted languages.**
+A person following a route needs concise directions; the person reviewing the route may need a fuller explanation.
+The analogy motivates different presentations from one source.
+It does not describe how an interpreter handles comments.
 
 ---
 
 ### The Technical Problem
 
-**Compiled languages (C, C++, Rust):**
-- Comments removed during compilation → binary executables are comment-free
-- Machines execute clean bytecode
-- **Windshield is clear**
+Source-file size, compiled-code size, process memory and GPU memory are different measurements.
+Python comments are ignored by the syntax ([Python language reference](https://docs.python.org/3/reference/lexical_analysis.html#comments)).
+Docstrings are different: Python exposes them through `__doc__`, and CPython's `-OO` option removes them ([command-line reference](https://docs.python.org/3/using/cmdline.html#cmdoption-OO)).
+Removing docstrings can therefore change observable behavior.
+No general memory percentage follows from deleting comments.
 
-**Interpreted languages (Python, JavaScript, Ruby):**
-- Comments and docstrings **stay in memory** during execution
-- Every function call loads documentation humans wrote for other humans
-- Multi-instance deployments = comments loaded N times
-- **Windshield is cluttered with text**
-
-**Why this didn't matter before:**
-- Humans wrote code → humans executed code → humans debugged code
-- Comments were **necessary infrastructure** for collaboration
-
-**Why this matters NOW (2026+):**
-- **AI generates code** → Machines execute code → Humans audit code
-- Comments are **runtime waste** for machines, **necessary documentation** for humans
-- Multi-agent systems = 10-100 instances executing simultaneously
-- Edge devices (Raspberry Pi, Jetson, mobile) = every megabyte counts
+The proposal needs a defined behavior contract and tests for each source language, including introspection and tooling that consumes documentation.
 
 ---
 
@@ -140,7 +75,7 @@ def calculate_route(start, end, avoid_tolls=False):
 │  - Zero comments/docstrings             │
 │  - Compressed whitespace                │
 │  - Semantically identical               │
-│  - 20-40% smaller memory footprint      │
+│  - Size and behavior require testing   │
 │  ─────────────────────────────          │
 │  BUILD ARTIFACT (NOT committed)         │
 └─────────────────────────────────────────┘
@@ -156,122 +91,10 @@ def calculate_route(start, end, avoid_tolls=False):
 
 ### K3D Implementation (Proof-of-Concept)
 
-Knowledge3D implements MR-HR dual versioning via `codeopt` (developed with GLM-4.5):
-
-**Tool**: `codeopt` (Dual-Code Compiler)
-
-**Transformations:**
-- **Python**: Remove comments, remove docstrings (insert `pass` if needed), compress blank lines
-- **JavaScript/TypeScript**: Remove `//` and `/* */` comments (respecting strings), compress whitespace
-- **Guarantees**: Preserve indentation, token order, semantics
-
-**Example:**
-
-**HR (knowledge3d/cranium/fused_head.py)** — 91 KB:
-```python
-class FusedHead:
-    """
-    Unified inference head combining vision, audio, and language modalities.
-
-    The FusedHead routes incoming queries to specialist adapters based on
-    detected modality (visual, auditory, linguistic) and fuses their outputs
-    using learned attention weights. This architecture enables zero-shot
-    transfer between modalities via shared embedding space.
-
-    Architecture:
-        Input → Modality Router → [Vision|Audio|Language] Adapter
-              ↓
-        Embedding Space (768-dim) → Attention Fusion → Output
-
-    Args:
-        embedding_dim (int): Dimensionality of shared embedding space
-        num_adapters (int): Number of specialist adapters (3 for vision/audio/lang)
-        fusion_mode (str): Attention mechanism ('learned', 'average', 'max')
-
-    Attributes:
-        router: ModularityRouter instance for input classification
-        adapters: Dictionary of specialist adapters keyed by modality
-        fusion_weights: Learned attention weights (shape: [num_adapters, 1])
-
-    Example:
-        >>> head = FusedHead(embedding_dim=768, num_adapters=3)
-        >>> query = {"text": "Show me a red circle"}
-        >>> embedding = head.forward(query)
-        >>> embedding.shape
-        torch.Size([768])
-    """
-
-    def __init__(self, embedding_dim=768, num_adapters=3, fusion_mode='learned'):
-        # Initialize router for modality detection
-        # Uses learned classifier to route queries to appropriate adapter
-        self.router = ModalityRouter(num_classes=num_adapters)
-
-        # Create specialist adapters for each modality
-        # Vision: CLIP-based, Audio: Wav2Vec2, Language: BERT
-        self.adapters = {
-            'vision': VisionAdapter(embedding_dim),
-            'audio': AudioAdapter(embedding_dim),
-            'language': LanguageAdapter(embedding_dim)
-        }
-
-        # Initialize fusion weights for attention mechanism
-        # Learned during training via gradient descent
-        self.fusion_weights = nn.Parameter(torch.ones(num_adapters, 1))
-
-    def forward(self, query):
-        """
-        Forward pass through fused head.
-
-        Routes query to appropriate adapter, extracts embedding, and returns
-        fused representation weighted by learned attention.
-
-        Args:
-            query (dict): Input query with modality-specific keys
-                         (e.g., {'text': str, 'image': tensor})
-
-        Returns:
-            torch.Tensor: Fused embedding (shape: [embedding_dim])
-
-        Raises:
-            ValueError: If query contains no recognizable modality
-        """
-        # Detect modality using router
-        modality = self.router.classify(query)
-
-        # Route to specialist adapter
-        adapter = self.adapters[modality]
-        embedding = adapter.encode(query)
-
-        # Apply learned attention fusion
-        fused = self.fusion_weights[modality] * embedding
-
-        return fused
-```
-
-**MR (../Knowledge3D.local/mr/knowledge3d/cranium/fused_head.py)** — 78 KB (~14% smaller):
-```python
-class FusedHead:
-    def __init__(self, embedding_dim=768, num_adapters=3, fusion_mode='learned'):
-        self.router = ModalityRouter(num_classes=num_adapters)
-        self.adapters = {
-            'vision': VisionAdapter(embedding_dim),
-            'audio': AudioAdapter(embedding_dim),
-            'language': LanguageAdapter(embedding_dim)
-        }
-        self.fusion_weights = nn.Parameter(torch.ones(num_adapters, 1))
-    def forward(self, query):
-        modality = self.router.classify(query)
-        adapter = self.adapters[modality]
-        embedding = adapter.encode(query)
-        fused = self.fusion_weights[modality] * embedding
-        return fused
-```
-
-**Savings**: 91 KB → 78 KB = **13 KB per file** (14.3% reduction)
-
-**Multiply by multi-instance deployment**:
-- 10 parallel trainers × 13 KB = **130 KB saved**
-- 100 edge robots × 13 KB = **1.3 MB saved**
+The [`codeopt` implementation](../../codeopt/) and [dual-code guide](../DUAL_CODE.md) are available for inspection.
+They describe source transformation for Python and JavaScript/TypeScript.
+Generated output must be tested against the authored source and its supported behavior contract.
+This document provides no current implementation size, performance measurement or production-readiness claim.
 
 ---
 
@@ -279,69 +102,15 @@ class FusedHead:
 
 ### K3D Production Measurements
 
-**Test Setup**: K3D codebase (Python + JavaScript/TypeScript)
-- **HR Total**: 1.7 MB (full codebase with comments/docstrings)
-- **MR Total**: 1.2 MB (stripped, optimized)
-- **Savings**: **500 KB** (29.4% reduction)
-
-**Per-Module Breakdown:**
-
-| Module | HR Size | MR Size | Savings | % Reduction |
-|--------|---------|---------|---------|-------------|
-| `fused_head.py` | 91 KB | 78 KB | 13 KB | 14.3% |
-| `ptx_ops.py` | 54 KB | 42 KB | 12 KB | 22.2% |
-| `phase25/rpn_trainer.py` | 203 KB | 156 KB | 47 KB | 23.2% |
-| `skills/vision.py` | 68 KB | 52 KB | 16 KB | 23.5% |
-| `skills/audio.py` | 45 KB | 34 KB | 11 KB | 24.4% |
-| **Total Core Modules** | 461 KB | 362 KB | 99 KB | 21.5% |
-
----
+The previous size and timing figures are withdrawn from this draft because their input revision, commands and result artifacts were not supplied.
+A future measurement should publish source and generated files, byte counts, interpreter version, warm/cold import conditions and process-memory measurements.
+File-size reduction must not be reported as runtime or GPU-memory reduction.
 
 ### Multi-Instance Deployment Scenarios
 
-**Scenario 1: RLWHF Training (10 Parallel Trainers)**
-
-**HR Configuration**:
-- 10 trainers × 1.7 MB codebase = **17 MB** in memory
-- GPU memory used: 17 MB + 8 GB model weights + 12 GB Galaxy = **20.017 GB**
-
-**MR Configuration**:
-- 10 trainers × 1.2 MB codebase = **12 MB** in memory
-- GPU memory used: 12 MB + 8 GB model weights + 12 GB Galaxy = **20.012 GB**
-- **Savings: 5 MB** (allows ~100,000 additional Galaxy nodes in VRAM)
-
----
-
-**Scenario 2: Edge Robotics (Raspberry Pi 4, 4GB RAM)**
-
-**HR Configuration**:
-- K3D codebase: 1.7 MB
-- Galaxy GLBs: 200 MB
-- PTX kernels: 50 MB
-- OS + Python runtime: 800 MB
-- **Total: 1,051.7 MB** (26% of 4GB RAM)
-
-**MR Configuration**:
-- K3D codebase: 1.2 MB
-- Galaxy GLBs: 200 MB
-- PTX kernels: 50 MB
-- OS + Python runtime: 800 MB
-- **Total: 1,051.2 MB** (26% of 4GB RAM)
-- **Savings: 500 KB** (critical when running inference + Galaxy navigation on 4GB device)
-
----
-
-**Scenario 3: Multi-Agent Workflow Orchestration (100 Agents)**
-
-**HR Configuration**:
-- 100 agents × 1.7 MB = **170 MB** (code duplication)
-- Inefficient: Each agent loads full commented code
-
-**MR + PM-KR Galaxy Model**:
-- **Galaxy Universe**: 1 canonical MR workflow (1.2 MB, symlink-compressed)
-- **100 Houses**: Agents reference canonical Galaxy workflow (100 × 1 KB refs = 100 KB)
-- **Total: 1.3 MB** (vs 170 MB)
-- **Savings: 168.7 MB** (99.2% reduction via procedural symlink compression!)
+Candidate deployments include multiple workers, devices with limited memory and shared workflow repositories.
+Measure each configuration directly, including shared pages, caches, runtime state and reference overhead.
+Multiplying source-file bytes by the number of workers does not establish process-memory consumption.
 
 ---
 
@@ -355,7 +124,7 @@ class FusedHead:
 - RPN programs (canonical procedural forms)
 - Stripped of explanatory metadata
 - Optimized for execution (PTX kernels, GPU)
-- Signed via procedural c14n (Manu Sporny's rdf-canon approach)
+- Proposed signatures require a canonical encoding and a reviewed signing scheme; RDF Dataset Canonicalization is related work, not a procedural-program canonicalizer.
 
 **HR (Human-Auditable):**
 - Documented workflows with explanations
@@ -466,41 +235,18 @@ RETURN
 ```
 
 **Storage:**
-- **HR**: 2.1 KB (YAML with documentation)
-- **MR**: 1.3 KB (RPN executable)
-- **Savings**: 800 bytes (38% reduction)
-- **Multiply by 100 hospitals**: 80 KB saved per workflow × 1,000 workflows = **80 MB** total savings
+
+This illustrative workflow has not been measured or validated for clinical use.
+Its source and generated representations require executable comparison tests.
 
 ---
 
 ### PM-KR Galaxy Distribution Model
 
-**Debian `apt` Analogy** (from Adam Sobieski's OpenFn use case):
-
-**Galaxy Universe = Package Repositories**:
-- **MR workflows** stored as canonical RPN programs (executable)
-- **HR workflows** stored as documented YAML/JSON (human-readable)
-- Both versions signed via procedural c14n (SHA256 of canonical form)
-
-**Houses = Local `dpkg` Database**:
-- Robots/agents download **MR version** for execution
-- Humans/auditors access **HR version** for review
-- Symlink-style reference (no duplication)
-
-**Distribution Efficiency**:
-- 43 countries × 10 MB workflow (HR duplicated) = **430 MB**
-- 43 countries × 1 KB refs + 1 canonical MR (6 MB) = **6.043 MB**
-- **Savings: 423.957 MB** (98.6% reduction)
-
-**Adam's Robotics Safety Vision**:
-> "Multi-agent systems being able to analyze workflows (or action plans) stored on centralized, trusted resources for robots to be able to download and make use of."
-
-**PM-KR Implementation**:
-- **Centralized trusted resource** = Galaxy Universe (MR + HR versions)
-- **Robots download MR** = Execute efficient, verified RPN programs
-- **Humans audit HR** = Review documented workflows with safety constraints
-- **Procedural c14n** = Verify signatures match (no tampering)
-- **Audit Journal** = "At point X during Y, observed Z" (Adam's audit schema)
+The proposal compares a workflow repository to a package repository: machines retrieve executable procedures, while people can retrieve the corresponding source and explanation.
+Versions, dependencies, permissions and provenance must remain linked.
+A content checksum detects changes relative to that checksum; authenticating a publisher also requires a signature and a trusted key.
+The analogy establishes no deployment, endorsement or distribution saving.
 
 ---
 
@@ -515,7 +261,7 @@ RETURN
 **Level B (Dual Versioning)**:
 - ✅ MR version exists (executable, stripped)
 - ✅ HR version exists (documented, explanatory)
-- ✅ Semantic equivalence guaranteed (MR ≡ HR behavior)
+- Required semantic equivalence within the declared behavior contract (MR ≡ HR)
 - ⚠️ No symlink compression (duplicate storage)
 
 **Level C (Auditable Production with Symlink Compression)**:
@@ -528,8 +274,8 @@ RETURN
 - ✅ All Level C requirements
 - ✅ Safety constraints in HR version (MUST/MUST NOT predicates)
 - ✅ Ethical review metadata (consent, privacy, harm prevention)
-- ✅ Lean4 verification (prove safety properties)
-- ✅ Structured validation reports (Adam's Schema.org proposal)
+- Proposed formal verification of explicitly stated properties
+- Proposed structured validation reports with explicit input, output and evidence fields
 
 ---
 
@@ -555,6 +301,10 @@ RETURN
 ---
 
 ### Compilation Guarantees
+
+These are proposed preservation requirements, not demonstrated guarantees.
+A transformation that changes an observable `__doc__` value fails full behavioral equivalence for consumers relying on it.
+The supported contract must state such exclusions explicitly, and any safety check must remain executable code.
 
 **Python MR Generation**:
 - Remove `#` comments (single-line)
@@ -650,7 +400,11 @@ audit_entry = {
 
 ---
 
-### For Robotics Safety (Adam's Use Case)
+<a id="for-robotics-safety-adams-use-case"></a>
+
+### For Robotics Safety
+
+This is a hypothetical workflow example; no deployment, clinical safety assessment or endorsement is established here.
 
 **Industrial robot downloading workflow from Galaxy**:
 
@@ -670,8 +424,8 @@ if not signature_valid:
 
 3. **Robot loads MR version** (memory-efficient execution):
 ```python
-robot.load_procedure(workflow['mr'])  # Stripped RPN, 6 MB
-# NOT: robot.load_procedure(workflow['hr'])  # Documented YAML, 10 MB
+robot.load_procedure(workflow['mr'])  # Proposed executable representation
+# The corresponding authored source remains available for review.
 ```
 
 4. **Robot executes + audits**:
@@ -702,77 +456,21 @@ cat /galaxy/workflows/hr/assembly_procedure_v5.2.yaml
 
 ### Memory Efficiency
 
-**Single-Instance Execution**:
-- HR: 1.7 MB codebase
-- MR: 1.2 MB codebase
-- **Savings: 500 KB** (29.4%)
-- **Impact**: Negligible on modern hardware (16GB+ RAM)
-
-**Multi-Instance Execution** (10 agents):
-- HR: 10 × 1.7 MB = 17 MB
-- MR: 10 × 1.2 MB = 12 MB
-- **Savings: 5 MB** (29.4%)
-- **Impact**: Moderate (allows ~100K additional Galaxy nodes in VRAM)
-
-**Edge Deployment** (Raspberry Pi, 4GB RAM):
-- HR: 1.7 MB codebase
-- MR: 1.2 MB codebase
-- **Savings: 500 KB** (29.4%)
-- **Impact**: Significant (every MB matters on 4GB device)
-
-**Mass Robotics Deployment** (100 robots, Galaxy distribution):
-- HR duplication: 100 × 10 MB = 1 GB
-- MR + symlink: 100 × 1 KB refs + 6 MB canonical = 6.1 MB
-- **Savings: 993.9 MB** (99.4% via procedural compression!)
-- **Impact**: Transformative for global distribution (OpenFn scale)
-
----
+No memory saving is established here.
+Measure resident process memory separately from source bytes and include sharing, caches and runtime objects.
+GPU memory requires its own measurement.
 
 ### Import Speed
 
-**Python module import** (measured on K3D codebase):
-
-**HR Import**:
-- `fused_head.py` (91 KB): 12.3 ms
-- Docstring parsing: ~1.5 ms
-- Comment parsing: ~0.8 ms
-
-**MR Import**:
-- `fused_head.py` (78 KB): 11.1 ms
-- No docstring parsing: 0 ms
-- No comment parsing: 0 ms
-- **Speedup: 1.2 ms** (9.8% faster)
-
-**Multiply by 1,000 imports** (typical training session):
-- HR: 12.3 s
-- MR: 11.1 s
-- **Savings: 1.2 seconds per 1,000 imports**
-
-**Compound effect over 10,000 imports** (multi-day training):
-- HR: 123 s
-- MR: 111 s
-- **Savings: 12 seconds** (not huge, but measurable)
-
----
+No import-speed result is established here.
+Compare the same module and dependencies under a pinned interpreter, separating cold imports, bytecode-cache reuse and repeated imports.
+Retain the measurement script and raw timings.
 
 ### Storage Efficiency (Galaxy Distribution)
 
-**Scenario: 43 countries, 1,000 workflows each**
-
-**HR Duplication Model** (current OpenFn):
-- 43 countries × 1,000 workflows × 10 MB each = **430 GB**
-- Each country duplicates full workflow documentation
-
-**MR + Symlink Model** (PM-KR Galaxy):
-- 1 canonical MR per workflow: 1,000 × 6 MB = **6 GB**
-- 43 countries × 1,000 refs × 1 KB = **43 MB**
-- **Total: 6.043 GB** (vs 430 GB)
-- **Savings: 423.957 GB** (98.6% reduction!)
-
-**Distribution bandwidth** (workflow update pushed to 43 countries):
-- HR model: 43 × 10 MB = **430 MB** per update
-- MR model: 1 × 6 MB + 43 × 1 KB = **6.043 MB** per update
-- **Savings: 423.957 MB** (98.6% reduction in bandwidth)
+No deployment scale or distribution saving is established here.
+Compare the same workflows and versions, including metadata, references, transport compression, caches and the retained human-readable sources.
+Reference reuse within a repository does not eliminate the cost of delivering executable content to each device.
 
 ---
 
@@ -780,13 +478,15 @@ cat /galaxy/workflows/hr/assembly_procedure_v5.2.yaml
 
 ### Proposed Specification Documents
 
+The following are topics from the original draft, not agreed group deliverables or a current schedule.
+
 1. **PM-KR MR-HR Core Specification** (Q2 2026)
    - Normative requirements for dual versioning
    - Semantic equivalence guarantees
    - Compilation validation criteria
 
 2. **PM-KR Procedural Canonicalization (c14n)** (Q3 2026)
-   - Deterministic ordering of RPN programs (building on Manu Sporny's rdf-canon)
+   - Deterministic ordering of RPN programs (with RDF Dataset Canonicalization as related work)
    - Signature verification protocol
    - Reproducible builds standard
 
@@ -796,7 +496,7 @@ cat /galaxy/workflows/hr/assembly_procedure_v5.2.yaml
    - Regional mirrors, version pinning
 
 4. **PM-KR Audit Schema** (Q2 2026)
-   - "At point X during Y, observed Z" message format (Adam Sobieski's contribution)
+   - A structured observation format identifying event, context and time
    - MR execution + HR explanation linking
    - Structured validation reports
 
@@ -810,17 +510,9 @@ cat /galaxy/workflows/hr/assembly_procedure_v5.2.yaml
 
 ### Reference Implementations
 
-**K3D `codeopt` Tool**:
-- Python + JavaScript/TypeScript MR compiler
-- Open-source (Apache 2.0)
-- Demonstrates 20-40% memory savings
-- **GitHub**: https://github.com/danielcamposramos/Knowledge3D
-
-**PM-KR Galaxy Distribution Demo**:
-- 100-robot simulation
-- Galaxy workflows (MR + HR versions)
-- Symlink compression (99%+ reduction)
-- Audit journal with HR references
+The [`codeopt` source](../../codeopt/) is a project implementation input.
+The proposed workflow-distribution demonstration remains a candidate experiment.
+No fleet deployment, memory saving or distribution percentage is claimed.
 
 ---
 
@@ -828,83 +520,30 @@ cat /galaxy/workflows/hr/assembly_procedure_v5.2.yaml
 
 ### Compiled vs. Interpreted Languages
 
-**C/C++/Rust**:
-- ✅ Comments removed during compilation
-- ✅ Binaries are MR-only (no documentation in executable)
-- ❌ Source code (HR) not available at runtime
-
-**Python/JavaScript/Ruby**:
-- ❌ Comments stay in memory during execution
-- ❌ Docstrings parsed and stored in `__doc__` attributes
-- ✅ Source code available for introspection
-
-**PM-KR MR-HR**:
-- ✅ Comments removed for execution (MR)
-- ✅ Documentation available for audit (HR)
-- ✅ Both versions distributed (machines get MR, humans get HR)
-
----
+Comment and documentation handling depends on the language and runtime.
+See the Python references above for the distinction between ignored comments and observable docstrings.
+The proposed MR/HR relationship must preserve the supported behavior contract and keep the authored source available for review.
 
 ### Procedural Compression
 
-**Prior Art**:
-- **Farbrausch .kkrieger** (64KB FPS game) — Procedural generation for assets
-- **DEFLATE/gzip** — General-purpose compression
-- **Minification** (JS UglifyJS, Python pyminifier) — Comment removal + variable renaming
-
-**PM-KR MR-HR Contribution**:
-- ✅ **Semantic preservation** — MR ≡ HR (minifiers often break code)
-- ✅ **Dual versioning** — Both MR and HR distributed (minifiers discard HR)
-- ✅ **Symlink compression** — Multiple HR → one canonical MR (not just file-level)
-- ✅ **Signature verification** — Procedural c14n enables trust (minifiers don't address this)
-
----
+Related approaches include source minification, ordinary lossless compression and procedural asset generation.
+Compare them on the same behavior and storage requirements.
+Preserving source, distributing documentation and validating transformations are not exclusive to PM-KR.
+The [Farbrausch tool sources](https://github.com/farbrausch/fr_public) are a procedural-generation precedent.
 
 ### AI Code Generation
 
-**GitHub Copilot / ChatGPT Code Generation**:
-- Generates **HR only** (commented, documented code for humans)
-- Humans must manually strip comments for production (if at all)
-
-**PM-KR-Aware AI Code Generation** (proposed):
-- Generates **MR + HR simultaneously** (one prompt, two outputs)
-- Validates semantic equivalence automatically
-- Signs canonical MR form via procedural c14n
-
-**Example Prompt**:
-```
-Generate a Python function for patient transfer workflow:
-1. HR version: Rich docstrings, safety comments, examples
-2. MR version: Stripped, executable-only
-3. Validate: pytest confirms MR ≡ HR behavior
-4. Sign: procedural_c14n(MR) → SHA256 → GPG signature
-```
+A generator could produce authored source and a derived runtime representation, then publish the transformation and comparison tests.
+An AI-generated test result is not itself evidence that the tests ran or that behavior is equivalent.
+Human review must retain responsibility for source, licensing, uncertainty and accepted behavior changes.
 
 ---
 
 ## Conclusion
 
-The **MR-HR Dual Versioning Paradigm** addresses a critical infrastructure gap in the era of AI-generated code and multi-agent systems:
-
-**Problem**: Interpreted languages load comments into runtime memory, creating waste when machines execute code they don't need to read.
-
-**Solution**: Maintain two representations (MR for execution, HR for audit), with semantic equivalence guaranteed.
-
-**Impact**:
-- **20-40% memory savings** (multi-instance deployments)
-- **99%+ distribution efficiency** (Galaxy symlink compression)
-- **Robotics safety** (verified MR execution + auditable HR explanation)
-- **AI code generation** (generate both versions simultaneously)
-
-**K3D demonstrates this works** — `codeopt` has been in production since October 2025, achieving measurable savings across Python and JavaScript codebases.
-
-**PM-KR technology development** would enable:
-- Multi-agent systems to optimize memory usage
-- Robots to download verified workflows (MR) from Galaxy
-- Humans to audit procedural knowledge (HR) for safety/ethics
-- AI code generators to produce both versions automatically
-
-**The scenic road analogy holds**: Machines don't need to drive with the windshield covered in comments. Give them the clear view (MR), and keep the documentation (HR) for humans who need to understand the route.
+This draft proposes a traceable relationship between executable procedures and their human explanations.
+The repository's source transformer is available for inspection.
+Equivalence, memory savings, performance and suitability for any safety-critical use require separate evidence.
 
 ---
 
@@ -1028,16 +667,17 @@ test_equivalence('knowledge3d.skills.vision', 'vision', 'encode')
 
 **External References**:
 - Manu Sporny, RDF Canonicalization (rdf-canon): https://www.w3.org/TR/rdf-canon/
-- Adam Sobieski, WICG #188 (Stateful Procedural Execution): https://github.com/WICG/proposals/issues/188
+- Adam Sobieski, [Web Context, WICG proposal #188](https://github.com/WICG/proposals/issues/188), related discussion; not a PM-KR implementation or endorsement.
 - OpenFn Workflow Automation: https://www.openfn.org/
-- Farbrausch .kkrieger (64KB game): http://www.farbrausch.de/
+- [Farbrausch public tool sources](https://github.com/farbrausch/fr_public)
 
 ---
 
 **Document History**:
 - **v1.0** (2026-02-24): Initial draft for PM-KR CG Year 1
 - **Authors**: Daniel Campos Ramos (K3D), GLM-4.5 (Zhipu AI)
-- **Contributors**: Adam Sobieski (audit schema), Manu Sporny (procedural c14n), Jonathan DeRouchie (persistent memory AI), Hanna Abi Akl (neuro-symbolic AI)
+- **Project credits**: See [ATTRIBUTIONS.md](../../ATTRIBUTIONS.md).
+The earlier draft's role assignments are not used here as evidence of participation or endorsement.
 
 **License**: CC BY 4.0 (Creative Commons Attribution)
 
